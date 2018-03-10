@@ -3,9 +3,9 @@ import re
 
 # https://docs.python.org/3/library/re.html
 token_spec = [
-    ('keyword', 'var|const'),
+    ('keyword', r'(var|const)\b'),
     ('identifier', r'[^\W\d]\w*'),
-    ('op', r'[{}=;]'),
+    ('op', r'[{}=;.]'),
     ('string', '".*?"'),
     ('whitespace', r'\s+'),
     ('error', '.'),

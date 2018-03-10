@@ -1,15 +1,18 @@
-import collections
+from collections import deque, namedtuple
 
 
 # expressions
-String = collections.namedtuple('String', ['python_string'])
-GetVar = collections.namedtuple('GetVar', ['varname'])
+String = namedtuple('String', ['python_string'])
+GetVar = namedtuple('GetVar', ['varname'])
+GetAttr = namedtuple('GetAttr', ['object', 'attribute'])
 
 # statements
-SetVar = collections.namedtuple('SetVar', ['varname', 'value'])
-Call = collections.namedtuple('Call', ['func', 'args'])
-VarStatement = collections.namedtuple('VarStatement', ['varname', 'value'])
-ConstStatement = collections.namedtuple('ConstStatement', ['varname', 'value'])
+Call = namedtuple('Call', ['func', 'args'])
+SetVar = namedtuple('SetVar', ['varname', 'value'])
+SetAttr = namedtuple('SetAttr', ['object', 'attribute', 'value'])
+CreateVar = namedtuple('CreateVar', ['varname', 'value', 'is_const'])
+CreateAttr = namedtuple('CreateAttr',
+                        ['object', 'attribute', 'value', 'is_const'])
 
 
 # this kind of abuses EOFError... feels nice and evil >:D MUHAHAHAA!!!
@@ -17,7 +20,7 @@ class _HandyTokenIterator:
 
     def __init__(self, iterable):
         self._iterator = iter(iterable)
-        self._coming_up_stack = collections.deque()
+        self._coming_up_stack = deque()
 
         # this is only used in _Parser.parse_file()
         self.last_popped = None
@@ -69,68 +72,87 @@ class _Parser:
         return self.tokens.coming_up().kind in ('string', 'identifier')
 
     def parse_expression(self):
-        coming_up = self.tokens.coming_up()
         if self.tokens.coming_up().kind == 'string':
             # "hello"
-            return self.parse_string()
-        if coming_up.kind == 'identifier':
-            return GetVar(self.tokens.pop().value)
-        raise ValueError("should be a string or variable name, not %s"
-                         % coming_up.kind)
+            result = self.parse_string()
+        elif self.tokens.coming_up().kind == 'identifier':
+            result = GetVar(self.tokens.pop().value)
+        else:
+            raise ValueError("should be a string or a variable name, not '%s'"
+                             % self.tokens.coming_up().value)
 
-    def parse_call(self):
-        func = self.parse_expression()
+        # attributes
+        while (self.tokens.coming_up().kind == 'op' and
+               self.tokens.coming_up().value == '.'):
+            self.tokens.pop()
+            attribute = self.tokens.pop()
+            if attribute.kind != 'identifier':
+                raise ValueError("invalid attribute name '%s'"
+                                 % attribute.value)
+            result = GetAttr(result, attribute.value)
+
+        return result
+
+    # this takes the function as an already-parsed argument
+    # this way parse_statement() knows when this should be called
+    def parse_call(self, func):
         args = []
         while self.expression_coming_up():
             args.append(self.parse_expression())
         return Call(func, args)
 
-    def _pop_varname(self):
-        token = self.tokens.pop()
-        if token.kind != 'identifier':
-            raise ValueError("invalid variable name " + repr(token.value))
-        return token
+    def parse_var_or_const(self):
+        keyword = self.tokens.pop()
+        assert keyword.kind == 'keyword' and keyword.value in ('var', 'const')
+        is_const = (keyword.value == 'const')
 
-    def parse_setvar(self):
-        varname = self._pop_varname()
+        target = self.parse_expression()
 
-        equal_sign = self.tokens.pop()
-        assert equal_sign.kind == 'op', equal_sign
-        assert equal_sign.value == '=', equal_sign
-
-        value = self.parse_expression()
-        return SetVar(varname.value, value)
-
-    def parse_const(self):
-        const = self.tokens.pop()
-        assert const.kind == 'keyword' and const.value == 'const'
-        varname, value = self.parse_setvar()
-        return ConstStatement(varname, value)
-
-    def parse_var_statement(self):
-        var = self.tokens.pop()
-        assert var.kind == 'keyword' and var.value == 'var'
-        if (self.tokens.coming_up(2).kind == 'op' and
-                self.tokens.coming_up(2).value == '='):
-            varname, initial_value = self.parse_setvar()
+        if (self.tokens.coming_up().kind == 'op' and
+                self.tokens.coming_up().value == '='):
+            self.tokens.pop()
+            initial_value = self.parse_expression()
         else:
-            varname = self._pop_varname().value
+            if is_const:
+                raise ValueError("must specify a value, like "
+                                 "'const varname = value;'")
             initial_value = GetVar('null')      # TODO: something better?
-        return VarStatement(varname, initial_value)
+
+        if isinstance(target, GetVar):
+            return CreateVar(target.varname, initial_value, is_const)
+        if isinstance(target, GetAttr):
+            return CreateAttr(
+                target.object, target.attribute, initial_value, is_const)
+        raise ValueError(
+            "the x of '%s x = y;' must be a variable name or an attribute"
+            % keyword.value)
+
+    # this takes the first expression as an already-parsed argument
+    # this way parse_statement() knows when this should be called
+    def parse_assignment(self, target):
+        equal_sign = self.tokens.pop()
+        assert equal_sign.kind == 'op'
+        assert equal_sign.value == '='
+        value = self.parse_expression()
+
+        if isinstance(target, GetVar):
+            return SetVar(target.varname, value)
+        if isinstance(target, GetAttr):
+            return SetAttr(target.object, target.attribute, value)
+        raise ValueError(
+            "the x of 'x = y;' must be a variable name or an attribute")
 
     def parse_statement(self):
-        # there should be always at least two tokens coming up, some token
-        # and a semicolon
-        coming_1st = self.tokens.coming_up()
-        coming_2nd = self.tokens.coming_up(2)
-        if coming_1st.kind == 'keyword' and coming_1st.value == 'const':
-            statement = self.parse_const()
-        elif coming_1st.kind == 'keyword' and coming_1st.value == 'var':
-            statement = self.parse_var_statement()
-        elif coming_2nd.kind == 'op' and coming_2nd.value == '=':
-            statement = self.parse_setvar()
+        if (self.tokens.coming_up().kind == 'keyword' and
+                self.tokens.coming_up().value in ('var', 'const')):
+            statement = self.parse_var_or_const()
         else:
-            statement = self.parse_call()
+            start = self.parse_expression()
+            if (self.tokens.coming_up().kind == 'op' and
+                    self.tokens.coming_up().value == '='):
+                statement = self.parse_assignment(start)
+            else:
+                statement = self.parse_call(start)
 
         semicolon = self.tokens.pop()
         assert semicolon.kind == 'op', repr(semicolon)

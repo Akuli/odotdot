@@ -4,43 +4,27 @@ import functools
 from simplelang import ast_tree, objects
 
 
+# usually Context(None) means that the builtin context should be
+# used, but it can't be used yet if it hasn't been created
+builtin_context = None
+
+
 class Context:
 
     def __init__(self, parent_context):
+        if parent_context is None:
+            parent_context = builtin_context
         self.parent_context = parent_context
 
         if parent_context is None:
-            # global scope
-            parent_namespaces = []
+            self.namespace = objects.Namespace('variable')
         else:
-            parent_namespaces = parent_context._namespace.maps
-
-        # self._namespace is {name: [value, is_constant]}
-        # i know i know, tuples would be better... but they are immutable
-        self._namespace = collections.ChainMap({}, *parent_namespaces)
-
-    def add_variable(self, name, value, is_constant=True):
-        if name in self._namespace:
-            what = 'constant' if self._namespace[name][1] else 'variable'
-            raise ValueError("there's already a %s named %s" % (what, name))
-
-        self._namespace[name] = [value, is_constant]
-
-    def set(self, varname, value):
-        if varname not in self._namespace:
-            raise ValueError("no variable named " + repr(varname))
-        if self._namespace[varname][1]:
-            raise ValueError("cannot set %s, it's a constant" % varname)
-        self._namespace[varname][0] = value
-
-    def get(self, varname):
-        if varname not in self._namespace:
-            raise ValueError("no variable named " + repr(varname))
-        return self._namespace[varname][0]
+            self.namespace = objects.Namespace(
+                'variable', parent_context.namespace)
 
 
 builtin_context = Context(None)
-objects.add_builtins(builtin_context)
+objects.add_builtins(builtin_context.namespace)
 
 
 class Interpreter:
@@ -48,27 +32,36 @@ class Interpreter:
     def __init__(self):
         self.global_context = Context(builtin_context)
 
-    def evaluate(self, ast_expression, context):
+    def evaluate(self, ast_expression, context) -> objects.Object:
         if isinstance(ast_expression, ast_tree.String):
             return objects.String(ast_expression.python_string)
         if isinstance(ast_expression, ast_tree.GetVar):
-            return context.get(ast_expression.varname)
+            return context.namespace.get(ast_expression.varname)
+        if isinstance(ast_expression, ast_tree.GetAttr):
+            obj = self.evaluate(ast_expression.object, context)
+            return obj.attributes.get(ast_expression.attribute)
 
     def execute(self, ast_statements, context):
-        evaluate = functools.partial(self.evaluate, context=context)
-
         for statement in ast_statements:
             if isinstance(statement, ast_tree.Call):
                 func = self.evaluate(statement.func, context)
                 args = [self.evaluate(arg, context) for arg in statement.args]
                 func.call(args)
-            elif isinstance(statement, (ast_tree.VarStatement,
-                                        ast_tree.ConstStatement)):
-                is_const = isinstance(statement, ast_tree.ConstStatement)
+            elif isinstance(statement, ast_tree.CreateVar):
+                initial_value = self.evaluate(statement.value, context)
+                context.namespace.add(statement.varname, initial_value,
+                                      statement.is_const)
+            elif isinstance(statement, ast_tree.CreateAttr):
+                obj = self.evaluate(statement.object, context)
+                initial_value = self.evaluate(statement.value, context)
+                obj.attributes.add(statement.attribute, initial_value,
+                                   statement.is_const)
+            elif isinstance(statement, ast_tree.SetAttr):
+                obj = self.evaluate(statement.object, context)
                 value = self.evaluate(statement.value, context)
-                context.add_variable(statement.varname, value, is_const)
+                obj.attributes.set(statement.attribute, value)
             elif isinstance(statement, ast_tree.SetVar):
                 value = self.evaluate(statement.value, context)
-                context.set(statement.varname, value)
+                context.namespace.set(statement.varname, value)
             else:   # pragma: no cover
                 raise RuntimeError("unknown statement: " + repr(statement))

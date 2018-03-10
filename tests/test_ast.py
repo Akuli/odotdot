@@ -1,37 +1,57 @@
 import pytest
 
-from simplelang import tokenizer
+from simplelang import tokenizer, ast_tree
 from simplelang.ast_tree import (
-    parse, Call, SetVar, GetVar, ConstStatement, VarStatement, String)
+    String, Call, SetVar, SetAttr, GetVar, GetAttr, CreateVar, CreateAttr)
 
 
-def tokenize_parse(code):
+def parse(code):
     # list() calls are for fail-fast debuggability
     tokens = list(tokenizer.tokenize(code))
-    return list(parse(tokens))
+    return list(ast_tree.parse(tokens))
 
 
 def test_strings():
     # TODO: allow \n, \t and stuff
-    assert tokenize_parse('print "hello";') == [
+    assert parse('print "hello";') == [
         Call(GetVar('print'), [String('hello')]),
     ]
 
 
-def test_vars():
-    assert tokenize_parse('var x = y;') == [VarStatement('x', GetVar('y'))]
-    assert tokenize_parse('const x = y;') == [ConstStatement('x', GetVar('y'))]
-    assert tokenize_parse('var x;') == [VarStatement('x', GetVar('null'))]
-    with pytest.raises(AssertionError):     # lol
-        tokenize_parse('const x;')
-    assert tokenize_parse('x = y;') == [SetVar('x', GetVar('y'))]
+def test_variables():
+    assert parse('var x=y;') == [CreateVar('x', GetVar('y'), False)]
+    assert parse('const x=y;') == [CreateVar('x', GetVar('y'), True)]
+    assert parse('var x;') == [CreateVar('x', GetVar('null'), False)]
+    with pytest.raises(ValueError):
+        parse('const x;')
+    assert parse('x = y;') == [SetVar('x', GetVar('y'))]
 
     # invalid variable names
     with pytest.raises(ValueError):
-        tokenize_parse('var var;')
+        parse('var var;')
     with pytest.raises(ValueError):
-        tokenize_parse('var const;')
+        parse('var const;')
 
     # not valid expression
     with pytest.raises(ValueError):
-        tokenize_parse('const x = ;')
+        parse('const x = ;')
+
+    with pytest.raises(ValueError):
+        parse('const "hello"=asd;')
+    with pytest.raises(ValueError):
+        parse('"hello"=asd;')
+
+
+def test_attributes():
+    assert parse('x.y;') == [Call(GetAttr(GetVar('x'), 'y'), [])]
+    assert parse('a.b.c.d.e;') == [Call(
+        GetAttr(GetAttr(GetAttr(GetAttr(GetVar('a'), 'b'), 'c'), 'd'), 'e'),
+        [])]
+    assert parse('a.b.c.d.e = f;') == [SetAttr(
+        GetAttr(GetAttr(GetAttr(GetVar('a'), 'b'), 'c'), 'd'),
+        'e', GetVar('f'))]
+    assert parse('var x.y = z;') == [
+        CreateAttr(GetVar('x'), 'y', GetVar('z'), False)]
+
+    with pytest.raises(ValueError):
+        parse('x.const.y;')

@@ -8,7 +8,7 @@ def tokenizelist(code):
 
 
 def test_basic_stuff():
-    assert tokenizelist('var x = y;') == tokenizelist('var  x\n \t= y\n;') == [
+    assert tokenizelist('var x=y;') == tokenizelist('var  x\n \t= y\n;') == [
         Token('keyword', 'var'),
         Token('identifier', 'x'),
         Token('op', '='),
