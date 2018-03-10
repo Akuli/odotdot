@@ -28,7 +28,9 @@ class _HandyTokenIterator:
         except IndexError:
             try:
                 result = next(self._iterator)
-            except StopIteration:
+            except StopIteration:   # pragma: no cover
+                # it's surprisingly hard to make this bit run, that's
+                # why it's not tested
                 raise EOFError
 
         self.last_popped = result
@@ -143,17 +145,3 @@ class _Parser:
 
 def parse(tokens):
     return _Parser(tokens).parse_file()
-
-
-if __name__ == '__main__':
-    from importlib import import_module as i
-    while True:
-        code = input('>> ')
-        try:
-            tokens = list(i('simplelang.tokenizer').tokenize(code))
-            ast_tree = list(parse(tokens))
-            i('pprint').pprint(ast_tree)
-        except ValueError as e:
-            print(e)
-        except Exception as e:
-            i('traceback').print_exc()

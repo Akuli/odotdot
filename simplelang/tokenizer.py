@@ -33,8 +33,3 @@ def tokenize(code, filename='<string>'):
                 line_start = match.start() + value.rindex('\n') + len('\n')
         else:
             yield Token(kind, value)
-
-
-if __name__ == '__main__':
-    for token in tokenize('display "hello world";\n\nword = input "asd"'):
-        print(token)

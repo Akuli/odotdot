@@ -99,3 +99,6 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# pytest stupid cache, why doesn't github ignore this by default :(
+.pytest_cache/

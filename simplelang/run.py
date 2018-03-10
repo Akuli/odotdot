@@ -70,20 +70,5 @@ class Interpreter:
             elif isinstance(statement, ast_tree.SetVar):
                 value = self.evaluate(statement.value, context)
                 context.set(statement.varname, value)
-            else:
+            else:   # pragma: no cover
                 raise RuntimeError("unknown statement: " + repr(statement))
-
-
-if __name__ == '__main__':
-    code = '''
-    var msg;
-    msg = "hello world";
-    print msg;
-    '''
-
-    from simplelang import tokenizer
-    tokens = tokenizer.tokenize(code)
-    ast = list(ast_tree.parse(tokens))
-    print(ast)
-    interp = Interpreter()
-    interp.execute(ast, interp.global_context)
