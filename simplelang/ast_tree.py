@@ -204,17 +204,22 @@ class _Parser:
         # figure out whether it contains a semicolon before }
         # if it doesn't, it's an implicit return
         # { asd } is equivalent to { return asd; }
-        # FIXME: this breaks with { { print "hello"; } }
-        implicit_return = None
-        for token in map(self.tokens.coming_up, itertools.count(1)):
-            if token.kind == 'op' and token.value == ';':
-                implicit_return = False
-                break
-            if token.kind == 'op' and token.value == '}':   # before a ;
-                implicit_return = True
-                break
-        if implicit_return is None:
-            raise EOFError
+        if (self.tokens.coming_up().kind == 'op' and
+                self.tokens.coming_up().value == '}'):
+            # empty block: { }
+            implicit_return = False
+        else:
+            # FIXME: this breaks with { { print "hello"; } }
+            implicit_return = None
+            for token in map(self.tokens.coming_up, itertools.count(1)):
+                if token.kind == 'op' and token.value == ';':
+                    implicit_return = False
+                    break
+                if token.kind == 'op' and token.value == '}':   # before a ;
+                    implicit_return = True
+                    break
+            if implicit_return is None:
+                raise EOFError
 
         if implicit_return:
             statements = [Return(self.parse_expression())]
