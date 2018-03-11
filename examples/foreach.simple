@@ -1,0 +1,5 @@
+# simple foreach loop
+const a = (Array "one" "two" "three");
+a.foreach "thing" {
+    print thing;
+};

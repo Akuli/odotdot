@@ -12,6 +12,7 @@ expected_output = {
     'scopes.simple': 'hello\n',
     'mapping.simple': 'hello\nhi\n',
     'if.simple': 'everything ok\n',
+    'foreach.simple': 'one\ntwo\nthree\n',
 }
 should_raise = {'scopes.simple': pytest.raises(ValueError)}
 
@@ -22,7 +23,7 @@ def nothing_special():
 
 
 # i don't know why chdirs are done with a fixture called monkeypatch in pytest
-# TODO: write the tests in the language itself :D
+# TODO: write this stuff in the language itself :D
 def test_examples(monkeypatch, capsys):
     monkeypatch.chdir('examples')
 

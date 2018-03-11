@@ -4,16 +4,16 @@ import functools
 from simplelang import ast_tree, objects
 
 
-# usually Context(None) means that the builtin context should be
-# used, but it can't be used yet if it hasn't been created
-builtin_context = None
-
-
-class Context:
+class Context(objects.Object):
 
     def __init__(self, parent_context):
+        super().__init__()
         if parent_context is None:
-            parent_context = builtin_context
+            if 'builtin_context' in globals():
+                parent_context = builtin_context
+            # else: this is the builtin context
+        else:
+            assert isinstance(parent_context, Context)
         self.parent_context = parent_context
 
         if parent_context is None:
@@ -21,6 +21,42 @@ class Context:
         else:
             self.namespace = objects.Namespace(
                 'variable', parent_context.namespace)
+
+        self.attributes.add('add_var', objects.BuiltinFunction(self._add_var))
+        self.attributes.add('add_const',
+                            objects.BuiltinFunction(self._add_const))
+        self.attributes.add('set_var', objects.BuiltinFunction(self._set_var))
+        self.attributes.add('get_var', objects.BuiltinFunction(self._get_var))
+
+        if parent_context is None:
+            self.attributes.add('parent_context', objects.null)
+        else:
+            self.attributes.add('parent_context', parent_context)
+        self.attributes.add('create_subcontext',
+                            objects.BuiltinFunction(self.create_subcontext))
+        self.attributes.can_add = False
+
+    # these are just for exposing in simplelang, access .namespace
+    # directly in python instead of using this stupid poop
+    def _add_var(self, name, initial_value):
+        assert isinstance(name, objects.String)
+        self.namespace.add(name.python_string, initial_value, is_const=False)
+        return objects.null
+
+    def _add_const(self, name, initial_value):
+        assert isinstance(name, objects.String)
+        self.namespace.add(name.python_string, initial_value, is_const=True)
+        return objects.null
+
+    def _set_var(self, name, value):
+        assert isinstance(name, objects.String)
+        self.namespace.set(name.python_string, value)
+        return objects.null
+
+    def _get_var(self, name):
+        assert isinstance(name, objects.String)
+        return self.namespace.get(name.python_string)
+        return objects.null
 
     # handy-dandy helper method to avoid having to import this file to
     # objects.py (lol)
@@ -40,44 +76,58 @@ class Interpreter:
     def evaluate(self, ast_expression, context):
         if isinstance(ast_expression, ast_tree.String):
             return objects.String(ast_expression.python_string)
+
         if isinstance(ast_expression, ast_tree.GetVar):
             return context.namespace.get(ast_expression.varname)
+
         if isinstance(ast_expression, ast_tree.GetAttr):
             obj = self.evaluate(ast_expression.object, context)
             return obj.attributes.get(ast_expression.attribute)
+
         if isinstance(ast_expression, ast_tree.Call):
             func = self.evaluate(ast_expression.func, context)
+            if func is objects.get_context:
+                if ast_expression.args:
+                    raise ValueError("get_context takes no arguments")
+                return context
+
             args = [self.evaluate(arg, context) for arg in ast_expression.args]
             return func.call(args)
+
         if isinstance(ast_expression, ast_tree.Code):
             return objects.Code(self, context, ast_expression.statements)
+
         raise RuntimeError(        # pragma: no cover
             "don't know how to evaluate " + repr(ast_expression))
 
     def execute(self, ast_statement, context):
         if isinstance(ast_statement, ast_tree.Call):
-            func = self.evaluate(ast_statement.func, context)
-            args = [self.evaluate(arg, context) for arg in ast_statement.args]
-            func.call(args)
+            self.evaluate(ast_statement, context)
+
         elif isinstance(ast_statement, ast_tree.CreateVar):
             initial_value = self.evaluate(ast_statement.value, context)
             context.namespace.add(ast_statement.varname, initial_value,
                                   ast_statement.is_const)
+
         elif isinstance(ast_statement, ast_tree.CreateAttr):
             obj = self.evaluate(ast_statement.object, context)
             initial_value = self.evaluate(ast_statement.value, context)
             obj.attributes.add(ast_statement.attribute, initial_value,
                                ast_statement.is_const)
+
         elif isinstance(ast_statement, ast_tree.SetAttr):
             obj = self.evaluate(ast_statement.object, context)
             value = self.evaluate(ast_statement.value, context)
             obj.attributes.set(ast_statement.attribute, value)
+
         elif isinstance(ast_statement, ast_tree.SetVar):
             value = self.evaluate(ast_statement.value, context)
             context.namespace.set(ast_statement.varname, value)
+
         elif isinstance(ast_statement, ast_tree.Return):
             value = self.evaluate(ast_statement.value, context)
             raise objects.ReturnAValue(value)
+
         else:   # pragma: no cover
             raise RuntimeError(
                 "don't know how to execute " + repr(ast_statement))

@@ -1,4 +1,5 @@
 import collections
+import functools
 
 
 # i know i know, you hate exceptions as control flow
@@ -64,6 +65,7 @@ def _get_attrs(obj):
         result.add((attribute, obj.attributes.get(attribute)))
     return result
 
+
 class Object:
 
     def __init__(self):
@@ -81,12 +83,30 @@ class Object:
         return hash(frozenset(_get_attrs(self)))
 
 
+def only_n_instances(n):
+    def decorator(klass):
+        current_number = 0
+        old_init = klass.__init__
+
+        @functools.wraps(old_init)
+        def new_init(self, *args, **kwargs):
+            nonlocal current_number
+            if current_number >= n:
+                raise TypeError("cannot create more than %d %s objects"
+                                % (n, klass.__name__))
+            current_number += 1
+            old_init(self, *args, **kwargs)
+
+        klass.__init__ = new_init
+        return klass
+
+    return decorator
+
+
+@only_n_instances(1)
 class NullClass(Object):
 
     def __init__(self):
-        if 'null' in globals():    # null object already created
-            raise TypeError("cannot create more NullClass objects, use the "
-                            "existing null object instead")
         super().__init__()
         self.attributes.can_add = False
 
@@ -102,16 +122,12 @@ class NullClass(Object):
 null = NullClass()
 
 
+@only_n_instances(2)
 class Boolean(Object):
 
     def __init__(self, python_bool):
-        # prevent creating a 'maybe' boolean
-        if ('true' if python_bool else 'false') in globals():
-            raise TypeError("there should be exactly two Boolean objects, "
-                            "use the existing true and false instead of "
-                            "creating more")
-        self.python_bool = python_bool
         super().__init__()
+        self.python_bool = python_bool
         self.attributes.can_add = False
 
     def __eq__(self, other):
@@ -155,7 +171,10 @@ class BuiltinFunction(Object):
         self.attributes.can_add = False
 
     def call(self, args):
-        return self.python_func(*args)
+        result = self.python_func(*args)
+        assert isinstance(result, Object), (
+            "%r returned %r" % (self.python_func, result))
+        return result
 
     def __eq__(self, other):
         if not isinstance(other, BuiltinFunction):
@@ -166,13 +185,42 @@ class BuiltinFunction(Object):
         return hash(self.python_func)
 
 
+# a special marker object, get_context is a simplelang function that
+# returns the current Context object
+get_context = Object()
+
+
 # to be expanded...
 class Array(Object):
 
     def __init__(self, elements=()):
         super().__init__()
         self.python_list = list(elements)
+        self.attributes.add('foreach', BuiltinFunction(self.foreach))
         self.attributes.can_add = False
+
+    @classmethod
+    def from_star_args(cls, *args):
+        return cls(args)
+
+    def foreach(self, varname, loop_body):
+        assert isinstance(varname, String)
+        assert isinstance(loop_body, Code)
+
+        context = loop_body.definition_context.create_subcontext()
+        iterator = iter(self.python_list)
+        try:
+            first = next(iterator)
+        except StopIteration:
+            return
+
+        context.namespace.add(varname.python_string, first, is_const=False)
+        loop_body.run(context)
+        for not_first in iterator:
+            context.namespace.set(varname.python_string, not_first)
+            loop_body.run(context)
+
+        return null
 
 
 class Mapping(Object):
@@ -225,29 +273,28 @@ class Code(Object):
 
         super().__init__()
         self._interp = interpreter
-        self._def_context = definition_context
+        self.definition_context = definition_context
         self._statements = ast_statements
+
+        # TODO: add some kind of optional arguments :(
         self.attributes.add('run', BuiltinFunction(self.run))
         self.attributes.add('run_with_return',
                             BuiltinFunction(self.run_with_return))
         self.attributes.can_add = False
 
-    def run(self, extra_vars_mapping=None):
-        context = self._def_context.create_subcontext()
-        if extra_vars_mapping is not None:
-            for name, value in extra_vars_mapping.python_dict.items():
-                context.namespace.add(name.python_string, value,
-                                      is_const=False)
-
+    def run(self, context=None):
+        if context is None:
+            context = self.definition_context.create_subcontext()
         for statement in self._statements:
             self._interp.execute(statement, context)
+        return null
 
-    def run_with_return(self, extra_vars_mapping=None):
+    def run_with_return(self, context=None):
         try:
-            self.run(extra_vars_mapping)
-            raise ValueError("nothing was returned")
+            self.run(context)
         except ReturnAValue as e:
             return e.value
+        raise ValueError("nothing was returned")
 
 
 @BuiltinFunction
@@ -263,6 +310,7 @@ def if_(condition, code):
         "expected true or false, got " + repr(condition))
     if condition is true:
         code.run()
+    return null
 
 
 def add_builtins(namespace):
@@ -271,4 +319,7 @@ def add_builtins(namespace):
     namespace.add('false', false)
     namespace.add('if', if_)
     namespace.add('print', print_)
+    namespace.add('get_context', get_context)
     namespace.add('Mapping', BuiltinFunction(Mapping.from_pairs))
+    namespace.add('Object', BuiltinFunction(Object))
+    namespace.add('Array', BuiltinFunction(Array.from_star_args))
