@@ -97,6 +97,9 @@ class String(Object):
         self.python_string = python_string
         self.attributes.can_add = False
 
+    def __repr__(self):
+        return '<simplelang String object: %r>' % self.python_string
+
     # TODO: get rid of the boilerplate :(
     def __eq__(self, other):
         if not isinstance(other, String):
@@ -141,7 +144,6 @@ class Mapping(Object):
         super().__init__()
         self.python_dict = ({} if elements is None else dict(elements))
 
-        print("creating Mapping", self.python_dict)
         self.attributes.add(
             'set', BuiltinFunction(self.python_dict.__setitem__))
         self.attributes.add('get', BuiltinFunction(self.get))
@@ -151,7 +153,7 @@ class Mapping(Object):
 
     @classmethod
     def from_pairs(cls, *pairs):
-        assert len(pairs) % 2 == 0, "got an odd number of arguments"
+        assert len(pairs) % 2 == 0, "odd number of arguments: " + repr(pairs)
 
         # idiomatic python: iterate in pairs
         result = {}
@@ -202,7 +204,14 @@ class Code(Object):
             self._interp.execute(statement, context)
 
 
+@BuiltinFunction
+def print_(arg):
+    assert isinstance(arg, String), "cannot print " + repr(arg)
+    print(arg.python_string)
+    return null
+
+
 def add_builtins(namespace):
     namespace.add('null', null)
-    namespace.add('print', BuiltinFunction(lambda arg: print(arg.python_string)))
+    namespace.add('print', print_)
     namespace.add('Mapping', BuiltinFunction(Mapping.from_pairs))

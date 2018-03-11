@@ -8,12 +8,14 @@ GetVar = namedtuple('GetVar', ['varname'])
 GetAttr = namedtuple('GetAttr', ['object', 'attribute'])
 
 # statements
-Call = namedtuple('Call', ['func', 'args'])
 SetVar = namedtuple('SetVar', ['varname', 'value'])
 SetAttr = namedtuple('SetAttr', ['object', 'attribute', 'value'])
 CreateVar = namedtuple('CreateVar', ['varname', 'value', 'is_const'])
 CreateAttr = namedtuple('CreateAttr',
                         ['object', 'attribute', 'value', 'is_const'])
+
+# expressions that are also statements
+Call = namedtuple('Call', ['func', 'args'])
 
 
 # this kind of abuses EOFError... feels nice and evil >:D MUHAHAHAA!!!
@@ -69,8 +71,13 @@ class _Parser:
         assert token.kind == 'string', "expected a string, not " + token.kind
         return String(token.value[1:-1])
 
+    # remember to update this if you add more expressions!
     def expression_coming_up(self):
-        return self.tokens.coming_up().kind in ('string', 'identifier')
+        if self.tokens.coming_up().kind in ('string', 'identifier'):
+            return True
+        if self.tokens.coming_up().kind == 'op':
+            return (self.tokens.coming_up().value in {'(', '{'})
+        return False
 
     def parse_expression(self):
         if self.tokens.coming_up().kind == 'string':
@@ -80,6 +87,9 @@ class _Parser:
         elif (self.tokens.coming_up().kind == 'op' and
               self.tokens.coming_up().value == '{'):
             result = self.parse_code()
+        elif (self.tokens.coming_up().kind == 'op' and
+              self.tokens.coming_up().value == '('):
+            result = self.parse_call_expression()
         else:
             raise ValueError('should be a variable name, "..." or { ... }, '
                              "not '%s'" % self.tokens.coming_up().value)
@@ -96,9 +106,23 @@ class _Parser:
 
         return result
 
+    def parse_call_expression(self):
+        open_paren = self.tokens.pop()
+        assert open_paren.kind == 'op'
+        assert open_paren.value == '('
+
+        func = self.parse_expression()
+        result = self.parse_call_statement(func)    # see below
+
+        close_paren = self.tokens.pop()
+        assert close_paren.kind == 'op'
+        assert close_paren.value == ')'
+
+        return result
+
     # this takes the function as an already-parsed argument
     # this way parse_statement() knows when this should be called
-    def parse_call(self, func):
+    def parse_call_statement(self, func):
         args = []
         while self.expression_coming_up():
             args.append(self.parse_expression())
@@ -155,7 +179,7 @@ class _Parser:
                     self.tokens.coming_up().value == '='):
                 statement = self.parse_assignment(start)
             else:
-                statement = self.parse_call(start)
+                statement = self.parse_call_statement(start)
 
         semicolon = self.tokens.pop()
         assert semicolon.kind == 'op', repr(semicolon)

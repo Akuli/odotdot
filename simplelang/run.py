@@ -45,6 +45,10 @@ class Interpreter:
         if isinstance(ast_expression, ast_tree.GetAttr):
             obj = self.evaluate(ast_expression.object, context)
             return obj.attributes.get(ast_expression.attribute)
+        if isinstance(ast_expression, ast_tree.Call):
+            func = self.evaluate(ast_expression.func, context)
+            args = [self.evaluate(arg, context) for arg in ast_expression.args]
+            return func.call(args)
         if isinstance(ast_expression, ast_tree.Code):
             return objects.Code(self, context, ast_expression.statements)
         raise RuntimeError(        # pragma: no cover

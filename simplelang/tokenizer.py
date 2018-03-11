@@ -5,7 +5,7 @@ import re
 token_spec = [
     ('keyword', r'(var|const)\b'),
     ('identifier', r'[^\W\d]\w*'),
-    ('op', r'[{}=;.]'),
+    ('op', r'[{}()=;.]'),       # TODO: test ( )
     ('string', '".*?"'),
     ('comment', r'#[^\n]*'),
     ('whitespace', r'\s+'),
