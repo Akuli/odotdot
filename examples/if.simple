@@ -1,9 +1,7 @@
-# i know this return syntax is annoying... i'll probably fix it eventually
-
-if { return true; } {
+if true {
     print "everything ok";
 };
 
-if { return false; } {
+if false {
     print "something is badly wrong";
-}
+};

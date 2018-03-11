@@ -259,7 +259,7 @@ def print_(arg):
 
 @BuiltinFunction
 def if_(condition, code):
-    assert isinstance(cond, Boolean), (
+    assert isinstance(condition, Boolean), (
         "expected true or false, got " + repr(condition))
     if condition is true:
         code.run()

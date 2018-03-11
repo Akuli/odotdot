@@ -11,6 +11,7 @@ expected_output = {
     'code.simple': 'hello\n' * 3,
     'scopes.simple': 'hello\n',
     'mapping.simple': 'hello\nhi\n',
+    'if.simple': 'everything ok\n',
 }
 should_raise = {'scopes.simple': pytest.raises(ValueError)}
 
