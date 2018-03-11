@@ -1,6 +1,16 @@
 import collections
 
 
+# i know i know, you hate exceptions as control flow
+# but this is simpler than polluting everything with checks for returns
+# practicality beats purity
+class ReturnAValue(Exception):
+
+    def __init__(self, value):
+        super().__init__(value)
+        self.value = value
+
+
 class Namespace:
 
     def __init__(self, content_string_for_messages, parent_namespace=None):
@@ -218,6 +228,8 @@ class Code(Object):
         self._def_context = definition_context
         self._statements = ast_statements
         self.attributes.add('run', BuiltinFunction(self.run))
+        self.attributes.add('run_with_return',
+                            BuiltinFunction(self.run_with_return))
         self.attributes.can_add = False
 
     def run(self, extra_vars_mapping=None):
@@ -229,6 +241,13 @@ class Code(Object):
 
         for statement in self._statements:
             self._interp.execute(statement, context)
+
+    def run_with_return(self, extra_vars_mapping=None):
+        try:
+            self.run(extra_vars_mapping)
+            raise ValueError("nothing was returned")
+        except ReturnAValue as e:
+            return e.value
 
 
 @BuiltinFunction

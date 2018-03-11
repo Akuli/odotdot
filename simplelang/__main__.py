@@ -1,6 +1,6 @@
 import argparse
 
-from simplelang import tokenizer, ast_tree, run
+from simplelang import tokenizer, ast_tree, run, objects
 
 
 def main():
@@ -15,8 +15,11 @@ def main():
     ast_statements = ast_tree.parse(tokens)
 
     interpreter = run.Interpreter()
-    for statement in ast_statements:
-        interpreter.execute(statement, interpreter.global_context)
+    try:
+        for statement in ast_statements:
+            interpreter.execute(statement, interpreter.global_context)
+    except objects.ReturnAValue:
+        raise ValueError("unexpected return")
 
 
 if __name__ == '__main__':

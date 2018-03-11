@@ -13,6 +13,7 @@ SetAttr = namedtuple('SetAttr', ['object', 'attribute', 'value'])
 CreateVar = namedtuple('CreateVar', ['varname', 'value', 'is_const'])
 CreateAttr = namedtuple('CreateAttr',
                         ['object', 'attribute', 'value', 'is_const'])
+Return = namedtuple('Return', ['value'])
 
 # expressions that are also statements
 Call = namedtuple('Call', ['func', 'args'])
@@ -128,9 +129,17 @@ class _Parser:
             args.append(self.parse_expression())
         return Call(func, args)
 
+    def parse_return(self):
+        return_ = self.tokens.pop()
+        assert return_.kind == 'keyword', return_
+        assert return_.value == 'return', return_
+        value = self.parse_expression()
+        return Return(value)
+
     def parse_var_or_const(self):
         keyword = self.tokens.pop()
-        assert keyword.kind == 'keyword' and keyword.value in ('var', 'const')
+        assert keyword.kind == 'keyword', keyword
+        assert keyword.value in {'var', 'const'}, keyword
         is_const = (keyword.value == 'const')
 
         target = self.parse_expression()
@@ -173,6 +182,9 @@ class _Parser:
         if (self.tokens.coming_up().kind == 'keyword' and
                 self.tokens.coming_up().value in ('var', 'const')):
             statement = self.parse_var_or_const()
+        elif (self.tokens.coming_up().kind == 'keyword' and
+              self.tokens.coming_up().value == 'return'):
+            statement = self.parse_return()
         else:
             start = self.parse_expression()
             if (self.tokens.coming_up().kind == 'op' and

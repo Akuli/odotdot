@@ -3,7 +3,7 @@ import re
 
 # https://docs.python.org/3/library/re.html
 token_spec = [
-    ('keyword', r'(var|const)\b'),
+    ('keyword', r'(var|const|return)\b'),      # TODO: test returns
     ('identifier', r'[^\W\d]\w*'),
     ('op', r'[{}()=;.]'),       # TODO: test ( )
     ('string', '".*?"'),

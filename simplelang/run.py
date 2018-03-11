@@ -75,6 +75,9 @@ class Interpreter:
         elif isinstance(ast_statement, ast_tree.SetVar):
             value = self.evaluate(ast_statement.value, context)
             context.namespace.set(ast_statement.varname, value)
+        elif isinstance(ast_statement, ast_tree.Return):
+            value = self.evaluate(ast_statement.value, context)
+            raise objects.ReturnAValue(value)
         else:   # pragma: no cover
             raise RuntimeError(
                 "don't know how to execute " + repr(ast_statement))
