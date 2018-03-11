@@ -200,7 +200,6 @@ class _Parser:
 
         return statement
 
-    # TODO: support one-line codes, { "hi" } is same as { return "hi"; }?
     def parse_code(self):
         open_brace = self.tokens.pop()
         assert open_brace.kind == 'op', repr(brace)
