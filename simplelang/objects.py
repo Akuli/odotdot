@@ -81,6 +81,8 @@ class NullClass(Object):
         self.attributes.can_add = False
 
     def __eq__(self, other):
+        if not isinstance(other, NullClass):
+            return NotImplemented
         return (self is other)
 
     def __hash__(self):
@@ -88,6 +90,31 @@ class NullClass(Object):
 
 
 null = NullClass()
+
+
+class Boolean(Object):
+
+    def __init__(self, python_bool):
+        # prevent creating a 'maybe' boolean
+        if ('true' if python_bool else 'false') in globals():
+            raise TypeError("there should be exactly two Boolean objects, "
+                            "use the existing true and false instead of "
+                            "creating more")
+        self.python_bool = python_bool
+        super().__init__()
+        self.attributes.can_add = False
+
+    def __eq__(self, other):
+        if not isinstance(other, Boolean):
+            return NotImplemented
+        return self.python_bool == other.python_bool
+
+    def __hash__(self):
+        return hash(self.python_bool)
+
+
+true = Boolean(True)
+false = Boolean(False)
 
 
 class String(Object):
@@ -211,7 +238,18 @@ def print_(arg):
     return null
 
 
+@BuiltinFunction
+def if_(condition, code):
+    assert isinstance(cond, Boolean), (
+        "expected true or false, got " + repr(condition))
+    if condition is true:
+        code.run()
+
+
 def add_builtins(namespace):
     namespace.add('null', null)
+    namespace.add('true', true)
+    namespace.add('false', false)
+    namespace.add('if', if_)
     namespace.add('print', print_)
     namespace.add('Mapping', BuiltinFunction(Mapping.from_pairs))
