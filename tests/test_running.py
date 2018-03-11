@@ -97,11 +97,11 @@ def test_attributes(run_code, capsys):
 
     run_code.context.namespace.get('d').attributes.can_add = False
 
-    # old variables must still work...
+    # old attributes must still work...
     run_code('d.lol = "very new lol"; print d.lol;')
     assert capsys.readouterr() == ('very new lol\n', '')
 
-    # ...even though new variables cannot be added
+    # ...even though new attributes cannot be added
     with pytest.raises(ValueError):
         run_code('var d.omg = "waaaaaat";')
     with pytest.raises(ValueError):
@@ -122,8 +122,8 @@ def test_code_objects(run_code, capsys):
     run_code('hello.run;')
     assert capsys.readouterr() == ('hello world\nhello again\n', '')
 
-    run_code('var a = "original a";')
     run_code('''
+    var a = "original a";
     {
         print a;
         a = "new a";
