@@ -13,6 +13,7 @@ expected_output = {
     'mapping.simple': 'hello\nhi\n',
     'if.simple': 'everything ok\n',
     'foreach.simple': 'one\ntwo\nthree\n',
+    'while.simple': 'hello\n',
 }
 should_raise = {'scopes.simple': pytest.raises(ValueError)}
 

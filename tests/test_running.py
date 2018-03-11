@@ -3,7 +3,7 @@ import functools
 import pytest
 
 from simplelang import ast_tree, tokenizer, objects
-from simplelang.run import Interpreter, builtin_context
+from simplelang.run import Interpreter
 
 
 # run a bunch of code in the same interpreter and context

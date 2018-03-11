@@ -185,11 +185,6 @@ class BuiltinFunction(Object):
         return hash(self.python_func)
 
 
-# a special marker object, get_context is a simplelang function that
-# returns the current Context object
-get_context = Object()
-
-
 # to be expanded...
 class Array(Object):
 
@@ -197,6 +192,9 @@ class Array(Object):
         super().__init__()
         self.python_list = list(elements)
         self.attributes.add('foreach', BuiltinFunction(self.foreach))
+        self.attributes.add('get', BuiltinFunction(self._get))
+        self.attributes.add('slice', BuiltinFunction(self._slice))
+        self.attributes.add('get_length', BuiltinFunction(self._get_length))
         self.attributes.can_add = False
 
     @classmethod
@@ -221,6 +219,19 @@ class Array(Object):
             loop_body.run(context)
 
         return null
+
+    # there are no integer objects yet, everything is a string :(
+    def _get(self, index):
+        return self.python_list[int(index.python_string)]
+
+    def _slice(self, start, end=None):
+        start = int(start.python_string)
+        if end is not None:     # python's thing[a:] is same as thing[a:None]
+            end = int(end.python_string)
+        return Array(self.python_list[start:end])
+
+    def _get_length(self):
+        return String(str(len(self.python_list)))
 
 
 class Mapping(Object):
@@ -276,7 +287,7 @@ class Code(Object):
         self.definition_context = definition_context
         self._statements = ast_statements
 
-        # TODO: add some kind of optional arguments :(
+        self.attributes.add('definition_context', definition_context)
         self.attributes.add('run', BuiltinFunction(self.run))
         self.attributes.add('run_with_return',
                             BuiltinFunction(self.run_with_return))
@@ -294,7 +305,7 @@ class Code(Object):
             self.run(context)
         except ReturnAValue as e:
             return e.value
-        raise ValueError("nothing was returned")
+        return null
 
 
 @BuiltinFunction
@@ -313,13 +324,47 @@ def if_(condition, code):
     return null
 
 
-def add_builtins(namespace):
+# create a function that takes an array of arguments
+@BuiltinFunction
+def array_func(func_body):
+    @BuiltinFunction
+    def the_func(*args):
+        run_context = func_body.definition_context.create_subcontext()
+        run_context.namespace.add('arguments', Array(args))
+        return func_body.run_with_return(run_context)
+
+    return the_func
+
+
+@BuiltinFunction
+def error(msg):
+    raise ValueError(msg.python_string)     # lol
+
+
+@BuiltinFunction
+def equals(a, b):
+    return true if a == b else false
+
+
+@BuiltinFunction
+def not_(boolean):
+    if boolean is true:
+        return false
+    if boolean is false:
+        return true
+    raise TypeError("not " + repr(boolean))
+
+
+def add_real_builtins(namespace):
     namespace.add('null', null)
     namespace.add('true', true)
     namespace.add('false', false)
     namespace.add('if', if_)
+    namespace.add('not', not_)
     namespace.add('print', print_)
-    namespace.add('get_context', get_context)
+    namespace.add('array_func', array_func)
+    namespace.add('error', error)
+    namespace.add('equals', equals)
     namespace.add('Mapping', BuiltinFunction(Mapping.from_pairs))
     namespace.add('Object', BuiltinFunction(Object))
     namespace.add('Array', BuiltinFunction(Array.from_star_args))

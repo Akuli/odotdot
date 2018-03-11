@@ -1,19 +1,16 @@
 import collections
 import functools
+import os
 
-from simplelang import ast_tree, objects
+from simplelang import tokenizer, ast_tree, objects
 
 
 class Context(objects.Object):
 
     def __init__(self, parent_context):
         super().__init__()
-        if parent_context is None:
-            if 'builtin_context' in globals():
-                parent_context = builtin_context
-            # else: this is the builtin context
-        else:
-            assert isinstance(parent_context, Context)
+
+        # this is the builtin context if parent_context is None
         self.parent_context = parent_context
 
         if parent_context is None:
@@ -64,14 +61,24 @@ class Context(objects.Object):
         return Context(self)
 
 
-builtin_context = Context(None)
-objects.add_builtins(builtin_context.namespace)
-
-
 class Interpreter:
 
     def __init__(self):
-        self.global_context = Context(builtin_context)
+        self.builtin_context = Context(None)
+        objects.add_real_builtins(self.builtin_context.namespace)
+        self._add_fake_builtins()
+        self.global_context = Context(self.builtin_context)
+
+    def _add_fake_builtins(self):
+        # TODO: handle this path better
+        path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), '..',
+            'lib', 'fake_builtins.simple')
+        with open(path, 'r', encoding='ascii') as file:
+            content = file.read()
+        tokens = tokenizer.tokenize(content)
+        for ast_statement in ast_tree.parse(tokens):
+            self.execute(ast_statement, self.builtin_context)
 
     def evaluate(self, ast_expression, context):
         if isinstance(ast_expression, ast_tree.String):
@@ -86,11 +93,6 @@ class Interpreter:
 
         if isinstance(ast_expression, ast_tree.Call):
             func = self.evaluate(ast_expression.func, context)
-            if func is objects.get_context:
-                if ast_expression.args:
-                    raise ValueError("get_context takes no arguments")
-                return context
-
             args = [self.evaluate(arg, context) for arg in ast_expression.args]
             return func.call(args)
 
