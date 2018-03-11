@@ -7,6 +7,7 @@ token_spec = [
     ('identifier', r'[^\W\d]\w*'),
     ('op', r'[{}=;.]'),
     ('string', '".*?"'),
+    ('comment', r'#[^\n]*'),
     ('whitespace', r'\s+'),
     ('error', '.'),
 ]
@@ -26,10 +27,11 @@ def tokenize(code, filename='<string>'):
             column = match.start() - line_start
             raise ValueError("invalid syntax in file '%s', line %d, column %d"
                              % (filename, lineno, column))
-
-        if kind == 'whitespace':
+        elif kind == 'whitespace':
             if '\n' in value:
                 lineno += value.count('\n')
                 line_start = match.start() + value.rindex('\n') + len('\n')
+        elif kind == 'comment':
+            pass    # explicit is better than implicit
         else:
             yield Token(kind, value)

@@ -26,3 +26,14 @@ def test_basic_stuff():
 
     with pytest.raises(ValueError):
         tokenizelist('"hello\nworld"')
+
+
+def test_comments():
+    for code in ['print "h#e#l#l#o";   #a comment',
+                 'print "h#e#l#l#o";   # a comment\n',
+                 '# a comment\nprint "h#e#l#l#o";']:
+        assert tokenizelist(code) == [
+            Token('identifier', 'print'),
+            Token('string', '"h#e#l#l#o"'),
+            Token('op', ';'),
+        ]
