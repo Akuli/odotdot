@@ -15,7 +15,8 @@ def main():
     ast_statements = ast_tree.parse(tokens)
 
     interpreter = run.Interpreter()
-    interpreter.execute(ast_statements, interpreter.global_context)
+    for statement in ast_statements:
+        interpreter.execute(statement, interpreter.global_context)
 
 
 if __name__ == '__main__':

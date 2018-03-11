@@ -22,6 +22,11 @@ class Context:
             self.namespace = objects.Namespace(
                 'variable', parent_context.namespace)
 
+    # handy-dandy helper method to avoid having to import this file to
+    # objects.py (lol)
+    def create_subcontext(self):
+        return Context(self)
+
 
 builtin_context = Context(None)
 objects.add_builtins(builtin_context.namespace)
@@ -32,7 +37,7 @@ class Interpreter:
     def __init__(self):
         self.global_context = Context(builtin_context)
 
-    def evaluate(self, ast_expression, context) -> objects.Object:
+    def evaluate(self, ast_expression, context):
         if isinstance(ast_expression, ast_tree.String):
             return objects.String(ast_expression.python_string)
         if isinstance(ast_expression, ast_tree.GetVar):
@@ -40,28 +45,32 @@ class Interpreter:
         if isinstance(ast_expression, ast_tree.GetAttr):
             obj = self.evaluate(ast_expression.object, context)
             return obj.attributes.get(ast_expression.attribute)
+        if isinstance(ast_expression, ast_tree.Code):
+            return objects.Code(self, context, ast_expression.statements)
+        raise RuntimeError(        # pragma: no cover
+            "don't know how to evaluate " + repr(ast_expression))
 
-    def execute(self, ast_statements, context):
-        for statement in ast_statements:
-            if isinstance(statement, ast_tree.Call):
-                func = self.evaluate(statement.func, context)
-                args = [self.evaluate(arg, context) for arg in statement.args]
-                func.call(args)
-            elif isinstance(statement, ast_tree.CreateVar):
-                initial_value = self.evaluate(statement.value, context)
-                context.namespace.add(statement.varname, initial_value,
-                                      statement.is_const)
-            elif isinstance(statement, ast_tree.CreateAttr):
-                obj = self.evaluate(statement.object, context)
-                initial_value = self.evaluate(statement.value, context)
-                obj.attributes.add(statement.attribute, initial_value,
-                                   statement.is_const)
-            elif isinstance(statement, ast_tree.SetAttr):
-                obj = self.evaluate(statement.object, context)
-                value = self.evaluate(statement.value, context)
-                obj.attributes.set(statement.attribute, value)
-            elif isinstance(statement, ast_tree.SetVar):
-                value = self.evaluate(statement.value, context)
-                context.namespace.set(statement.varname, value)
-            else:   # pragma: no cover
-                raise RuntimeError("unknown statement: " + repr(statement))
+    def execute(self, ast_statement, context):
+        if isinstance(ast_statement, ast_tree.Call):
+            func = self.evaluate(ast_statement.func, context)
+            args = [self.evaluate(arg, context) for arg in ast_statement.args]
+            func.call(args)
+        elif isinstance(ast_statement, ast_tree.CreateVar):
+            initial_value = self.evaluate(ast_statement.value, context)
+            context.namespace.add(ast_statement.varname, initial_value,
+                                  ast_statement.is_const)
+        elif isinstance(ast_statement, ast_tree.CreateAttr):
+            obj = self.evaluate(ast_statement.object, context)
+            initial_value = self.evaluate(ast_statement.value, context)
+            obj.attributes.add(ast_statement.attribute, initial_value,
+                               ast_statement.is_const)
+        elif isinstance(ast_statement, ast_tree.SetAttr):
+            obj = self.evaluate(ast_statement.object, context)
+            value = self.evaluate(ast_statement.value, context)
+            obj.attributes.set(ast_statement.attribute, value)
+        elif isinstance(ast_statement, ast_tree.SetVar):
+            value = self.evaluate(ast_statement.value, context)
+            context.namespace.set(ast_statement.varname, value)
+        else:   # pragma: no cover
+            raise RuntimeError(
+                "don't know how to execute " + repr(ast_statement))

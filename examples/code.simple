@@ -1,0 +1,8 @@
+const hello_code_object = {
+    print "hello";
+};
+
+
+hello_code_object.run;
+hello_code_object.run;
+hello_code_object.run;

@@ -86,6 +86,35 @@ class BuiltinFunction(Object):
         return self.python_func(*args)
 
 
+# to be expanded...
+class Array(Object):
+
+    def __init__(self, elements):
+        super().__init__()
+        self.python_list = list(elements)
+        self.attributes.can_add = False
+
+
+class Code(Object):
+
+    def __init__(self, interpreter, definition_context, ast_statements):
+        assert ast_statements is not iter(ast_statements), (
+            "ast_statements cannot be an iterator because it may need to be "
+            "looped over several times")
+
+        super().__init__()
+        self._interp = interpreter
+        self._def_context = definition_context
+        self._statements = ast_statements
+        self.attributes.add('run', BuiltinFunction(self.run))
+        self.attributes.can_add = False
+
+    def run(self):
+        context = self._def_context.create_subcontext()
+        for statement in self._statements:
+            self._interp.execute(statement, context)
+
+
 def add_builtins(namespace):
     namespace.add('null', null)
     namespace.add('print', BuiltinFunction(lambda arg: print(arg.python_string)))

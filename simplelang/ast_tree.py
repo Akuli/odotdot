@@ -3,6 +3,7 @@ from collections import deque, namedtuple
 
 # expressions
 String = namedtuple('String', ['python_string'])
+Code = namedtuple('Code', ['statements'])
 GetVar = namedtuple('GetVar', ['varname'])
 GetAttr = namedtuple('GetAttr', ['object', 'attribute'])
 
@@ -73,13 +74,15 @@ class _Parser:
 
     def parse_expression(self):
         if self.tokens.coming_up().kind == 'string':
-            # "hello"
             result = self.parse_string()
         elif self.tokens.coming_up().kind == 'identifier':
             result = GetVar(self.tokens.pop().value)
+        elif (self.tokens.coming_up().kind == 'op' and
+              self.tokens.coming_up().value == '{'):
+            result = self.parse_code()
         else:
-            raise ValueError("should be a string or a variable name, not '%s'"
-                             % self.tokens.coming_up().value)
+            raise ValueError('should be a variable name, "..." or { ... }, '
+                             "not '%s'" % self.tokens.coming_up().value)
 
         # attributes
         while (self.tokens.coming_up().kind == 'op' and
@@ -159,6 +162,23 @@ class _Parser:
         assert semicolon.value == ';', repr(semicolon)
 
         return statement
+
+    # TODO: support one-line codes, { "hi" } is same as { return "hi"; }?
+    def parse_code(self):
+        open_brace = self.tokens.pop()
+        assert open_brace.kind == 'op', repr(brace)
+        assert open_brace.value == '{', repr(brace)
+
+        statements = []
+        while not (self.tokens.coming_up().kind == 'op' and
+                   self.tokens.coming_up().value == '}'):
+            statements.append(self.parse_statement())
+
+        close_brace = self.tokens.pop()
+        assert close_brace.kind == 'op', repr(close_brace)
+        assert close_brace.value == '}', repr(close_brace)
+
+        return Code(statements)
 
     def parse_file(self):
         while self.tokens.something_coming_up():

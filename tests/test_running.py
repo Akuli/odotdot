@@ -3,27 +3,30 @@ import functools
 import pytest
 
 from simplelang import ast_tree, tokenizer, objects
-from simplelang.run import Context, Interpreter, builtin_context
+from simplelang.run import Interpreter, builtin_context
 
 
-def run_code(code, interp=None, context=None):
-    if interp is None:
-        interp = Interpreter()
-    if context is None:
-        context = Context(interp.global_context)
+# run a bunch of code in the same interpreter and context
+@pytest.fixture(scope='function')
+def run_code():
+    interp = Interpreter()
 
-    # list() calls are for fail-fast debuggability
-    tokens = list(tokenizer.tokenize(code))
-    ast_statements = list(ast_tree.parse(tokens))
-    interp.execute(ast_statements, context)
+    def run(code):
+        tokens = list(tokenizer.tokenize(code))
+        ast_statements = list(ast_tree.parse(tokens))
+        for statement in ast_statements:
+            interp.execute(statement, interp.global_context)
+
+    run.context = interp.global_context
+    return run
 
 
-def test_hello_world(capsys):
+def test_hello_world(run_code, capsys):
     run_code('print "hello world";')
     assert capsys.readouterr() == ('hello world\n', '')
 
 
-def test_variables(capsys):
+def test_variables(run_code, capsys):
     run_code('''
     var a = "value of a";
     const b = print;
@@ -56,49 +59,81 @@ class Dummy(objects.Object):
         self.attributes.add('noconstant', objects.String("hi"), is_const=False)
 
 
-def test_attributes(capsys):
-    interp = Interpreter()
-    context = Context(builtin_context)
-    context.namespace.add('d', Dummy())
-    run = functools.partial(run_code, interp=interp, context=context)
+def test_attributes(run_code, capsys):
+    run_code.context.namespace.add('d', Dummy())
 
-    run('print d.noconstant; d.noconstant = "new hi"; print d.noconstant;')
+    run_code('''print d.noconstant;
+                d.noconstant = "new hi";
+                print d.noconstant;''')
     assert capsys.readouterr() == ('hi\nnew hi\n', '')
 
     with pytest.raises(ValueError):
-        run('print d.constant; d.constant = "wat"; print d.constant;')
+        run_code('''print d.constant;
+                    d.constant = "wat";
+                    print d.constant;''')
     assert capsys.readouterr() == ('hello\n', '')
 
-    run('var d.lol = "asd";')
-    lol = context.namespace.get('d').attributes.get('lol')
+    run_code('var d.lol = "asd";')
+    lol = run_code.context.namespace.get('d').attributes.get('lol')
     assert isinstance(lol, objects.String)
     assert lol.python_string == 'asd'
 
-    run('print d.lol; d.lol = "new lol"; print d.lol;')
+    run_code('print d.lol; d.lol = "new lol"; print d.lol;')
     assert capsys.readouterr() == ('asd\nnew lol\n', '')
 
-    run('const d.wat = "ASD";')
-    wat = context.namespace.get('d').attributes.get('wat')
+    run_code('const d.wat = "ASD";')
+    wat = run_code.context.namespace.get('d').attributes.get('wat')
     assert isinstance(wat, objects.String)
     assert wat.python_string == 'ASD'
 
     with pytest.raises(ValueError):
-        run('d.wat = "toot";')
+        run_code('d.wat = "toot";')
 
     # make sure that attributes cannot be recreated
     for keyword in ['const', 'var']:
         for attr in ['constant', 'noconstant', 'lol', 'wat']:
             with pytest.raises(ValueError):
-                run('%s d.%s = "tooooooooooooooooot";' % (keyword, attr))
+                run_code('%s d.%s = "tooooooooooooooooot";' % (keyword, attr))
 
-    context.namespace.get('d').attributes.can_add = False
+    run_code.context.namespace.get('d').attributes.can_add = False
 
     # old variables must still work...
-    run('d.lol = "very new lol"; print d.lol;')
+    run_code('d.lol = "very new lol"; print d.lol;')
     assert capsys.readouterr() == ('very new lol\n', '')
 
     # ...even though new variables cannot be added
     with pytest.raises(ValueError):
-        run('var d.omg = "waaaaaat";')
+        run_code('var d.omg = "waaaaaat";')
     with pytest.raises(ValueError):
-        run('var d.omg = "waaaaaat";')
+        run_code('const d.omg2 = "waaaaaat";')
+
+
+def test_code_objects(run_code, capsys):
+    run_code('''
+    const hello = {
+        print "hello world";
+        print "hello again";
+    };
+    ''')
+    assert capsys.readouterr() == ('', '')
+
+    with pytest.raises(AttributeError):     # lol
+        run_code('hello;')
+    run_code('hello.run;')
+    assert capsys.readouterr() == ('hello world\nhello again\n', '')
+
+    run_code('var a = "original a";')
+    run_code('''
+    {
+        print a;
+        a = "new a";
+        print a;
+    }.run;
+    print a;
+    ''')
+    assert capsys.readouterr() == ('original a\nnew a\nnew a\n', '')
+
+    with pytest.raises(ValueError):
+        run_code('var a = "lol";')
+    with pytest.raises(ValueError):
+        run_code('{ var a = "lol"; }.run;')
