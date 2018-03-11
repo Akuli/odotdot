@@ -9,11 +9,12 @@ GetVar = namedtuple('GetVar', ['varname'])
 GetAttr = namedtuple('GetAttr', ['object', 'attribute'])
 
 # statements
+# TODO: should attributes and variables be treated differently? people
+# are used to that
 SetVar = namedtuple('SetVar', ['varname', 'value'])
 SetAttr = namedtuple('SetAttr', ['object', 'attribute', 'value'])
-CreateVar = namedtuple('CreateVar', ['varname', 'value', 'is_const'])
-CreateAttr = namedtuple('CreateAttr',
-                        ['object', 'attribute', 'value', 'is_const'])
+CreateVar = namedtuple('CreateVar', ['varname', 'value'])
+CreateAttr = namedtuple('CreateAttr', ['object', 'attribute', 'value'])
 Return = namedtuple('Return', ['value'])
 
 # expressions that are also statements
@@ -137,11 +138,10 @@ class _Parser:
         value = self.parse_expression()
         return Return(value)
 
-    def parse_var_or_const(self):
-        keyword = self.tokens.pop()
-        assert keyword.kind == 'keyword', keyword
-        assert keyword.value in {'var', 'const'}, keyword
-        is_const = (keyword.value == 'const')
+    def parse_var(self):
+        var = self.tokens.pop()
+        assert var.kind == 'keyword', keyword
+        assert var.value == 'var', keyword
 
         target = self.parse_expression()
 
@@ -150,19 +150,15 @@ class _Parser:
             self.tokens.pop()
             initial_value = self.parse_expression()
         else:
-            if is_const:
-                raise ValueError("must specify a value, like "
-                                 "'const varname = value;'")
             initial_value = GetVar('null')      # TODO: something better?
 
         if isinstance(target, GetVar):
-            return CreateVar(target.varname, initial_value, is_const)
+            return CreateVar(target.varname, initial_value)
         if isinstance(target, GetAttr):
             return CreateAttr(
-                target.object, target.attribute, initial_value, is_const)
+                target.object, target.attribute, initial_value)
         raise ValueError(
-            "the x of '%s x = y;' must be a variable name or an attribute"
-            % keyword.value)
+            "the x of 'var x = y;' must be a variable name or an attribute")
 
     # this takes the first expression as an already-parsed argument
     # this way parse_statement() knows when this should be called
@@ -181,8 +177,8 @@ class _Parser:
 
     def parse_statement(self):
         if (self.tokens.coming_up().kind == 'keyword' and
-                self.tokens.coming_up().value in ('var', 'const')):
-            statement = self.parse_var_or_const()
+                self.tokens.coming_up().value == 'var'):
+            statement = self.parse_var()
         elif (self.tokens.coming_up().kind == 'keyword' and
               self.tokens.coming_up().value == 'return'):
             statement = self.parse_return()

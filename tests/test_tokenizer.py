@@ -16,12 +16,12 @@ def test_basic_stuff():
         Token('op', ';'),
     ]
 
-    assert tokenizelist('const y = "hello world";') == [
-        Token('keyword', 'const'),
-        Token('identifier', 'y'),
-        Token('op', '='),
-        Token('string', '"hello world"'),
-        Token('op', ';'),
+    assert tokenizelist('blah var asd"hi"toot ') == [
+        Token('identifier', 'blah'),
+        Token('keyword', 'var'),
+        Token('identifier', 'asd'),
+        Token('string', '"hi"'),
+        Token('identifier', 'toot'),
     ]
 
     with pytest.raises(ValueError):

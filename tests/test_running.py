@@ -29,7 +29,7 @@ def test_hello_world(run_code, capsys):
 def test_variables(run_code, capsys):
     run_code('''
     var a = "value of a";
-    const b = print;
+    var b = print;
     b a;
 
     a = "wat";
@@ -38,15 +38,7 @@ def test_variables(run_code, capsys):
     assert capsys.readouterr() == ('value of a\nwat\n', '')
 
     with pytest.raises(ValueError):
-        run_code('''
-        const a = "hello";
-        a = "lol";
-        ''')
-
-    with pytest.raises(ValueError):
         run_code('undefined_var = "toot";')
-    with pytest.raises(ValueError):
-        run_code('const a = "toot"; const a = "lol";')
     with pytest.raises(ValueError):
         run_code('print undefined_var;')
 
@@ -55,23 +47,16 @@ class Dummy(objects.Object):
 
     def __init__(self):
         super().__init__()
-        self.attributes.add('constant', objects.String("hello"), is_const=True)
-        self.attributes.add('noconstant', objects.String("hi"), is_const=False)
+        self.attributes.set_locally('attribute', objects.String("hi"))
 
 
 def test_attributes(run_code, capsys):
-    run_code.context.namespace.add('d', Dummy())
+    run_code.context.namespace.set_locally('d', Dummy())
 
-    run_code('''print d.noconstant;
-                d.noconstant = "new hi";
-                print d.noconstant;''')
+    run_code('''print d.attribute;
+                d.attribute = "new hi";
+                print d.attribute;''')
     assert capsys.readouterr() == ('hi\nnew hi\n', '')
-
-    with pytest.raises(ValueError):
-        run_code('''print d.constant;
-                    d.constant = "wat";
-                    print d.constant;''')
-    assert capsys.readouterr() == ('hello\n', '')
 
     run_code('var d.lol = "asd";')
     lol = run_code.context.namespace.get('d').attributes.get('lol')
@@ -81,36 +66,35 @@ def test_attributes(run_code, capsys):
     run_code('print d.lol; d.lol = "new lol"; print d.lol;')
     assert capsys.readouterr() == ('asd\nnew lol\n', '')
 
-    run_code('const d.wat = "ASD";')
+    run_code('var d.wat = "ASD";')
     wat = run_code.context.namespace.get('d').attributes.get('wat')
     assert isinstance(wat, objects.String)
     assert wat.python_string == 'ASD'
 
     with pytest.raises(ValueError):
-        run_code('d.wat = "toot";')
+        run_code('d.this_is_not_defined_anywhere_must_use_var_first = "toot";')
 
-    # make sure that attributes cannot be recreated
-    for keyword in ['const', 'var']:
-        for attr in ['constant', 'noconstant', 'lol', 'wat']:
-            with pytest.raises(ValueError):
-                run_code('%s d.%s = "tooooooooooooooooot";' % (keyword, attr))
+    run_code.context.namespace.get('d').attributes.read_only = True
 
-    run_code.context.namespace.get('d').attributes.can_add = False
+    # attributes must still work...
+    run_code('print d.lol;')
+    assert capsys.readouterr() == ('new lol\n', '')
 
-    # old attributes must still work...
-    run_code('d.lol = "very new lol"; print d.lol;')
-    assert capsys.readouterr() == ('very new lol\n', '')
-
-    # ...even though new attributes cannot be added
+    # ...even though nothing can be changed
     with pytest.raises(ValueError):
-        run_code('var d.omg = "waaaaaat";')
+        run_code('var d.lol = "very new lol";')
+    run_code('print d.lol;')
+    assert capsys.readouterr() == ('new lol\n', '')
+
     with pytest.raises(ValueError):
-        run_code('const d.omg2 = "waaaaaat";')
+        run_code('d.this_doesnt_exist = "waaaaaat";')
+    with pytest.raises(ValueError):
+        run_code('print d.this_doesnt_exist;')
 
 
 def test_code_objects(run_code, capsys):
     run_code('''
-    const hello = {
+    var hello = {
         print "hello world";
         print "hello again";
     };
@@ -124,16 +108,42 @@ def test_code_objects(run_code, capsys):
 
     run_code('''
     var a = "original a";
-    {
+    var firstcode = {
         print a;
         a = "new a";
         print a;
-    }.run;
+    };
+    firstcode.run;
     print a;
     ''')
     assert capsys.readouterr() == ('original a\nnew a\nnew a\n', '')
 
-    with pytest.raises(ValueError):
-        run_code('var a = "lol";')
-    with pytest.raises(ValueError):
-        run_code('{ var a = "lol"; }.run;')
+    run_code('''
+    {
+        var a = "even newer a";
+        print a;
+    }.run;
+    print a;    # it didn't change this
+    ''')
+    assert capsys.readouterr() == ('even newer a\nnew a\n', '')
+
+    run_code('''
+    var a = "damn new a";
+    firstcode.run;      # it changed everything that uses this context
+    ''')
+    assert capsys.readouterr() == ('damn new a\nnew a\n', '')
+
+
+# a friend of mine says that this is an idiom... i have never seen it
+# being actually used though
+def test_funny_idiom(run_code, capsys):
+    run_code('''
+    var a = "global a";
+    {
+        var a=a;    # localize a
+        a = "local a";
+        print a;
+    }.run;
+    print a;
+    ''')
+    assert capsys.readouterr() == ('local a\nglobal a\n', '')

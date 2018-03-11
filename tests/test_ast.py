@@ -19,25 +19,20 @@ def test_strings():
 
 
 def test_variables():
-    assert parse('var x=y;') == [CreateVar('x', GetVar('y'), False)]
-    assert parse('const x=y;') == [CreateVar('x', GetVar('y'), True)]
-    assert parse('var x;') == [CreateVar('x', GetVar('null'), False)]
-    with pytest.raises(ValueError):
-        parse('const x;')
+    assert parse('var x=y;') == [CreateVar('x', GetVar('y'))]
+    assert parse('var x;') == [CreateVar('x', GetVar('null'))]
     assert parse('x = y;') == [SetVar('x', GetVar('y'))]
 
     # invalid variable names
     with pytest.raises(ValueError):
         parse('var var;')
-    with pytest.raises(ValueError):
-        parse('var const;')
 
     # not valid expression
-    with pytest.raises(ValueError):
+    with pytest.raises(AssertionError):
         parse('const x = ;')
 
     with pytest.raises(ValueError):
-        parse('const "hello"=asd;')
+        parse('var "hello"=asd;')
     with pytest.raises(ValueError):
         parse('"hello"=asd;')
 
@@ -51,7 +46,7 @@ def test_attributes():
         GetAttr(GetAttr(GetAttr(GetVar('a'), 'b'), 'c'), 'd'),
         'e', GetVar('f'))]
     assert parse('var x.y = z;') == [
-        CreateAttr(GetVar('x'), 'y', GetVar('z'), False)]
+        CreateAttr(GetVar('x'), 'y', GetVar('z'))]
 
     with pytest.raises(ValueError):
-        parse('x.const.y;')
+        parse('x.var.y;')

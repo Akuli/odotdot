@@ -19,35 +19,32 @@ class Context(objects.Object):
             self.namespace = objects.Namespace(
                 'variable', parent_context.namespace)
 
-        self.attributes.add('add_var', objects.BuiltinFunction(self._add_var))
-        self.attributes.add('add_const',
-                            objects.BuiltinFunction(self._add_const))
-        self.attributes.add('set_var', objects.BuiltinFunction(self._set_var))
-        self.attributes.add('get_var', objects.BuiltinFunction(self._get_var))
+        self.attributes.set_locally(
+            'add_var', objects.BuiltinFunction(self._add_var))
+        self.attributes.set_locally(
+            'set_var', objects.BuiltinFunction(self._set_var))
+        self.attributes.set_locally(
+            'get_var', objects.BuiltinFunction(self._get_var))
 
         if parent_context is None:
-            self.attributes.add('parent_context', objects.null)
+            self.attributes.set_locally('parent_context', objects.null)
         else:
-            self.attributes.add('parent_context', parent_context)
-        self.attributes.add('create_subcontext',
-                            objects.BuiltinFunction(self.create_subcontext))
-        self.attributes.can_add = False
+            self.attributes.set_locally('parent_context', parent_context)
+        self.attributes.set_locally(
+            'create_subcontext',
+            objects.BuiltinFunction(self.create_subcontext))
+        self.attributes.read_only = True
 
     # these are just for exposing in simplelang, access .namespace
     # directly in python instead of using this stupid poop
     def _add_var(self, name, initial_value):
         assert isinstance(name, objects.String)
-        self.namespace.add(name.python_string, initial_value, is_const=False)
-        return objects.null
-
-    def _add_const(self, name, initial_value):
-        assert isinstance(name, objects.String)
-        self.namespace.add(name.python_string, initial_value, is_const=True)
+        self.namespace.set_locally(name.python_string, initial_value)
         return objects.null
 
     def _set_var(self, name, value):
         assert isinstance(name, objects.String)
-        self.namespace.set(name.python_string, value)
+        self.namespace.set_where_defined(name.python_string, value)
         return objects.null
 
     def _get_var(self, name):
@@ -108,23 +105,21 @@ class Interpreter:
 
         elif isinstance(ast_statement, ast_tree.CreateVar):
             initial_value = self.evaluate(ast_statement.value, context)
-            context.namespace.add(ast_statement.varname, initial_value,
-                                  ast_statement.is_const)
+            context.namespace.set_locally(ast_statement.varname, initial_value)
 
         elif isinstance(ast_statement, ast_tree.CreateAttr):
             obj = self.evaluate(ast_statement.object, context)
             initial_value = self.evaluate(ast_statement.value, context)
-            obj.attributes.add(ast_statement.attribute, initial_value,
-                               ast_statement.is_const)
+            obj.attributes.set_locally(ast_statement.attribute, initial_value)
+
+        elif isinstance(ast_statement, ast_tree.SetVar):
+            value = self.evaluate(ast_statement.value, context)
+            context.namespace.set_where_defined(ast_statement.varname, value)
 
         elif isinstance(ast_statement, ast_tree.SetAttr):
             obj = self.evaluate(ast_statement.object, context)
             value = self.evaluate(ast_statement.value, context)
-            obj.attributes.set(ast_statement.attribute, value)
-
-        elif isinstance(ast_statement, ast_tree.SetVar):
-            value = self.evaluate(ast_statement.value, context)
-            context.namespace.set(ast_statement.varname, value)
+            obj.attributes.set_where_defined(ast_statement.attribute, value)
 
         elif isinstance(ast_statement, ast_tree.Return):
             value = self.evaluate(ast_statement.value, context)

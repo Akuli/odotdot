@@ -17,44 +17,41 @@ class Namespace:
     def __init__(self, content_string_for_messages, parent_namespace=None):
         # examples: 'attribute', 'variable'
         self.content_string_for_messages = content_string_for_messages
+        self.parent_namespace = parent_namespace
+        self.values = {}    # {name: value}
 
-        if parent_namespace is None:
-            parent_values = []
-        else:
-            parent_values = parent_namespace.values.maps
+        # this can be set to False to prevent changing anything
+        # TODO: better control???
+        self.read_only = False
 
-        # self.values is {name: [value, is_constant]}
-        # i know i know, tuples would be better... but they are immutable
-        # the {} means that anything defined here is not visible in the
-        # parent namespaces
-        self.values = collections.ChainMap({}, *parent_values)
+    # set a value for this namespace only, creating it if needed
+    def set_locally(self, name, value):
+        if self.read_only:
+            raise ValueError(
+                "cannot set %s" % self.content_string_for_messages)
+        self.values[name] = value
 
-        # this can be set to False to prevent add()ing more things
-        self.can_add = True
+    # figure out where a value is set, and change it there
+    def set_where_defined(self, name, value):
+        # cannot loop through self.values.maps because of read-onlyness
+        if self.read_only:
+            raise ValueError(
+                "cannot set %s" % self.content_string_for_messages)
 
-    def add(self, name, initial_value, is_const=True):
-        if not self.can_add:
-            raise ValueError("cannot create more {}s"
-                             .format(self.content_string_for_messages))
         if name in self.values:
-            kind = 'constant' if self.values[name][1] else 'non-constant'
-            raise ValueError("there's already a %s '%s' %s"
-                             % (kind, name, self.content_string_for_messages))
-        self.values[name] = [initial_value, is_const]
-
-    def set(self, name, value):
-        try:
-            if self.values[name][1]:
-                raise ValueError("cannot set '%s', it's a constant" % name)
-            self.values[name][0] = value
-        except KeyError as e:
+            self.values[name] = value
+        elif self.parent_namespace is not None:
+            self.parent_namespace.set_where_defined(name, value)
+        else:
             raise ValueError("no %s named '%s'"
-                             % (self.content_string_for_messages, name)) from e
+                             % (self.content_string_for_messages, name))
 
     def get(self, name):
         try:
-            return self.values[name][0]
+            return self.values[name]
         except KeyError as e:
+            if self.parent_namespace is not None:
+                return self.parent_namespace.get(name)
             raise ValueError("no %s named '%s'"
                              % (self.content_string_for_messages, name)) from e
 
@@ -108,7 +105,7 @@ class NullClass(Object):
 
     def __init__(self):
         super().__init__()
-        self.attributes.can_add = False
+        self.attributes.read_only = True
 
     def __eq__(self, other):
         if not isinstance(other, NullClass):
@@ -128,7 +125,7 @@ class Boolean(Object):
     def __init__(self, python_bool):
         super().__init__()
         self.python_bool = python_bool
-        self.attributes.can_add = False
+        self.attributes.read_only = True
 
     def __eq__(self, other):
         if not isinstance(other, Boolean):
@@ -148,7 +145,7 @@ class String(Object):
     def __init__(self, python_string):
         super().__init__()
         self.python_string = python_string
-        self.attributes.can_add = False
+        self.attributes.read_only = True
 
     def __repr__(self):
         return '<simplelang String object: %r>' % self.python_string
@@ -168,7 +165,7 @@ class BuiltinFunction(Object):
     def __init__(self, python_func):
         super().__init__()
         self.python_func = python_func
-        self.attributes.can_add = False
+        self.attributes.read_only = True
 
     def call(self, args):
         result = self.python_func(*args)
@@ -191,11 +188,12 @@ class Array(Object):
     def __init__(self, elements=()):
         super().__init__()
         self.python_list = list(elements)
-        self.attributes.add('foreach', BuiltinFunction(self.foreach))
-        self.attributes.add('get', BuiltinFunction(self._get))
-        self.attributes.add('slice', BuiltinFunction(self._slice))
-        self.attributes.add('get_length', BuiltinFunction(self._get_length))
-        self.attributes.can_add = False
+        self.attributes.set_locally('foreach', BuiltinFunction(self.foreach))
+        self.attributes.set_locally('get', BuiltinFunction(self._get))
+        self.attributes.set_locally('slice', BuiltinFunction(self._slice))
+        self.attributes.set_locally('get_length',
+                                    BuiltinFunction(self._get_length))
+        self.attributes.read_only = True
 
     @classmethod
     def from_star_args(cls, *args):
@@ -206,16 +204,8 @@ class Array(Object):
         assert isinstance(loop_body, Code)
 
         context = loop_body.definition_context.create_subcontext()
-        iterator = iter(self.python_list)
-        try:
-            first = next(iterator)
-        except StopIteration:
-            return
-
-        context.namespace.add(varname.python_string, first, is_const=False)
-        loop_body.run(context)
-        for not_first in iterator:
-            context.namespace.set(varname.python_string, not_first)
+        for element in self.python_list:
+            context.namespace.set_locally(varname.python_string, element)
             loop_body.run(context)
 
         return null
@@ -240,12 +230,12 @@ class Mapping(Object):
         super().__init__()
         self.python_dict = ({} if elements is None else dict(elements))
 
-        self.attributes.add(
+        self.attributes.set_locally(
             'set', BuiltinFunction(self.python_dict.__setitem__))
-        self.attributes.add('get', BuiltinFunction(self.get))
-        self.attributes.add(
+        self.attributes.set_locally('get', BuiltinFunction(self.get))
+        self.attributes.set_locally(
             'delete', BuiltinFunction(self.python_dict.__delitem__))
-        self.attributes.can_add = False
+        self.attributes.read_only = True
 
     @classmethod
     def from_pairs(cls, *pairs):
@@ -287,11 +277,11 @@ class Code(Object):
         self.definition_context = definition_context
         self._statements = ast_statements
 
-        self.attributes.add('definition_context', definition_context)
-        self.attributes.add('run', BuiltinFunction(self.run))
-        self.attributes.add('run_with_return',
-                            BuiltinFunction(self.run_with_return))
-        self.attributes.can_add = False
+        self.attributes.set_locally('definition_context', definition_context)
+        self.attributes.set_locally('run', BuiltinFunction(self.run))
+        self.attributes.set_locally('run_with_return',
+                                    BuiltinFunction(self.run_with_return))
+        self.attributes.read_only = True
 
     def run(self, context=None):
         if context is None:
@@ -330,7 +320,7 @@ def array_func(func_body):
     @BuiltinFunction
     def the_func(*args):
         run_context = func_body.definition_context.create_subcontext()
-        run_context.namespace.add('arguments', Array(args))
+        run_context.namespace.set_locally('arguments', Array(args))
         return func_body.run_with_return(run_context)
 
     return the_func
@@ -356,15 +346,15 @@ def not_(boolean):
 
 
 def add_real_builtins(namespace):
-    namespace.add('null', null)
-    namespace.add('true', true)
-    namespace.add('false', false)
-    namespace.add('if', if_)
-    namespace.add('not', not_)
-    namespace.add('print', print_)
-    namespace.add('array_func', array_func)
-    namespace.add('error', error)
-    namespace.add('equals', equals)
-    namespace.add('Mapping', BuiltinFunction(Mapping.from_pairs))
-    namespace.add('Object', BuiltinFunction(Object))
-    namespace.add('Array', BuiltinFunction(Array.from_star_args))
+    namespace.set_locally('null', null)
+    namespace.set_locally('true', true)
+    namespace.set_locally('false', false)
+    namespace.set_locally('if', if_)
+    namespace.set_locally('not', not_)
+    namespace.set_locally('print', print_)
+    namespace.set_locally('array_func', array_func)
+    namespace.set_locally('error', error)
+    namespace.set_locally('equals', equals)
+    namespace.set_locally('Mapping', BuiltinFunction(Mapping.from_pairs))
+    namespace.set_locally('Object', BuiltinFunction(Object))
+    namespace.set_locally('Array', BuiltinFunction(Array.from_star_args))
