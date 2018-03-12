@@ -1,50 +1,51 @@
 import contextlib
 import glob
+import os
 import sys
 
 import pytest
 
 import simplelang.__main__
 
-expected_output = {
-    'hello.simple': 'hello world\n',
-    'block.simple': 'hello\n' * 3,
-    'scopes.simple': 'hello\n',
-    'mapping.simple': 'hello\nhi\n',
-    'if.simple': 'everything ok\n',
-    'foreach.simple': 'one\ntwo\nthree\n',
-    'while.simple': 'hello\n',
-    'zip.simple': 'a\nd\nb\ne\nc\nf\n',
-    'func.simple': 'toot toot!\nabc\nxyz\n\ntoot returned:\nbam\n',
-}
-should_raise = {'scopes.simple': pytest.raises(ValueError)}
-
 
 @contextlib.contextmanager
-def nothing_special():
+def boring_context():
     yield
 
 
-# i don't know why chdirs are done with a fixture called monkeypatch in pytest
-# TODO: write this stuff in the language itself :D
-def test_examples(monkeypatch, capsys):
-    monkeypatch.chdir('examples')
+tested_filenames = set()
 
-    for filename, output_should_be in expected_output.items():
-        context_manager = should_raise.get(filename, nothing_special())
 
+def create_tester_function(filename, expected_output,
+                           should_raise=None):
+    if should_raise is None:
+        should_raise = boring_context()
+
+    def result(capsys):
         old_argv = sys.argv[1:]
         try:
-            sys.argv[1:] = [filename]
-            with context_manager:
+            sys.argv[1:] = [os.path.join('examples', filename)]
+            with should_raise:
                 # pytest catches SystemExits raised in tests
                 simplelang.__main__.main()
         finally:
             sys.argv[1:] = old_argv
 
-        assert capsys.readouterr() == (output_should_be, ''), filename
+        assert capsys.readouterr() == (expected_output, ''), filename
 
-    # if there's something that is in expected_output but not in the
-    # examples directory, running it has already failed above
-    untested = set(glob.glob('*.simple')) - expected_output.keys()
-    assert not untested, "untested examples: " + repr(untested)
+    result.__name__ = 'test_' + filename.replace('.', '_dot_')
+    result.__qualname__ = result.__name__
+    globals()[result.__name__] = result     # lol
+    tested_filenames.add(filename)
+
+
+create_tester_function('hello.simple', 'hello world\n')
+create_tester_function('block.simple', 'hello\n' * 3)
+create_tester_function('scopes.simple', 'hello\n', pytest.raises(ValueError))
+create_tester_function('mapping.simple', 'hello\nhi\n')
+create_tester_function('if.simple', 'everything ok\n')
+create_tester_function('foreach.simple', 'one\ntwo\nthree\n')
+create_tester_function('while.simple', 'hello\n')
+create_tester_function('zip.simple', 'a\nd\nb\ne\nc\nf\n')
+create_tester_function(
+    'func.simple', 'toot toot!\nabc\nxyz\n\ntoot returned:\nbam\n')
