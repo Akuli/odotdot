@@ -3,7 +3,7 @@ var not = (array_func {
         if (arguments.get "0") { return false; };
         return true;
     };
-    error "not should be called with exactly 1 argument";
+    error "'not' should be called with exactly 1 argument";
 });
 
 var and = (array_func {
