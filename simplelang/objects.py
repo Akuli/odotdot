@@ -164,21 +164,21 @@ class String(Object):
 
 class Integer(Object):
 
-    def __init__(self, value):
+    def __init__(self, python_int):
         super().__init__()
-        self.value = value
+        self.python_int = python_int
         self.attributes.read_only = True
 
     def __repr__(self):
-        return '<simplelang Integer object: %r>' % self.value
+        return '<simplelang Integer object: %r>' % self.python_int
 
     def __eq__(self, other):
         if not isinstance(other, Integer):
             return NotImplemented
-        return self.value == other.value
+        return self.python_int == other.python_int
 
     def __hash__(self):
-        return hash(self.value)
+        return hash(self.python_int)
 
 
 class BuiltinFunction(Object):
@@ -242,13 +242,11 @@ class Array(Object):
 
     # there are no integer objects yet, everything is a string :(
     def _get(self, index):
-        return self.python_list[int(index.python_string)]
+        return self.python_list[index.python_int]
 
     def _slice(self, start, end=None):
-        start = int(start.python_string)
-        if end is not None:     # python's thing[a:] is same as thing[a:None]
-            end = int(end.python_string)
-        return Array(self.python_list[start:end])
+        # python's thing[a:] is same as thing[a:None]
+        return Array(self.python_list[start.python_int:end.python_int])
 
     def _get_length(self):
         return String(str(len(self.python_list)))
@@ -337,8 +335,12 @@ class Block(Object):
 
 @BuiltinFunction
 def print_(arg):
-    assert isinstance(arg, String), "cannot print " + repr(arg)
-    print(arg.python_string)
+    if isinstance(arg, String):
+        print(arg.python_string)
+    elif isinstance(arg, Integer):
+        print(arg.python_int)
+    else:
+        raise TypeError("cannot print " + repr(arg))
     return null
 
 
