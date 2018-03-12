@@ -3,6 +3,6 @@ var array2 = (Array "d" "e" "f");
 
 assert (equals (zip array1 array2) (Array (Array "a" "d") (Array "b" "e") (Array "c" "f")));
 (zip array1 array2).foreach "item" {
-    print (item.get "0");
-    print (item.get "1");
+    print (item.get 0);
+    print (item.get 1);
 };
