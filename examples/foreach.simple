@@ -1,5 +1,5 @@
 # simple foreach loop
-var a = (Array "one" "two" "three");
+var a = ["one" "two" "three"];
 a.foreach "thing" {
     print thing;
 };
