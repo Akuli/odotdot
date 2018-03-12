@@ -1,7 +1,7 @@
-var array1 = (Array "a" "b" "c");
-var array2 = (Array "d" "e" "f");
+var array1 = ["a" "b" "c"];
+var array2 = ["d" "e" "f"];
 
-assert (equals (zip array1 array2) (Array (Array "a" "d") (Array "b" "e") (Array "c" "f")));
+assert (equals (zip array1 array2) [["a" "d"] ["b" "e"] ["c" "f"]]);
 (zip array1 array2).foreach "item" {
     print (item.get "0");
     print (item.get "1");
