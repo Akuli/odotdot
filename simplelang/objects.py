@@ -162,6 +162,25 @@ class String(Object):
         return hash(self.python_string)
 
 
+class Integer(Object):
+
+    def __init__(self, value):
+        super().__init__()
+        self.value = value
+        self.attributes.read_only = True
+
+    def __repr__(self):
+        return '<simplelang Integer object: %r>' % self.value
+
+    def __eq__(self, other):
+        if not isinstance(other, Integer):
+            return NotImplemented
+        return self.value == other.value
+
+    def __hash__(self):
+        return hash(self.value)
+
+
 class BuiltinFunction(Object):
 
     def __init__(self, python_func):

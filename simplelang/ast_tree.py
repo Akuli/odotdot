@@ -4,6 +4,7 @@ import itertools
 
 # expressions
 String = namedtuple('String', ['python_string'])
+Integer = namedtuple('Integer', ['value'])
 Block = namedtuple('Block', ['statements'])
 GetVar = namedtuple('GetVar', ['varname'])
 GetAttr = namedtuple('GetAttr', ['object', 'attribute'])
@@ -74,9 +75,14 @@ class _Parser:
         assert token.kind == 'string', "expected a string, not " + token.kind
         return String(token.value[1:-1])
 
+    def parse_integer(self):
+        token = self.tokens.pop()
+        assert token.kind == 'integer', "expected an integer, not " + token.kind
+        return Integer(token.value[1:-1])
+
     # remember to update this if you add more expressions!
     def expression_coming_up(self):
-        if self.tokens.coming_up().kind in ('string', 'identifier'):
+        if self.tokens.coming_up().kind in ('string', 'integer', 'identifier'):
             return True
         if self.tokens.coming_up().kind == 'op':
             return (self.tokens.coming_up().value in {'(', '{'})
@@ -85,6 +91,8 @@ class _Parser:
     def parse_expression(self):
         if self.tokens.coming_up().kind == 'string':
             result = self.parse_string()
+        if self.tokens.coming_up().kind == 'integer':
+            result = self.parse_integer()
         elif self.tokens.coming_up().kind == 'identifier':
             result = GetVar(self.tokens.pop().value)
         elif (self.tokens.coming_up().kind == 'op' and

@@ -81,6 +81,9 @@ class Interpreter:
         if isinstance(ast_expression, ast_tree.String):
             return objects.String(ast_expression.python_string)
 
+        if isinstance(ast_expression, ast_tree.String):
+            return objects.Integer(ast_expression.value)
+
         if isinstance(ast_expression, ast_tree.GetVar):
             return context.namespace.get(ast_expression.varname)
 
