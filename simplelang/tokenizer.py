@@ -3,9 +3,9 @@ import re
 
 # https://docs.python.org/3/library/re.html
 token_spec = [
-    ('keyword', r'(var|return)\b'),      # TODO: test returns
+    ('keyword', r'(var|return)\b'),
     ('identifier', r'[^\W\d]\w*'),
-    ('op', r'[{}()\[\]=;.]'),       # TODO: test ( ) [ ]
+    ('op', r'[{}()\[\]=;.]'),
     ('string', '".*?"'),
     ('integer', r'-?\d+'),
     ('comment', r'#[^\n]*'),

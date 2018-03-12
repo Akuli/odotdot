@@ -8,20 +8,47 @@ def tokenizelist(code):
 
 
 def test_basic_stuff():
-    assert tokenizelist('var x=y;') == tokenizelist('var  x\n \t= y\n;') == [
+    assert (tokenizelist('var x=y.z;') ==
+            tokenizelist('var  x\n \t= y\n.z;') == [
         Token('keyword', 'var'),
         Token('identifier', 'x'),
         Token('op', '='),
         Token('identifier', 'y'),
+        Token('op', '.'),
+        Token('identifier', 'z'),
         Token('op', ';'),
-    ]
+    ])
 
-    assert tokenizelist('blah var asd"hi"toot ') == [
+    assert tokenizelist('blah varasd"hi"toot ') == [
         Token('identifier', 'blah'),
-        Token('keyword', 'var'),
-        Token('identifier', 'asd'),
+        Token('identifier', 'varasd'),
         Token('string', '"hi"'),
         Token('identifier', 'toot'),
+    ]
+
+    assert tokenizelist('blah123 123blah return123 123return') == [
+        Token('identifier', 'blah123'),
+        Token('integer', '123'),
+        Token('identifier', 'blah'),
+        Token('identifier', 'return123'),
+        Token('integer', '123'),
+        Token('keyword', 'return'),
+    ]
+
+    assert tokenizelist('a{b(c[d]e)f}g') == [   # noqa
+        Token('identifier', 'a'),
+        Token('op', '{'),
+            Token('identifier', 'b'),
+            Token('op', '('),
+                Token('identifier', 'c'),
+                Token('op', '['),
+                    Token('identifier', 'd'),
+                Token('op', ']'),
+                Token('identifier', 'e'),
+            Token('op', ')'),
+            Token('identifier', 'f'),
+        Token('op', '}'),
+        Token('identifier', 'g'),
     ]
 
     with pytest.raises(ValueError):
