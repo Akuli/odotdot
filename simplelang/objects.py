@@ -1,5 +1,6 @@
 import collections
 import functools
+import types
 
 
 # i know i know, you hate exceptions as control flow
@@ -190,6 +191,9 @@ class BuiltinFunction(Object):
 
     def call(self, args):
         result = self.python_func(*args)
+        if result is None:
+            # this makes everything 10 times easier...
+            result = null
         assert isinstance(result, Object), (
             "%r returned %r" % (self.python_func, result))
         return result
@@ -213,14 +217,11 @@ class Array(Object):
         self.attributes.set_locally('get', BuiltinFunction(self._get))
         self.attributes.set_locally('slice', BuiltinFunction(self._slice))
         self.attributes.set_locally('copy', BuiltinFunction(self.copy))
-        self.attributes.set_locally('add', BuiltinFunction(self.add))
+        self.attributes.set_locally('add',
+                                    BuiltinFunction(self.python_list.append))
         self.attributes.set_locally('get_length',
                                     BuiltinFunction(self._get_length))
         self.attributes.read_only = True
-
-    def add(self, element):
-        self.python_list.append(element)
-        return null
 
     def copy(self):
         return Array(self.python_list)      # __init__ list()s
@@ -234,13 +235,11 @@ class Array(Object):
             context.namespace.set_locally(varname.python_string, element)
             loop_body.run(context)
 
-        return null
-
     # there are no integer objects yet, everything is a string :(
     def _get(self, index):
         return self.python_list[index.python_int]
 
-    def _slice(self, start, end=None):
+    def _slice(self, start, end=types.SimpleNamespace(python_int=None)):
         # python's thing[a:] is same as thing[a:None]
         return Array(self.python_list[start.python_int:end.python_int])
 
@@ -266,6 +265,8 @@ class Mapping(Object):
         self.attributes.set_locally('get', BuiltinFunction(self.get))
         self.attributes.set_locally(
             'delete', BuiltinFunction(self.python_dict.__delitem__))
+        self.attributes.set_locally(
+            'items', BuiltinFunction(self.items))
         self.attributes.read_only = True
 
     @classmethod
@@ -293,7 +294,9 @@ class Mapping(Object):
                 return default
             raise e
 
-    # TODO: keys,values,items equivalents? maybe as iterators or views?
+    # TODO: iterators or views? keys? values?
+    def items(self):
+        return Array(Array(item) for item in self.python_dict.items())
 
 
 class Block(Object):
@@ -319,14 +322,12 @@ class Block(Object):
             context = self.definition_context.create_subcontext()
         for statement in self._statements:
             self._interp.execute(statement, context)
-        return null
 
     def run_with_return(self, context=None):
         try:
             self.run(context)
         except ReturnAValue as e:
             return e.value
-        return null
 
 
 @BuiltinFunction
@@ -337,7 +338,6 @@ def print_(arg):
         print(arg.python_int)
     else:
         raise TypeError("cannot print " + repr(arg))
-    return null
 
 
 @BuiltinFunction
@@ -346,7 +346,6 @@ def if_(condition, body):
         body.run()
     elif condition is not false:
         raise ValueError("expected true or false, got " + repr(condition))
-    return null
 
 
 # create a function that takes an array of arguments
@@ -371,12 +370,32 @@ def equals(a, b):
     return true if a == b else false
 
 
+# like apply in python 2
+@BuiltinFunction
+def call(func, arg_list):
+    return func.call(arg_list.python_list)
+
+
+# these suck
+@BuiltinFunction
+def setattr_(obj, name, value):
+    obj.attributes.set_locally(name.python_string, value)
+
+
+@BuiltinFunction
+def getattr_(obj, name):
+    return obj.attributes.get(name.python_string)
+
+
 def add_real_builtins(namespace):
     namespace.set_locally('null', null)
     namespace.set_locally('true', true)
     namespace.set_locally('false', false)
     namespace.set_locally('if', if_)
     namespace.set_locally('print', print_)
+    namespace.set_locally('call', call)
+    namespace.set_locally('setattr', setattr_)
+    namespace.set_locally('getattr', getattr_)
     namespace.set_locally('array_func', array_func)
     namespace.set_locally('error', error)
     namespace.set_locally('equals', equals)

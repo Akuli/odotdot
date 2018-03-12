@@ -25,6 +25,9 @@ class Context(objects.Object):
             'set_var', objects.BuiltinFunction(self._set_var))
         self.attributes.set_locally(
             'get_var', objects.BuiltinFunction(self._get_var))
+        self.attributes.set_locally(
+            'get_local_varnames',
+            objects.BuiltinFunction(self._get_local_varnames))
 
         if parent_context is None:
             self.attributes.set_locally('parent_context', objects.null)
@@ -40,17 +43,17 @@ class Context(objects.Object):
     def _add_var(self, name, initial_value):
         assert isinstance(name, objects.String)
         self.namespace.set_locally(name.python_string, initial_value)
-        return objects.null
 
     def _set_var(self, name, value):
         assert isinstance(name, objects.String)
         self.namespace.set_where_defined(name.python_string, value)
-        return objects.null
 
     def _get_var(self, name):
         assert isinstance(name, objects.String)
         return self.namespace.get(name.python_string)
-        return objects.null
+
+    def _get_local_varnames(self):
+        return objects.Array(map(objects.String, self.namespace.values.keys()))
 
     # handy-dandy helper method to avoid having to import this file to
     # objects.py (lol)

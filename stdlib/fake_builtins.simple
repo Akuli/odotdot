@@ -89,3 +89,15 @@ var while = (array_func {
     };
     run_stuff.run;
 });
+
+var partial = (array_func {
+    var func = (arguments.get 0);
+    var partial_args = (arguments.slice 1);
+
+    return (array_func {
+        # here arguments means the arguments passed to the partialled function
+        var the_args = (partial_args.copy);
+        arguments.foreach "arg" { the_args.add arg; };
+        return (call func the_args);
+    });
+});
