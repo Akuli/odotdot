@@ -7,7 +7,7 @@ token_spec = [
     ('identifier', r'[^\W\d]\w*'),
     ('op', r'[{}()=;.]'),       # TODO: test ( )
     ('string', '".*?"'),
-    ('integer', r'\d+'),
+    ('integer', r'-?\d+'),
     ('comment', r'#[^\n]*'),
     ('whitespace', r'\s+'),
     ('error', '.'),
