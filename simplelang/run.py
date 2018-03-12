@@ -70,7 +70,7 @@ class Interpreter:
         # TODO: handle this path better
         path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), '..',
-            'lib', 'fake_builtins.simple')
+            'stdlib', 'fake_builtins.simple')
         with open(path, 'r', encoding='ascii') as file:
             content = file.read()
         tokens = tokenizer.tokenize(content)
