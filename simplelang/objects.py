@@ -225,10 +225,6 @@ class Array(Object):
     def copy(self):
         return Array(self.python_list)      # __init__ list()s
 
-    @classmethod
-    def from_star_args(cls, *args):
-        return cls(args)
-
     def foreach(self, varname, loop_body):
         assert isinstance(varname, String)
         assert isinstance(loop_body, Block)
@@ -386,4 +382,3 @@ def add_real_builtins(namespace):
     namespace.set_locally('equals', equals)
     namespace.set_locally('Mapping', BuiltinFunction(Mapping.from_pairs))
     namespace.set_locally('Object', BuiltinFunction(Object))
-    namespace.set_locally('Array', BuiltinFunction(Array.from_star_args))

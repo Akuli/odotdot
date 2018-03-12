@@ -5,6 +5,7 @@ import itertools
 # expressions
 String = namedtuple('String', ['python_string'])
 Integer = namedtuple('Integer', ['python_int'])
+Array = namedtuple('Array', ['elements'])
 Block = namedtuple('Block', ['statements'])
 GetVar = namedtuple('GetVar', ['varname'])
 GetAttr = namedtuple('GetAttr', ['object', 'attribute'])
@@ -80,12 +81,25 @@ class _Parser:
         assert token.kind == 'integer', "expected an integer, not " + token.kind
         return Integer(int(token.value))
 
+    def parse_array(self):
+        open_bracket = self.tokens.pop()
+        assert open_bracket.kind == 'op', open_bracket
+        assert open_bracket.value == '[', open_bracket
+
+        elements = []
+        while not (self.tokens.coming_up().kind == 'op' and
+                   self.tokens.coming_up().value == ']'):
+            elements.append(self.parse_expression())
+        self.tokens.pop()    # the ]
+
+        return Array(elements)
+
     # remember to update this if you add more expressions!
     def expression_coming_up(self):
         if self.tokens.coming_up().kind in ('string', 'integer', 'identifier'):
             return True
         if self.tokens.coming_up().kind == 'op':
-            return (self.tokens.coming_up().value in {'(', '{'})
+            return (self.tokens.coming_up().value in {'(', '{', '['})
         return False
 
     def parse_expression(self):
@@ -101,6 +115,9 @@ class _Parser:
         elif (self.tokens.coming_up().kind == 'op' and
               self.tokens.coming_up().value == '('):
             result = self.parse_call_expression()
+        elif (self.tokens.coming_up().kind == 'op' and
+              self.tokens.coming_up().value == '['):
+            result = self.parse_array()
         else:
             raise ValueError('should be a variable name, "..." or { ... }, '
                              "not '%s'" % self.tokens.coming_up().value)
@@ -139,6 +156,7 @@ class _Parser:
             args.append(self.parse_expression())
         return Call(func, args)
 
+    # TODO: return should be a magic function?
     def parse_return(self):
         return_ = self.tokens.pop()
         assert return_.kind == 'keyword', return_

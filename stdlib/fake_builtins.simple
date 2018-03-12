@@ -3,7 +3,7 @@ var not = (array_func {
         if (arguments.get 0) { return false; };
         return true;
     };
-    error "not should be called with exactly 1 argument";
+    error "'not' should be called with exactly 1 argument";
 });
 
 var and = (array_func {
@@ -30,19 +30,19 @@ var assert = (array_func {
 });
 
 var zip = (array_func {
-    # currenty this relies on (arguments.get 0)
+    # currenty this relies on (argumnets.get 0)
     if (equals (arguments.get_length) 0) {
-        return (Array);
+        return [];
     };
 
-    var result = (Array);
+    var result = [];
     var length = ((arguments.get 0).get_length);
 
     # TODO: make sure the arrays are of a consistent length
 
     while { (not (equals (result.get_length) length)) } {
         var index = (result.get_length);    # 0, 1, 2, ...
-        var result_item = (Array);
+        var result_item = [];
         arguments.foreach "zipped_array" {
             result_item.add (zipped_array.get index);
         };
