@@ -249,7 +249,7 @@ class Array(Object):
         return Array(self.python_list[start.python_int:end.python_int])
 
     def _get_length(self):
-        return String(str(len(self.python_list)))
+        return Integer(len(self.python_list))
 
     def __eq__(self, other):
         if not isinstance(other, Array):
