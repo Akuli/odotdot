@@ -26,13 +26,13 @@ def test_basic_stuff():
         Token('identifier', 'toot'),
     ]
 
-    assert tokenizelist('blah123 123blah return123 123return') == [
+    assert tokenizelist('blah123 123blah var123 123var') == [
         Token('identifier', 'blah123'),
         Token('integer', '123'),
         Token('identifier', 'blah'),
-        Token('identifier', 'return123'),
+        Token('identifier', 'var123'),
         Token('integer', '123'),
-        Token('keyword', 'return'),
+        Token('keyword', 'var'),
     ]
 
     assert tokenizelist('a{b(c[d]e)f}g') == [   # noqa

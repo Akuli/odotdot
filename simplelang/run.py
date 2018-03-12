@@ -132,10 +132,6 @@ class Interpreter:
             value = self.evaluate(ast_statement.value, context)
             obj.attributes.set_where_defined(ast_statement.attribute, value)
 
-        elif isinstance(ast_statement, ast_tree.Return):
-            value = self.evaluate(ast_statement.value, context)
-            raise objects.ReturnAValue(value)
-
         else:   # pragma: no cover
             raise RuntimeError(
                 "don't know how to execute " + repr(ast_statement))

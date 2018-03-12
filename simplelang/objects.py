@@ -387,10 +387,17 @@ def getattr_(obj, name):
     return obj.attributes.get(name.python_string)
 
 
+# this is kinda weird
+@BuiltinFunction
+def return_(value=null):
+    raise ReturnAValue(value)
+
+
 def add_real_builtins(namespace):
     namespace.set_locally('null', null)
     namespace.set_locally('true', true)
     namespace.set_locally('false', false)
+    namespace.set_locally('return', return_)
     namespace.set_locally('if', if_)
     namespace.set_locally('print', print_)
     namespace.set_locally('call', call)

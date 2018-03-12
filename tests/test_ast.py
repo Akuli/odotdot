@@ -2,7 +2,7 @@ import pytest
 
 from simplelang import tokenizer, ast_tree
 from simplelang.ast_tree import (
-    Array, String, Integer, Call, Return, Block,
+    Array, String, Integer, Call, Block,
     SetVar, SetAttr, GetVar, GetAttr, CreateVar, CreateAttr)
 
 
@@ -43,7 +43,8 @@ def test_arrays():
 
 
 def test_blocks():
-    assert parse_expression('{ return 123; }') == Block([Return(Integer(123))])
+    assert parse_expression('{ return 123; }') == Block([
+        Call(GetVar('return'), [Integer(123)])])
     assert parse_expression('{ return 123; }') == parse_expression('{ 123 }')
     assert parse_expression('{ }') == Block([])
     assert parse_expression('{ asd; toot = { }; }') == Block([

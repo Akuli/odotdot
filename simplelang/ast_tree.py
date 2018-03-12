@@ -17,7 +17,6 @@ SetVar = namedtuple('SetVar', ['varname', 'value'])
 SetAttr = namedtuple('SetAttr', ['object', 'attribute', 'value'])
 CreateVar = namedtuple('CreateVar', ['varname', 'value'])
 CreateAttr = namedtuple('CreateAttr', ['object', 'attribute', 'value'])
-Return = namedtuple('Return', ['value'])
 
 # expressions that are also statements
 Call = namedtuple('Call', ['func', 'args'])
@@ -156,14 +155,6 @@ class _Parser:
             args.append(self.parse_expression())
         return Call(func, args)
 
-    # TODO: return should be a magic function?
-    def parse_return(self):
-        return_ = self.tokens.pop()
-        assert return_.kind == 'keyword', return_
-        assert return_.value == 'return', return_
-        value = self.parse_expression()
-        return Return(value)
-
     def parse_var(self):
         var = self.tokens.pop()
         assert var.kind == 'keyword', keyword
@@ -176,7 +167,8 @@ class _Parser:
             self.tokens.pop()
             initial_value = self.parse_expression()
         else:
-            initial_value = GetVar('null')      # TODO: something better?
+            # TODO: something better for looking up builtins?
+            initial_value = GetVar('null')
 
         if isinstance(target, GetVar):
             return CreateVar(target.varname, initial_value)
@@ -205,9 +197,6 @@ class _Parser:
         if (self.tokens.coming_up().kind == 'keyword' and
                 self.tokens.coming_up().value == 'var'):
             statement = self.parse_var()
-        elif (self.tokens.coming_up().kind == 'keyword' and
-              self.tokens.coming_up().value == 'return'):
-            statement = self.parse_return()
         else:
             start = self.parse_expression()
             if (self.tokens.coming_up().kind == 'op' and
@@ -235,20 +224,28 @@ class _Parser:
             # empty block: { }
             implicit_return = False
         else:
-            # FIXME: this breaks with { { print "hello"; } }
+            # try to figure out if there's a semicolon before terminating }
+            # must match braces because of nested code blocks (old bug)
+            brace_counter = 1
             implicit_return = None
-            for token in map(self.tokens.coming_up, itertools.count(1)):
-                if token.kind == 'op' and token.value == ';':
-                    implicit_return = False
-                    break
-                if token.kind == 'op' and token.value == '}':   # before a ;
-                    implicit_return = True
-                    break
+            for future_token in map(self.tokens.coming_up, itertools.count(1)):
+                if future_token.kind == 'op':
+                    if future_token.value == ';' and brace_counter == 1:
+                        implicit_return = False
+                        break
+                    if future_token.value == '{':
+                        brace_counter += 1
+                    if future_token.value == '}':
+                        brace_counter -= 1
+                        if brace_counter == 0:
+                            implicit_return = True
+                            break
+
             if implicit_return is None:
                 raise EOFError
 
         if implicit_return:
-            statements = [Return(self.parse_expression())]
+            statements = [Call(GetVar('return'), [self.parse_expression()])]
         else:
             statements = []
             while not (self.tokens.coming_up().kind == 'op' and
