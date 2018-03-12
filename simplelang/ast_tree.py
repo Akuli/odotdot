@@ -4,7 +4,7 @@ import itertools
 
 # expressions
 String = namedtuple('String', ['python_string'])
-Integer = namedtuple('Integer', ['value'])
+Integer = namedtuple('Integer', ['python_int'])
 Block = namedtuple('Block', ['statements'])
 GetVar = namedtuple('GetVar', ['varname'])
 GetAttr = namedtuple('GetAttr', ['object', 'attribute'])
@@ -78,7 +78,7 @@ class _Parser:
     def parse_integer(self):
         token = self.tokens.pop()
         assert token.kind == 'integer', "expected an integer, not " + token.kind
-        return Integer(token.value[1:-1])
+        return Integer(int(token.value))
 
     # remember to update this if you add more expressions!
     def expression_coming_up(self):
@@ -91,7 +91,7 @@ class _Parser:
     def parse_expression(self):
         if self.tokens.coming_up().kind == 'string':
             result = self.parse_string()
-        if self.tokens.coming_up().kind == 'integer':
+        elif self.tokens.coming_up().kind == 'integer':
             result = self.parse_integer()
         elif self.tokens.coming_up().kind == 'identifier':
             result = GetVar(self.tokens.pop().value)
