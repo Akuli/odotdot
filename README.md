@@ -18,22 +18,22 @@ Run the code like this:
 
     $ python3 -m simplelang hello.simple
 
-My favorite feature with this language is code objects. Anything between `{`
-and `}` is a code object, and code objects have a `.run` method that works like
+My favorite feature with this language is blocks. Anything between `{`
+and `}` is a block, and blocks have a `.run` method that works like
 this:
 
 ```python
-const hellocode = {
+const helloblock = {
     print "hello world";
 };
 
 # run it 3 times
-hellocode.run;
-hellocode.run;
-hellocode.run;
+helloblock.run;
+helloblock.run;
+helloblock.run;
 ```
 
-Of course, every code object gets a new scope; variables defined in `{ }` are
+Of course, every block gets a new scope; variables defined in `{ }` are
 not visible outside of the `{ }`:
 
 ```python
