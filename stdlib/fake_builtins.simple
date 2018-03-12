@@ -1,6 +1,6 @@
 var not = (array_func {
-    if (equals (arguments.get_length) "1") {
-        if (arguments.get "0") { return false; };
+    if (equals (arguments.get_length) 1) {
+        if (arguments.get 0) { return false; };
         return true;
     };
     error "'not' should be called with exactly 1 argument";
@@ -20,23 +20,23 @@ var or = (array_func {
 });
 
 var assert = (array_func {
-    if (not (or (equals (arguments.get_length) "1")
-                (equals (arguments.get_length) "2"))) {
+    if (not (or (equals (arguments.get_length) 1)
+                (equals (arguments.get_length) 2))) {
         error "should be 'assert CONDITION;' or 'assert CONDITION MESSAGE;'";
     };
-    if (not (arguments.get "0")) {
+    if (not (arguments.get 0)) {
         error "assertion failed";
     };
 });
 
 var zip = (array_func {
-    # currenty this relies on (argumnets.get "0")
-    if (equals (arguments.get_length) "0") {
+    # currenty this relies on (argumnets.get 0)
+    if (equals (arguments.get_length) 0) {
         return [];
     };
 
     var result = [];
-    var length = ((arguments.get "0").get_length);
+    var length = ((arguments.get 0).get_length);
 
     # TODO: make sure the arrays are of a consistent length
 
@@ -52,10 +52,10 @@ var zip = (array_func {
 });
 
 var func = (array_func {
-    assert (not (equals (arguments.get_length) "0"))
+    assert (not (equals (arguments.get_length) 0))
            "should be 'function ARGUMENT_STRINGS { ... }'";
-    var argument_names = (arguments.slice "0" "-1");
-    var body = (arguments.get "-1");
+    var argument_names = (arguments.slice 0 -1);
+    var body = (arguments.get -1);
 
     return (array_func {
         var context = (body.definition_context.create_subcontext);
@@ -63,7 +63,7 @@ var func = (array_func {
         # set arguments as local variables
         # now the arguments variable is local to this inner array_func (lol)
         (zip argument_names arguments).foreach "pair" {
-            context.add_var (pair.get "0") (pair.get "1");
+            context.add_var (pair.get 0) (pair.get 1);
         };
         return (body.run_with_return context);
     });
@@ -72,11 +72,11 @@ var func = (array_func {
 # this is array_func because func needs this
 # TODO: implement while without recursion to allow infinite nesting
 var while = (array_func {
-    assert (equals (arguments.get_length) "2")
+    assert (equals (arguments.get_length) 2)
            "should be 'while { CONDITION } { ... };'";
 
-    var condition = (arguments.get "0");
-    var body = (arguments.get "1");
+    var condition = (arguments.get 0);
+    var body = (arguments.get 1);
 
     var context = (body.definition_context.create_subcontext);
     var run_stuff = {
