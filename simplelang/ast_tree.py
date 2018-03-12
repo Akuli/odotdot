@@ -4,7 +4,7 @@ import itertools
 
 # expressions
 String = namedtuple('String', ['python_string'])
-Code = namedtuple('Code', ['statements'])
+Block = namedtuple('Block', ['statements'])
 GetVar = namedtuple('GetVar', ['varname'])
 GetAttr = namedtuple('GetAttr', ['object', 'attribute'])
 
@@ -89,7 +89,7 @@ class _Parser:
             result = GetVar(self.tokens.pop().value)
         elif (self.tokens.coming_up().kind == 'op' and
               self.tokens.coming_up().value == '{'):
-            result = self.parse_code()
+            result = self.parse_block()
         elif (self.tokens.coming_up().kind == 'op' and
               self.tokens.coming_up().value == '('):
             result = self.parse_call_expression()
@@ -196,7 +196,7 @@ class _Parser:
 
         return statement
 
-    def parse_code(self):
+    def parse_block(self):
         open_brace = self.tokens.pop()
         assert open_brace.kind == 'op', repr(brace)
         assert open_brace.value == '{', repr(brace)
@@ -233,7 +233,7 @@ class _Parser:
         assert close_brace.kind == 'op', repr(close_brace)
         assert close_brace.value == '}', repr(close_brace)
 
-        return Code(statements)
+        return Block(statements)
 
     def parse_file(self):
         while self.tokens.something_coming_up():

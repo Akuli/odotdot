@@ -1,6 +1,0 @@
-var hello_code_object = { print "hello"; };
-
-# print hello three times
-hello_code_object.run;
-hello_code_object.run;
-hello_code_object.run;

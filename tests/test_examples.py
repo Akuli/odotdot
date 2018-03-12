@@ -8,7 +8,7 @@ import simplelang.__main__
 
 expected_output = {
     'hello.simple': 'hello world\n',
-    'code.simple': 'hello\n' * 3,
+    'block.simple': 'hello\n' * 3,
     'scopes.simple': 'hello\n',
     'mapping.simple': 'hello\nhi\n',
     'if.simple': 'everything ok\n',

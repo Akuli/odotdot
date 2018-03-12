@@ -212,7 +212,7 @@ class Array(Object):
 
     def foreach(self, varname, loop_body):
         assert isinstance(varname, String)
-        assert isinstance(loop_body, Code)
+        assert isinstance(loop_body, Block)
 
         context = loop_body.definition_context.create_subcontext()
         for element in self.python_list:
@@ -283,7 +283,7 @@ class Mapping(Object):
     # TODO: keys,values,items equivalents? maybe as iterators or views?
 
 
-class Code(Object):
+class Block(Object):
 
     def __init__(self, interpreter, definition_context, ast_statements):
         assert ast_statements is not iter(ast_statements), (
@@ -324,9 +324,9 @@ def print_(arg):
 
 
 @BuiltinFunction
-def if_(condition, code):
+def if_(condition, body):
     if condition is true:
-        code.run()
+        body.run()
     elif condition is not false:
         raise ValueError("expected true or false, got " + repr(condition))
     return null

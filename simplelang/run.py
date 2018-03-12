@@ -93,8 +93,8 @@ class Interpreter:
             args = [self.evaluate(arg, context) for arg in ast_expression.args]
             return func.call(args)
 
-        if isinstance(ast_expression, ast_tree.Code):
-            return objects.Code(self, context, ast_expression.statements)
+        if isinstance(ast_expression, ast_tree.Block):
+            return objects.Block(self, context, ast_expression.statements)
 
         raise RuntimeError(        # pragma: no cover
             "don't know how to evaluate " + repr(ast_expression))

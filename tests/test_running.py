@@ -92,7 +92,7 @@ def test_attributes(run_code, capsys):
         run_code('print d.this_doesnt_exist;')
 
 
-def test_code_objects(run_code, capsys):
+def test_blocks(run_code, capsys):
     run_code('''
     var hello = {
         print "hello world";
@@ -108,12 +108,12 @@ def test_code_objects(run_code, capsys):
 
     run_code('''
     var a = "original a";
-    var firstcode = {
+    var firstblock = {
         print a;
         a = "new a";
         print a;
     };
-    firstcode.run;
+    firstblock.run;
     print a;
     ''')
     assert capsys.readouterr() == ('original a\nnew a\nnew a\n', '')
@@ -129,7 +129,7 @@ def test_code_objects(run_code, capsys):
 
     run_code('''
     var a = "damn new a";
-    firstcode.run;      # it changed everything that uses this context
+    firstblock.run;      # it changed everything that uses this context
     ''')
     assert capsys.readouterr() == ('damn new a\nnew a\n', '')
 
