@@ -1,7 +1,3 @@
-# currently there's not a better way to define functions than this...
-# array_func creates a function that takes any number of arguments and
-# puts them to a local arguments array
-
 var array1 = (Array "a" "b" "c");
 var array2 = (Array "d" "e" "f");
 
