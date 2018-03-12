@@ -59,7 +59,9 @@ class Namespace:
 def _get_attrs(obj):
     result = set()
     for attribute in obj.attributes.values:
-        result.add((attribute, obj.attributes.get(attribute)))
+        value = obj.attributes.get(attribute)
+        # TODO: what if the value is not hashable?
+        result.add((attribute, value))
     return result
 
 
@@ -191,9 +193,18 @@ class Array(Object):
         self.attributes.set_locally('foreach', BuiltinFunction(self.foreach))
         self.attributes.set_locally('get', BuiltinFunction(self._get))
         self.attributes.set_locally('slice', BuiltinFunction(self._slice))
+        self.attributes.set_locally('copy', BuiltinFunction(self.copy))
+        self.attributes.set_locally('add', BuiltinFunction(self.add))
         self.attributes.set_locally('get_length',
                                     BuiltinFunction(self._get_length))
         self.attributes.read_only = True
+
+    def add(self, element):
+        self.python_list.append(element)
+        return null
+
+    def copy(self):
+        return Array(self.python_list)      # __init__ list()s
 
     @classmethod
     def from_star_args(cls, *args):
@@ -222,6 +233,13 @@ class Array(Object):
 
     def _get_length(self):
         return String(str(len(self.python_list)))
+
+    def __eq__(self, other):
+        if not isinstance(other, Array):
+            return NotImplemented
+        return self.python_list == other.python_list
+
+    # no __hash__
 
 
 class Mapping(Object):
@@ -307,10 +325,10 @@ def print_(arg):
 
 @BuiltinFunction
 def if_(condition, code):
-    assert isinstance(condition, Boolean), (
-        "expected true or false, got " + repr(condition))
     if condition is true:
         code.run()
+    elif condition is not false:
+        raise ValueError("expected true or false, got " + repr(condition))
     return null
 
 
@@ -336,21 +354,11 @@ def equals(a, b):
     return true if a == b else false
 
 
-@BuiltinFunction
-def not_(boolean):
-    if boolean is true:
-        return false
-    if boolean is false:
-        return true
-    raise TypeError("not " + repr(boolean))
-
-
 def add_real_builtins(namespace):
     namespace.set_locally('null', null)
     namespace.set_locally('true', true)
     namespace.set_locally('false', false)
     namespace.set_locally('if', if_)
-    namespace.set_locally('not', not_)
     namespace.set_locally('print', print_)
     namespace.set_locally('array_func', array_func)
     namespace.set_locally('error', error)

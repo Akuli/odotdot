@@ -14,6 +14,8 @@ expected_output = {
     'if.simple': 'everything ok\n',
     'foreach.simple': 'one\ntwo\nthree\n',
     'while.simple': 'hello\n',
+    'zip.simple': 'a\nd\nb\ne\nc\nf\n',
+    'func.simple': 'toot toot!\nabc\nxyz\n\ntoot returned:\nbam\n',
 }
 should_raise = {'scopes.simple': pytest.raises(ValueError)}
 

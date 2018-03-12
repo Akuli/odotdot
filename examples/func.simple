@@ -1,0 +1,11 @@
+var toot = (func "arg1" "arg2" {
+    print "toot toot!";
+    print arg1;
+    print arg2;
+    return "bam";
+});
+
+var returned = (toot "abc" "xyz");
+print "";
+print "toot returned:";
+print returned;
