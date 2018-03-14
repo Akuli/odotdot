@@ -1,6 +1,4 @@
 import collections
-import functools
-import types
 
 
 # every simplelang class is represented with at most three kinds of python
@@ -47,7 +45,7 @@ class DefaultDictLikeThingy(dict):
 
 
 class Object:
-    # setup and to_string are added later
+    # setup, to_string, equals and get_hash are added later
     class_info = ClassInfo(None, {})
 
     def __init__(self, setup_args, class_info=None):
@@ -94,8 +92,36 @@ class Object:
             assert 'to_string' not in self.class_info.methods
             return super().__repr__()
 
-    # TODO: provide some way to customize __eq__ and __hash__ from the
-    # language??
+    def __eq__(self, other):
+        if not isinstance(other, Object):
+            return NotImplemented
+
+        try:
+            return self.call_method('equals', other).python_bool
+        except ValueError:
+            # Object.equals doesn't exist yet
+            assert 'equals' not in Object.class_info.methods
+            return (self is other)
+
+    def __hash__(self):
+        try:
+            return self.call_method('get_hash').python_int
+        except ValueError:
+            # Object.get_hash doesn't exist yet
+            assert 'get_hash' not in Object.class_info.methods
+
+            # object with a lowercase o is Python's object class
+            return object.__hash__(self)
+
+
+# a helper function for python code, not exposed anywhere
+# stdlib/fake_builtins.simple defines a pure-simplelang is_instance_of
+def is_instance_of(obj, class_info):
+    while class_info is not None:
+        if class_info is obj.class_info:
+            return True
+        class_info = class_info.baseclass_info
+    return False
 
 
 class Function(Object):
@@ -108,7 +134,7 @@ class Function(Object):
 
     def _setup(self, *args):
         if not hasattr(self, 'python_func'):   # above __init__ wasn't called
-            raise ValueError("cannot create Function objects directly, "
+            raise ValueError("cannot create function objects directly, "
                              "use 'func' instead")
 
     def call(self, args):
@@ -120,18 +146,15 @@ class Function(Object):
             "%r returned %r" % (self.python_func, result))
         return result
 
-    def __eq__(self, other):
-        if not isinstance(other, Function):
-            return NotImplemented
-        return self.python_func == other.python_func
 
-    def __hash__(self):
-        return hash(self.python_func)
-
-
-# null isn't defined yet, but this works because python
+# true, false and Integer will be defined later
 Object.class_info.methods['setup'] = Function(lambda this: None)
 Function.class_info.methods['setup'] = Function(Function._setup)
+Object.class_info.methods['equals'] = Function(
+    lambda this, that: true if this is that else false)
+Object.class_info.methods['get_hash'] = Function(
+    # object with lowercase o is python's object class
+    lambda this: Integer(object.__hash__(this)))
 
 
 class String(Object):
@@ -142,8 +165,17 @@ class String(Object):
 
     def _setup(self, *args):
         if not hasattr(self, 'python_string'):   # above __init__ wasn't called
-            raise ValueError('create new strings with string literals, '
-                             'e.g. "hello" or ""')
+            raise ValueError(
+                'cannot create new Strings directly, use string literals like '
+                '"hello" or "" instead')
+
+    def _equals(self, other):
+        if not is_instance_of(self, String.class_info):
+            return false
+        return true if self.python_string == other.python_string else false
+
+    def _hash(self):
+        return Integer(hash(self.python_string))
 
     def _to_string(self):
         return self
@@ -156,19 +188,12 @@ class String(Object):
 
     class_info = ClassInfo(Object.class_info, {
         'setup': Function(_setup),
+        'equals': Function(_equals),
+        'hash': Function(_hash),
         'to_string': Function(_to_string),
         'to_integer': Function(_to_integer),
         'to_array': Function(_to_array),
     })
-
-    # TODO: get rid of the boilerplate :(
-    def __eq__(self, other):
-        if not isinstance(other, String):
-            return NotImplemented
-        return self.python_string == other.python_string
-
-    def __hash__(self):
-        return hash(self.python_string)
 
 
 Object.class_info.methods['to_string'] = Function(
@@ -287,24 +312,22 @@ class Integer(Object):
         self.python_int = python_int
         super().__init__([])
 
-    @Function
     def _setup(self, *args):
         if not hasattr(self, 'python_int'):
             raise ValueError("create new Integers with integer literals, "
                              "e.g. 123")
 
+    def _equals(self, other):
+        if not is_instance_of(other, Integer.class_info):
+            return false
+        return true if self.python_int == other.python_int else false
+
     class_info = ClassInfo(Object.class_info, {
-        'setup': _setup,
+        'setup': Function(_setup),
+        'equals': Function(_equals),
+        'get_hash': Function(lambda self: Integer(hash(self.python_int))),
         'to_string': Function(lambda self: String(str(self.python_int))),
     })
-
-    def __eq__(self, other):
-        if not isinstance(other, Integer):
-            return NotImplemented
-        return self.python_int == other.python_int
-
-    def __hash__(self):
-        return hash(self.python_int)
 
 
 class Array(Object):
@@ -312,6 +335,20 @@ class Array(Object):
     def __init__(self, elements=()):
         self.python_list = list(elements)
         super().__init__([])
+
+    def _setup(self, *args):
+        if not hasattr(self, 'python_list'):
+            raise ValueError("create new Arrays with square brackets, "
+                             "like '[1 2 3]' or '[]'")
+
+    def _equals(self, other):
+        if not is_instance_of(other, Array.class_info):
+            return false
+        # python's == checks each element with __eq__
+        return true if self.python_list == other.python_list else false
+
+    def _get_hash(self):
+        raise TypeError("arrays are not hashable")
 
     def _foreach(self, varname, loop_body):
         assert isinstance(varname, String)
@@ -338,9 +375,12 @@ class Array(Object):
                     for element in self.python_list)
         return String('[' + ' '.join(stringed) + ']')
 
-    # the copy() works because __init__ list()s
     class_info = ClassInfo(Object.class_info, {
+        'setup': Function(_setup),
+        'equals': Function(_equals),
+        'get_hash': Function(_get_hash),
         'add': Function(lambda self, value: self.python_list.append(value)),
+        # this copy method works because __init__ list()s
         'copy': Function(lambda self: Array(self.python_list)),
         'foreach': Function(_foreach),
         'get': Function(lambda self, i: self.python_list[i.python_int]),
@@ -348,11 +388,6 @@ class Array(Object):
         'get_length': Function(lambda self: Integer(len(self.python_list))),
         'to_string': Function(_to_string),
     })
-
-    def __eq__(self, other):
-        if not isinstance(other, Array):
-            return NotImplemented
-        return self.python_list == other.python_list
 
 
 # like apply in python 2
@@ -480,6 +515,11 @@ def equals(a, b):
     return true if a == b else false
 
 
+@Function
+def same_object(a, b):
+    return true if a is b else false
+
+
 # these suck
 @Function
 def setattr_(obj, name, value):
@@ -504,6 +544,7 @@ def add_real_builtins(context):
     context.local_vars['array_func'] = array_func
     context.local_vars['error'] = error
     context.local_vars['equals'] = equals
+    context.local_vars['same_object'] = same_object
     context.local_vars['new'] = new
     context.local_vars['get_class'] = get_class
 

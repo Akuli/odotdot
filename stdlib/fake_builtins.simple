@@ -90,6 +90,19 @@ var while = (array_func {
     run_stuff.run;
 });
 
+var is_instance_of = (func "object" "klass" {
+    var looking4 = (get_class object);
+    var result = false;
+    while { (and (not (same_object klass null)) (not result)) } {
+        if (same_object klass looking4) {
+            # FIXME: there's a horrible bug that prevents returning here :(
+            result = true;
+        };
+        klass = klass.baseclass;
+    };
+    return result;
+});
+
 var partial = (array_func {
     var func = (arguments.get 0);
     var partial_args = (arguments.slice 1);
