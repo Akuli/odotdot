@@ -8,64 +8,60 @@ from simplelang import tokenizer, ast_tree, objects
 class Context(objects.Object):
 
     def __init__(self, parent_context):
-        super().__init__()
-
-        # this is the builtin context if parent_context is None
-        self.parent_context = parent_context
-
         if parent_context is None:
-            self.namespace = objects.Namespace('variable')
+            parent_context = objects.null
+        super().__init__([parent_context])
+
+    def _setup(self, parent_context):
+        self.attributes['parent_context'] = parent_context
+        self.local_vars = {}
+
+    def _set_var_locally(self, name, value):
+        self.local_vars[name.python_string] = value
+
+    def _set_var_where_defined(self, name, value):
+        if name.python_string in self.local_vars:
+            self.local_vars[name.python_string] = value
+        elif self.attributes['parent_context'] is not objects.null:
+            self.attributes['parent_context'].call_method(
+                'set_var_where_defined', name, value)
         else:
-            self.namespace = objects.Namespace(
-                'variable', parent_context.namespace)
-
-        self.attributes.set_locally(
-            'add_var', objects.BuiltinFunction(self._add_var))
-        self.attributes.set_locally(
-            'set_var', objects.BuiltinFunction(self._set_var))
-        self.attributes.set_locally(
-            'get_var', objects.BuiltinFunction(self._get_var))
-        self.attributes.set_locally(
-            'get_local_varnames',
-            objects.BuiltinFunction(self._get_local_varnames))
-
-        if parent_context is None:
-            self.attributes.set_locally('parent_context', objects.null)
-        else:
-            self.attributes.set_locally('parent_context', parent_context)
-        self.attributes.set_locally(
-            'create_subcontext',
-            objects.BuiltinFunction(self.create_subcontext))
-        self.attributes.read_only = True
-
-    # these are just for exposing in simplelang, access .namespace
-    # directly in python instead of using this stupid poop
-    def _add_var(self, name, initial_value):
-        assert isinstance(name, objects.String)
-        self.namespace.set_locally(name.python_string, initial_value)
-
-    def _set_var(self, name, value):
-        assert isinstance(name, objects.String)
-        self.namespace.set_where_defined(name.python_string, value)
+            raise ValueError("no variable named '%s'" % name.python_string)
 
     def _get_var(self, name):
-        assert isinstance(name, objects.String)
-        return self.namespace.get(name.python_string)
+        try:
+            return self.local_vars[name.python_string]
+        except KeyError:
+            if self.attributes['parent_context'] is objects.null:
+                raise ValueError("no variable named '%s'" % name.python_string)
+            return self.attributes['parent_context'].call_method(
+                'get_var', name)
 
-    def _get_local_varnames(self):
-        return objects.Array(map(objects.String, self.namespace.values.keys()))
+    def _delete_local_var(self, name):
+        try:
+            del self.local_vars[name]
+        except KeyError:
+            raise ValueError(
+                "no local variable named '%s'" % name.python_string)
 
-    # handy-dandy helper method to avoid having to import this file to
-    # objects.py (lol)
-    def create_subcontext(self):
+    def _create_subcontext(self):
         return Context(self)
+
+    class_info = objects.ClassInfo(objects.Object.class_info, {
+        'setup': objects.Function(_setup),
+        'set_var_locally': objects.Function(_set_var_locally),
+        'set_var_where_defined': objects.Function(_set_var_where_defined),
+        'get_var': objects.Function(_get_var),
+        'delete_local_var': objects.Function(_delete_local_var),
+        'create_subcontext': objects.Function(_create_subcontext),
+    })
 
 
 class Interpreter:
 
     def __init__(self):
         self.builtin_context = Context(None)
-        objects.add_real_builtins(self.builtin_context.namespace)
+        objects.add_real_builtins(self.builtin_context)
         self._add_fake_builtins()
         self.global_context = Context(self.builtin_context)
 
@@ -93,11 +89,12 @@ class Interpreter:
             return objects.Array(elements)
 
         if isinstance(ast_expression, ast_tree.GetVar):
-            return context.namespace.get(ast_expression.varname)
+            varname = objects.String(ast_expression.varname)
+            return context.call_method('get_var', varname)
 
         if isinstance(ast_expression, ast_tree.GetAttr):
             obj = self.evaluate(ast_expression.object, context)
-            return obj.attributes.get(ast_expression.attribute)
+            return obj.attributes[ast_expression.attribute]
 
         if isinstance(ast_expression, ast_tree.Call):
             func = self.evaluate(ast_expression.func, context)
@@ -116,21 +113,17 @@ class Interpreter:
 
         elif isinstance(ast_statement, ast_tree.CreateVar):
             initial_value = self.evaluate(ast_statement.value, context)
-            context.namespace.set_locally(ast_statement.varname, initial_value)
-
-        elif isinstance(ast_statement, ast_tree.CreateAttr):
-            obj = self.evaluate(ast_statement.object, context)
-            initial_value = self.evaluate(ast_statement.value, context)
-            obj.attributes.set_locally(ast_statement.attribute, initial_value)
+            context.local_vars[ast_statement.varname] = initial_value
 
         elif isinstance(ast_statement, ast_tree.SetVar):
             value = self.evaluate(ast_statement.value, context)
-            context.namespace.set_where_defined(ast_statement.varname, value)
+            context.call_method('set_var_where_defined',
+                                objects.String(ast_statement.varname), value)
 
         elif isinstance(ast_statement, ast_tree.SetAttr):
             obj = self.evaluate(ast_statement.object, context)
             value = self.evaluate(ast_statement.value, context)
-            obj.attributes.set_where_defined(ast_statement.attribute, value)
+            obj.attributes[ast_statement.attribute] = value
 
         else:   # pragma: no cover
             raise RuntimeError(

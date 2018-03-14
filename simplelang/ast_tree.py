@@ -13,10 +13,9 @@ GetAttr = namedtuple('GetAttr', ['object', 'attribute'])
 # statements
 # TODO: should attributes and variables be treated differently? people
 # are used to that
+CreateVar = namedtuple('CreateVar', ['varname', 'value'])
 SetVar = namedtuple('SetVar', ['varname', 'value'])
 SetAttr = namedtuple('SetAttr', ['object', 'attribute', 'value'])
-CreateVar = namedtuple('CreateVar', ['varname', 'value'])
-CreateAttr = namedtuple('CreateAttr', ['object', 'attribute', 'value'])
 
 # expressions that are also statements
 Call = namedtuple('Call', ['func', 'args'])
@@ -160,7 +159,8 @@ class _Parser:
         assert var.kind == 'keyword', keyword
         assert var.value == 'var', keyword
 
-        target = self.parse_expression()
+        varname = self.tokens.pop()
+        assert varname.kind == 'identifier'
 
         if (self.tokens.coming_up().kind == 'op' and
                 self.tokens.coming_up().value == '='):
@@ -170,13 +170,7 @@ class _Parser:
             # TODO: something better for looking up builtins?
             initial_value = GetVar('null')
 
-        if isinstance(target, GetVar):
-            return CreateVar(target.varname, initial_value)
-        if isinstance(target, GetAttr):
-            return CreateAttr(
-                target.object, target.attribute, initial_value)
-        raise ValueError(
-            "the x of 'var x = y;' must be a variable name or an attribute")
+        return CreateVar(varname.value, initial_value)
 
     # this takes the first expression as an already-parsed argument
     # this way parse_statement() knows when this should be called

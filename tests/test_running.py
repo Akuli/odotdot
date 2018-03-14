@@ -46,50 +46,33 @@ def test_variables(run_code, capsys):
 class Dummy(objects.Object):
 
     def __init__(self):
-        super().__init__()
-        self.attributes.set_locally('attribute', objects.String("hi"))
+        super().__init__([])
+
+    def _setup(self):
+        self.attributes['attribute'] = objects.String("hi")
+
+    class_info = objects.ClassInfo(objects.Object.class_info, {
+        'setup': objects.Function(_setup),
+    })
 
 
 def test_attributes(run_code, capsys):
-    run_code.context.namespace.set_locally('d', Dummy())
+    run_code.context.local_vars['d'] = Dummy()
 
     run_code('''print d.attribute;
                 d.attribute = "new hi";
                 print d.attribute;''')
     assert capsys.readouterr() == ('hi\nnew hi\n', '')
 
-    run_code('var d.lol = "asd";')
-    lol = run_code.context.namespace.get('d').attributes.get('lol')
+    run_code('d.lol = "asd";')
+    lol = run_code.context.local_vars['d'].attributes['lol']
     assert isinstance(lol, objects.String)
     assert lol.python_string == 'asd'
 
     run_code('print d.lol; d.lol = "new lol"; print d.lol;')
     assert capsys.readouterr() == ('asd\nnew lol\n', '')
 
-    run_code('var d.wat = "ASD";')
-    wat = run_code.context.namespace.get('d').attributes.get('wat')
-    assert isinstance(wat, objects.String)
-    assert wat.python_string == 'ASD'
-
-    with pytest.raises(ValueError):
-        run_code('d.this_is_not_defined_anywhere_must_use_var_first = "toot";')
-
-    run_code.context.namespace.get('d').attributes.read_only = True
-
-    # attributes must still work...
-    run_code('print d.lol;')
-    assert capsys.readouterr() == ('new lol\n', '')
-
-    # ...even though nothing can be changed
-    with pytest.raises(ValueError):
-        run_code('var d.lol = "very new lol";')
-    run_code('print d.lol;')
-    assert capsys.readouterr() == ('new lol\n', '')
-
-    with pytest.raises(ValueError):
-        run_code('d.this_doesnt_exist = "waaaaaat";')
-    with pytest.raises(ValueError):
-        run_code('print d.this_doesnt_exist;')
+    # TODO: some way to prevent setting any attributes
 
 
 def test_blocks(run_code, capsys):

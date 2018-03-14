@@ -63,7 +63,7 @@ var func = (array_func {
         # set arguments as local variables
         # now the arguments variable is local to this inner array_func (lol)
         (zip argument_names arguments).foreach "pair" {
-            context.add_var (pair.get 0) (pair.get 1);
+            context.set_var_locally (pair.get 0) (pair.get 1);
         };
         return (body.run_with_return context);
     });
