@@ -227,6 +227,12 @@ class ClassObject(Object):
             raise ValueError(
                 "use 'get_class' or 'class' instead of 'new Class'")
 
+        if self.wrapped_class_info.baseclass_info is None:
+            self.attributes['baseclass'] = null
+        else:
+            self.attributes['baseclass'] = (
+                class_objects[self.wrapped_class_info.baseclass_info])
+
     def _to_string(self):
         return String('<a Class object at %#x>' % id(self))
 
