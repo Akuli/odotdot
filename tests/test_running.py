@@ -43,30 +43,52 @@ def test_variables(run_code, capsys):
         run_code('print undefined_var;')
 
 
-class Dummy(objects.Object):
+def _setup_dummy(this, *args):
+    print("setting up")
+    assert args == (objects.new_string('a'),
+                    objects.new_string('b'))
+    this.attributes['x'] = objects.new_string('y')
+    return objects.null
 
-    def __init__(self):
-        super().__init__([])
 
-    def _setup(self):
-        self.attributes['attribute'] = objects.String("hi")
+def _dummy_toot(this):
+    print("toot toot")
+    return objects.null
 
-    class_info = objects.ClassInfo(objects.Object.class_info, {
-        'setup': objects.Function(_setup),
-    })
+
+dummy_info = objects.ClassInfo(objects.object_info, {
+    'setup': objects.new_function(_setup_dummy),
+    'toot': objects.new_function(_dummy_toot),
+})
+
+
+def test_object_stuff(run_code, capsys):
+    run_code.context.local_vars['Dummy'] = objects.class_objects[dummy_info]
+
+    run_code.context.local_vars['d1'] = objects.Object(dummy_info)
+    assert capsys.readouterr() == ('', '')
+    run_code('d1.setup "a" "b";')
+    assert capsys.readouterr() == ('setting up\n', '')
+
+    run_code('var d2 = (new Dummy "a" "b");')
+    assert capsys.readouterr() == ('setting up\n', '')
+
+    run_code('d1.toot; d2.toot;')
+    assert capsys.readouterr() == ('toot toot\ntoot toot\n', '')
 
 
 def test_attributes(run_code, capsys):
-    run_code.context.local_vars['d'] = Dummy()
+    run_code.context.local_vars['d'] = objects.Object(objects.object_info)
+    run_code.context.local_vars['d'].attributes['a'] = objects.new_string("hi")
 
-    run_code('''print d.attribute;
-                d.attribute = "new hi";
-                print d.attribute;''')
+    run_code('''print d.a;
+                d.a = "new hi";
+                print d.a;''')
     assert capsys.readouterr() == ('hi\nnew hi\n', '')
 
     run_code('d.lol = "asd";')
     lol = run_code.context.local_vars['d'].attributes['lol']
-    assert isinstance(lol, objects.String)
+    assert objects.is_instance_of(lol, objects.string_info)
     assert lol.python_string == 'asd'
 
     run_code('print d.lol; d.lol = "new lol"; print d.lol;')
