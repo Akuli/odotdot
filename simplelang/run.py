@@ -8,14 +8,13 @@ from simplelang import tokenizer, ast_tree, objects
 def _create_context_info():
     def setup(this, parent_context):
         this.attributes['parent_context'] = parent_context
-        this.local_vars = {}
-
-    def set_var_locally(this, name, value):
-        this.local_vars[name.python_string] = value
+        this.attributes['local_vars'] = objects.Object(objects.mapping_info)
+        this.attributes['local_vars'].call_method(
+            'setup', objects.new_array([]))
 
     def set_var_where_defined(this, name, value):
-        if name.python_string in this.local_vars:
-            this.local_vars[name.python_string] = value
+        if name in this.attributes['local_vars'].python_dict:
+            this.attributes['local_vars'].python_dict[name] = value
         elif this.attributes['parent_context'] is not objects.null:
             this.attributes['parent_context'].call_method(
                 'set_var_where_defined', name, value)
@@ -24,20 +23,14 @@ def _create_context_info():
 
     def get_var(this, name):
         try:
-            return this.local_vars[name.python_string]
+            return this.attributes['local_vars'].python_dict[name]
         except KeyError:
             if this.attributes['parent_context'] is objects.null:
                 raise ValueError("no variable named '%s'" % name.python_string)
             return this.attributes['parent_context'].call_method(
                 'get_var', name)
 
-    def delete_local_var(this, name):
-        try:
-            del this.local_vars[name]
-        except KeyError:
-            raise ValueError(
-                "no local variable named '%s'" % name.python_string)
-
+    # TODO: get rid of this???
     def create_subcontext(this):
         context = objects.Object(context_info)
         context.call_method('setup', this)
@@ -45,10 +38,8 @@ def _create_context_info():
 
     return objects.ClassInfo(objects.object_info, {
         'setup': setup,
-        'set_var_locally': set_var_locally,
         'set_var_where_defined': set_var_where_defined,
         'get_var': get_var,
-        'delete_local_var': delete_local_var,
         'create_subcontext': create_subcontext,
     })
 
@@ -114,8 +105,9 @@ class Interpreter:
             self.evaluate(ast_statement, context)
 
         elif isinstance(ast_statement, ast_tree.CreateVar):
-            initial_value = self.evaluate(ast_statement.value, context)
-            context.local_vars[ast_statement.varname] = initial_value
+            varname = objects.new_string(ast_statement.varname)
+            value = self.evaluate(ast_statement.value, context)
+            context.attributes['local_vars'].python_dict[varname] = value
 
         elif isinstance(ast_statement, ast_tree.SetVar):
             value = self.evaluate(ast_statement.value, context)

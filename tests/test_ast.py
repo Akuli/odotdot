@@ -72,14 +72,16 @@ def test_variables():
     assert parse('x = y;') == [SetVar('x', GetVar('y'))]
 
     # invalid variable names
-    with pytest.raises(ValueError):
+    with pytest.raises(AssertionError):
         parse('var var;')
+    with pytest.raises(AssertionError):
+        parse('var x.y;')
 
     # not valid expression
     with pytest.raises(AssertionError):
         parse('const x = ;')
 
-    with pytest.raises(ValueError):
+    with pytest.raises(AssertionError):
         parse('var "hello"=asd;')
     with pytest.raises(ValueError):
         parse('"hello"=asd;')
@@ -93,8 +95,5 @@ def test_attributes():
     assert parse('a.b.c.d.e = f;') == [SetAttr(
         GetAttr(GetAttr(GetAttr(GetVar('a'), 'b'), 'c'), 'd'),
         'e', GetVar('f'))]
-    assert parse('var x.y = z;') == [
-        CreateAttr(GetVar('x'), 'y', GetVar('z'))]
-
     with pytest.raises(ValueError):
         parse('x.var.y;')

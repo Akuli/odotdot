@@ -1,3 +1,4 @@
+# logic stuff
 var not = (array_func {
     if (equals (arguments.get_length) 1) {
         if (arguments.get 0) { return false; };
@@ -20,16 +21,67 @@ var or = (array_func {
 });
 
 var assert = (array_func {
-    if (not (or (equals (arguments.get_length) 1)
-                (equals (arguments.get_length) 2))) {
+    var msg = null;
+    if (equals (arguments.get_length) 1) {
+        msg = "assertion failed";
+    };
+    if (equals (arguments.get_length) 2) {
+        msg = (arguments.get 1);
+    };
+    if (equals msg null) {
         error "should be 'assert CONDITION;' or 'assert CONDITION MESSAGE;'";
     };
+
     if (not (arguments.get 0)) {
-        error "assertion failed";
+        error msg;
     };
 });
 
+
+# control flow stuff
+var while = (array_func {
+    # this is an array_func because zip needs this and func needs zip
+    assert (equals (arguments.get_length) 2)
+           "should be 'while { CONDITION } { ... };'";
+
+    var condition = (arguments.get 0);
+    var body = (arguments.get 1);
+
+    var context = (body.definition_context.create_subcontext);
+    var run_stuff = {
+        if (condition.run_with_return context) {
+            body.run context;
+
+            # FIXME: this recursing is no good :/( infinite loops don't work
+            run_stuff.run;
+        };
+    };
+    run_stuff.run;
+});
+
+var func = (array_func {
+    # this uses zip, defined below
+    assert (not (equals (arguments.get_length) 0))
+           "should be 'func ARGUMENT_STRINGS { ... }'";
+    var argument_names = (arguments.slice 0 -1);
+    var body = (arguments.get -1);
+
+    return (array_func {
+        var context = (body.definition_context.create_subcontext);
+
+        # set arguments as local variables
+        # now the arguments variable is local to this inner array_func (lol)
+        (zip argument_names arguments).foreach "pair" {
+            context.local_vars.set (pair.get 0) (pair.get 1);
+        };
+        return (body.run_with_return context);
+    });
+});
+
+
+# misc utils
 var zip = (array_func {
+    # this is an array_func because func uses this
     # currenty this relies on (argumnets.get 0)
     if (equals (arguments.get_length) 0) {
         return [];
@@ -51,58 +103,6 @@ var zip = (array_func {
     return result;
 });
 
-var func = (array_func {
-    assert (not (equals (arguments.get_length) 0))
-           "should be 'function ARGUMENT_STRINGS { ... }'";
-    var argument_names = (arguments.slice 0 -1);
-    var body = (arguments.get -1);
-
-    return (array_func {
-        var context = (body.definition_context.create_subcontext);
-
-        # set arguments as local variables
-        # now the arguments variable is local to this inner array_func (lol)
-        (zip argument_names arguments).foreach "pair" {
-            context.set_var_locally (pair.get 0) (pair.get 1);
-        };
-        return (body.run_with_return context);
-    });
-});
-
-# this is array_func because func needs this
-# TODO: implement while without recursion to allow infinite nesting
-var while = (array_func {
-    assert (equals (arguments.get_length) 2)
-           "should be 'while { CONDITION } { ... };'";
-
-    var condition = (arguments.get 0);
-    var body = (arguments.get 1);
-
-    var context = (body.definition_context.create_subcontext);
-    var run_stuff = {
-        if (condition.run_with_return context) {
-            body.run context;
-
-            # this recursing is no good :/(
-            run_stuff.run;
-        };
-    };
-    run_stuff.run;
-});
-
-var is_instance_of = (func "object" "klass" {
-    var looking4 = (get_class object);
-    var result = false;
-    while { (and (not (same_object klass null)) (not result)) } {
-        if (same_object klass looking4) {
-            # FIXME: there's a horrible bug that prevents returning here :(
-            result = true;
-        };
-        klass = klass.baseclass;
-    };
-    return result;
-});
-
 var partial = (array_func {
     var func = (arguments.get 0);
     var partial_args = (arguments.slice 1);
@@ -114,3 +114,42 @@ var partial = (array_func {
         return (call func the_args);
     });
 });
+
+
+# oop
+var is_instance_of = (func "object" "klass" {
+    var looking4 = (get_class object);
+    var result = false;
+    while { (and (not (same_object klass null)) (not result)) } {
+        if (same_object klass looking4) {
+            # FIXME: we have a horrible bug that prevents returning here :(
+            result = true;
+        };
+        klass = klass.baseclass;
+    };
+    return result;
+});
+
+var inheriting = (new Object);    # special marker
+var class = (array_func {
+    var errormsg = "should be 'class { ... };' or 'class inheriting SomeBaseClass { ... };'";
+    [1 3].contains (arguments.get_length);
+    assert ([1 3].contains (arguments.get_length)) errormsg;
+
+    var baseclass;
+    if (equals (arguments.get_length) 3) {
+        assert (same_object (arguments.get 0) inheriting)
+               "should be 'class inheriting SomeBaseClass { ... };'";
+        baseclass = (arguments.get 1);
+    };
+    if (equals (arguments.get_length) 1) {
+        baseclass = Object;
+    };
+    var body = (arguments.get -1);
+
+    var context = ({ }.definition_context.parent_context.create_subcontext);
+    body.run context;
+    return (new (get_class String) baseclass context.local_vars);
+});
+
+var meth = (partial func "this");

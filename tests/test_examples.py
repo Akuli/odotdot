@@ -49,3 +49,12 @@ create_tester_function('while.simple', 'hello\n')
 create_tester_function('zip.simple', 'a\nd\nb\ne\nc\nf\n')
 create_tester_function(
     'func.simple', 'toot toot!\nabc\nxyz\n\ntoot returned:\nbam\n')
+create_tester_function(
+    'oop.simple', 'tooting:\nToot Toot!\n----------\n'
+    'tooting the fancy toot:\n*** Extra Fanciness ***\nToot Toot!\n')
+
+
+def test_everything_tested(monkeypatch):
+    monkeypatch.chdir('examples')
+    untested = set(glob.glob('*.simple')) - tested_filenames
+    assert not untested, "untested examples: " + repr(untested)

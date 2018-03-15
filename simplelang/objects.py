@@ -206,8 +206,10 @@ def _create_array_info():
         context = (loop_body.attributes['definition_context']
                    .call_method('create_subcontext'))
         for element in this.python_list:
-            context.local_vars[varname.python_string] = element
+            context.attributes['local_vars'].python_dict[varname] = element
             loop_body.call_method('run', context)
+
+        return null
 
     def slice(this, start, end=None):
         # python's thing[a:] is same as thing[a:None]
@@ -235,6 +237,8 @@ def _create_array_info():
         'foreach': foreach,
         'get': (lambda this, index: this.python_list[index.python_int]),
         'slice': slice,
+        'contains': (
+            lambda this, that: true if that in this.python_list else false),
         'get_length': (lambda this: new_integer(len(this.python_list))),
         'to_string': to_string,
     })
@@ -260,6 +264,8 @@ def _create_mapping_info():
             value = item.call_method('get', new_integer(1))
             this.python_dict[key] = value
 
+        return null
+
     def equals(this, that):
         if not is_instance_of(that, mapping_info):
             return false
@@ -267,6 +273,7 @@ def _create_mapping_info():
 
     def set_(this, key, value):
         this.python_dict[key] = value
+        return null
 
     # python's dict.get returns None when default is not set and key not
     # found, this one raises an error instead
@@ -280,8 +287,12 @@ def _create_mapping_info():
 
     # TODO: a delete method?
     # TODO: iterators or views? keys? values?
-    def items(self):
-        return new_array(new_array(item) for item in self.python_dict.items())
+    def items(this):
+        return new_array(new_array(item) for item in this.python_dict.items())
+
+    def to_string(this):
+        return new_string('<Mapping: %s>' % (
+            this.call_method('items').call_method('to_string').python_string))
 
     return ClassInfo(object_info, {
         'setup': setup,
@@ -290,6 +301,7 @@ def _create_mapping_info():
         'set': set_,
         'get': get,
         'items': items,
+        'to_string': to_string,
     })
 
 
@@ -315,12 +327,14 @@ def _create_block_info():
                        .call_method('create_subcontext'))
         for statement in this._statements:
             this._interp.execute(statement, context)
+        return null
 
     def run_with_return(this, context=null):
         try:
             this.call_method('run', context)
         except ReturnAValue as e:
             return e.value
+        return null
 
     return ClassInfo(object_info, {
         'setup': _error_raiser('create new blocks with braces, '
@@ -354,15 +368,17 @@ def _setup_class_object(this, baseclass, methods):
         baseclass = class_objects[object_info]
     the_methods = {key.python_string: value.python_func
                    for key, value in methods.python_dict.items()}
-    this.wrapped_class_info = ClassInfo(
-        baseclass.wrapped_class_info, the_methods)
+
+    info = ClassInfo(baseclass.wrapped_class_info, the_methods)
+    this.wrapped_class_info = info
+    class_objects[info] = this
     return null
 
 
 class_object_info = ClassInfo(object_info, {
     'setup': _setup_class_object,
     'to_string': (
-        lambda this: new_string('<a class object at %#x>' % id(self))),
+        lambda this: new_string('<a class object at %#x>' % id(this))),
 })
 
 
@@ -392,12 +408,13 @@ def return_(value=null):
 
 # like apply in python 2
 def call(func, arg_list):
-    return func.call(arg_list.python_list)
+    return func.python_func(*arg_list.python_list)
 
 
 # setup is added after creating the only two instances
 def print_(arg):
     print(arg.call_method('to_string').python_string)
+    return null
 
 
 def if_(condition, body):
@@ -405,6 +422,7 @@ def if_(condition, body):
         body.call_method('run')
     elif condition is not false:
         raise ValueError("expected true or false, got " + repr(condition))
+    return null
 
 
 # create a function that takes an array of arguments
@@ -412,7 +430,8 @@ def array_func(func_body):
     def the_func(*args):
         run_context = (func_body.attributes['definition_context']
                        .call_method('create_subcontext'))
-        run_context.local_vars['arguments'] = new_array(args)
+        (run_context.attributes['local_vars']
+         .python_dict[new_string('arguments')]) = new_array(args)
         return func_body.call_method('run_with_return', run_context)
 
     return new_function(the_func)
@@ -433,6 +452,7 @@ def equals(a, b):
 # these suck
 def setattr_(obj, name, value):
     obj.attributes.set_locally(name.python_string, value)
+    return null
 
 
 def getattr_(obj, name):
@@ -440,25 +460,26 @@ def getattr_(obj, name):
 
 
 def add_real_builtins(context):
-    context.local_vars['null'] = null
-    context.local_vars['true'] = true
-    context.local_vars['false'] = false
-    context.local_vars['return'] = new_function(return_)
-    context.local_vars['if'] = new_function(if_)
-    context.local_vars['print'] = new_function(print_)
-    context.local_vars['call'] = new_function(call)
-    context.local_vars['setattr'] = new_function(setattr_)
-    context.local_vars['getattr'] = new_function(getattr_)
-    context.local_vars['array_func'] = new_function(array_func)
-    context.local_vars['error'] = new_function(error)
-    context.local_vars['equals'] = new_function(equals)
-    context.local_vars['same_object'] = new_function(same_object)
-    context.local_vars['new'] = new_function(new)
-    context.local_vars['get_class'] = new_function(get_class)
+    var_dict = context.attributes['local_vars'].python_dict
+    var_dict[new_string('null')] = null
+    var_dict[new_string('true')] = true
+    var_dict[new_string('false')] = false
+    var_dict[new_string('return')] = new_function(return_)
+    var_dict[new_string('if')] = new_function(if_)
+    var_dict[new_string('print')] = new_function(print_)
+    var_dict[new_string('call')] = new_function(call)
+    var_dict[new_string('setattr')] = new_function(setattr_)
+    var_dict[new_string('getattr')] = new_function(getattr_)
+    var_dict[new_string('array_func')] = new_function(array_func)
+    var_dict[new_string('error')] = new_function(error)
+    var_dict[new_string('equals')] = new_function(equals)
+    var_dict[new_string('same_object')] = new_function(same_object)
+    var_dict[new_string('new')] = new_function(new)
+    var_dict[new_string('get_class')] = new_function(get_class)
 
-    context.local_vars['Object'] = class_objects[object_info]
-    context.local_vars['String'] = class_objects[string_info]
-    context.local_vars['Boolean'] = class_objects[boolean_info]
-    context.local_vars['Integer'] = class_objects[integer_info]
-    context.local_vars['Array'] = class_objects[array_info]
-    context.local_vars['Mapping'] = class_objects[mapping_info]
+    var_dict[new_string('Object')] = class_objects[object_info]
+    var_dict[new_string('String')] = class_objects[string_info]
+    var_dict[new_string('Boolean')] = class_objects[boolean_info]
+    var_dict[new_string('Integer')] = class_objects[integer_info]
+    var_dict[new_string('Array')] = class_objects[array_info]
+    var_dict[new_string('Mapping')] = class_objects[mapping_info]

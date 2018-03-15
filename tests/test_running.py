@@ -18,6 +18,12 @@ def run_code():
             interp.execute(statement, interp.global_context)
 
     run.context = interp.global_context
+    run.get_var = lambda string: (
+        run.context.attributes['local_vars']
+        .python_dict[objects.new_string(string)])
+    run.set_var = lambda string, value: (
+        run.context.attributes['local_vars'].python_dict.__setitem__(
+            objects.new_string(string), value))
     return run
 
 
@@ -63,9 +69,9 @@ dummy_info = objects.ClassInfo(objects.object_info, {
 
 
 def test_object_stuff(run_code, capsys):
-    run_code.context.local_vars['Dummy'] = objects.class_objects[dummy_info]
+    run_code.set_var('Dummy', objects.class_objects[dummy_info])
 
-    run_code.context.local_vars['d1'] = objects.Object(dummy_info)
+    run_code.set_var('d1', objects.Object(dummy_info))
     assert capsys.readouterr() == ('', '')
     run_code('d1.setup "a" "b";')
     assert capsys.readouterr() == ('setting up\n', '')
@@ -78,8 +84,8 @@ def test_object_stuff(run_code, capsys):
 
 
 def test_attributes(run_code, capsys):
-    run_code.context.local_vars['d'] = objects.Object(objects.object_info)
-    run_code.context.local_vars['d'].attributes['a'] = objects.new_string("hi")
+    run_code.set_var('d', objects.Object(objects.object_info))
+    run_code.get_var('d').attributes['a'] = objects.new_string("hi")
 
     run_code('''print d.a;
                 d.a = "new hi";
@@ -87,7 +93,7 @@ def test_attributes(run_code, capsys):
     assert capsys.readouterr() == ('hi\nnew hi\n', '')
 
     run_code('d.lol = "asd";')
-    lol = run_code.context.local_vars['d'].attributes['lol']
+    lol = run_code.get_var('d').attributes['lol']
     assert objects.is_instance_of(lol, objects.string_info)
     assert lol.python_string == 'asd'
 
