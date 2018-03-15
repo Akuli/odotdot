@@ -1,22 +1,12 @@
 import collections
+import functools
 
 
-# every simplelang class is represented with at most three kinds of python
-# objects
-#   - ClassInfo contains most things
-#       * every object has a ClassInfo
-#       * ClassInfo can't be an object because it would need to also have
-#         a ClassInfo, we would get some kind of infinite recursion
-#   - some types are associated with python classes that contain a ClassInfo
-#       * when an object is created with 'new' from simplelang, the Python
-#         class is NOT used
-#       * types defined in simplelang are not associated with a python class
-#         at all, just ClassInfo and maybe a ClassObject
-#   - ClassObject is an Object that represents a type
-#       * needed because ClassInfo can't be an object
-#
-# when a new object is created with the new function, it's always constructed
-# with the Object python class, not any of the other python classes
+# every simplelang class is represented with a ClassInfo object, not a
+# python class
+# generating new python classes "on the fly" wouldn't be too hard but
+# this is simpler, and rewriting the interpreter in some
+# not-as-dynamic-as-python programming language is easier this way
 class ClassInfo:
 
     # OMG OMG ITS A CLASS WITH JUST ONE METHOD KITTENS DIE
@@ -44,29 +34,17 @@ class DefaultDictLikeThingy(dict):
         return result
 
 
+# this is the python type of all objects, subclassing this does not
+# create a new simplelang class automagically
+# again, the automagicness would be doable... but meh, kinda too much magic
+#
+# creating a new Object does NOT call setup! remember to do
+# call_method('setup') separately
 class Object:
-    # setup, to_string, equals and get_hash are added later
-    class_info = ClassInfo(None, {})
 
-    def __init__(self, setup_args, class_info=None):
-        if class_info is None:
-            # convenience for classes that represent simplelang types
-            class_info = type(self).class_info
-
+    def __init__(self, class_info):
         self.class_info = class_info
         self.attributes = DefaultDictLikeThingy(self._get_method)
-
-        # cannot use self.attributes['setup'] because that creates a new
-        # function, and we get infinite recursion when setting up Functions
-        try:
-            setup = self.class_info.methods['setup']
-        except KeyError:
-            # Object.setup doesn't exist yet
-            assert 'setup' not in Object.class_info.methods
-        else:
-            # cannot use .call() because it wants to return null, but null
-            # doesn't exist yet when some objects are created
-            setup.python_func(self, *setup_args)
 
     def _get_method(self, name):
         try:
@@ -74,44 +52,25 @@ class Object:
         except KeyError:
             raise ValueError("no attribute named '%s'" % name)
 
-        def bound_method(*args):
-            return func.call([self] + list(args))
-
-        return Function(bound_method)
+        return new_function(functools.partial(func.python_func, self))
 
     # just for convenience
     def call_method(self, name, *args):
-        return self.attributes[name].call(args)
+        return self.attributes[name].python_func(*args)
 
     # for debugging the python code
     def __repr__(self):
-        try:
-            return ('<simplelang object: %s>' %
-                    self.call_method('to_string').python_string)
-        except KeyError:        # to_string is not created yet
-            assert 'to_string' not in self.class_info.methods
-            return super().__repr__()
+        return ('<simplelang object: %s>' %
+                self.call_method('to_string').python_string)
 
+    # __eq__ and __hash__ are for things like python's dict
     def __eq__(self, other):
         if not isinstance(other, Object):
             return NotImplemented
-
-        try:
-            return self.call_method('equals', other).python_bool
-        except ValueError:
-            # Object.equals doesn't exist yet
-            assert 'equals' not in Object.class_info.methods
-            return (self is other)
+        return self.call_method('equals', other).python_bool
 
     def __hash__(self):
-        try:
-            return self.call_method('get_hash').python_int
-        except ValueError:
-            # Object.get_hash doesn't exist yet
-            assert 'get_hash' not in Object.class_info.methods
-
-            # object with a lowercase o is Python's object class
-            return object.__hash__(self)
+        return self.call_method('get_hash').python_int
 
 
 # a helper function for python code, not exposed anywhere
@@ -124,105 +83,289 @@ def is_instance_of(obj, class_info):
     return False
 
 
-class Function(Object):
-    # setup and to_string will be added later
-    class_info = ClassInfo(Object.class_info, {})
+# class info of the Object class that is the base class of everything
+# setup, to_string, equals and get_hash are added to the methods dict later
+object_info = ClassInfo(None, {})
 
-    def __init__(self, python_func):
-        self.python_func = python_func
-        super().__init__([])
-
-    def _setup(self, *args):
-        if not hasattr(self, 'python_func'):   # above __init__ wasn't called
-            raise ValueError("cannot create function objects directly, "
-                             "use 'func' instead")
-
-    def call(self, args):
-        result = self.python_func(*args)
-        if result is None:
-            # this makes everything 10 times easier...
-            result = null
-        assert isinstance(result, Object), (
-            "%r returned %r" % (self.python_func, result))
-        return result
+# setup and to_string will be added later
+function_info = ClassInfo(object_info, {})
 
 
-# true, false and Integer will be defined later
-Object.class_info.methods['setup'] = Function(lambda this: None)
-Function.class_info.methods['setup'] = Function(Function._setup)
-Object.class_info.methods['equals'] = Function(
+def new_function(python_func):
+    this = Object(function_info)
+    this.python_func = python_func
+    return this
+
+
+def _error_raiser(message):
+    def result(*args):
+        raise ValueError(message)
+
+    return new_function(result)
+
+
+object_info.methods['setup'] = new_function(lambda this: null)
+object_info.methods['to_string'] = new_function(
+    lambda this: new_string('<an object at %#x>' % id(this)))
+object_info.methods['equals'] = new_function(
     lambda this, that: true if this is that else false)
-Object.class_info.methods['get_hash'] = Function(
+object_info.methods['get_hash'] = new_function(
     # object with lowercase o is python's object class
-    lambda this: Integer(object.__hash__(this)))
+    lambda this: new_integer(object.__hash__(this)))
+
+function_info.methods['setup'] = _error_raiser(
+    "cannot create function objects directly, use 'func' instead")
+function_info.methods['to_string'] = new_function(
+    lambda this: new_string('<a function at %#x>' % id(this)))
 
 
-class String(Object):
+null_class_info = ClassInfo(object_info, {
+    'setup': _error_raiser("there's already a null object, use that instead "
+                           "of creating a new null"),
+})
+null = Object(null_class_info)
 
-    def __init__(self, python_string):
-        self.python_string = python_string
-        super().__init__([])
 
-    def _setup(self, *args):
-        if not hasattr(self, 'python_string'):   # above __init__ wasn't called
-            raise ValueError(
-                'cannot create new Strings directly, use string literals like '
-                '"hello" or "" instead')
+def _string_equals(this, that):
+    if not is_instance_of(that, string_info):
+        return false
+    return true if this.python_string == that.python_string else false
 
-    def _equals(self, other):
-        if not is_instance_of(self, String.class_info):
+
+string_info = ClassInfo(object_info, {
+    'setup': _error_raiser('cannot create new Strings directly, use string '
+                           'literals like "hello" or "" instead'),
+    'equals': new_function(_string_equals),
+    'get_hash': new_function(
+        lambda this: new_integer(hash(this.python_string))),
+    'to_string': new_function(lambda this: this),
+    'to_integer': new_function(
+        lambda this: new_integer(int(this.python_string))),
+    'to_array': new_function(
+        lambda this: new_array(map(new_string, this.python_string))),
+})
+
+
+def new_string(python_string):
+    this = Object(string_info)
+    this.python_string = python_string
+    return this
+
+
+boolean_info = ClassInfo(object_info, {
+    'setup': _error_raiser("use true and false instead of creating more "
+                           "Booleans"),
+    'to_string': new_function(
+        lambda this: new_string('true' if this.python_bool else 'false')),
+})
+
+true = Object(boolean_info)
+false = Object(boolean_info)
+true.python_bool = True
+false.python_bool = False
+
+
+def new_integer(python_int):
+    assert isinstance(python_int, int)
+    this = Object(integer_info)
+    this.python_int = python_int
+    return this
+
+
+def _integer_equals(this, that):
+    if not is_instance_of(that, integer_info):
+        return false
+    return true if this.python_int == that.python_int else false
+
+
+integer_info = ClassInfo(object_info, {
+    'setup': _error_raiser("use integer literals like 0 or 123 instead of "
+                           "'new new_integer'"),
+    'equals': new_function(_integer_equals),
+    'get_hash': new_function(lambda this: new_integer(hash(this.python_int))),
+    'to_string': new_function(lambda this: new_string(str(this.python_int))),
+})
+
+
+def new_array(elements):
+    this = Object(array_info)
+    this.python_list = list(elements)
+    return this
+
+
+# this requires creating so many functions that i don't want to pollute
+# the namespace...
+def _create_array_info():
+    def equals(this, that):
+        if not is_instance_of(that, array_info):
             return false
-        return true if self.python_string == other.python_string else false
+        # python's == checks each element with __eq__, and __eq__ calls equals
+        return true if this.python_list == that.python_list else false
 
-    def _hash(self):
-        return Integer(hash(self.python_string))
+    def foreach(this, varname, loop_body):
+        assert is_instance_of(varname, string_info)
+        assert is_instance_of(loop_body, block_info)
 
-    def _to_string(self):
-        return self
+        context = (loop_body.attributes['definition_context']
+                   .call_method('create_subcontext'))
+        for element in this.python_list:
+            context.local_vars[varname.python_string] = element
+            loop_body.call_method('run', context)
 
-    def _to_integer(self):
-        return Integer(int(self.python_string))
+    def slice(this, start, end=None):
+        # python's thing[a:] is same as thing[a:None]
+        the_end = None if end is None else end.python_int
+        return new_array(this.python_list[start.python_int:the_end])
 
-    def _to_array(self):
-        return Array(map(String, self.python_string))
+    def to_string(self):
+        # TODO: what if i add the array inside itself? python does this:
+        #    >>> a = [1]
+        #    >>> a.append(a)
+        #    >>> a
+        #    [1, [...]]
+        stringed = (element.call_method('to_string').python_string
+                    for element in self.python_list)
+        return new_string('[' + ' '.join(stringed) + ']')
 
-    class_info = ClassInfo(Object.class_info, {
-        'setup': Function(_setup),
-        'equals': Function(_equals),
-        'hash': Function(_hash),
-        'to_string': Function(_to_string),
-        'to_integer': Function(_to_integer),
-        'to_array': Function(_to_array),
+    return ClassInfo(object_info, {
+        'setup': _error_raiser("create new Arrays with square brackets, "
+                               "like '[1 2 3]' or '[]'"),
+        'equals': new_function(equals),
+        'get_hash': _error_raiser("arrays are not hashable"),
+        'add': new_function(lambda this, that: this.python_list.append(that)),
+        # the copy works because new_array list()'s everything
+        'copy': new_function(lambda this: new_array(this.python_list)),
+        'foreach': new_function(foreach),
+        'get': new_function(lambda this, i: this.python_list[i.python_int]),
+        'slice': new_function(slice),
+        'get_length': new_function(
+            lambda this: new_integer(len(this.python_list))),
+        'to_string': new_function(to_string),
     })
 
 
-Object.class_info.methods['to_string'] = Function(
-    lambda this: String('<an object at %#x>' % id(this)))
-Function.class_info.methods['to_string'] = Function(
-    lambda this: String('<a function at %#x>' % id(this)))
+array_info = _create_array_info()
 
 
-class NullClass(Object):
+def _create_mapping_info():
+    def setup(this, pairs):
+        if not is_instance_of(pairs, array_info):
+            raise TypeError("expected an array, got " +
+                            pairs.call_method('to_string').python_string)
 
-    def __init__(self):
-        self._marker = None
-        super().__init__([])
+        this.python_dict = {}
+        for item in pairs.python_list:
+            if ((not is_instance_of(item, array_info)) or
+                    item.call_method('get_length') != new_integer(2)):
+                raise ValueError("expected an array of 2 elements, got " +
+                                 item.call_method('to_string').python_string)
 
-    def _setup(self, *args):
-        if not hasattr(self, '_marker'):
-            raise ValueError("there's already a null object, use that instead "
-                             "of creating a new null")
+            key = item.call_method('get', new_integer(0))
+            value = item.call_method('get', new_integer(1))
+            this.python_dict[key] = value
 
-    def _to_string(self):
-        return String('null')
+    def equals(this, that):
+        if not is_instance_of(that, mapping_info):
+            return false
+        return true if this.python_dict == that.python_dict else false
 
-    class_info = ClassInfo(Object.class_info, {
-        'setup': Function(_setup),
-        'to_string': Function(_to_string),
+    def set_(this, key, value):
+        this.python_dict[key] = value
+
+    # python's dict.get returns None when default is not set and key not
+    # found, this one raises an error instead
+    def get(this, key, default=None):
+        try:
+            return this.python_dict[key]
+        except KeyError as e:
+            if default is None:
+                raise e
+            return default
+
+    # TODO: a delete method?
+    # TODO: iterators or views? keys? values?
+    def items(self):
+        return new_array(new_array(item) for item in self.python_dict.items())
+
+    return ClassInfo(object_info, {
+        'setup': new_function(setup),
+        'equals': new_function(equals),
+        'hash': _error_raiser("mappings are not hashable"),
+        'set': new_function(set_),
+        'get': new_function(get),
+        'items': new_function(items),
     })
 
 
-null = NullClass()
+mapping_info = _create_mapping_info()
+
+
+def new_block(interpreter, definition_context, ast_statements):
+    assert ast_statements is not iter(ast_statements), (
+        "ast_statements cannot be an iterator because it may need to be "
+        "looped over several times")
+
+    this = Object(block_info)
+    this._interp = interpreter
+    this._statements = ast_statements
+    this.attributes['definition_context'] = definition_context
+    return this
+
+
+def _create_block_info():
+    def run(this, context=null):
+        if context is null:
+            context = (this.attributes['definition_context']
+                       .call_method('create_subcontext'))
+        for statement in this._statements:
+            this._interp.execute(statement, context)
+
+    def run_with_return(this, context=null):
+        try:
+            this.call_method('run', context)
+        except ReturnAValue as e:
+            return e.value
+
+    return ClassInfo(object_info, {
+        'setup': _error_raiser('create new blocks with braces, '
+                               'e.g. { print "hello"; }'),
+        'run': new_function(run),
+        'run_with_return': new_function(run_with_return),
+    })
+
+
+block_info = _create_block_info()
+
+
+# class objects represent ClassInfos in the language
+def _new_class_object(wrapped_info):
+    this = Object(class_object_info)
+    this.wrapped_class_info = wrapped_info
+    if wrapped_info.baseclass_info is None:
+        this.attributes['baseclass'] = null
+    else:
+        this.attributes['baseclass'] = (
+            class_objects[wrapped_info.baseclass_info])
+    return this
+
+
+class_object_info = ClassInfo(object_info, {
+    'setup': _error_raiser("use 'get_class' or 'class' instead of creating "
+                           "new class objects directly"),
+    'to_string': new_function(
+        lambda this: new_string('<a class object at %#x>' % id(self))),
+})
+class_objects = DefaultDictLikeThingy(_new_class_object)
+
+
+def get_class(obj):
+    return class_objects[obj.class_info]
+
+
+def new(class_object, *setup_args):
+    this = Object(class_object.wrapped_class_info)
+    this.call_method('setup', *setup_args)
+    return this
 
 
 # i know i know, you hate exceptions as control flow
@@ -235,256 +378,20 @@ class ReturnAValue(Exception):
         self.value = value
 
 
-@Function
 def return_(value=null):
     raise ReturnAValue(value)
 
 
-class ClassObject(Object):
-
-    def __init__(self, wrapped_class_info):
-        assert isinstance(wrapped_class_info, ClassInfo)
-        self.wrapped_class_info = wrapped_class_info
-        super().__init__([])
-
-    def _setup(self, *args):
-        if not hasattr(self, 'wrapped_class_info'):
-            raise ValueError(
-                "use 'get_class' or 'class' instead of 'new Class'")
-
-        if self.wrapped_class_info.baseclass_info is None:
-            self.attributes['baseclass'] = null
-        else:
-            self.attributes['baseclass'] = (
-                class_objects[self.wrapped_class_info.baseclass_info])
-
-    def _to_string(self):
-        return String('<a Class object at %#x>' % id(self))
-
-    # TODO: more useful methods for type checking, accessing methods etc
-
-    class_info = ClassInfo(Object.class_info, {
-        'setup': Function(_setup),
-        'to_string': Function(_to_string),
-    })
-
-
-class_objects = DefaultDictLikeThingy(ClassObject)
-
-
-@Function
-def get_class(obj):
-    return class_objects[obj.class_info]
-
-
-@Function
-def new(class_object, *setup_args):
-    return Object(setup_args, class_object.wrapped_class_info)
-
-
-class Boolean(Object):
-
-    def __init__(self, python_bool):
-        self.python_bool = python_bool
-        super().__init__([])
-
-    def _setup(self, *args):
-        if not hasattr(self, 'python_bool'):
-            raise ValueError("there are already true and false objects, "
-                             "use them instead of creating more Booleans")
-
-    def _to_string(self):
-        return String('true' if self.python_bool else 'false')
-
-    class_info = ClassInfo(Object.class_info, {
-        'setup': Function(_setup),
-        'to_string': Function(_to_string),
-    })
-
-
-true = Boolean(True)
-false = Boolean(False)
-
-
-class Integer(Object):
-
-    def __init__(self, python_int):
-        self.python_int = python_int
-        super().__init__([])
-
-    def _setup(self, *args):
-        if not hasattr(self, 'python_int'):
-            raise ValueError("create new Integers with integer literals, "
-                             "e.g. 123")
-
-    def _equals(self, other):
-        if not is_instance_of(other, Integer.class_info):
-            return false
-        return true if self.python_int == other.python_int else false
-
-    class_info = ClassInfo(Object.class_info, {
-        'setup': Function(_setup),
-        'equals': Function(_equals),
-        'get_hash': Function(lambda self: Integer(hash(self.python_int))),
-        'to_string': Function(lambda self: String(str(self.python_int))),
-    })
-
-
-class Array(Object):
-
-    def __init__(self, elements=()):
-        self.python_list = list(elements)
-        super().__init__([])
-
-    def _setup(self, *args):
-        if not hasattr(self, 'python_list'):
-            raise ValueError("create new Arrays with square brackets, "
-                             "like '[1 2 3]' or '[]'")
-
-    def _equals(self, other):
-        if not is_instance_of(other, Array.class_info):
-            return false
-        # python's == checks each element with __eq__
-        return true if self.python_list == other.python_list else false
-
-    def _get_hash(self):
-        raise TypeError("arrays are not hashable")
-
-    def _foreach(self, varname, loop_body):
-        assert isinstance(varname, String)
-        assert isinstance(loop_body, Block)
-
-        context = (loop_body.attributes['definition_context']
-                   .call_method('create_subcontext'))
-        for element in self.python_list:
-            context.local_vars[varname.python_string] = element
-            loop_body.call_method('run', context)
-
-    def _slice(self, start, end=None):
-        # python's thing[a:] is same as thing[a:None]
-        the_end = None if end is None else end.python_int
-        return Array(self.python_list[start.python_int:the_end])
-
-    def _to_string(self):
-        # TODO: what if i add the array inside itself? python does this:
-        #    >>> a = [1]
-        #    >>> a.append(a)
-        #    >>> a
-        #    [1, [...]]
-        stringed = (element.call_method('to_string').python_string
-                    for element in self.python_list)
-        return String('[' + ' '.join(stringed) + ']')
-
-    class_info = ClassInfo(Object.class_info, {
-        'setup': Function(_setup),
-        'equals': Function(_equals),
-        'get_hash': Function(_get_hash),
-        'add': Function(lambda self, value: self.python_list.append(value)),
-        # this copy method works because __init__ list()s
-        'copy': Function(lambda self: Array(self.python_list)),
-        'foreach': Function(_foreach),
-        'get': Function(lambda self, i: self.python_list[i.python_int]),
-        'slice': Function(_slice),
-        'get_length': Function(lambda self: Integer(len(self.python_list))),
-        'to_string': Function(_to_string),
-    })
-
-
 # like apply in python 2
-@Function
 def call(func, arg_list):
     return func.call(arg_list.python_list)
 
 
-def _check_and_get_pairs(array):
-    for item in array.python_list:
-        if ((not isinstance(item, Array)) or
-                item.call_method('get_length') != Integer(2)):
-            raise ValueError("expected an array of 2 elements, got " +
-                             item.call_method('to_string').python_string)
-        yield (item.get(Integer(0)), item.get(Integer(1)))
-
-
-class Mapping(Object):
-
-    def __init__(self, elements=None):
-        if elements is None:
-            elements = Array()
-        super().__init__([elements])
-
-    def _setup(self, elements):
-        self.python_dict = ({} if elements is None else dict(elements))
-        self.attributes.read_only = True
-
-    def _set(self, key, value):
-        self.python_dict[key] = value
-
-    # python's dict.get returns None when default is not set and key not
-    # found, this one raisese instead
-    def _get(self, key, default=None):
-        try:
-            return self.python_dict[key]
-        except KeyError as e:
-            if default is not None:
-                return default
-            raise e
-
-    # TODO: a delete method?
-    # TODO: iterators or views? keys? values?
-    def _items(self):
-        return Array(Array(item) for item in self.python_dict.items())
-
-    class_info = ClassInfo(Object.class_info, {
-        'setup': Function(_setup),
-        'set': Function(_set),
-        'get': Function(_get),
-        'items': Function(_items),
-    })
-
-
-class Block(Object):
-
-    def __init__(self, interpreter, definition_context, ast_statements):
-        assert ast_statements is not iter(ast_statements), (
-            "ast_statements cannot be an iterator because it may need to be "
-            "looped over several times")
-
-        self._interp = interpreter
-        self._statements = ast_statements
-        super().__init__([definition_context])
-
-    def _setup(self, definition_context):
-        if not hasattr(self, '_interp'):
-            raise ValueError('create new blocks with braces, '
-                             'e.g. { print "hello"; }')
-        self.attributes['definition_context'] = definition_context
-
-    def _run(self, context=null):
-        if context is null:
-            context = (self.attributes['definition_context']
-                       .call_method('create_subcontext'))
-        for statement in self._statements:
-            self._interp.execute(statement, context)
-
-    def _run_with_return(self, context=null):
-        try:
-            self.call_method('run', context)
-        except ReturnAValue as e:
-            return e.value
-
-    class_info = ClassInfo(Object.class_info, {
-        'setup': Function(_setup),
-        'run': Function(_run),
-        'run_with_return': Function(_run_with_return),
-    })
-
-
-@Function
+# setup is added after creating the only two instances
 def print_(arg):
     print(arg.call_method('to_string').python_string)
 
 
-@Function
 def if_(condition, body):
     if condition is true:
         body.call_method('run')
@@ -493,40 +400,33 @@ def if_(condition, body):
 
 
 # create a function that takes an array of arguments
-@Function
 def array_func(func_body):
-    @Function
     def the_func(*args):
         run_context = (func_body.attributes['definition_context']
                        .call_method('create_subcontext'))
-        run_context.local_vars['arguments'] = Array(args)
+        run_context.local_vars['arguments'] = new_array(args)
         return func_body.call_method('run_with_return', run_context)
 
-    return the_func
+    return new_function(the_func)
 
 
-@Function
 def error(msg):
     raise ValueError(msg.python_string)     # lol
 
 
-@Function
-def equals(a, b):
-    return true if a == b else false
-
-
-@Function
 def same_object(a, b):
     return true if a is b else false
 
 
+def equals(a, b):
+    return a.call_method('equals', b)
+
+
 # these suck
-@Function
 def setattr_(obj, name, value):
     obj.attributes.set_locally(name.python_string, value)
 
 
-@Function
 def getattr_(obj, name):
     return obj.attributes.get(name.python_string)
 
@@ -535,23 +435,22 @@ def add_real_builtins(context):
     context.local_vars['null'] = null
     context.local_vars['true'] = true
     context.local_vars['false'] = false
-    context.local_vars['return'] = return_
-    context.local_vars['if'] = if_
-    context.local_vars['print'] = print_
-    context.local_vars['call'] = call
-    context.local_vars['setattr'] = setattr_
-    context.local_vars['getattr'] = getattr_
-    context.local_vars['array_func'] = array_func
-    context.local_vars['error'] = error
-    context.local_vars['equals'] = equals
-    context.local_vars['same_object'] = same_object
-    context.local_vars['new'] = new
-    context.local_vars['get_class'] = get_class
+    context.local_vars['return'] = new_function(return_)
+    context.local_vars['if'] = new_function(if_)
+    context.local_vars['print'] = new_function(print_)
+    context.local_vars['call'] = new_function(call)
+    context.local_vars['setattr'] = new_function(setattr_)
+    context.local_vars['getattr'] = new_function(getattr_)
+    context.local_vars['array_func'] = new_function(array_func)
+    context.local_vars['error'] = new_function(error)
+    context.local_vars['equals'] = new_function(equals)
+    context.local_vars['same_object'] = new_function(same_object)
+    context.local_vars['new'] = new_function(new)
+    context.local_vars['get_class'] = new_function(get_class)
 
-    context.local_vars['Class'] = class_objects[ClassObject.class_info]
-    context.local_vars['Object'] = class_objects[Object.class_info]
-    context.local_vars['String'] = class_objects[String.class_info]
-    context.local_vars['Integer'] = class_objects[Integer.class_info]
-    context.local_vars['Boolean'] = class_objects[Boolean.class_info]
-    context.local_vars['Array'] = class_objects[Array.class_info]
-    context.local_vars['Mapping'] = class_objects[Mapping.class_info]
+    context.local_vars['Object'] = class_objects[object_info]
+    context.local_vars['String'] = class_objects[string_info]
+    context.local_vars['Boolean'] = class_objects[boolean_info]
+    context.local_vars['Integer'] = class_objects[integer_info]
+    context.local_vars['Array'] = class_objects[array_info]
+    context.local_vars['Mapping'] = class_objects[mapping_info]
