@@ -1,54 +1,65 @@
 import pytest
 
-from simplelang.tokenizer import Token, tokenize
+from simplelang.tokenizer import Token, Location, tokenize
+
+
+# this is lol
+class Anything:
+    def __eq__(self, other):
+        return True
+
+
+# like Token, but ignores locations
+def token(kind, value):
+    return Token(kind, value, Location(Anything(), Anything()))
 
 
 def tokenizelist(code):
-    return list(tokenize(code))
+    return list(tokenize(code, '<test>'))
 
 
 def test_basic_stuff():
-    assert (tokenizelist('var x=y.z;') ==
-            tokenizelist('var  x\n \t= y\n.z;') == [
-        Token('keyword', 'var'),
-        Token('identifier', 'x'),
-        Token('op', '='),
-        Token('identifier', 'y'),
-        Token('op', '.'),
-        Token('identifier', 'z'),
-        Token('op', ';'),
-    ])
+    for code in ['var x=y.z;', 'var  x\n \t= y\n.z;']:
+        assert tokenizelist(code) == [
+            token('keyword', 'var'),
+            token('identifier', 'x'),
+            token('op', '='),
+            token('identifier', 'y'),
+            token('op', '.'),
+            token('identifier', 'z'),
+            token('op', ';'),
+        ]
 
     assert tokenizelist('blah varasd"hi"toot ') == [
-        Token('identifier', 'blah'),
-        Token('identifier', 'varasd'),
-        Token('string', '"hi"'),
-        Token('identifier', 'toot'),
+        token('identifier', 'blah'),
+        token('identifier', 'varasd'),
+        token('string', '"hi"'),
+        token('identifier', 'toot'),
     ]
 
     assert tokenizelist('blah123 123blah var123 123var') == [
-        Token('identifier', 'blah123'),
-        Token('integer', '123'),
-        Token('identifier', 'blah'),
-        Token('identifier', 'var123'),
-        Token('integer', '123'),
-        Token('keyword', 'var'),
+        token('identifier', 'blah123'),
+        token('integer', '123'),
+        token('identifier', 'blah'),
+        token('identifier', 'var123'),
+        token('integer', '123'),
+        token('keyword', 'var'),
     ]
 
     assert tokenizelist('a{b(c[d]e)f}g') == [   # noqa
-        Token('identifier', 'a'),
-        Token('op', '{'),
-            Token('identifier', 'b'),
-            Token('op', '('),
-                Token('identifier', 'c'),
-                Token('op', '['),
-                    Token('identifier', 'd'),
-                Token('op', ']'),
-                Token('identifier', 'e'),
-            Token('op', ')'),
-            Token('identifier', 'f'),
-        Token('op', '}'),
-        Token('identifier', 'g'),
+        token('identifier', 'a'),
+        token('op', '{'),
+            token('identifier', 'b'),
+            token('op', '('),
+                token('identifier', 'c'),
+                token('op', '['),
+                    token('identifier', 'd'),
+                token('op', ']'),
+                token('identifier', 'e'),
+            token('op', ')'),
+            token('identifier', 'f'),
+        token('op', '}'),
+        token('identifier', 'g'),
     ]
 
     with pytest.raises(ValueError):
@@ -60,7 +71,7 @@ def test_comments():
                  'print "h#e#l#l#o";   # a comment\n',
                  '# a comment\nprint "h#e#l#l#o";']:
         assert tokenizelist(code) == [
-            Token('identifier', 'print'),
-            Token('string', '"h#e#l#l#o"'),
-            Token('op', ';'),
+            token('identifier', 'print'),
+            token('string', '"h#e#l#l#o"'),
+            token('op', ';'),
         ]

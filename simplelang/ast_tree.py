@@ -1,24 +1,31 @@
-from collections import deque, namedtuple
+import collections
 import itertools
 
 
+def _node_class(name, attributes):
+    # make it possible to attach a location attribute to the namedtuples
+    doesnt_like_extra_attributes = collections.namedtuple(name, attributes)
+    likes_extra_attributes = type(name, (doesnt_like_extra_attributes,), {})
+    return likes_extra_attributes
+
+
 # expressions
-String = namedtuple('String', ['python_string'])
-Integer = namedtuple('Integer', ['python_int'])
-Array = namedtuple('Array', ['elements'])
-Block = namedtuple('Block', ['statements'])
-GetVar = namedtuple('GetVar', ['varname'])
-GetAttr = namedtuple('GetAttr', ['object', 'attribute'])
+String = _node_class('String', ['python_string'])
+Integer = _node_class('Integer', ['python_int'])
+Array = _node_class('Array', ['elements'])
+Block = _node_class('Block', ['statements'])
+GetVar = _node_class('GetVar', ['varname'])
+GetAttr = _node_class('GetAttr', ['object', 'attribute'])
 
 # statements
 # TODO: should attributes and variables be treated differently? people
 # are used to that
-CreateVar = namedtuple('CreateVar', ['varname', 'value'])
-SetVar = namedtuple('SetVar', ['varname', 'value'])
-SetAttr = namedtuple('SetAttr', ['object', 'attribute', 'value'])
+CreateVar = _node_class('CreateVar', ['varname', 'value'])
+SetVar = _node_class('SetVar', ['varname', 'value'])
+SetAttr = _node_class('SetAttr', ['object', 'attribute', 'value'])
 
 # expressions that are also statements
-Call = namedtuple('Call', ['func', 'args'])
+Call = _node_class('Call', ['func', 'args'])
 
 
 # this kind of abuses EOFError... feels nice and evil >:D MUHAHAHAA!!!
@@ -26,7 +33,7 @@ class _HandyTokenIterator:
 
     def __init__(self, iterable):
         self._iterator = iter(iterable)
-        self._coming_up_stack = deque()
+        self._coming_up_stack = collections.deque()
 
         # this is only used in _Parser.parse_file()
         self.last_popped = None
@@ -117,8 +124,9 @@ class _Parser:
               self.tokens.coming_up().value == '['):
             result = self.parse_array()
         else:
-            raise ValueError('should be a variable name, "..." or { ... }, '
-                             "not '%s'" % self.tokens.coming_up().value)
+            raise ValueError(
+                "expected a string, an integer, a variable name, '(', '[' or "
+                "'{', not '%s'" % self.tokens.coming_up().value)
 
         # attributes
         while (self.tokens.coming_up().kind == 'op' and
@@ -188,6 +196,8 @@ class _Parser:
             "the x of 'x = y;' must be a variable name or an attribute")
 
     def parse_statement(self):
+        location = self.tokens.coming_up().location
+
         if (self.tokens.coming_up().kind == 'keyword' and
                 self.tokens.coming_up().value == 'var'):
             statement = self.parse_var()
@@ -203,6 +213,7 @@ class _Parser:
         assert semicolon.kind == 'op', repr(semicolon)
         assert semicolon.value == ';', repr(semicolon)
 
+        statement.location = location
         return statement
 
     def parse_block(self):

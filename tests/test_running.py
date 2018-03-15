@@ -12,7 +12,7 @@ def run_code():
     interp = Interpreter()
 
     def run(code):
-        tokens = list(tokenizer.tokenize(code))
+        tokens = list(tokenizer.tokenize(code, '<test>'))
         ast_statements = list(ast_tree.parse(tokens))
         for statement in ast_statements:
             interp.execute(statement, interp.global_context)

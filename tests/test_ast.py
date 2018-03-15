@@ -8,7 +8,7 @@ from simplelang.ast_tree import (
 
 def parse(code):
     # list() calls are for fail-fast debuggability
-    tokens = list(tokenizer.tokenize(code))
+    tokens = list(tokenizer.tokenize(code, '<test>'))
     return list(ast_tree.parse(tokens))
 
 

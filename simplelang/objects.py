@@ -2,6 +2,15 @@ import collections
 import functools
 
 
+class SimplelangError(Exception):
+
+    def __init__(self, message):
+        super().__init__(message)
+
+        # this is set in run.py
+        self.stack = None
+
+
 # every simplelang class is represented with a ClassInfo object, not a
 # python class
 # generating new python classes "on the fly" wouldn't be too hard but
@@ -50,7 +59,7 @@ class Object:
         try:
             python_func = self.class_info.methods[name]
         except KeyError:
-            raise ValueError("no attribute named '%s'" % name)
+            raise SimplelangError("no attribute named '%s'" % name)
 
         return new_function(functools.partial(python_func, self))
 
@@ -437,8 +446,8 @@ def array_func(func_body):
     return new_function(the_func)
 
 
-def error(msg):
-    raise ValueError(msg.python_string)     # lol
+def error(message):
+    raise SimplelangError(message.python_string)
 
 
 def same_object(a, b):

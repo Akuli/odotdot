@@ -1,6 +1,7 @@
 import collections
 import re
 
+
 # https://docs.python.org/3/library/re.html
 token_spec = [
     ('keyword', r'var\b'),      # the only keyword
@@ -13,10 +14,11 @@ token_spec = [
     ('error', '.'),
 ]
 token_regex = '|'.join(r'(?P<%s>%s)' % pair for pair in token_spec)
-Token = collections.namedtuple('Token', ['kind', 'value'])
+Token = collections.namedtuple('Token', ['kind', 'value', 'location'])
+Location = collections.namedtuple('Location', ['filename', 'lineno'])
 
 
-def tokenize(code, filename='<string>'):
+def tokenize(code, filename):
     lineno = 1
     line_start = 0
 
@@ -35,4 +37,4 @@ def tokenize(code, filename='<string>'):
         elif kind == 'comment':
             pass    # explicit is better than implicit
         else:
-            yield Token(kind, value)
+            yield Token(kind, value, Location(filename, lineno))

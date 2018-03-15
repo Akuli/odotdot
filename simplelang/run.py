@@ -50,6 +50,8 @@ context_info = _create_context_info()
 class Interpreter:
 
     def __init__(self):
+        self._stack = []
+
         self.builtin_context = objects.Object(context_info)
         self.builtin_context.call_method('setup', objects.null)
 
@@ -60,12 +62,13 @@ class Interpreter:
 
     def _add_fake_builtins(self):
         # TODO: handle this path better
-        path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), '..',
-            'stdlib', 'fake_builtins.simple')
+        path = os.path.abspath(os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            '..', 'stdlib', 'fake_builtins.simple'))
         with open(path, 'r', encoding='ascii') as file:
             content = file.read()
-        tokens = tokenizer.tokenize(content)
+
+        tokens = tokenizer.tokenize(content, path)
         for ast_statement in ast_tree.parse(tokens):
             self.execute(ast_statement, self.builtin_context)
 
@@ -101,25 +104,37 @@ class Interpreter:
             "don't know how to evaluate " + repr(ast_expression))
 
     def execute(self, ast_statement, context):
-        if isinstance(ast_statement, ast_tree.Call):
-            self.evaluate(ast_statement, context)
+        self._stack.append(ast_statement)
 
-        elif isinstance(ast_statement, ast_tree.CreateVar):
-            varname = objects.new_string(ast_statement.varname)
-            value = self.evaluate(ast_statement.value, context)
-            context.attributes['local_vars'].python_dict[varname] = value
+        try:
+            if isinstance(ast_statement, ast_tree.Call):
+                self.evaluate(ast_statement, context)
 
-        elif isinstance(ast_statement, ast_tree.SetVar):
-            value = self.evaluate(ast_statement.value, context)
-            context.call_method(
-                'set_var_where_defined',
-                objects.new_string(ast_statement.varname), value)
+            elif isinstance(ast_statement, ast_tree.CreateVar):
+                varname = objects.new_string(ast_statement.varname)
+                value = self.evaluate(ast_statement.value, context)
+                context.attributes['local_vars'].python_dict[varname] = value
 
-        elif isinstance(ast_statement, ast_tree.SetAttr):
-            obj = self.evaluate(ast_statement.object, context)
-            value = self.evaluate(ast_statement.value, context)
-            obj.attributes[ast_statement.attribute] = value
+            elif isinstance(ast_statement, ast_tree.SetVar):
+                value = self.evaluate(ast_statement.value, context)
+                context.call_method(
+                    'set_var_where_defined',
+                    objects.new_string(ast_statement.varname), value)
 
-        else:   # pragma: no cover
-            raise RuntimeError(
-                "don't know how to execute " + repr(ast_statement))
+            elif isinstance(ast_statement, ast_tree.SetAttr):
+                obj = self.evaluate(ast_statement.object, context)
+                value = self.evaluate(ast_statement.value, context)
+                obj.attributes[ast_statement.attribute] = value
+
+            else:   # pragma: no cover
+                raise RuntimeError(
+                    "don't know how to execute " + repr(ast_statement))
+
+        except objects.SimplelangError as e:
+            if e.stack is None:
+                e.stack = self._stack.copy()
+            raise e
+
+        finally:
+            popped = self._stack.pop()
+            assert popped is ast_statement

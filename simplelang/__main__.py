@@ -1,6 +1,7 @@
 import argparse
+import traceback
 
-from simplelang import tokenizer, ast_tree, run, objects
+from simplelang import tokenizer, ast_tree, run, objects, stack_trace
 
 
 def main():
@@ -15,24 +16,29 @@ def main():
         # REPL
         while True:
             code = input('>> ')
-            tokens = tokenizer.tokenize(code)
+            tokens = tokenizer.tokenize(code, '<stdin>')
             ast_statements = ast_tree.parse(tokens)
 
             try:
                 for statement in ast_statements:
                     interpreter.execute(statement, interpreter.global_context)
-            except Exception as e:
-                print(type(e).__name__, e, sep=': ')
+            except objects.SimplelangError as e:
+                stack_trace.print_stack_trace(e)
+            except Exception:   # TODO: get rid of this and let things crash
+                traceback.print_exc()
+
     else:
         with args.file:
             content = args.file.read()
 
-        tokens = tokenizer.tokenize(content)
+        tokens = tokenizer.tokenize(content, args.file.name)
         ast_statements = ast_tree.parse(tokens)
 
         try:
             for statement in ast_statements:
                 interpreter.execute(statement, interpreter.global_context)
+        except objects.SimplelangError as e:
+            stack_trace.print_stack_trace(e)
         except objects.ReturnAValue:
             raise ValueError("unexpected return")
 
