@@ -44,12 +44,12 @@ def _create_context_info():
         return context
 
     return objects.ClassInfo(objects.object_info, {
-        'setup': objects.new_function(setup),
-        'set_var_locally': objects.new_function(set_var_locally),
-        'set_var_where_defined': objects.new_function(set_var_where_defined),
-        'get_var': objects.new_function(get_var),
-        'delete_local_var': objects.new_function(delete_local_var),
-        'create_subcontext': objects.new_function(create_subcontext),
+        'setup': setup,
+        'set_var_locally': set_var_locally,
+        'set_var_where_defined': set_var_where_defined,
+        'get_var': get_var,
+        'delete_local_var': delete_local_var,
+        'create_subcontext': create_subcontext,
     })
 
 

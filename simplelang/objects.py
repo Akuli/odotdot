@@ -48,11 +48,11 @@ class Object:
 
     def _get_method(self, name):
         try:
-            func = self.class_info.methods[name]
+            python_func = self.class_info.methods[name]
         except KeyError:
             raise ValueError("no attribute named '%s'" % name)
 
-        return new_function(functools.partial(func.python_func, self))
+        return new_function(functools.partial(python_func, self))
 
     # just for convenience
     def call_method(self, name, *args):
@@ -101,21 +101,21 @@ def _error_raiser(message):
     def result(*args):
         raise ValueError(message)
 
-    return new_function(result)
+    return result
 
 
-object_info.methods['setup'] = new_function(lambda this: null)
-object_info.methods['to_string'] = new_function(
+object_info.methods['setup'] = lambda this: null
+object_info.methods['to_string'] = (
     lambda this: new_string('<an object at %#x>' % id(this)))
-object_info.methods['equals'] = new_function(
+object_info.methods['equals'] = (
     lambda this, that: true if this is that else false)
-object_info.methods['get_hash'] = new_function(
+object_info.methods['get_hash'] = (
     # object with lowercase o is python's object class
     lambda this: new_integer(object.__hash__(this)))
 
 function_info.methods['setup'] = _error_raiser(
     "cannot create function objects directly, use 'func' instead")
-function_info.methods['to_string'] = new_function(
+function_info.methods['to_string'] = (
     lambda this: new_string('<a function at %#x>' % id(this)))
 
 
@@ -135,14 +135,11 @@ def _string_equals(this, that):
 string_info = ClassInfo(object_info, {
     'setup': _error_raiser('cannot create new Strings directly, use string '
                            'literals like "hello" or "" instead'),
-    'equals': new_function(_string_equals),
-    'get_hash': new_function(
-        lambda this: new_integer(hash(this.python_string))),
-    'to_string': new_function(lambda this: this),
-    'to_integer': new_function(
-        lambda this: new_integer(int(this.python_string))),
-    'to_array': new_function(
-        lambda this: new_array(map(new_string, this.python_string))),
+    'equals': _string_equals,
+    'get_hash': (lambda this: new_integer(hash(this.python_string))),
+    'to_string': (lambda this: this),
+    'to_integer': (lambda this: new_integer(int(this.python_string))),
+    'to_array': (lambda this: new_array(map(new_string, this.python_string))),
 })
 
 
@@ -155,8 +152,8 @@ def new_string(python_string):
 boolean_info = ClassInfo(object_info, {
     'setup': _error_raiser("use true and false instead of creating more "
                            "Booleans"),
-    'to_string': new_function(
-        lambda this: new_string('true' if this.python_bool else 'false')),
+    'to_string': (lambda this: new_string('true' if this.python_bool
+                                          else 'false')),
 })
 
 true = Object(boolean_info)
@@ -181,9 +178,9 @@ def _integer_equals(this, that):
 integer_info = ClassInfo(object_info, {
     'setup': _error_raiser("use integer literals like 0 or 123 instead of "
                            "'new new_integer'"),
-    'equals': new_function(_integer_equals),
-    'get_hash': new_function(lambda this: new_integer(hash(this.python_int))),
-    'to_string': new_function(lambda this: new_string(str(this.python_int))),
+    'equals': _integer_equals,
+    'get_hash': (lambda this: new_integer(hash(this.python_int))),
+    'to_string': (lambda this: new_string(str(this.python_int))),
 })
 
 
@@ -230,17 +227,16 @@ def _create_array_info():
     return ClassInfo(object_info, {
         'setup': _error_raiser("create new Arrays with square brackets, "
                                "like '[1 2 3]' or '[]'"),
-        'equals': new_function(equals),
+        'equals': equals,
         'get_hash': _error_raiser("arrays are not hashable"),
-        'add': new_function(lambda this, that: this.python_list.append(that)),
+        'add': (lambda this, that: this.python_list.append(that)),
         # the copy works because new_array list()'s everything
-        'copy': new_function(lambda this: new_array(this.python_list)),
-        'foreach': new_function(foreach),
-        'get': new_function(lambda this, i: this.python_list[i.python_int]),
-        'slice': new_function(slice),
-        'get_length': new_function(
-            lambda this: new_integer(len(this.python_list))),
-        'to_string': new_function(to_string),
+        'copy': (lambda this: new_array(this.python_list)),
+        'foreach': foreach,
+        'get': (lambda this, index: this.python_list[index.python_int]),
+        'slice': slice,
+        'get_length': (lambda this: new_integer(len(this.python_list))),
+        'to_string': to_string,
     })
 
 
@@ -288,12 +284,12 @@ def _create_mapping_info():
         return new_array(new_array(item) for item in self.python_dict.items())
 
     return ClassInfo(object_info, {
-        'setup': new_function(setup),
-        'equals': new_function(equals),
+        'setup': setup,
+        'equals': equals,
         'hash': _error_raiser("mappings are not hashable"),
-        'set': new_function(set_),
-        'get': new_function(get),
-        'items': new_function(items),
+        'set': set_,
+        'get': get,
+        'items': items,
     })
 
 
@@ -329,8 +325,8 @@ def _create_block_info():
     return ClassInfo(object_info, {
         'setup': _error_raiser('create new blocks with braces, '
                                'e.g. { print "hello"; }'),
-        'run': new_function(run),
-        'run_with_return': new_function(run_with_return),
+        'run': run,
+        'run_with_return': run_with_return,
     })
 
 
@@ -338,7 +334,7 @@ block_info = _create_block_info()
 
 
 # class objects represent ClassInfos in the language
-def _new_class_object(wrapped_info):
+def _wrap_class_info(wrapped_info):
     this = Object(class_object_info)
     this.wrapped_class_info = wrapped_info
     if wrapped_info.baseclass_info is None:
@@ -349,13 +345,25 @@ def _new_class_object(wrapped_info):
     return this
 
 
+class_objects = DefaultDictLikeThingy(_wrap_class_info)
+
+
+# called when creating new classes in the language
+def _setup_class_object(this, baseclass, methods):
+    if baseclass is null:
+        baseclass = class_objects[object_info]
+    the_methods = {key.python_string: value.python_func
+                   for key, value in methods.python_dict.items()}
+    this.wrapped_class_info = ClassInfo(
+        baseclass.wrapped_class_info, the_methods)
+    return null
+
+
 class_object_info = ClassInfo(object_info, {
-    'setup': _error_raiser("use 'get_class' or 'class' instead of creating "
-                           "new class objects directly"),
-    'to_string': new_function(
+    'setup': _setup_class_object,
+    'to_string': (
         lambda this: new_string('<a class object at %#x>' % id(self))),
 })
-class_objects = DefaultDictLikeThingy(_new_class_object)
 
 
 def get_class(obj):

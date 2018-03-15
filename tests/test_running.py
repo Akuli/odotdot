@@ -57,8 +57,8 @@ def _dummy_toot(this):
 
 
 dummy_info = objects.ClassInfo(objects.object_info, {
-    'setup': objects.new_function(_setup_dummy),
-    'toot': objects.new_function(_dummy_toot),
+    'setup': _setup_dummy,
+    'toot': _dummy_toot,
 })
 
 
