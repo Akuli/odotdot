@@ -2,8 +2,8 @@ import functools
 
 import pytest
 
-from simplelang import ast_tree, tokenizer, objects
-from simplelang.run import Interpreter
+from ö import ast_tree, tokenizer, objects
+from ö.run import Interpreter
 
 
 # run a bunch of code in the same interpreter and context
@@ -71,7 +71,7 @@ dummy_info = objects.ClassInfo(objects.object_info, {
 def test_object_stuff(run_code, capsys):
     run_code.set_var('Dummy', objects.class_objects[dummy_info])
 
-    run_code.set_var('d1', objects.Object(dummy_info))
+    run_code.set_var('d1', objects.Öbject(dummy_info))
     assert capsys.readouterr() == ('', '')
     run_code('d1.setup "a" "b";')
     assert capsys.readouterr() == ('setting up\n', '')
@@ -84,7 +84,7 @@ def test_object_stuff(run_code, capsys):
 
 
 def test_attributes(run_code, capsys):
-    run_code.set_var('d', objects.Object(objects.object_info))
+    run_code.set_var('d', objects.Öbject(objects.object_info))
     run_code.get_var('d').attributes['a'] = objects.new_string("hi")
 
     run_code('''print d.a;

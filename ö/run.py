@@ -2,13 +2,13 @@ import collections
 import functools
 import os
 
-from simplelang import tokenizer, ast_tree, objects
+from ö import tokenizer, ast_tree, objects
 
 
 def _create_context_info():
     def setup(this, parent_context):
         this.attributes['parent_context'] = parent_context
-        this.attributes['local_vars'] = objects.Object(objects.mapping_info)
+        this.attributes['local_vars'] = objects.Öbject(objects.mapping_info)
         this.attributes['local_vars'].call_method(
             'setup', objects.new_array([]))
 
@@ -32,7 +32,7 @@ def _create_context_info():
 
     # TODO: get rid of this???
     def create_subcontext(this):
-        context = objects.Object(context_info)
+        context = objects.Öbject(context_info)
         context.call_method('setup', this)
         return context
 
@@ -52,7 +52,7 @@ class Interpreter:
     def __init__(self):
         self._stack = []
 
-        self.builtin_context = objects.Object(context_info)
+        self.builtin_context = objects.Öbject(context_info)
         self.builtin_context.call_method('setup', objects.null)
 
         objects.add_real_builtins(self.builtin_context)
@@ -130,7 +130,7 @@ class Interpreter:
                 raise RuntimeError(
                     "don't know how to execute " + repr(ast_statement))
 
-        except objects.SimplelangError as e:
+        except objects.Errör as e:
             if e.stack is None:
                 e.stack = self._stack.copy()
             raise e

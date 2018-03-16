@@ -2,7 +2,7 @@ import collections
 import functools
 
 
-class SimplelangError(Exception):
+class Errör(Exception):
 
     def __init__(self, message):
         super().__init__(message)
@@ -11,7 +11,7 @@ class SimplelangError(Exception):
         self.stack = None
 
 
-# every simplelang class is represented with a ClassInfo object, not a
+# every ö class is represented with a ClassInfo object, not a
 # python class
 # generating new python classes "on the fly" wouldn't be too hard but
 # this is simpler, and rewriting the interpreter in some
@@ -20,7 +20,7 @@ class ClassInfo:
 
     # OMG OMG ITS A CLASS WITH JUST ONE METHOD KITTENS DIE
     def __init__(self, baseclass_info, methods):
-        self.baseclass_info = baseclass_info    # None for Object
+        self.baseclass_info = baseclass_info    # None for Öbject
 
         # inherit methods
         if baseclass_info is None:
@@ -44,12 +44,12 @@ class DefaultDictLikeThingy(dict):
 
 
 # this is the python type of all objects, subclassing this does not
-# create a new simplelang class automagically
+# create a new ö class automagically
 # again, the automagicness would be doable... but meh, kinda too much magic
 #
-# creating a new Object does NOT call setup! remember to do
+# creating a new Öbject does NOT call setup! remember to do
 # call_method('setup') separately
-class Object:
+class Öbject:
 
     def __init__(self, class_info):
         self.class_info = class_info
@@ -59,7 +59,7 @@ class Object:
         try:
             python_func = self.class_info.methods[name]
         except KeyError:
-            raise SimplelangError("no attribute named '%s'" % name)
+            raise Errör("no attribute named '%s'" % name)
 
         return new_function(functools.partial(python_func, self))
 
@@ -69,12 +69,12 @@ class Object:
 
     # for debugging the python code
     def __repr__(self):
-        return ('<simplelang object: %s>' %
+        return ('<ö object: %s>' %
                 self.call_method('to_string').python_string)
 
     # __eq__ and __hash__ are for things like python's dict
     def __eq__(self, other):
-        if not isinstance(other, Object):
+        if not isinstance(other, Öbject):
             return NotImplemented
         return self.call_method('equals', other).python_bool
 
@@ -83,7 +83,7 @@ class Object:
 
 
 # a helper function for python code, not exposed anywhere
-# stdlib/fake_builtins.simple defines a pure-simplelang is_instance_of
+# stdlib/fake_builtins.simple defines a pure-ö is_instance_of
 def is_instance_of(obj, class_info):
     while class_info is not None:
         if class_info is obj.class_info:
@@ -92,7 +92,7 @@ def is_instance_of(obj, class_info):
     return False
 
 
-# class info of the Object class that is the base class of everything
+# class info of the Öbject class that is the base class of everything
 # setup, to_string, equals and get_hash are added to the methods dict later
 object_info = ClassInfo(None, {})
 
@@ -101,7 +101,7 @@ function_info = ClassInfo(object_info, {})
 
 
 def new_function(python_func):
-    this = Object(function_info)
+    this = Öbject(function_info)
     this.python_func = python_func
     return this
 
@@ -132,7 +132,7 @@ null_class_info = ClassInfo(object_info, {
     'setup': _error_raiser("there's already a null object, use that instead "
                            "of creating a new null"),
 })
-null = Object(null_class_info)
+null = Öbject(null_class_info)
 
 
 def _string_equals(this, that):
@@ -153,7 +153,7 @@ string_info = ClassInfo(object_info, {
 
 
 def new_string(python_string):
-    this = Object(string_info)
+    this = Öbject(string_info)
     this.python_string = python_string
     return this
 
@@ -165,15 +165,15 @@ boolean_info = ClassInfo(object_info, {
                                           else 'false')),
 })
 
-true = Object(boolean_info)
-false = Object(boolean_info)
+true = Öbject(boolean_info)
+false = Öbject(boolean_info)
 true.python_bool = True
 false.python_bool = False
 
 
 def new_integer(python_int):
     assert isinstance(python_int, int)
-    this = Object(integer_info)
+    this = Öbject(integer_info)
     this.python_int = python_int
     return this
 
@@ -194,7 +194,7 @@ integer_info = ClassInfo(object_info, {
 
 
 def new_array(elements):
-    this = Object(array_info)
+    this = Öbject(array_info)
     this.python_list = list(elements)
     return this
 
@@ -322,7 +322,7 @@ def new_block(interpreter, definition_context, ast_statements):
         "ast_statements cannot be an iterator because it may need to be "
         "looped over several times")
 
-    this = Object(block_info)
+    this = Öbject(block_info)
     this._interp = interpreter
     this._statements = ast_statements
     this.attributes['definition_context'] = definition_context
@@ -358,7 +358,7 @@ block_info = _create_block_info()
 
 # class objects represent ClassInfos in the language
 def _wrap_class_info(wrapped_info):
-    this = Object(class_object_info)
+    this = Öbject(class_object_info)
     this.wrapped_class_info = wrapped_info
     if wrapped_info.baseclass_info is None:
         this.attributes['baseclass'] = null
@@ -396,7 +396,7 @@ def get_class(obj):
 
 
 def new(class_object, *setup_args):
-    this = Object(class_object.wrapped_class_info)
+    this = Öbject(class_object.wrapped_class_info)
     this.call_method('setup', *setup_args)
     return this
 
@@ -447,7 +447,7 @@ def array_func(func_body):
 
 
 def error(message):
-    raise SimplelangError(message.python_string)
+    raise Errör(message.python_string)
 
 
 def same_object(a, b):

@@ -1,6 +1,6 @@
 import pytest
 
-from simplelang.tokenizer import Token, Location, tokenize
+from ö.tokenizer import Token, Location, tokenize
 
 
 # this is lol

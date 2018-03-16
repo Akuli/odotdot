@@ -1,13 +1,13 @@
 import pytest
 
-#from simplelang.objects import Object, String, NullClass, null
+#from ö.objects import Öbject, String, NullClass, null
 
 
 #def test_strings():
 #    assert String("hello").python_string == "hello"
-#    assert isinstance(String("hello"), Object)
+#    assert isinstance(String("hello"), Öbject)
 #    with pytest.raises(ValueError):
-#        String("hello").attributes['toot'] = Object()
+#        String("hello").attributes['toot'] = Öbject()
 #
 #
 #def test_null():
@@ -15,4 +15,4 @@ import pytest
 #    with pytest.raises(TypeError):
 #        NullClass()
 #    with pytest.raises(ValueError):
-#        null.attributes.set_locally('asd', Object())
+#        null.attributes.set_locally('asd', Öbject())

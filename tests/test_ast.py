@@ -1,7 +1,7 @@
 import pytest
 
-from simplelang import tokenizer, ast_tree
-from simplelang.ast_tree import (
+from ö import tokenizer, ast_tree
+from ö.ast_tree import (
     Array, String, Integer, Call, Block,
     SetVar, SetAttr, GetVar, GetAttr, CreateVar)
 

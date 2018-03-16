@@ -5,7 +5,7 @@ import sys
 
 import pytest
 
-import simplelang.__main__
+import ö.__main__
 
 
 @contextlib.contextmanager
@@ -27,7 +27,7 @@ def create_tester_function(filename, expected_output,
             sys.argv[1:] = [os.path.join('examples', filename)]
             with should_raise:
                 # pytest catches SystemExits raised in tests
-                simplelang.__main__.main()
+                ö.__main__.main()
         finally:
             sys.argv[1:] = old_argv
 

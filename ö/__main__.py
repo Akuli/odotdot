@@ -1,7 +1,7 @@
 import argparse
 import traceback
 
-from simplelang import tokenizer, ast_tree, run, objects, stack_trace
+from ö import tokenizer, ast_tree, run, objects, stack_trace
 
 
 def main():
@@ -22,7 +22,7 @@ def main():
             try:
                 for statement in ast_statements:
                     interpreter.execute(statement, interpreter.global_context)
-            except objects.SimplelangError as e:
+            except objects.Errör as e:
                 stack_trace.print_stack_trace(e)
             except Exception:   # TODO: get rid of this and let things crash
                 traceback.print_exc()
@@ -37,7 +37,7 @@ def main():
         try:
             for statement in ast_statements:
                 interpreter.execute(statement, interpreter.global_context)
-        except objects.SimplelangError as e:
+        except objects.Errör as e:
             stack_trace.print_stack_trace(e)
         except objects.ReturnAValue:
             raise ValueError("unexpected return")
