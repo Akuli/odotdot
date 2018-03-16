@@ -4,4 +4,4 @@ Currently there's very little documentation :(
 
 ## List of Contents
 
-* [Syntax Specification](spec.md)
+* [Syntax Specification](syntax-spec.md)
