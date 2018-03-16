@@ -64,7 +64,7 @@ class Interpreter:
         # TODO: handle this path better
         path = os.path.abspath(os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            '..', 'stdlib', 'fake_builtins.simple'))
+            '..', 'stdlib', 'fake_builtins.ö'))
         with open(path, 'r', encoding='ascii') as file:
             content = file.read()
 

@@ -83,7 +83,7 @@ class Öbject:
 
 
 # a helper function for python code, not exposed anywhere
-# stdlib/fake_builtins.simple defines a pure-ö is_instance_of
+# stdlib/fake_builtins.ö defines a pure-ö is_instance_of
 def is_instance_of(obj, class_info):
     while class_info is not None:
         if class_info is obj.class_info:
@@ -92,7 +92,7 @@ def is_instance_of(obj, class_info):
     return False
 
 
-# class info of the Öbject class that is the base class of everything
+# class info of the Object class that is the base class of everything
 # setup, to_string, equals and get_hash are added to the methods dict later
 object_info = ClassInfo(None, {})
 
