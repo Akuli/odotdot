@@ -454,10 +454,6 @@ def same_object(a, b):
     return true if a is b else false
 
 
-def equals(a, b):
-    return a.call_method('equals', b)
-
-
 # these suck
 def setattr_(obj, name, value):
     obj.attributes.set_locally(name.python_string, value)
@@ -481,7 +477,6 @@ def add_real_builtins(context):
     var_dict[new_string('getattr')] = new_function(getattr_)
     var_dict[new_string('array_func')] = new_function(array_func)
     var_dict[new_string('error')] = new_function(error)
-    var_dict[new_string('equals')] = new_function(equals)
     var_dict[new_string('same_object')] = new_function(same_object)
     var_dict[new_string('new')] = new_function(new)
     var_dict[new_string('get_class')] = new_function(get_class)

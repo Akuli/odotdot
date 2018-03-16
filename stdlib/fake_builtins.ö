@@ -1,6 +1,6 @@
 # logic stuff
 var not = (array_func {
-    if (equals (arguments.get_length) 1) {
+    if ((arguments.get_length).equals 1) {
         if (arguments.get 0) { return false; };
         return true;
     };
@@ -22,13 +22,13 @@ var or = (array_func {
 
 var assert = (array_func {
     var msg = null;
-    if (equals (arguments.get_length) 1) {
+    if ((arguments.get_length).equals 1) {
         msg = "assertion failed";
     };
-    if (equals (arguments.get_length) 2) {
+    if ((arguments.get_length).equals 2) {
         msg = (arguments.get 1);
     };
-    if (equals msg null) {
+    if (msg.equals null) {
         error "should be 'assert CONDITION;' or 'assert CONDITION MESSAGE;'";
     };
 
@@ -41,7 +41,7 @@ var assert = (array_func {
 # control flow stuff
 var while = (array_func {
     # this is an array_func because zip needs this and func needs zip
-    assert (equals (arguments.get_length) 2)
+    assert ((arguments.get_length).equals 2)
            "should be 'while { CONDITION } { ... };'";
 
     var condition = (arguments.get 0);
@@ -61,7 +61,7 @@ var while = (array_func {
 
 var func = (array_func {
     # this uses zip, defined below
-    assert (not (equals (arguments.get_length) 0))
+    assert (not ((arguments.get_length).equals 0))
            "should be 'func ARGUMENT_STRINGS { ... }'";
     var argument_names = (arguments.slice 0 -1);
     var body = (arguments.get -1);
@@ -83,7 +83,7 @@ var func = (array_func {
 var zip = (array_func {
     # this is an array_func because func uses this
     # currenty this relies on (argumnets.get 0)
-    if (equals (arguments.get_length) 0) {
+    if ((arguments.get_length).equals 0) {
         return [];
     };
 
@@ -92,7 +92,7 @@ var zip = (array_func {
 
     # TODO: make sure the arrays are of a consistent length
 
-    while { (not (equals (result.get_length) length)) } {
+    while { (not ((result.get_length).equals length)) } {
         var index = (result.get_length);    # 0, 1, 2, ...
         var result_item = [];
         arguments.foreach "zipped_array" {
@@ -137,12 +137,12 @@ var class = (array_func {
     assert ([1 3].contains (arguments.get_length)) errormsg;
 
     var baseclass;
-    if (equals (arguments.get_length) 3) {
+    if ((arguments.get_length).equals 3) {
         assert (same_object (arguments.get 0) inheriting)
                "should be 'class inheriting SomeBaseClass { ... };'";
         baseclass = (arguments.get 1);
     };
-    if (equals (arguments.get_length) 1) {
+    if ((arguments.get_length).equals 1) {
         baseclass = Object;
     };
     var body = (arguments.get -1);
