@@ -1,5 +1,5 @@
 CFLAGS += -Wall -Wextra -std=c99
-OBJS = dynamicarray.o tokenizer.o
+OBJS = dynamicarray.o tokenizer.o utf8.o
 
 main: $(OBJS)
 

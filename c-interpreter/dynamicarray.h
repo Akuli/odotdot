@@ -9,7 +9,7 @@ struct DynamicArray {
 
 struct DynamicArray *dynamicarray_new(void);
 void dynamicarray_free(struct DynamicArray *arr);
-void dynamicarray_free2(struct DynamicArray *arr, void (*free_func)(void *));
+void dynamicarray_freeall(struct DynamicArray *arr, void (*free_func)(void *));
 int dynamicarray_push(struct DynamicArray *arr, void *obj);
 void *dynamicarray_pop(struct DynamicArray *arr);
 

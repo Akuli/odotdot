@@ -9,58 +9,48 @@
 #include "dynamicarray.h"
 #include "tokenizer.h"
 
-unsigned char *read_file_to_huge_string(unsigned char *path)
+#define CHUNK_SIZE 4096
+
+
+char *read_file_to_huge_string(char *path)
 {
-	FILE *f = NULL;
-
-	struct DynamicArray *arr = dynamicarray_new();
-	if (!arr)
-		return NULL;
-
-	// FIXME: this cast is :/
-	f = fopen((char *)path, "r");
+	FILE *f = fopen(path, "r");
 	if (!f)
-		goto error;
+		goto error_noclose;
 
-	// TODO: don't read 1 byte at a time :(
-	char c;
-	while (fread(&c, 1, 1, f) == 1) {
-		unsigned char *c2 = malloc(1);
-		*c2 = c;
-		dynamicarray_push(arr, c2);
+	char *s = NULL;
+	char buf[CHUNK_SIZE];
+	size_t totalsize=0;
+	size_t nread;
+	while ((nread = fread(buf, 1, CHUNK_SIZE, f))) {
+		// <jp> if s is NULL in realloc(s, sz), it acts like malloc
+		s = realloc(s, totalsize+nread+1);
+		if (!s)
+			goto error;
+		memcpy(s+totalsize, buf, nread);
+		totalsize += nread;
 	}
+	s[totalsize] = 0;
 
 	if (!feof(f))
 		goto error;
 	if (fclose(f) == EOF)
+		// don't try to close it again, that would be undefined behaviour
 		goto error_noclose;
-
-	unsigned char *s = malloc(arr->len + 1);
-	if (!s)
-		goto error_noclose;
-
-	for (size_t i=0; i < arr->len; i++) {
-		s[i] = *((unsigned char *) arr->values[i]);
-	}
-	s[arr->len] = 0;
-
-	while (arr->len)
-		free(dynamicarray_pop(arr));
-	dynamicarray_free(arr);
 
 	return s;
 
 error:
-	if (f)
-		fclose(f);
+	fclose(f);
 	// "fall through" to error_noclose
 error_noclose:
-	dynamicarray_free2(arr, free);
+	if (s)
+		free(s);
 	return NULL;
 }
 
 
-static struct Token *new_token(char kind, unsigned char *huge_string, size_t val_stringlen, size_t lineno)
+static struct Token *new_token(char kind, char *huge_string, size_t val_stringlen, size_t lineno)
 {
 	struct Token *tok = malloc(sizeof (struct Token));
 	tok->kind = kind;
@@ -85,7 +75,10 @@ void token_free(struct Token *tok)
 }
 
 
-struct DynamicArray *token_ize(unsigned char *huge_string)
+// because c standards
+static void token_free_voidstar(void *tok) { token_free((struct Token *)tok); }
+
+struct DynamicArray *token_ize(char *huge_string)
 {
 	struct DynamicArray *arr = dynamicarray_new();
 	if (!arr)
@@ -158,7 +151,8 @@ struct DynamicArray *token_ize(unsigned char *huge_string)
 		}
 
 		else {
-			fprintf(stderr, "I don't know how to tokenize '%c' (line %lu)\n", huge_string[0], (unsigned long)lineno);
+			fprintf(stderr, "I don't know how to tokenize '%c' (line %llu)\n",
+				huge_string[0], (unsigned long long)lineno);
 			goto error;
 		}
 
@@ -166,14 +160,14 @@ struct DynamicArray *token_ize(unsigned char *huge_string)
 		if (!tok)
 			goto error;
 		huge_string += stringlen;    // must be after new_token()
-		if (dynamicarray_push(arr, (void *)tok))
+		if (dynamicarray_push(arr, (void *)tok)) {
+			free(tok);
 			goto error;
+		}
 	}
 	return arr;
 
 error:
-	while (arr->len)
-		token_free((struct Token *)dynamicarray_pop(arr));
-	dynamicarray_free(arr);
+	dynamicarray_freeall(arr, token_free_voidstar);
 	return NULL;
 }

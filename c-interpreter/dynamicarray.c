@@ -27,21 +27,22 @@ void dynamicarray_free(struct DynamicArray *arr)
 }
 
 static int resize(struct DynamicArray *arr) {
-	arr->maxlen *= 2;
-	arr->values = realloc(arr->values, arr->maxlen * sizeof (void *));
-	if (!(arr->values))
+	size_t new_maxlen = arr->maxlen*2;
+	void **ptr = realloc(arr->values, new_maxlen * sizeof (void *));
+	if (!ptr)
 		return 1;
+	arr->maxlen = new_maxlen;
+	arr->values = ptr;
 	return 0;
 }
 
 int dynamicarray_push(struct DynamicArray *arr, void *obj)
 {
-	arr->len++;
-	if (arr->len > arr->maxlen) {
-		int error=resize(arr);
-		if (error)
-			return error;
+	if (arr->len + 1 > arr->maxlen) {
+		if (resize(arr))
+			return 1;
 	}
+	arr->len++;
 	arr->values[arr->len-1] = obj;
 	return 0;
 }
@@ -53,10 +54,9 @@ void *dynamicarray_pop(struct DynamicArray *arr)
 	return obj;
 }
 
-void dynamicarray_free2(struct DynamicArray *arr, void (*free_func)(void *))
+void dynamicarray_freeall(struct DynamicArray *arr, void (*free_func)(void *))
 {
-	while (arr->len)
-		free_func(dynamicarray_pop(arr));
-	free(arr->values);
-	free(arr);
+	for (size_t i=0; i < arr->len; i++)
+		free_func(arr->values[i]);
+	dynamicarray_free(arr);
 }
