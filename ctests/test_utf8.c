@@ -2,44 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "dynamicarray.h"
-#include "tokenizer.h"
-#include "utf8.h"
+#include "utils.h"
+#include <src/utf8.h>
 
-
-// minimal test framework
-#define BEGIN_TESTS void runtests(void) {
-#define TEST(name) printf("testing %s...\n", #name);
-#define END_TESTS } int main(void) { runtests(); printf("ok\n"); return 0; }
-
-// these are not called assert because assert would conflict with assert.h
-// instead, replace ASS in ASSert with BUTT
-#define buttert2(cond, msg) do { \
-	if (!(cond)) { \
-		fprintf(stderr, "assertion '%s' failed in %s:%d, function '%s': %s\n", \
-			#cond, __FILE__, __LINE__, __func__, msg); \
-		if (msg != NULL) { \
-		} \
-		abort(); \
-	} \
-} while (0)
-#define buttert(cond) buttert2(cond, "")
-
-
-/* this python script was used for generating some of these tests
-
-import random
-
-found = 0
-
-while found < 30:
-    data = bytes(random.randint(0, 0xff) for junk in range(10))
-    try:
-        data.decode('utf-8')
-    except UnicodeDecodeError:
-        print('{{ %s }, %d, "", -1 }' % (', '.join(map(hex, data)), len(data)))
-        found += 1
-*/
 
 struct Utf8Test {
 	char utf8[100];
@@ -76,8 +41,6 @@ struct Utf8Test utf8_tests[] = {
 	{{ 0xee, 0x80, 0x80 }, 3, { 0xDFFF+1 }, 1, "" }
 };
 
-static void token_free_voidstar(void *tok) { token_free((struct Token *)tok); }    // because c standards
-
 
 BEGIN_TESTS;
 
@@ -111,7 +74,7 @@ TEST(utf8_decode) {
 }
 
 
-TEST(utf8_decode) {
+TEST(utf8_encode) {
 	for (size_t i=0; i < sizeof(utf8_tests)/sizeof(utf8_tests[0]); i++) {
 		struct Utf8Test test = utf8_tests[i];
 		if (test.unicodelen < 0)
@@ -140,48 +103,6 @@ TEST(utf8_decode) {
 			buttert(actual_utf8len == 123);
 		}
 	}
-}
-
-
-TEST(dynamicarray) {
-	struct DynamicArray *arr = dynamicarray_new();
-	buttert(arr->len == 0);
-
-	for (int i=1; i <= 100; i++) {
-		int *ip = malloc(sizeof(int));
-		buttert(ip);
-		*ip = i;
-		dynamicarray_push(arr, ip);
-	}
-	buttert(arr->len == 100);
-
-	for (int i=100; i > 50; i--) {
-		int *ip = dynamicarray_pop(arr);
-		buttert(*ip == i);
-		free(ip);
-	}
-	buttert(arr->len == 50);
-
-	dynamicarray_freeall(arr, free);
-	// cannot check arr->len anymore, arr has been freed
-}
-
-
-TEST(read_file_to_huge_string_and_tokenize) {
-	char *huge_string = read_file_to_huge_string("test.ö");
-	buttert(huge_string);
-
-	struct DynamicArray *arr = token_ize(huge_string);
-	buttert2(arr, "no mem :(");
-
-	free(huge_string);
-
-	for (size_t i=0; i < arr->len; i++) {
-		struct Token *tok = (struct Token *)(arr->values[i]);
-		(void)tok;
-		//printf("%llu\t%c\t%s\n", (unsigned long long) tok->lineno, tok->kind, tok->val);
-	}
-	dynamicarray_freeall(arr, token_free_voidstar);
 }
 
 END_TESTS;

@@ -156,5 +156,5 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-# main file
-main
+# other stuffs
+ctests-compiled/
