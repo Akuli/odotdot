@@ -7,8 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define BEGIN_TESTS int main(void) { char TEST_NAME[100];
-#define TEST(name) strcpy(TEST_NAME, #name); printf("   testing %s:%s\n", __FILE__, #name);
+char TEST_NAME[100] = "(not testing)";
+#define BEGIN_TESTS int main(void) {
+#define TEST(name) strcpy(TEST_NAME, #name); printf("  testing %s:%s\n", __FILE__, #name);
 #define END_TESTS return 0; }
 
 // these are not called assert because assert would conflict with assert.h

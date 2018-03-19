@@ -26,11 +26,18 @@ void dynamicarray_free(struct DynamicArray *arr)
 	free(arr);
 }
 
+void dynamicarray_freeall(struct DynamicArray *arr, void (*freefunc)(void *))
+{
+	for (size_t i=0; i < arr->len; i++)
+		freefunc(arr->values[i]);
+	dynamicarray_free(arr);
+}
+
 static int resize(struct DynamicArray *arr) {
 	size_t new_maxlen = arr->maxlen*2;
 	void **ptr = realloc(arr->values, new_maxlen * sizeof (void *));
 	if (!ptr)
-		return 1;
+		return -1;
 	arr->maxlen = new_maxlen;
 	arr->values = ptr;
 	return 0;
@@ -40,7 +47,7 @@ int dynamicarray_push(struct DynamicArray *arr, void *obj)
 {
 	if (arr->len + 1 > arr->maxlen) {
 		if (resize(arr))
-			return 1;
+			return -1;
 	}
 	arr->len++;
 	arr->values[arr->len-1] = obj;
@@ -54,9 +61,18 @@ void *dynamicarray_pop(struct DynamicArray *arr)
 	return obj;
 }
 
-void dynamicarray_freeall(struct DynamicArray *arr, void (*free_func)(void *))
+int dynamicarray_equals(struct DynamicArray *arr1, struct DynamicArray *arr2, int (*cmpfunc)(void *, void *))
 {
-	for (size_t i=0; i < arr->len; i++)
-		free_func(arr->values[i]);
-	dynamicarray_free(arr);
+	if (arr1->len != arr2->len)
+		return 0;
+
+	for (size_t i=0; i < arr1->len; i++) {
+		int res = cmpfunc(arr1->values[i], arr2->values[i]);
+
+		// if res == 0, the items are not equal
+		// if res < 0, an error occurred
+		if (res <= 0)
+			return res;
+	}
+	return 1;
 }

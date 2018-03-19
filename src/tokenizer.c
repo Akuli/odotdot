@@ -7,16 +7,15 @@
 #include <string.h>
 #include <ctype.h>
 #include "dynamicarray.h"
+#include "utf8.h"
 #include "tokenizer.h"
 
 #define CHUNK_SIZE 4096
 
 
-char *read_file_to_huge_string(char *path)
+int read_file_to_huge_string(FILE *f, char **dest, size_t *destlen)
 {
-	FILE *f = fopen(path, "r");
-	if (!f)
-		goto error_noclose;
+	int errorcode=0;
 
 	char *s = NULL;
 	char buf[CHUNK_SIZE];
@@ -24,46 +23,47 @@ char *read_file_to_huge_string(char *path)
 	size_t nread;
 	while ((nread = fread(buf, 1, CHUNK_SIZE, f))) {
 		// <jp> if s is NULL in realloc(s, sz), it acts like malloc
-		s = realloc(s, totalsize+nread+1);
-		if (!s)
+		char *ptr = realloc(s, totalsize+nread);
+		if (!ptr) {
+			errorcode = -1;
 			goto error;
+		}
+		s = ptr;
 		memcpy(s+totalsize, buf, nread);
 		totalsize += nread;
 	}
-	s[totalsize] = 0;
 
-	if (!feof(f))
+	if (!feof(f)) {
+		errorcode = 1;
 		goto error;
-	if (fclose(f) == EOF)
-		// don't try to close it again, that would be undefined behaviour
-		goto error_noclose;
+	}
 
-	return s;
+	*dest = s;
+	*destlen = totalsize;
+	return 0;
 
 error:
-	fclose(f);
-	// "fall through" to error_noclose
-error_noclose:
 	if (s)
 		free(s);
-	return NULL;
+	return errorcode;
 }
 
 
-static struct Token *new_token(char kind, char *huge_string, size_t val_stringlen, size_t lineno)
+static struct Token *new_token(char kind, unsigned long *val, size_t vallen, size_t lineno)
 {
 	struct Token *tok = malloc(sizeof (struct Token));
-	tok->kind = kind;
-	tok->val_firstchar = huge_string[0];
-	tok->lineno = lineno;
-
-	tok->val = malloc(val_stringlen+1);
-	if (!(tok->val))
+	if (!tok)
 		return NULL;
-	for (size_t i=0; i < val_stringlen; ++i)
-		tok->val[i] = huge_string[i];
-	tok->val[val_stringlen] = 0;
+	tok->val = malloc(vallen * sizeof(unsigned long));
+	if (!(tok->val)) {
+		free(tok);
+		return NULL;
+	}
 
+	tok->kind = kind;
+	memcpy(tok->val, val, vallen*sizeof(unsigned long));
+	tok->vallen = vallen;
+	tok->lineno = lineno;
 	return tok;
 }
 
@@ -78,7 +78,10 @@ void token_free(struct Token *tok)
 // because c standards
 static void token_free_voidstar(void *tok) { token_free((struct Token *)tok); }
 
-struct DynamicArray *token_ize(char *huge_string)
+
+// TODO: better error handling than fprintf
+// TODO: test the error cases :(
+struct DynamicArray *token_ize(unsigned long *hugestring, size_t hugestringlen)
 {
 	struct DynamicArray *arr = dynamicarray_new();
 	if (!arr)
@@ -87,79 +90,92 @@ struct DynamicArray *token_ize(char *huge_string)
 
 	struct Token *tok;
 	char kind;
-	size_t stringlen;
+	size_t nchars;    // comparing size_t with size_t produces no warnings
 
-	while (huge_string[0]) {
-		if (isspace(huge_string[0])) {
-			if (huge_string[0] == '\n')
+	while (hugestringlen) {
+		// TODO: check for any unicode whitespace
+#define f(x) (hugestring[0]==(unsigned long)(x))
+		if (f(' ')||f('\t')||f('\n')) {
+			if (f('\n'))
 				lineno++;
-			huge_string++;
+			hugestring++;
+			hugestringlen--;
 			continue;
 		}
 
-		if (huge_string[0] == '#') {
-			while (huge_string[0] != 0 && huge_string[0] != '\n')
-				huge_string++;
+		if (hugestring[0] == '#') {
+			while (hugestringlen && hugestring[0] != '\n') {
+				hugestring++;
+				hugestringlen--;
+			}
 			continue;
 		}
 
-#define f(x) (huge_string[0]==(x))
 		if (f('{')||f('}')||f('[')||f(']')||f('(')||f(')')||f('=')||f(';')||f('.')) {
 #undef f
 			kind = TOKENKIND_OP;
-			stringlen = 1;
+			nchars = 1;
 		}
 
-		else if (huge_string[0] == 'v' &&
-				huge_string[1] == 'a' &&
-				huge_string[2] == 'r' &&
-				(huge_string[3] && !isalnum(huge_string[3]))) {
+		else if (hugestringlen >= 4 &&
+				hugestring[0] == (unsigned long)'v' &&
+				hugestring[1] == (unsigned long)'a' &&
+				hugestring[2] == (unsigned long)'r' &&
+				(hugestring[3] && !unicode_isalnum(hugestring[3]))) {
 			kind = TOKENKIND_KEYWORD;
-			stringlen = 3;
+			nchars = 3;
 		}
 
-		else if (huge_string[0] == '"') {
+		else if (hugestring[0] == '"') {
 			kind = TOKENKIND_STRING;
-			stringlen = 1;
-			while (huge_string[stringlen] != '"') {
-				assert(huge_string[stringlen]);     // TODO: handle unexpected EOFs better
-				assert(huge_string[stringlen] != '\n');   // TODO: handle unexpected newlines better
-				stringlen++;
+			nchars = 1;    // first "
+			while ((hugestringlen > nchars) &&
+					(hugestring[nchars] != (unsigned long)'"')) {
+				if (hugestring[nchars] == (unsigned long)'\n') {
+					fprintf(stderr, "line %llu: ending \" must be on the same line as starting \"", (unsigned long long)lineno);
+					goto error;
+				}
+				nchars++;
 			}
-			stringlen++;     // last "
+			nchars++;    // last ", the error handling stuff below runs if this is missing
 		}
 
-		else if (isdigit(huge_string[0])) {
+		else if (unicode_is0to9(hugestring[0])) {
 			kind = TOKENKIND_INTEGER;
-			stringlen = 0;
-			while (isdigit(huge_string[stringlen]))
-				stringlen++;
+			nchars = 0;
+			while (hugestringlen > nchars && unicode_is0to9(hugestring[nchars]))
+				nchars++;
 		}
 
-		else if (huge_string[0] == '-' && isdigit(huge_string[1])) {
+		else if (hugestringlen >= 2 && hugestring[0] == '-' && unicode_is0to9(hugestring[1])) {
 			kind = TOKENKIND_INTEGER;
-			stringlen = 1;
-			while (isdigit(huge_string[stringlen]))
-				stringlen++;
+			nchars = 1;
+			while (hugestringlen > nchars && unicode_is0to9(hugestring[nchars]))
+				nchars++;
 		}
 
-		else if (isalpha(huge_string[0])) {
+		else if (unicode_isalpha(hugestring[0])) {
 			kind = TOKENKIND_ID;
-			stringlen = 0;
-			while (huge_string[stringlen] && isalnum(huge_string[stringlen]))
-				stringlen++;
+			nchars = 0;
+			while (hugestringlen > nchars && unicode_isalnum(hugestring[nchars]))
+				nchars++;
 		}
 
 		else {
-			fprintf(stderr, "I don't know how to tokenize '%c' (line %llu)\n",
-				huge_string[0], (unsigned long long)lineno);
+			fprintf(stderr, "line %llu: unknown token\n", (unsigned long long)lineno);
 			goto error;
 		}
 
-		tok = new_token(kind, huge_string, stringlen, lineno);
+		if (hugestringlen < nchars) {
+			fprintf(stderr, "unexpected end of file\n");
+			goto error;
+		}
+
+		tok = new_token(kind, hugestring, nchars, lineno);
 		if (!tok)
 			goto error;
-		huge_string += stringlen;    // must be after new_token()
+		hugestring += nchars;    // must be after new_token()
+		hugestringlen -= nchars;
 		if (dynamicarray_push(arr, (void *)tok)) {
 			free(tok);
 			goto error;
