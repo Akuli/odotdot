@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <string.h>
 
 #include <src/dynamicarray.h>
 #include <src/tokenizer.h>

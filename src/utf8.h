@@ -1,3 +1,5 @@
+#include <stddef.h>
+
 /* Convert a Unicode string to a UTF-8 string.
 
 Return values:

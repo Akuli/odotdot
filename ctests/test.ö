@@ -1,5 +1,0 @@
-# comment
-var abc = xyz;     # comment
-print "hello world";
-print 123 -123;
-2bad;

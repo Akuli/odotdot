@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "utils.h"
 #include <src/dynamicarray.h>
 

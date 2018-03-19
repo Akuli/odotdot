@@ -20,8 +20,18 @@ ctests-compiled/test_%: ctests/test_%.c src/%.c src/%.h ctests/utils.h $(OBJ)
 obj/%.o: src/%.c
 	mkdir -p obj && $(CC) -c -o $@ $< $(CFLAGS)
 
+.PHONY: test
 test: $(CTESTS_EXEC)
 	@(set -e; for file in $(CTESTS_EXEC); do echo $$file; $(RUN) $$file; done; echo "-------- all tests pass --------")
+
+.PHONY: iwyu
+iwyu:
+	for file in $(SRC); do iwyu $$file; done || true
+
+# ctests/utils.h is skipped, see its comments for reason
+.PHONY: iwyu-tests
+iwyu-tests:
+	for file in $(CTESTS_SRC); do iwyu -I. $$file; done || true
 
 # i wasn't sure what's going on so i used stackoverflow... https://stackoverflow.com/a/42846187
 .PRECIOUS: obj/%.o

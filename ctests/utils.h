@@ -3,9 +3,10 @@
 #ifndef TESTUTILS_H
 #define TESTUTILS_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+// these have retarded comments on the side because iwyu doesn't like this file
+#include <stdio.h>    // fprintf()
+#include <stdlib.h>   // abort()
+#include <string.h>   // strcpy()
 
 char TEST_NAME[100] = "(not testing)";
 #define BEGIN_TESTS int main(void) {

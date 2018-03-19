@@ -1,7 +1,8 @@
 #ifndef TOKENIZER_H
 #define TOKENIZER_H
 
-#include <stdio.h>   // for FILE
+#include <stddef.h>
+#include <stdio.h>
 
 #define TOKENKIND_KEYWORD 'k'
 #define TOKENKIND_ID 'x'

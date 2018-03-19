@@ -1,11 +1,8 @@
 // TODO: use wchars?
 
-#include <assert.h>
-#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 #include "dynamicarray.h"
 #include "utf8.h"
 #include "tokenizer.h"

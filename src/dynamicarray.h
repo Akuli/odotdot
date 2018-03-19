@@ -3,6 +3,8 @@
 #ifndef DYNAMICARRAY_H
 #define DYNAMICARRAY_H
 
+#include <stddef.h>
+
 struct DynamicArray {
 	size_t len;
 	size_t maxlen;

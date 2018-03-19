@@ -1,7 +1,6 @@
 // an array implementation that resizes nicely
 
 #include <stddef.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #include "dynamicarray.h"
