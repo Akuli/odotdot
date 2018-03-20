@@ -4,17 +4,18 @@
 #include <stddef.h>
 #include <stdio.h>
 
-#define TOKENKIND_KEYWORD 'k'
-#define TOKENKIND_ID 'x'
-#define TOKENKIND_OP ';'
-#define TOKENKIND_STRING '"'
-#define TOKENKIND_INTEGER '1'
+#define TOKEN_KEYWORD 'k'
+#define TOKEN_ID 'x'
+#define TOKEN_OP ';'
+#define TOKEN_STR '"'
+#define TOKEN_INT '1'
 
 struct Token {
 	char kind;
 	unsigned long *val;
 	size_t vallen;
 	size_t lineno;
+	struct Token *next;
 };
 
 /* Read a file as chars.
@@ -29,7 +30,7 @@ On success, the file is read to `*dest` and its length as chars is set to
 `*destlen`. If this fails, `*dest` and `*destlen` are not set.
 */
 int read_file_to_huge_string(FILE *f, char **dest, size_t *destlen);
-struct DynamicArray *token_ize(unsigned long *hugestring, size_t hugestringlen);
-void token_free(struct Token *tok);
+struct Token *token_ize(unsigned long *hugestring, size_t hugestringlen);
+void token_freeall(struct Token *tok1st);
 
 #endif   // TOKENIZER_H

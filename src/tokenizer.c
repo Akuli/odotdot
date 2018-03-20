@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "dynamicarray.h"
 #include "utf8.h"
 #include "tokenizer.h"
 
@@ -46,7 +45,7 @@ error:
 }
 
 
-static struct Token *new_token(char kind, unsigned long *val, size_t vallen, size_t lineno)
+static struct Token *new_token(struct Token *prev, char kind, unsigned long *val, size_t vallen, size_t lineno)
 {
 	struct Token *tok = malloc(sizeof (struct Token));
 	if (!tok)
@@ -61,31 +60,32 @@ static struct Token *new_token(char kind, unsigned long *val, size_t vallen, siz
 	memcpy(tok->val, val, vallen*sizeof(unsigned long));
 	tok->vallen = vallen;
 	tok->lineno = lineno;
+
+	if (prev)
+		prev->next = tok;
 	return tok;
 }
 
 
-void token_free(struct Token *tok)
+void token_freeall(struct Token *tok1st)
 {
-	free(tok->val);
-	free(tok);
+	struct Token *tok = tok1st;
+	while (tok) {
+		struct Token *tok2 = tok->next;   // must be before free(tok)
+		free(tok->val);
+		free(tok);
+		tok = tok2;
+	}
 }
-
-
-// because c standards
-static void token_free_voidstar(void *tok) { token_free((struct Token *)tok); }
 
 
 // TODO: better error handling than fprintf
 // TODO: test the error cases :(
-struct DynamicArray *token_ize(unsigned long *hugestring, size_t hugestringlen)
+struct Token *token_ize(unsigned long *hugestring, size_t hugestringlen)
 {
-	struct DynamicArray *arr = dynamicarray_new();
-	if (!arr)
-		return NULL;
 	size_t lineno=1;
-
-	struct Token *tok;
+	struct Token *tok1st = NULL;
+	struct Token *curtok;
 	char kind;
 	size_t nchars;    // comparing size_t with size_t produces no warnings
 
@@ -110,7 +110,7 @@ struct DynamicArray *token_ize(unsigned long *hugestring, size_t hugestringlen)
 
 		if (f('{')||f('}')||f('[')||f(']')||f('(')||f(')')||f('=')||f(';')||f('.')) {
 #undef f
-			kind = TOKENKIND_OP;
+			kind = TOKEN_OP;
 			nchars = 1;
 		}
 
@@ -119,12 +119,12 @@ struct DynamicArray *token_ize(unsigned long *hugestring, size_t hugestringlen)
 				hugestring[1] == (unsigned long)'a' &&
 				hugestring[2] == (unsigned long)'r' &&
 				(hugestring[3] && !unicode_isalnum(hugestring[3]))) {
-			kind = TOKENKIND_KEYWORD;
+			kind = TOKEN_KEYWORD;
 			nchars = 3;
 		}
 
 		else if (hugestring[0] == '"') {
-			kind = TOKENKIND_STRING;
+			kind = TOKEN_STR;
 			nchars = 1;    // first "
 			while ((hugestringlen > nchars) &&
 					(hugestring[nchars] != (unsigned long)'"')) {
@@ -138,21 +138,21 @@ struct DynamicArray *token_ize(unsigned long *hugestring, size_t hugestringlen)
 		}
 
 		else if (unicode_is0to9(hugestring[0])) {
-			kind = TOKENKIND_INTEGER;
+			kind = TOKEN_INT;
 			nchars = 0;
 			while (hugestringlen > nchars && unicode_is0to9(hugestring[nchars]))
 				nchars++;
 		}
 
 		else if (hugestringlen >= 2 && hugestring[0] == '-' && unicode_is0to9(hugestring[1])) {
-			kind = TOKENKIND_INTEGER;
+			kind = TOKEN_INT;
 			nchars = 1;
 			while (hugestringlen > nchars && unicode_is0to9(hugestring[nchars]))
 				nchars++;
 		}
 
 		else if (unicode_isalpha(hugestring[0])) {
-			kind = TOKENKIND_ID;
+			kind = TOKEN_ID;
 			nchars = 0;
 			while (hugestringlen > nchars && unicode_isalnum(hugestring[nchars]))
 				nchars++;
@@ -168,19 +168,19 @@ struct DynamicArray *token_ize(unsigned long *hugestring, size_t hugestringlen)
 			goto error;
 		}
 
-		tok = new_token(kind, hugestring, nchars, lineno);
-		if (!tok)
+		if (tok1st)
+			curtok = new_token(curtok, kind, hugestring, nchars, lineno);
+		else
+			tok1st = curtok = new_token(NULL, kind, hugestring, nchars, lineno);
+		if (!curtok)
 			goto error;
 		hugestring += nchars;    // must be after new_token()
 		hugestringlen -= nchars;
-		if (dynamicarray_push(arr, (void *)tok)) {
-			free(tok);
-			goto error;
-		}
 	}
-	return arr;
+	return tok1st;
 
 error:
-	dynamicarray_freeall(arr, token_free_voidstar);
+	if (tok1st)
+		token_freeall(tok1st);
 	return NULL;
 }

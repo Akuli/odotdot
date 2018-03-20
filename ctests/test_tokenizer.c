@@ -3,14 +3,10 @@
 #include <stddef.h>
 #include <string.h>
 
-#include <src/dynamicarray.h>
 #include <src/tokenizer.h>
 #include <src/utf8.h>
 
 #include "utils.h"
-
-// because c standards
-static void token_free_voidstar(void *tok) { token_free((struct Token *)tok); }
 
 static char *unicode_to_utf8_ending_with_0(unsigned long *unicode, size_t unicodelen)
 {
@@ -24,13 +20,15 @@ static char *unicode_to_utf8_ending_with_0(unsigned long *unicode, size_t unicod
 }
 
 
-void check_token(struct Token *tok, char kind, char *val, size_t lineno) {
+struct Token *check_token(struct Token *tok, char kind, char *val, size_t lineno) {
 	buttert(tok->kind == kind);
 	buttert(tok->lineno == lineno);
 
 	char *tokval = unicode_to_utf8_ending_with_0(tok->val, tok->vallen);
 	buttert(strcmp(tokval, val) == 0);
 	free(tokval);
+
+	return tok->next;
 }
 
 
@@ -39,6 +37,7 @@ BEGIN_TESTS
 TEST(read_file_to_huge_string) {
 	char s[] = "hellö\n\t";
 	size_t n = strlen(s) + 1;    // INCLUDE the \0 this time
+	s[2] = 0;   // even this must work
 
 	FILE *f = tmpfile();
 	buttert(f);
@@ -73,29 +72,29 @@ TEST(tokenize) {
 	buttert(utf8_decode(utf8code, utf8codelen, &code, &codelen, errormsg) == 0);
 	buttert(errormsg[0] == 0);
 
-	struct DynamicArray *tokens = token_ize(code, codelen);
-	buttert(tokens);
+	struct Token *tok1st = token_ize(code, codelen);
+	buttert(tok1st);
 	free(code);
 
-	size_t i=0;
-	check_token(tokens->values[i++], TOKENKIND_KEYWORD, "var", 2);
-	check_token(tokens->values[i++], TOKENKIND_ID, "abc", 2);
-	check_token(tokens->values[i++], TOKENKIND_OP, "=", 2);
-	check_token(tokens->values[i++], TOKENKIND_ID, "åäö", 2);
-	check_token(tokens->values[i++], TOKENKIND_OP, ";", 2);
-	check_token(tokens->values[i++], TOKENKIND_ID, "print", 3);
-	check_token(tokens->values[i++], TOKENKIND_STRING, "\"hellö wörld\"", 3);
-	check_token(tokens->values[i++], TOKENKIND_OP, ";", 4);
-	check_token(tokens->values[i++], TOKENKIND_ID, "print", 4);
-	check_token(tokens->values[i++], TOKENKIND_INTEGER, "123", 4);
-	check_token(tokens->values[i++], TOKENKIND_INTEGER, "-123", 4);
-	check_token(tokens->values[i++], TOKENKIND_OP, ";", 4);
-	check_token(tokens->values[i++], TOKENKIND_INTEGER, "2", 5);
-	check_token(tokens->values[i++], TOKENKIND_ID, "bäd", 5);
-	check_token(tokens->values[i++], TOKENKIND_OP, ";", 5);
-	buttert(tokens->len == i);
+	struct Token *curtok = tok1st;
+	curtok = check_token(curtok, TOKEN_KEYWORD, "var", 2);
+	curtok = check_token(curtok, TOKEN_ID, "abc", 2);
+	curtok = check_token(curtok, TOKEN_OP, "=", 2);
+	curtok = check_token(curtok, TOKEN_ID, "åäö", 2);
+	curtok = check_token(curtok, TOKEN_OP, ";", 2);
+	curtok = check_token(curtok, TOKEN_ID, "print", 3);
+	curtok = check_token(curtok, TOKEN_STR, "\"hellö wörld\"", 3);
+	curtok = check_token(curtok, TOKEN_OP, ";", 4);
+	curtok = check_token(curtok, TOKEN_ID, "print", 4);
+	curtok = check_token(curtok, TOKEN_INT, "123", 4);
+	curtok = check_token(curtok, TOKEN_INT, "-123", 4);
+	curtok = check_token(curtok, TOKEN_OP, ";", 4);
+	curtok = check_token(curtok, TOKEN_INT, "2", 5);
+	curtok = check_token(curtok, TOKEN_ID, "bäd", 5);
+	curtok = check_token(curtok, TOKEN_OP, ";", 5);
+	buttert(!curtok);
 
-	dynamicarray_freeall(tokens, token_free_voidstar);
+	token_freeall(tok1st);
 }
 
 END_TESTS
