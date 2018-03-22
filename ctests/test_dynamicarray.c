@@ -15,8 +15,7 @@ TEST(dynamiarray_new_push_pop_and_freeall) {
 	buttert(arr->len == 0);
 
 	for (int i=0; i < 100; i++) {
-		int *ip = malloc(sizeof(int));
-		buttert(ip);
+		int *ip = bmalloc(sizeof(int));
 		*ip = i;
 		dynamicarray_push(arr, ip);
 	}
@@ -42,9 +41,8 @@ TEST(dynamiarray_equals_and_free) {
 	buttert(arr1 && arr2);
 
 	for (int i=0; i<5; i++) {
-		int *ip1 = malloc(sizeof(int));
-		int *ip2 = malloc(sizeof(int));
-		buttert(ip1 && ip2);
+		int *ip1 = bmalloc(sizeof(int));
+		int *ip2 = bmalloc(sizeof(int));
 		*ip1 = *ip2 = i;
 		buttert(dynamicarray_push(arr1, ip1) == 0);
 		buttert(dynamicarray_push(arr2, ip2) == 0);
@@ -54,15 +52,14 @@ TEST(dynamiarray_equals_and_free) {
 	buttert(dynamicarray_equals(arr1, arr2, yesyes_cmpfunc) == 1);
 	buttert(dynamicarray_equals(arr1, arr2, error_cmpfunc) == -2);
 
-	int *ip = malloc(sizeof(int));
-	buttert(ip);
+	int *ip = bmalloc(sizeof(int));
 	*ip = 1;
 	buttert(dynamicarray_push(arr1, ip) == 0);
 	buttert(dynamicarray_equals(arr1, arr2, working_cmpfunc) == 0);
 	buttert(dynamicarray_equals(arr1, arr2, yesyes_cmpfunc) == 0);
 	buttert(dynamicarray_equals(arr1, arr2, error_cmpfunc) == 0);
 
-	buttert((ip = malloc(sizeof(int))));
+	ip = bmalloc(sizeof(int));
 	*ip = 2;
 	dynamicarray_push(arr2, ip);
 	buttert(dynamicarray_equals(arr1, arr2, working_cmpfunc) == 0);

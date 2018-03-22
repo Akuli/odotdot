@@ -1,4 +1,4 @@
-# you can also set RUN, e.g. RUN=valgrind runs tests with valgrind
+RUN ?= valgrind --quiet --leak-check=yes
 CC ?= cc
 CFLAGS += -Wall -Wextra -std=c99 -Wno-unused-parameter
 
@@ -14,7 +14,7 @@ all: $(CTESTS_EXEC)
 clean:
 	rm -vrf obj ctests-compiled
 
-ctests-compiled/test_%: ctests/test_%.c src/%.c src/%.h ctests/utils.h $(OBJ)
+ctests-compiled/test_%: ctests/test_%.c ctests/utils.h $(OBJ)
 	mkdir -p ctests-compiled && $(CC) -o $@ $(OBJ) $(CFLAGS) $< -I.
 
 obj/%.o: src/%.c

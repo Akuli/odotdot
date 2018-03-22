@@ -85,7 +85,7 @@ struct Token *token_ize(unsigned long *hugestring, size_t hugestringlen)
 {
 	size_t lineno=1;
 	struct Token *tok1st = NULL;
-	struct Token *curtok;
+	struct Token *curtok = NULL;
 	char kind;
 	size_t nchars;    // comparing size_t with size_t produces no warnings
 
@@ -177,6 +177,10 @@ struct Token *token_ize(unsigned long *hugestring, size_t hugestringlen)
 		hugestring += nchars;    // must be after new_token()
 		hugestringlen -= nchars;
 	}
+
+	// new_token sets nexts correctly for everything except the last token
+	curtok->next = NULL;
+
 	return tok1st;
 
 error:

@@ -17,11 +17,18 @@ char TEST_NAME[100] = "(not testing)";
 // instead, replace ASS in ASSert with BUTT
 #define buttert2(cond, msg) do { \
 	if (!(cond)) { \
-		fprintf(stderr, "buttertion '%s' failed in %s:%d, test '%s': %s\n", \
-			#cond, __FILE__, __LINE__, TEST_NAME, msg); \
+		fprintf(stderr, "buttertion '%s' failed (%s:%d, func '%s', test '%s'): %s\n", \
+			#cond, __FILE__, __LINE__, __func__, TEST_NAME, msg); \
 		abort(); \
 	} \
 } while (0)
 #define buttert(cond) buttert2(cond, "")
+
+void *bmalloc(size_t size)
+{
+	void *res = malloc(size);
+	buttert2(res, "not enough mem :(");
+	return res;
+}
 
 #endif   // TESTUTILS_H
