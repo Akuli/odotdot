@@ -8,7 +8,7 @@
 
 #include "utils.h"
 
-static char *unicode_to_utf8_ending_with_0(unsigned long *unicode, size_t unicodelen)
+static char *unicode_to_utf8_ending_with_0(unicode_t *unicode, size_t unicodelen)
 {
 	char *utf8;
 	size_t utf8len;
@@ -66,7 +66,7 @@ TEST(tokenize) {
 	int utf8codelen = strlen(utf8code);
 	utf8code[5] = 0;    // must not break anything
 
-	unsigned long *code;
+	unicode_t *code;
 	size_t codelen;
 	char errormsg[100] = {0};
 	buttert(utf8_decode(utf8code, utf8codelen, &code, &codelen, errormsg) == 0);

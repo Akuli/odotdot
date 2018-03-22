@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdio.h>
+#include "utf8.h"
 
 #define TOKEN_KEYWORD 'k'
 #define TOKEN_ID 'x'
@@ -12,7 +13,7 @@
 
 struct Token {
 	char kind;
-	unsigned long *val;
+	unicode_t *val;
 	size_t vallen;
 	size_t lineno;
 	struct Token *next;
@@ -30,7 +31,7 @@ On success, the file is read to `*dest` and its length as chars is set to
 `*destlen`. If this fails, `*dest` and `*destlen` are not set.
 */
 int read_file_to_huge_string(FILE *f, char **dest, size_t *destlen);
-struct Token *token_ize(unsigned long *hugestring, size_t hugestringlen);
+struct Token *token_ize(unicode_t *hugestring, size_t hugestringlen);
 void token_freeall(struct Token *tok1st);
 
 #endif   // TOKENIZER_H

@@ -9,7 +9,7 @@
 struct Utf8Test {
 	char utf8[100];
 	int utf8len;
-	unsigned long unicode[100];
+	unicode_t unicode[100];
 	int unicodelen;    // -1 for no encode testing
 	char errormsg[100];
 };
@@ -53,7 +53,7 @@ TEST(utf8_decode) {
 		struct Utf8Test test = utf8_tests[i];
 
 		char errormsg[100] = {0};
-		unsigned long *actual_unicode = (unsigned long *) 0xdeadbeef;   // lol
+		unicode_t *actual_unicode = (unicode_t *) 0xdeadbeef;   // lol
 		size_t actual_unicodelen = 123;
 		int res = utf8_decode(test.utf8, (size_t) test.utf8len, &actual_unicode, &actual_unicodelen, errormsg);
 
@@ -61,7 +61,7 @@ TEST(utf8_decode) {
 			// should succeed
 			buttert(res == 0);
 			buttert(actual_unicodelen == (size_t) test.unicodelen);
-			buttert(memcmp(test.unicode, actual_unicode, sizeof(long)*test.unicodelen) == 0);
+			buttert(memcmp(test.unicode, actual_unicode, sizeof(unicode_t)*test.unicodelen) == 0);
 			for (int i=0; i < 100; i++)
 				buttert(errormsg[i] == 0);
 			free(actual_unicode);
@@ -71,7 +71,7 @@ TEST(utf8_decode) {
 			buttert(strcmp(errormsg, test.errormsg) == 0);
 
 			// these must be left untouched
-			buttert(actual_unicode == (unsigned long *) 0xdeadbeef);
+			buttert(actual_unicode == (unicode_t *) 0xdeadbeef);
 			buttert(actual_unicodelen == 123);
 		}
 	}

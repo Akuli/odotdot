@@ -2,7 +2,8 @@
 #define AST_H
 
 #include <stddef.h>
-#include "tokenizer.h"
+#include "tokenizer.h"   // needed for struct Token, but iwyu doesn't get it
+#include "utf8.h"
 
 struct AstNode {
 	char kind;
@@ -11,7 +12,7 @@ struct AstNode {
 };
 
 // expressions
-struct AstStrInfo { unsigned long *val; size_t len; };
+struct AstStrInfo { unicode_t *val; size_t len; };
 #define AST_STR '"'
 struct AstIntInfo { char *valstr; };
 #define AST_INT '1'

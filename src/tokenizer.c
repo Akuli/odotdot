@@ -45,19 +45,19 @@ error:
 }
 
 
-static struct Token *new_token(struct Token *prev, char kind, unsigned long *val, size_t vallen, size_t lineno)
+static struct Token *new_token(struct Token *prev, char kind, unicode_t *val, size_t vallen, size_t lineno)
 {
 	struct Token *tok = malloc(sizeof (struct Token));
 	if (!tok)
 		return NULL;
-	tok->val = malloc(vallen * sizeof(unsigned long));
+	tok->val = malloc(vallen * sizeof(unicode_t));
 	if (!(tok->val)) {
 		free(tok);
 		return NULL;
 	}
 
 	tok->kind = kind;
-	memcpy(tok->val, val, vallen*sizeof(unsigned long));
+	memcpy(tok->val, val, vallen*sizeof(unicode_t));
 	tok->vallen = vallen;
 	tok->lineno = lineno;
 
@@ -81,7 +81,7 @@ void token_freeall(struct Token *tok1st)
 
 // TODO: better error handling than fprintf
 // TODO: test the error cases :(
-struct Token *token_ize(unsigned long *hugestring, size_t hugestringlen)
+struct Token *token_ize(unicode_t *hugestring, size_t hugestringlen)
 {
 	size_t lineno=1;
 	struct Token *tok1st = NULL;
@@ -91,7 +91,7 @@ struct Token *token_ize(unsigned long *hugestring, size_t hugestringlen)
 
 	while (hugestringlen) {
 		// TODO: check for any unicode whitespace
-#define f(x) (hugestring[0]==(unsigned long)(x))
+#define f(x) (hugestring[0]==(unicode_t)(x))
 		if (f(' ')||f('\t')||f('\n')) {
 			if (f('\n'))
 				lineno++;
@@ -115,10 +115,10 @@ struct Token *token_ize(unsigned long *hugestring, size_t hugestringlen)
 		}
 
 		else if (hugestringlen >= 4 &&
-				hugestring[0] == (unsigned long)'v' &&
-				hugestring[1] == (unsigned long)'a' &&
-				hugestring[2] == (unsigned long)'r' &&
-				(hugestring[3] && !unicode_isalnum(hugestring[3]))) {
+				hugestring[0] == (unicode_t)'v' &&
+				hugestring[1] == (unicode_t)'a' &&
+				hugestring[2] == (unicode_t)'r' &&
+				!unicode_isalnum(hugestring[3])) {
 			kind = TOKEN_KEYWORD;
 			nchars = 3;
 		}
@@ -127,8 +127,8 @@ struct Token *token_ize(unsigned long *hugestring, size_t hugestringlen)
 			kind = TOKEN_STR;
 			nchars = 1;    // first "
 			while ((hugestringlen > nchars) &&
-					(hugestring[nchars] != (unsigned long)'"')) {
-				if (hugestring[nchars] == (unsigned long)'\n') {
+					(hugestring[nchars] != (unicode_t)'"')) {
+				if (hugestring[nchars] == (unicode_t)'\n') {
 					fprintf(stderr, "line %llu: ending \" must be on the same line as starting \"", (unsigned long long)lineno);
 					goto error;
 				}

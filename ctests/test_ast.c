@@ -1,5 +1,7 @@
 #include <src/ast.h>
 #include <src/tokenizer.h>
+#include <src/utf8.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -19,18 +21,18 @@ static void create_string(struct AstStrInfo **target)
 {
 	(*target) = bmalloc(sizeof(struct AstStrInfo));
 	(*target)->len = 2;
-	(*target)->val = bmalloc(sizeof(unsigned long) * 2);
-	(*target)->val[0] = (unsigned long) 'x';
-	(*target)->val[1] = (unsigned long) 'y';
+	(*target)->val = bmalloc(sizeof(unicode_t) * 2);
+	(*target)->val[0] = (unicode_t) 'x';
+	(*target)->val[1] = (unicode_t) 'y';
 }
 
 // this assumes that s is ascii for simplicity
 static struct AstNode *parsestring(char *s)
 {
-	unsigned long *hugestring = bmalloc(sizeof(unsigned long) * strlen(s));
+	unicode_t *hugestring = bmalloc(sizeof(unicode_t) * strlen(s));
 	// can't use memcpy because types differ
 	for (size_t i=0; i < strlen(s); i++)
-		hugestring[i] = (unsigned long) s[i];
+		hugestring[i] = (unicode_t) s[i];
 
 	struct Token *tok1st = token_ize(hugestring, strlen(s));
 	buttert(tok1st);
@@ -49,7 +51,7 @@ static int stringinfo_equals_ascii_charp(struct AstStrInfo *strinfo, char *charp
 	if(strinfo->len != strlen(charp))
 		return 0;
 	for (size_t i=0; i < strinfo->len; i++) {
-		if (strinfo->val[i] != (unsigned long) charp[i])
+		if (strinfo->val[i] != (unicode_t) charp[i])
 			return 0;
 	}
 	return 1;

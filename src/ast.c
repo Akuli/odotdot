@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "ast.h"
+#include "utf8.h"
 #include "tokenizer.h"
 
 static void free_info(char kind, void *info)
@@ -69,12 +70,12 @@ static void *copy_info(char kind, void *info)
 		if (!res)
 			return NULL;
 		res->len = info_as(AstStrInfo)->len;
-		res->val = malloc(sizeof(unsigned long) * res->len);
+		res->val = malloc(sizeof(unicode_t) * res->len);
 		if(!res->val) {
 			free(res);
 			return NULL;
 		}
-		memcpy(res->val, info_as(AstStrInfo)->val,sizeof(unsigned long) * res->len );
+		memcpy(res->val, info_as(AstStrInfo)->val,sizeof(unicode_t) * res->len );
 		return res;
 	}
 	if (kind == AST_INT) {
@@ -255,12 +256,12 @@ struct AstStrInfo *strinfo_from_idtoken(struct Token **curtok)
 	if (!res)
 		return NULL;
 	res->len = (*curtok)->vallen;
-	res->val = malloc(sizeof(unsigned long) * res->len);
+	res->val = malloc(sizeof(unicode_t) * res->len);
 	if (!res->val) {
 		free(res);
 		return NULL;
 	}
-	memcpy(res->val, (*curtok)->val, sizeof(unsigned long) * res->len);
+	memcpy(res->val, (*curtok)->val, sizeof(unicode_t) * res->len);
 	*curtok = (*curtok)->next;
 	return res;
 }
@@ -279,12 +280,12 @@ static struct AstNode *parse_string(struct Token **curtok)
 	// remove " from both ends
 	// TODO: do something more? e.g. \n, \t
 	info->len = (*curtok)->vallen - 2;
-	info->val = malloc(sizeof(unsigned long) * info->len);
+	info->val = malloc(sizeof(unicode_t) * info->len);
 	if (!(info->val)) {
 		free(info);
 		return NULL;
 	}
-	memcpy(info->val, (*curtok)->val+1, sizeof(unsigned long) * info->len);
+	memcpy(info->val, (*curtok)->val+1, sizeof(unicode_t) * info->len);
 
 	*curtok = (*curtok)->next;
 	struct AstNode *res = new_expression(AST_STR, info);
@@ -312,7 +313,7 @@ static struct AstNode *parse_int(struct Token **curtok)
 		return NULL;
 	}
 
-	// can't use memcpy because curtok->val is unsigned long *
+	// can't use memcpy because curtok->val is unicode_t *
 	// TODO: should construct the integer object here??
 	for (size_t i=0; i < (*curtok)->vallen; i++)
 		info->valstr[i] = (char) ((*curtok)->val[i]);
@@ -359,7 +360,7 @@ static struct AstNode *parse_array(struct Token **curtok)
 	assert(*curtok);
 	assert((*curtok)->kind == TOKEN_OP);
 	assert((*curtok)->vallen == 1);
-	assert((*curtok)->val[0] == (unsigned long) '[');
+	assert((*curtok)->val[0] == (unicode_t) '[');
 	*curtok = (*curtok)->next;
 	assert(*curtok);    // TODO: report error "unexpected end of file"
 
@@ -370,7 +371,7 @@ static struct AstNode *parse_array(struct Token **curtok)
 	size_t nallocated = 0;
 	struct AstNode **elems = NULL;
 
-	while ((*curtok) && !((*curtok)->kind == TOKEN_OP && (*curtok)->vallen == 1 && (*curtok)->val[0] == (unsigned long)']')) {
+	while ((*curtok) && !((*curtok)->kind == TOKEN_OP && (*curtok)->vallen == 1 && (*curtok)->val[0] == (unicode_t)']')) {
 		struct AstNode *elem = parse_expression(curtok);
 		if(!elem)
 			goto error;
@@ -388,7 +389,7 @@ static struct AstNode *parse_array(struct Token **curtok)
 	}
 
 	assert(*curtok);   // TODO: report error "unexpected end of file"
-	assert((*curtok)->vallen == 1 && (*curtok)->val[0] == (unsigned long) ']');
+	assert((*curtok)->vallen == 1 && (*curtok)->val[0] == (unicode_t) ']');
 	*curtok = (*curtok)->next;   // skip ]
 
 	// this can't fail because it doesn't actually allocate more, it frees allocated mem
@@ -426,7 +427,7 @@ static int expression_coming_up(struct Token *curtok)
 		return 0;
 	if (curtok->next->kind == TOKEN_STR || curtok->next->kind == TOKEN_INT || curtok->next->kind == TOKEN_ID)
 		return 1;
-#define f(x) (curtok->next->val[0] == (unsigned long)(x))
+#define f(x) (curtok->next->val[0] == (unicode_t)(x))
 	if (curtok->next->kind == TOKEN_OP)
 		return f('(') || f('{') || f('[');
 #undef f
@@ -460,7 +461,7 @@ struct AstNode *parse_expression(struct Token **curtok)
 		return NULL;
 
 	// attributes
-	while ((*curtok) && (*curtok)->kind == TOKEN_OP && (*curtok)->vallen == 1 && (*curtok)->val[0] == (unsigned long)'.') {
+	while ((*curtok) && (*curtok)->kind == TOKEN_OP && (*curtok)->vallen == 1 && (*curtok)->val[0] == (unicode_t)'.') {
 		*curtok = (*curtok)->next;   // skip '.'
 		assert((*curtok));     // TODO: report error "expected an attribute name, but the file ended"
 		assert((*curtok)->kind == TOKEN_ID);   // TODO: report error "invalid attribute name 'bla bla'"

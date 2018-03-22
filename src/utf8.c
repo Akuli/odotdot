@@ -7,7 +7,7 @@
 #define ONES(n) ((1<<(n))-1)
 
 
-static inline int how_many_bytes(unsigned long code_point, char *errormsg)
+static inline int how_many_bytes(unicode_t code_point, char *errormsg)
 {
 	if (code_point <= 0x7f)
 		return 1;
@@ -23,13 +23,15 @@ static inline int how_many_bytes(unsigned long code_point, char *errormsg)
 
 	// "fall through" to invalid_code_point
 invalid_code_point:
-	if (errormsg)
-		sprintf(errormsg, "invalid Unicode code point U+%lX", code_point);
+	if (errormsg) {
+		// unicode_t is a typedef of uint32_t, and unsigned long is guaranteed to fit it
+		sprintf(errormsg, "invalid Unicode code point U+%lX", (unsigned long) code_point);
+	}
 	return -1;
 }
 
 
-int utf8_encode(unsigned long *unicode, size_t unicodelen, char **utf8, size_t *utf8len, char *errormsg)
+int utf8_encode(unicode_t *unicode, size_t unicodelen, char **utf8, size_t *utf8len, char *errormsg)
 {
 	// don't set utf8len if this fails
 	size_t utf8len_val = 0;
@@ -81,21 +83,21 @@ int utf8_encode(unsigned long *unicode, size_t unicodelen, char **utf8, size_t *
 }
 
 
-int utf8_decode(char *utf8, size_t utf8len, unsigned long **unicode, size_t *unicodelen, char *errormsg)
+int utf8_decode(char *utf8, size_t utf8len, unicode_t **unicode, size_t *unicodelen, char *errormsg)
 {
 	// must leave unicode and unicodelen untouched on error
-	unsigned long *result;
+	unicode_t *result;
 	size_t resultlen = 0;
 
 	// each utf8 byte is at most 1 unicode code point
 	// this is realloc'd later to the correct size, feels better than many reallocs
-	result = malloc(utf8len*sizeof(unsigned long));
+	result = malloc(utf8len*sizeof(unicode_t));
 	if (!result)
 		return -1;
 
 	unsigned char *u_utf8 = (unsigned char *) utf8;
 	while (utf8len > 0) {
-		unsigned long *ptr = result + resultlen;
+		unicode_t *ptr = result + resultlen;
 		int nbytes;
 
 #define CHECK_UTF8LEN()       do{ if (utf8len < (size_t)nbytes) { sprintf(errormsg, "unexpected end of string");           goto error; }}while(0)
@@ -119,9 +121,9 @@ int utf8_decode(char *utf8, size_t utf8len, unsigned long **unicode, size_t *uni
 			CHECK_UTF8LEN();
 			CHECK_CONTINUATION(u_utf8[1]);
 			CHECK_CONTINUATION(u_utf8[2]);
-			*ptr = ((unsigned long)(ONES(4) & u_utf8[0]))<<12UL |
-				((unsigned long)(ONES(6) & u_utf8[1]))<<6UL |
-				((unsigned long)(ONES(6) & u_utf8[2]));
+			*ptr = ((unicode_t)(ONES(4) & u_utf8[0]))<<12UL |
+				((unicode_t)(ONES(6) & u_utf8[1]))<<6UL |
+				((unicode_t)(ONES(6) & u_utf8[2]));
 		}
 
 		else if (u_utf8[0] >> 3 == ONES(4) << 1) {
@@ -130,10 +132,10 @@ int utf8_decode(char *utf8, size_t utf8len, unsigned long **unicode, size_t *uni
 			CHECK_CONTINUATION(u_utf8[1]);
 			CHECK_CONTINUATION(u_utf8[2]);
 			CHECK_CONTINUATION(u_utf8[3]);
-			*ptr = ((unsigned long)(ONES(3) & u_utf8[0]))<<18UL |
-				((unsigned long)(ONES(6) & u_utf8[1]))<<12UL |
-				((unsigned long)(ONES(6) & u_utf8[2]))<<6UL |
-				((unsigned long)(ONES(6) & u_utf8[3]));
+			*ptr = ((unicode_t)(ONES(3) & u_utf8[0]))<<18UL |
+				((unicode_t)(ONES(6) & u_utf8[1]))<<12UL |
+				((unicode_t)(ONES(6) & u_utf8[2]))<<6UL |
+				((unicode_t)(ONES(6) & u_utf8[3]));
 		}
 #undef CHECK_UTF8LEN
 #undef CHECK_CONTINUATION
@@ -168,7 +170,7 @@ int utf8_decode(char *utf8, size_t utf8len, unsigned long **unicode, size_t *uni
 	}
 
 	// this realloc can't fail because it frees memory, never allocates more
-	*unicode = realloc(result, resultlen*sizeof(unsigned long));
+	*unicode = realloc(result, resultlen*sizeof(unicode_t));
 	*unicodelen = resultlen;
 	return 0;
 
