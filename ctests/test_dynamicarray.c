@@ -8,9 +8,8 @@ int yesyes_cmpfunc(void *x, void *y) { return 1; }
 int error_cmpfunc(void *x, void *y) { return -2; }
 
 
-BEGIN_TESTS
-
-TEST(dynamiarray_new_push_pop_and_freeall) {
+void test_dynamiarray_new_push_pop_and_freeall(void)
+{
 	struct DynamicArray *arr = dynamicarray_new();
 	buttert(arr->len == 0);
 
@@ -35,7 +34,8 @@ TEST(dynamiarray_new_push_pop_and_freeall) {
 	dynamicarray_free(arr);
 }
 
-TEST(dynamiarray_equals_and_free) {
+void test_dynamiarray_equals_and_free(void)
+{
 	struct DynamicArray *arr1 = dynamicarray_new();
 	struct DynamicArray *arr2 = dynamicarray_new();
 	buttert(arr1 && arr2);
@@ -70,4 +70,4 @@ TEST(dynamiarray_equals_and_free) {
 	dynamicarray_freeall(arr2, free);
 }
 
-END_TESTS
+TESTS_MAIN(test_dynamiarray_new_push_pop_and_freeall, test_dynamiarray_equals_and_free)

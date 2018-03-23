@@ -15,17 +15,17 @@ clean:
 	rm -vrf obj ctests-compiled
 
 ctests-compiled/test_%: ctests/test_%.c ctests/utils.h $(OBJ)
-	mkdir -p $$(dirname $@) && $(CC) -o $@ $(OBJ) $(CFLAGS) $< -I.
+	mkdir -p $(@D) && $(CC) -o $@ $(OBJ) $(CFLAGS) $< -I.
 
 misc-compiled/%: misc/%.c $(OBJ)
-	mkdir -p $$(dirname $@) && $(CC) -o $@ $(OBJ) $(CFLAGS) $< -I.
+	mkdir -p $(@D) && $(CC) -o $@ $(OBJ) $(CFLAGS) $< -I.
 
 obj/%.o: src/%.c
-	mkdir -p $$(dirname $@) && $(CC) -c -o $@ $< $(CFLAGS)
+	mkdir -p $(@D) && $(CC) -c -o $@ $< $(CFLAGS)
 
 .PHONY: test
 test: $(CTESTS_EXEC)
-	@(set -e; for file in $(CTESTS_EXEC); do echo $$file; $(RUN) $$file; done; echo "-------- all tests pass --------")
+	@(set -e; for file in $(CTESTS_EXEC); do $(RUN) $$file; done; echo "-------- all tests pass --------")
 
 .PHONY: iwyu
 iwyu:

@@ -8,33 +8,9 @@
 
 #include "utils.h"
 
-static char *unicode_to_utf8_ending_with_0(unicode_t *unicode, size_t unicodelen)
+
+void test_read_file_to_huge_string(void)
 {
-	char *utf8;
-	size_t utf8len;
-	char errormsg[100];
-	buttert(utf8_encode(unicode, unicodelen, &utf8, &utf8len, errormsg) == 0);
-	buttert((utf8=realloc(utf8, utf8len+1)));
-	utf8[utf8len]=0;
-	return utf8;
-}
-
-
-struct Token *check_token(struct Token *tok, char kind, char *val, size_t lineno) {
-	buttert(tok->kind == kind);
-	buttert(tok->lineno == lineno);
-
-	char *tokval = unicode_to_utf8_ending_with_0(tok->val, tok->vallen);
-	buttert(strcmp(tokval, val) == 0);
-	free(tokval);
-
-	return tok->next;
-}
-
-
-BEGIN_TESTS
-
-TEST(read_file_to_huge_string) {
 	char s[] = "hellö\n\t";
 	size_t n = strlen(s) + 1;    // INCLUDE the \0 this time
 	s[2] = 0;   // even this must work
@@ -56,7 +32,30 @@ TEST(read_file_to_huge_string) {
 }
 
 
-TEST(tokenize) {
+static char *unicode_to_utf8_ending_with_0(unicode_t *unicode, size_t unicodelen)
+{
+	char *utf8;
+	size_t utf8len;
+	char errormsg[100];
+	buttert(utf8_encode(unicode, unicodelen, &utf8, &utf8len, errormsg) == 0);
+	buttert((utf8=realloc(utf8, utf8len+1)));
+	utf8[utf8len]=0;
+	return utf8;
+}
+
+struct Token *check_token(struct Token *tok, char kind, char *val, size_t lineno) {
+	buttert(tok->kind == kind);
+	buttert(tok->lineno == lineno);
+
+	char *tokval = unicode_to_utf8_ending_with_0(tok->val, tok->vallen);
+	buttert(strcmp(tokval, val) == 0);
+	free(tokval);
+
+	return tok->next;
+}
+
+void test_tokenize(void)
+{
 	char utf8code[] =
 		"# cömment\n"
 		"var abc = åäö;     \t #cömment \n"
@@ -97,4 +96,4 @@ TEST(tokenize) {
 	token_freeall(tok1st);
 }
 
-END_TESTS
+TESTS_MAIN(test_read_file_to_huge_string, test_tokenize)

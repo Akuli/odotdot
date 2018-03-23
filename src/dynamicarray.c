@@ -1,4 +1,4 @@
-// an array implementation that resizes nicely
+// https://en.wikipedia.org/wiki/Dynamic_array
 
 #include <stddef.h>
 #include <stdlib.h>

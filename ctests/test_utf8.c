@@ -46,9 +46,8 @@ struct Utf8Test utf8_tests[] = {
 };
 
 
-BEGIN_TESTS;
-
-TEST(utf8_decode) {
+void test_utf8_decode(void)
+{
 	for (size_t i=0; i < sizeof(utf8_tests)/sizeof(utf8_tests[0]); i++) {
 		struct Utf8Test test = utf8_tests[i];
 
@@ -78,7 +77,8 @@ TEST(utf8_decode) {
 }
 
 
-TEST(utf8_encode) {
+void test_utf8_encode(void)
+{
 	for (size_t i=0; i < sizeof(utf8_tests)/sizeof(utf8_tests[0]); i++) {
 		struct Utf8Test test = utf8_tests[i];
 		if (test.unicodelen < 0)
@@ -109,4 +109,4 @@ TEST(utf8_encode) {
 	}
 }
 
-END_TESTS;
+TESTS_MAIN(test_utf8_encode, test_utf8_decode, NULL);

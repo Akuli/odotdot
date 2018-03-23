@@ -7,7 +7,7 @@
 #include <time.h>
 #include "utils.h"
 
-// avoid having too much repetition
+
 static struct AstNode *newnode(char kind, void *info)
 {
 	struct AstNode *res = bmalloc(sizeof(struct AstNode));
@@ -26,41 +26,8 @@ static void create_string(struct AstStrInfo **target)
 	(*target)->val[1] = (unicode_t) 'y';
 }
 
-// this assumes that s is ascii for simplicity
-static struct AstNode *parsestring(char *s)
+void test_node_structs_and_ast_copynode(void)
 {
-	unicode_t *hugestring = bmalloc(sizeof(unicode_t) * strlen(s));
-	// can't use memcpy because types differ
-	for (size_t i=0; i < strlen(s); i++)
-		hugestring[i] = (unicode_t) s[i];
-
-	struct Token *tok1st = token_ize(hugestring, strlen(s));
-	buttert(tok1st);
-	free(hugestring);
-
-	struct Token *tmp = tok1st;
-	struct AstNode *node = parse_expression(&tmp);   // changes the address that tmp points to
-	token_freeall(tok1st);
-	buttert2(node, s);
-	return node;
-}
-
-
-static int stringinfo_equals_ascii_charp(struct AstStrInfo *strinfo, char *charp)
-{
-	if(strinfo->len != strlen(charp))
-		return 0;
-	for (size_t i=0; i < strinfo->len; i++) {
-		if (strinfo->val[i] != (unicode_t) charp[i])
-			return 0;
-	}
-	return 1;
-}
-
-
-BEGIN_TESTS
-
-TEST(node_structs_and_ast_copynode) {
 	struct AstStrInfo *strinfo;
 	create_string(&strinfo);
 	struct AstNode *strnode = newnode(AST_STR, strinfo);
@@ -116,51 +83,86 @@ TEST(node_structs_and_ast_copynode) {
 	callinfo->nargs = 0;    // it's best to test special cases and corner cases :D
 	struct AstNode *callnode = newnode(AST_CALL, callinfo);
 
-	// this is very recursive, should test copying every kind of node that ast_copynode can do
-	struct AstNode *callnode2 = ast_copynode(callnode);
+	// this is very recursive, should test copying every kind of node that astnode_copy can do
+	struct AstNode *callnode2 = astnode_copy(callnode);
 	buttert(callnode2);
 
 	// these  should free every object exactly once, check with valgrind
-	ast_freenode(callnode);
-	ast_freenode(callnode2);
+	astnode_free(callnode);
+	astnode_free(callnode2);
 }
 
 
-TEST(strings) {
+// this assumes that s is ascii for simplicity
+static struct AstNode *parsestring(char *s)
+{
+	unicode_t *hugestring = bmalloc(sizeof(unicode_t) * strlen(s));
+	// can't use memcpy because types differ
+	for (size_t i=0; i < strlen(s); i++)
+		hugestring[i] = (unicode_t) s[i];
+
+	struct Token *tok1st = token_ize(hugestring, strlen(s));
+	buttert(tok1st);
+	free(hugestring);
+
+	struct Token *tmp = tok1st;
+	struct AstNode *node = parse_expression(&tmp);   // changes the address that tmp points to
+	token_freeall(tok1st);
+	buttert2(node, s);
+	return node;
+}
+
+static int stringinfo_equals_ascii_charp(struct AstStrInfo *strinfo, char *charp)
+{
+	if(strinfo->len != strlen(charp))
+		return 0;
+	for (size_t i=0; i < strinfo->len; i++) {
+		if (strinfo->val[i] != (unicode_t) charp[i])
+			return 0;
+	}
+	return 1;
+}
+
+void test_strings(void)
+{
 	struct AstNode *node = parsestring("\"hello\"");
 	buttert(node->kind == AST_STR);
 	struct AstStrInfo *info = node->info;
 	buttert(info->len == 5);
-	ast_freenode(node);
+	astnode_free(node);
 }
 
-TEST(ints) {
+void test_ints(void)
+{
 	struct AstNode *node = parsestring("-123");
 	buttert(node->kind == AST_INT);
 	struct AstIntInfo *info = node->info;
 	buttert(strcmp(info->valstr, "-123") == 0);
-	ast_freenode(node);
+	astnode_free(node);
 }
 
-TEST(arrays) {
+void test_arrays(void)
+{
 	struct AstNode *node = parsestring("[ \"a\" 123 ]");
 	buttert(node->kind == AST_ARRAY);
 	struct AstArrayOrBlockInfo *info = node->info;
 	buttert(info->nitems == 2);
 	buttert(info->items[0]->kind == AST_STR);
 	buttert(info->items[1]->kind == AST_INT);
-	ast_freenode(node);
+	astnode_free(node);
 }
 
-TEST(getvars) {
+void test_getvars(void)
+{
 	struct AstNode *node = parsestring("abc");
 	buttert(node->kind == AST_GETVAR);
 	struct AstGetVarInfo *info = node->info;
 	buttert(stringinfo_equals_ascii_charp(info->varname, "abc"));
-	ast_freenode(node);
+	astnode_free(node);
 }
 
-TEST(attributes) {
+void test_attributes(void)
+{
 	struct AstNode *dotc = parsestring("\"asd\".a.b.c");
 	buttert(dotc->kind == AST_GETATTR);
 	struct AstGetAttrInfo *dotcinfo = dotc->info;
@@ -181,8 +183,8 @@ TEST(attributes) {
 	struct AstStrInfo *strinfo = str->info;
 	buttert(stringinfo_equals_ascii_charp(strinfo, "asd"));
 
-	ast_freenode(dotc);
+	astnode_free(dotc);
 }
 
-
-END_TESTS
+TESTS_MAIN(test_node_structs_and_ast_copynode, test_strings, test_ints,
+	test_arrays, test_getvars, test_attributes, NULL)

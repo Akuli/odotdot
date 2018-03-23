@@ -39,10 +39,10 @@ struct AstCallInfo { struct AstNode *func; struct AstNode **args; size_t nargs; 
 
 
 // free any AstNode pointer properly
-void ast_freenode(struct AstNode *node);
+void astnode_free(struct AstNode *node);
 
 // make a recursive copy of an AstNode
-struct AstNode *ast_copynode(struct AstNode *node);
+struct AstNode *astnode_copy(struct AstNode *node);
 
 // TODO: make this static
 struct AstNode *parse_expression(struct Token **curtok);

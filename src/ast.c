@@ -21,30 +21,30 @@ static void free_info(char kind, void *info)
 	case AST_ARRAY:
 	case AST_BLOCK:
 		for (size_t i=0; i < info_as(AstArrayOrBlockInfo)->nitems; i++)
-			ast_freenode(info_as(AstArrayOrBlockInfo)->items[i]);
+			astnode_free(info_as(AstArrayOrBlockInfo)->items[i]);
 		free(info_as(AstArrayOrBlockInfo)->items);
 		break;
 	case AST_GETVAR:
 		free_info(AST_STR, info_as(AstGetVarInfo)->varname);
 		break;
 	case AST_GETATTR:
-		ast_freenode(info_as(AstGetAttrInfo)->obj);
+		astnode_free(info_as(AstGetAttrInfo)->obj);
 		free_info(AST_STR, info_as(AstGetAttrInfo)->attr);
 		break;
 	case AST_CREATEVAR:
 	case AST_SETVAR:
 		free_info(AST_STR, info_as(AstCreateOrSetVarInfo)->varname);
-		ast_freenode(info_as(AstCreateOrSetVarInfo)->val);
+		astnode_free(info_as(AstCreateOrSetVarInfo)->val);
 		break;
 	case AST_SETATTR:
-		ast_freenode(info_as(AstSetAttrInfo)->obj);
+		astnode_free(info_as(AstSetAttrInfo)->obj);
 		free_info(AST_STR, info_as(AstSetAttrInfo)->attr);
-		ast_freenode(info_as(AstSetAttrInfo)->val);
+		astnode_free(info_as(AstSetAttrInfo)->val);
 		break;
 	case AST_CALL:
-		ast_freenode(info_as(AstCallInfo)->func);
+		astnode_free(info_as(AstCallInfo)->func);
 		for (size_t i=0; i < info_as(AstCallInfo)->nargs; i++)
-			ast_freenode(info_as(AstCallInfo)->args[i]);
+			astnode_free(info_as(AstCallInfo)->args[i]);
 		free(info_as(AstCallInfo)->args);
 		break;
 #undef info_as
@@ -54,7 +54,7 @@ static void free_info(char kind, void *info)
 	free(info);
 }
 
-void ast_freenode(struct AstNode *node)
+void astnode_free(struct AstNode *node)
 {
 	free_info(node->kind, node->info);
 	free(node);
@@ -101,10 +101,10 @@ static void *copy_info(char kind, void *info)
 			return NULL;
 		}
 		for (size_t i=0; i < res->nitems; i++) {
-			struct AstNode *item = ast_copynode(info_as(AstArrayOrBlockInfo)->items[i]);
+			struct AstNode *item = astnode_copy(info_as(AstArrayOrBlockInfo)->items[i]);
 			if(!item) {
 				for(size_t j=0; j<i; j++)
-					ast_freenode(res->items[j]);
+					astnode_free(res->items[j]);
 				free(res->items);
 				free(res);
 				return NULL;
@@ -133,7 +133,7 @@ static void *copy_info(char kind, void *info)
 			free(res);
 			return NULL;
 		}
-		res->obj = ast_copynode(info_as(AstGetAttrInfo)->obj);
+		res->obj = astnode_copy(info_as(AstGetAttrInfo)->obj);
 		if(!(res->obj)) {
 			free_info(AST_STR, res->attr);
 			free(res);
@@ -150,7 +150,7 @@ static void *copy_info(char kind, void *info)
 			free(res);
 			return NULL;
 		}
-		res->val = ast_copynode(info_as(AstCreateOrSetVarInfo)->val);
+		res->val = astnode_copy(info_as(AstCreateOrSetVarInfo)->val);
 		if (!res->val) {
 			free_info(AST_STR, res->varname);
 			free(res);
@@ -162,21 +162,21 @@ static void *copy_info(char kind, void *info)
 		struct AstSetAttrInfo *res = malloc(sizeof(struct AstSetAttrInfo));
 		if(!res)
 			return NULL;
-		res->obj = ast_copynode(info_as(AstSetAttrInfo)->obj);
+		res->obj = astnode_copy(info_as(AstSetAttrInfo)->obj);
 		if(!res->obj) {
 			free(res);
 			return NULL;
 		}
 		res->attr = copy_info(AST_STR, info_as(AstSetAttrInfo)->attr);
 		if(!res->attr) {
-			ast_freenode(res->obj);
+			astnode_free(res->obj);
 			free(res);
 			return NULL;
 		}
-		res->val = ast_copynode(info_as(AstSetAttrInfo)->val);
+		res->val = astnode_copy(info_as(AstSetAttrInfo)->val);
 		if(!res->val) {
 			free_info(AST_STR, res->attr);
-			ast_freenode(res->obj);
+			astnode_free(res->obj);
 			free(res);
 			return NULL;
 		}
@@ -186,26 +186,26 @@ static void *copy_info(char kind, void *info)
 		struct AstCallInfo *res = malloc(sizeof(struct AstCallInfo));
 		if(!res)
 			return NULL;
-		res->func = ast_copynode(info_as(AstCallInfo)->func);
+		res->func = astnode_copy(info_as(AstCallInfo)->func);
 		if(!(res->func)) {
-			ast_freenode(res->func);
+			astnode_free(res->func);
 			free(res);
 			return NULL;
 		}
 		res->nargs = info_as(AstCallInfo)->nargs;
 		res->args = malloc(sizeof(struct AstNode*) * res->nargs);
 		if(!res->args){
-			ast_freenode(res->func);
+			astnode_free(res->func);
 			free(res);
 			return NULL;
 		}
 		for (size_t i=0; i < res->nargs; i++) {
-			struct AstNode *arg = ast_copynode(info_as(AstCallInfo)->args[i]);
+			struct AstNode *arg = astnode_copy(info_as(AstCallInfo)->args[i]);
 			if(!arg) {
 				for(size_t j=0; j<i; j++)
-					ast_freenode(res->args[j]);
+					astnode_free(res->args[j]);
 				free(res->args);
-				ast_freenode(res->func);
+				astnode_free(res->func);
 				free(res);
 				return NULL;
 			}
@@ -217,7 +217,7 @@ static void *copy_info(char kind, void *info)
 	assert(0);
 }
 
-struct AstNode *ast_copynode(struct AstNode *node) {
+struct AstNode *astnode_copy(struct AstNode *node) {
 	void *resinfo = copy_info(node->kind, node->info);
 	if(!resinfo)
 		return NULL;
@@ -413,7 +413,7 @@ static struct AstNode *parse_array(struct Token **curtok)
 
 error:
 	for (size_t i=0; i < nelems; i++)
-		ast_freenode(elems[i]);
+		astnode_free(elems[i]);
 	if (elems)
 		free(elems);
 	return NULL;
@@ -468,7 +468,7 @@ struct AstNode *parse_expression(struct Token **curtok)
 
 		struct AstGetAttrInfo *gainfo = malloc(sizeof(struct AstGetAttrInfo));
 		if(!gainfo) {
-			ast_freenode(res);
+			astnode_free(res);
 			return NULL;
 		}
 
@@ -476,7 +476,7 @@ struct AstNode *parse_expression(struct Token **curtok)
 		gainfo->attr = strinfo_from_idtoken(curtok);
 		if (!gainfo->attr) {
 			free(gainfo);
-			ast_freenode(res);
+			astnode_free(res);
 			return NULL;
 		}
 
@@ -484,7 +484,7 @@ struct AstNode *parse_expression(struct Token **curtok)
 		if(!ga) {
 			free_info(AST_STR, gainfo->attr);
 			free(gainfo);
-			ast_freenode(res);
+			astnode_free(res);
 			return NULL;
 		}
 		res = ga;
