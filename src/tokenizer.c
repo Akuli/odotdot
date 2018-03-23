@@ -1,12 +1,10 @@
-// TODO: use wchars?
-
 #include "tokenizer.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "common.h"
-#include "utf8.h"
-
+#include "unicode.h"
 #define CHUNK_SIZE 4096
 
 
@@ -46,20 +44,21 @@ error:
 }
 
 
-static struct Token *new_token(struct Token *prev, char kind, unicode_t *val, size_t vallen, size_t lineno)
+// creates a token of first nchars chars of hugestring
+static struct Token *new_token(struct Token *prev, char kind, struct UnicodeString hugestring, size_t nchars, size_t lineno)
 {
 	struct Token *tok = malloc(sizeof (struct Token));
 	if (!tok)
 		return NULL;
-	tok->val = malloc(vallen * sizeof(unicode_t));
-	if (!(tok->val)) {
+	tok->str.len = nchars;
+	tok->str.val = malloc(nchars * sizeof(uint32_t));
+	if (!(tok->str.val)) {
 		free(tok);
 		return NULL;
 	}
+	memcpy(tok->str.val, hugestring.val, tok->str.len*sizeof(uint32_t));
 
 	tok->kind = kind;
-	memcpy(tok->val, val, vallen*sizeof(unicode_t));
-	tok->vallen = vallen;
 	tok->lineno = lineno;
 
 	if (prev)
@@ -73,7 +72,7 @@ void token_freeall(struct Token *tok1st)
 	struct Token *tok = tok1st;
 	while (tok) {
 		struct Token *tok2 = tok->next;   // must be before free(tok)
-		free(tok->val);
+		free(tok->str.val);
 		free(tok);
 		tok = tok2;
 	}
@@ -82,7 +81,7 @@ void token_freeall(struct Token *tok1st)
 
 // TODO: better error handling than fprintf
 // TODO: test the error cases :(
-struct Token *token_ize(unicode_t *hugestring, size_t hugestringlen)
+struct Token *token_ize(struct UnicodeString hugestring)
 {
 	size_t lineno=1;
 	struct Token *tok1st = NULL;
@@ -90,21 +89,22 @@ struct Token *token_ize(unicode_t *hugestring, size_t hugestringlen)
 	char kind;
 	size_t nchars;    // comparing size_t with size_t produces no warnings
 
-	while (hugestringlen) {
+	while (hugestring.len) {
 		// TODO: check for any unicode whitespace
-#define f(x) (hugestring[0]==(unicode_t)(x))
+#define f(x) (hugestring.val[0]==(x))
 		if (f(' ')||f('\t')||f('\n')) {
 			if (f('\n'))
 				lineno++;
-			hugestring++;
-			hugestringlen--;
+			// this relies on pass-by-value
+			hugestring.val++;
+			hugestring.len--; 
 			continue;
 		}
 
-		if (hugestring[0] == '#') {
-			while (hugestringlen && hugestring[0] != '\n') {
-				hugestring++;
-				hugestringlen--;
+		if (hugestring.val[0] == '#') {
+			while (hugestring.len && hugestring.val[0] != '\n') {
+				hugestring.val++;
+				hugestring.len--;
 			}
 			continue;
 		}
@@ -115,21 +115,21 @@ struct Token *token_ize(unicode_t *hugestring, size_t hugestringlen)
 			nchars = 1;
 		}
 
-		else if (hugestringlen >= 4 &&
-				hugestring[0] == (unicode_t)'v' &&
-				hugestring[1] == (unicode_t)'a' &&
-				hugestring[2] == (unicode_t)'r' &&
-				!unicode_isalnum(hugestring[3])) {
+		else if (hugestring.len >= 4 &&
+				hugestring.val[0] == 'v' &&
+				hugestring.val[1] == 'a' &&
+				hugestring.val[2] == 'r' &&
+				!unicode_isalnum(hugestring.val[3])) {
 			kind = TOKEN_KEYWORD;
 			nchars = 3;
 		}
 
-		else if (hugestring[0] == '"') {
+		else if (hugestring.val[0] == '"') {
 			kind = TOKEN_STR;
 			nchars = 1;    // first "
-			while ((hugestringlen > nchars) &&
-					(hugestring[nchars] != (unicode_t)'"')) {
-				if (hugestring[nchars] == (unicode_t)'\n') {
+			while ((hugestring.len > nchars) &&
+					(hugestring.val[nchars] != '"')) {
+				if (hugestring.val[nchars] == '\n') {
 					fprintf(stderr, "line %llu: ending \" must be on the same line as starting \"", (unsigned long long)lineno);
 					goto error;
 				}
@@ -138,24 +138,24 @@ struct Token *token_ize(unicode_t *hugestring, size_t hugestringlen)
 			nchars++;    // last ", the error handling stuff below runs if this is missing
 		}
 
-		else if (unicode_is0to9(hugestring[0])) {
+		else if (unicode_is0to9(hugestring.val[0])) {
 			kind = TOKEN_INT;
 			nchars = 0;
-			while (hugestringlen > nchars && unicode_is0to9(hugestring[nchars]))
+			while (hugestring.len > nchars && unicode_is0to9(hugestring.val[nchars]))
 				nchars++;
 		}
 
-		else if (hugestringlen >= 2 && hugestring[0] == '-' && unicode_is0to9(hugestring[1])) {
+		else if (hugestring.len >= 2 && hugestring.val[0] == '-' && unicode_is0to9(hugestring.val[1])) {
 			kind = TOKEN_INT;
 			nchars = 1;
-			while (hugestringlen > nchars && unicode_is0to9(hugestring[nchars]))
+			while (hugestring.len > nchars && unicode_is0to9(hugestring.val[nchars]))
 				nchars++;
 		}
 
-		else if (unicode_isalpha(hugestring[0])) {
+		else if (unicode_isalpha(hugestring.val[0])) {
 			kind = TOKEN_ID;
 			nchars = 0;
-			while (hugestringlen > nchars && unicode_isalnum(hugestring[nchars]))
+			while (hugestring.len > nchars && unicode_isalnum(hugestring.val[nchars]))
 				nchars++;
 		}
 
@@ -164,7 +164,7 @@ struct Token *token_ize(unicode_t *hugestring, size_t hugestringlen)
 			goto error;
 		}
 
-		if (hugestringlen < nchars) {
+		if (hugestring.len < nchars) {
 			fprintf(stderr, "unexpected end of file\n");
 			goto error;
 		}
@@ -175,8 +175,8 @@ struct Token *token_ize(unicode_t *hugestring, size_t hugestringlen)
 			tok1st = curtok = new_token(NULL, kind, hugestring, nchars, lineno);
 		if (!curtok)
 			goto error;
-		hugestring += nchars;    // must be after new_token()
-		hugestringlen -= nchars;
+		hugestring.val += nchars;    // must be after new_token()
+		hugestring.len -= nchars;
 	}
 
 	// new_token sets nexts correctly for everything except the last token

@@ -1,6 +1,6 @@
 #include <src/ast.h>
 #include <src/tokenizer.h>
-#include <src/utf8.h>
+#include <src/unicode.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,9 +21,9 @@ static void create_string(struct AstStrInfo **target)
 {
 	(*target) = bmalloc(sizeof(struct AstStrInfo));
 	(*target)->len = 2;
-	(*target)->val = bmalloc(sizeof(unicode_t) * 2);
-	(*target)->val[0] = (unicode_t) 'x';
-	(*target)->val[1] = (unicode_t) 'y';
+	(*target)->val = bmalloc(sizeof(uint32_t) * 2);
+	(*target)->val[0] = 'x';
+	(*target)->val[1] = 'y';
 }
 
 void test_node_structs_and_ast_copynode(void)
@@ -96,14 +96,16 @@ void test_node_structs_and_ast_copynode(void)
 // this assumes that s is ascii for simplicity
 static struct AstNode *parsestring(char *s)
 {
-	unicode_t *hugestring = bmalloc(sizeof(unicode_t) * strlen(s));
+	struct UnicodeString hugestring;
+	hugestring.len = strlen(s);
+	hugestring.val = bmalloc(sizeof(uint32_t) * hugestring.len);
 	// can't use memcpy because types differ
 	for (size_t i=0; i < strlen(s); i++)
-		hugestring[i] = (unicode_t) s[i];
+		hugestring.val[i] = s[i];
 
-	struct Token *tok1st = token_ize(hugestring, strlen(s));
+	struct Token *tok1st = token_ize(hugestring);
 	buttert(tok1st);
-	free(hugestring);
+	free(hugestring.val);
 
 	struct Token *tmp = tok1st;
 	struct AstNode *node = parse_expression(&tmp);   // changes the address that tmp points to
@@ -117,7 +119,7 @@ static int stringinfo_equals_ascii_charp(struct AstStrInfo *strinfo, char *charp
 	if(strinfo->len != strlen(charp))
 		return 0;
 	for (size_t i=0; i < strinfo->len; i++) {
-		if (strinfo->val[i] != (unicode_t) charp[i])
+		if (strinfo->val[i] != (uint32_t) charp[i])
 			return 0;
 	}
 	return 1;

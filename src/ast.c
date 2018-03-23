@@ -1,11 +1,12 @@
 // some assert()s in this file have a comment like 'TODO: report error'
 // it means that invalid syntax causes that assert() to fail
 
+#include "ast.h"
 #include <assert.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "ast.h"
-#include "utf8.h"
+#include "unicode.h"
 #include "tokenizer.h"
 
 static void free_info(char kind, void *info)
@@ -70,12 +71,12 @@ static void *copy_info(char kind, void *info)
 		if (!res)
 			return NULL;
 		res->len = info_as(AstStrInfo)->len;
-		res->val = malloc(sizeof(unicode_t) * res->len);
+		res->val = malloc(sizeof(uint32_t) * res->len);
 		if(!res->val) {
 			free(res);
 			return NULL;
 		}
-		memcpy(res->val, info_as(AstStrInfo)->val,sizeof(unicode_t) * res->len );
+		memcpy(res->val, info_as(AstStrInfo)->val, sizeof(uint32_t) * res->len );
 		return res;
 	}
 	if (kind == AST_INT) {
@@ -255,13 +256,13 @@ struct AstStrInfo *strinfo_from_idtoken(struct Token **curtok)
 	struct AstStrInfo *res = malloc(sizeof(struct AstStrInfo));
 	if (!res)
 		return NULL;
-	res->len = (*curtok)->vallen;
-	res->val = malloc(sizeof(unicode_t) * res->len);
+	res->len = (*curtok)->str.len;
+	res->val = malloc(sizeof(uint32_t) * res->len);
 	if (!res->val) {
 		free(res);
 		return NULL;
 	}
-	memcpy(res->val, (*curtok)->val, sizeof(unicode_t) * res->len);
+	memcpy(res->val, (*curtok)->str.val, sizeof(uint32_t) * res->len);
 	*curtok = (*curtok)->next;
 	return res;
 }
@@ -279,13 +280,13 @@ static struct AstNode *parse_string(struct Token **curtok)
 
 	// remove " from both ends
 	// TODO: do something more? e.g. \n, \t
-	info->len = (*curtok)->vallen - 2;
-	info->val = malloc(sizeof(unicode_t) * info->len);
+	info->len = (*curtok)->str.len - 2;
+	info->val = malloc(sizeof(uint32_t) * info->len);
 	if (!(info->val)) {
 		free(info);
 		return NULL;
 	}
-	memcpy(info->val, (*curtok)->val+1, sizeof(unicode_t) * info->len);
+	memcpy(info->val, (*curtok)->str.val+1, sizeof(uint32_t) * info->len);
 
 	*curtok = (*curtok)->next;
 	struct AstNode *res = new_expression(AST_STR, info);
@@ -307,17 +308,17 @@ static struct AstNode *parse_int(struct Token **curtok)
 	if (!info)
 		return NULL;
 
-	info->valstr = malloc((*curtok)->vallen+1);
+	info->valstr = malloc((*curtok)->str.len+1);
 	if (!(info->valstr)) {
 		free(info);
 		return NULL;
 	}
 
-	// can't use memcpy because curtok->val is unicode_t *
+	// can't use memcpy because (*curtok)->str.val is uint32_t*
 	// TODO: should construct the integer object here??
-	for (size_t i=0; i < (*curtok)->vallen; i++)
-		info->valstr[i] = (char) ((*curtok)->val[i]);
-	info->valstr[(*curtok)->vallen] = 0;
+	for (size_t i=0; i < (*curtok)->str.len; i++)
+		info->valstr[i] = (char) ((*curtok)->str.val[i]);
+	info->valstr[(*curtok)->str.len] = 0;
 
 	*curtok = (*curtok)->next;
 	struct AstNode *res = new_expression(AST_INT, info);
@@ -359,8 +360,8 @@ static struct AstNode *parse_array(struct Token **curtok)
 {
 	assert(*curtok);
 	assert((*curtok)->kind == TOKEN_OP);
-	assert((*curtok)->vallen == 1);
-	assert((*curtok)->val[0] == (unicode_t) '[');
+	assert((*curtok)->str.len == 1);
+	assert((*curtok)->str.val[0] == '[');
 	*curtok = (*curtok)->next;
 	assert(*curtok);    // TODO: report error "unexpected end of file"
 
@@ -371,7 +372,7 @@ static struct AstNode *parse_array(struct Token **curtok)
 	size_t nallocated = 0;
 	struct AstNode **elems = NULL;
 
-	while ((*curtok) && !((*curtok)->kind == TOKEN_OP && (*curtok)->vallen == 1 && (*curtok)->val[0] == (unicode_t)']')) {
+	while ((*curtok) && !((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == ']')) {
 		struct AstNode *elem = parse_expression(curtok);
 		if(!elem)
 			goto error;
@@ -389,7 +390,7 @@ static struct AstNode *parse_array(struct Token **curtok)
 	}
 
 	assert(*curtok);   // TODO: report error "unexpected end of file"
-	assert((*curtok)->vallen == 1 && (*curtok)->val[0] == (unicode_t) ']');
+	assert((*curtok)->str.len == 1 && (*curtok)->str.val[0] == ']');
 	*curtok = (*curtok)->next;   // skip ]
 
 	// this can't fail because it doesn't actually allocate more, it frees allocated mem
@@ -427,7 +428,7 @@ static int expression_coming_up(struct Token *curtok)
 		return 0;
 	if (curtok->next->kind == TOKEN_STR || curtok->next->kind == TOKEN_INT || curtok->next->kind == TOKEN_ID)
 		return 1;
-#define f(x) (curtok->next->val[0] == (unicode_t)(x))
+#define f(x) (curtok->next->str.val[0] == (uint32_t)(x))
 	if (curtok->next->kind == TOKEN_OP)
 		return f('(') || f('{') || f('[');
 #undef f
@@ -449,7 +450,7 @@ struct AstNode *parse_expression(struct Token **curtok)
 		res = parse_getvar(curtok);
 		break;
 	case TOKEN_OP:
-		if ((*curtok)->vallen == 1) {
+		if ((*curtok)->str.len == 1) {
 			res = parse_array(curtok);
 			break;
 		}
@@ -461,7 +462,7 @@ struct AstNode *parse_expression(struct Token **curtok)
 		return NULL;
 
 	// attributes
-	while ((*curtok) && (*curtok)->kind == TOKEN_OP && (*curtok)->vallen == 1 && (*curtok)->val[0] == (unicode_t)'.') {
+	while ((*curtok) && (*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == '.') {
 		*curtok = (*curtok)->next;   // skip '.'
 		assert((*curtok));     // TODO: report error "expected an attribute name, but the file ended"
 		assert((*curtok)->kind == TOKEN_ID);   // TODO: report error "invalid attribute name 'bla bla'"

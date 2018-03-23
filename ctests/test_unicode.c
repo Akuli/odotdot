@@ -3,13 +3,13 @@
 #include <string.h>
 
 #include "utils.h"
-#include <src/utf8.h>
+#include <src/unicode.h>
 
 
-struct Utf8Test {
+struct UnicodeTest {
 	char utf8[100];
 	int utf8len;
-	unicode_t unicode[100];
+	uint32_t unicodeval[100];
 	int unicodelen;    // -1 for no encode testing
 	char errormsg[100];
 };
@@ -17,7 +17,7 @@ struct Utf8Test {
 // this doesn't test the pink and red cells of the table in the wikipedia
 // article because i don't understand the table :(
 // https://en.wikipedia.org/wiki/UTF-8#Codepage_layout
-struct Utf8Test utf8_tests[] = {
+struct UnicodeTest unicode_tests[] = {
 	// very basic stuff
 	{{ 'h', 'e', 'l', 'l', 'o' }, 5, { 'h', 'e', 'l', 'l', 'o' }, 5, "" },
 	{{ }, 0, { }, 0, "" },
@@ -48,30 +48,31 @@ struct Utf8Test utf8_tests[] = {
 
 void test_utf8_decode(void)
 {
-	for (size_t i=0; i < sizeof(utf8_tests)/sizeof(utf8_tests[0]); i++) {
-		struct Utf8Test test = utf8_tests[i];
+	for (size_t i=0; i < sizeof(unicode_tests)/sizeof(unicode_tests[0]); i++) {
+		struct UnicodeTest test = unicode_tests[i];
 
 		char errormsg[100] = {0};
-		unicode_t *actual_unicode = (unicode_t *) 0xdeadbeef;   // lol
-		size_t actual_unicodelen = 123;
-		int res = utf8_decode(test.utf8, (size_t) test.utf8len, &actual_unicode, &actual_unicodelen, errormsg);
+		struct UnicodeString actual_unicode;
+		actual_unicode.len = 123;
+		actual_unicode.val = (uint32_t*)0xdeadbeef;   // lol
+		int res = utf8_decode(test.utf8, (size_t) test.utf8len, &actual_unicode, errormsg);
 
 		if (strlen(test.errormsg) == 0) {
 			// should succeed
 			buttert(res == 0);
-			buttert(actual_unicodelen == (size_t) test.unicodelen);
-			buttert(memcmp(test.unicode, actual_unicode, sizeof(unicode_t)*test.unicodelen) == 0);
+			buttert(actual_unicode.len == (size_t) test.unicodelen);
+			buttert(memcmp(test.unicodeval, actual_unicode.val, sizeof(uint32_t)*test.unicodelen) == 0);
 			for (int i=0; i < 100; i++)
 				buttert(errormsg[i] == 0);
-			free(actual_unicode);
+			free(actual_unicode.val);
 		} else {
 			// should fail
 			buttert(res == 1);
 			buttert(strcmp(errormsg, test.errormsg) == 0);
 
 			// these must be left untouched
-			buttert(actual_unicode == (unicode_t *) 0xdeadbeef);
-			buttert(actual_unicodelen == 123);
+			buttert(actual_unicode.val == (uint32_t *) 0xdeadbeef);
+			buttert(actual_unicode.len == 123);
 		}
 	}
 }
@@ -79,15 +80,16 @@ void test_utf8_decode(void)
 
 void test_utf8_encode(void)
 {
-	for (size_t i=0; i < sizeof(utf8_tests)/sizeof(utf8_tests[0]); i++) {
-		struct Utf8Test test = utf8_tests[i];
+	for (size_t i=0; i < sizeof(unicode_tests)/sizeof(unicode_tests[0]); i++) {
+		struct UnicodeTest test = unicode_tests[i];
 		if (test.unicodelen < 0)
 			continue;
 
 		char errormsg[100] = {0};
 		char *actual_utf8 = (char *) 0xdeadbeef;
 		size_t actual_utf8len = 123;
-		int res = utf8_encode(test.unicode, (size_t) test.unicodelen, &actual_utf8, &actual_utf8len, errormsg);
+		struct UnicodeString unicode = { test.unicodeval, (size_t) test.unicodelen };
+		int res = utf8_encode(unicode, &actual_utf8, &actual_utf8len, errormsg);
 
 		if (strlen(test.errormsg) == 0) {
 			// should succeed

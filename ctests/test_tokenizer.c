@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include <src/tokenizer.h>
-#include <src/utf8.h>
+#include <src/unicode.h>
 
 #include "utils.h"
 
@@ -32,24 +32,24 @@ void test_read_file_to_huge_string(void)
 }
 
 
-static char *unicode_to_utf8_ending_with_0(unicode_t *unicode, size_t unicodelen)
+static char *unicode_to_utf8_ending_with_0(struct UnicodeString unicode)
 {
 	char *utf8;
 	size_t utf8len;
 	char errormsg[100];
-	buttert(utf8_encode(unicode, unicodelen, &utf8, &utf8len, errormsg) == 0);
+	buttert(utf8_encode(unicode, &utf8, &utf8len, errormsg) == 0);
 	buttert((utf8=realloc(utf8, utf8len+1)));
 	utf8[utf8len]=0;
 	return utf8;
 }
 
-struct Token *check_token(struct Token *tok, char kind, char *val, size_t lineno) {
+struct Token *check_token(struct Token *tok, char kind, char *str, size_t lineno) {
 	buttert(tok->kind == kind);
 	buttert(tok->lineno == lineno);
 
-	char *tokval = unicode_to_utf8_ending_with_0(tok->val, tok->vallen);
-	buttert(strcmp(tokval, val) == 0);
-	free(tokval);
+	char *tokstr = unicode_to_utf8_ending_with_0(tok->str);
+	buttert(strcmp(tokstr, str) == 0);
+	free(tokstr);
 
 	return tok->next;
 }
@@ -65,15 +65,14 @@ void test_tokenize(void)
 	int utf8codelen = strlen(utf8code);
 	utf8code[5] = 0;    // must not break anything
 
-	unicode_t *code;
-	size_t codelen;
+	struct UnicodeString code;
 	char errormsg[100] = {0};
-	buttert(utf8_decode(utf8code, utf8codelen, &code, &codelen, errormsg) == 0);
+	buttert(utf8_decode(utf8code, utf8codelen, &code, errormsg) == 0);
 	buttert(errormsg[0] == 0);
 
-	struct Token *tok1st = token_ize(code, codelen);
+	struct Token *tok1st = token_ize(code);
 	buttert(tok1st);
-	free(code);
+	free(code.val);
 
 	struct Token *curtok = tok1st;
 	curtok = check_token(curtok, TOKEN_KEYWORD, "var", 2);
