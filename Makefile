@@ -15,10 +15,13 @@ clean:
 	rm -vrf obj ctests-compiled
 
 ctests-compiled/test_%: ctests/test_%.c ctests/utils.h $(OBJ)
-	mkdir -p ctests-compiled && $(CC) -o $@ $(OBJ) $(CFLAGS) $< -I.
+	mkdir -p $$(dirname $@) && $(CC) -o $@ $(OBJ) $(CFLAGS) $< -I.
+
+misc-compiled/%: misc/%.c $(OBJ)
+	mkdir -p $$(dirname $@) && $(CC) -o $@ $(OBJ) $(CFLAGS) $< -I.
 
 obj/%.o: src/%.c
-	mkdir -p obj && $(CC) -c -o $@ $< $(CFLAGS)
+	mkdir -p $$(dirname $@) && $(CC) -c -o $@ $< $(CFLAGS)
 
 .PHONY: test
 test: $(CTESTS_EXEC)

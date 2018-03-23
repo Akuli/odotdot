@@ -157,4 +157,4 @@ Mkfile.old
 dkms.conf
 
 # other stuffs
-ctests-compiled/
+*-compiled/

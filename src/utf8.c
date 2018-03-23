@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "common.h"
 #include "utf8.h"
 
 // example: ONES(6) is 111111 in binary
@@ -38,7 +39,7 @@ int utf8_encode(unicode_t *unicode, size_t unicodelen, char **utf8, size_t *utf8
 	int part;
 	for (size_t i=0; i < unicodelen; i++) {
 		if ((part = how_many_bytes(unicode[i], errormsg)) == -1) {
-			// how_many_bytes already set errormsg
+			// how_many_bytes() already set errormsg
 			return 1;
 		}
 		utf8len_val += part;
@@ -46,7 +47,7 @@ int utf8_encode(unicode_t *unicode, size_t unicodelen, char **utf8, size_t *utf8
 
 	unsigned char *ptr = malloc(utf8len_val);
 	if (!ptr)
-		return -1;
+		return STATUS_NOMEM;
 
 	// rest of this will not fail
 	*utf8 = (char *) ptr;
@@ -79,7 +80,7 @@ int utf8_encode(unicode_t *unicode, size_t unicodelen, char **utf8, size_t *utf8
 		}
 		ptr += nbytes;
 	}
-	return 0;
+	return STATUS_OK;
 }
 
 
@@ -93,7 +94,7 @@ int utf8_decode(char *utf8, size_t utf8len, unicode_t **unicode, size_t *unicode
 	// this is realloc'd later to the correct size, feels better than many reallocs
 	result = malloc(utf8len*sizeof(unicode_t));
 	if (!result)
-		return -1;
+		return STATUS_NOMEM;
 
 	unsigned char *u_utf8 = (unsigned char *) utf8;
 	while (utf8len > 0) {
@@ -172,7 +173,7 @@ int utf8_decode(char *utf8, size_t utf8len, unicode_t **unicode, size_t *unicode
 	// this realloc can't fail because it frees memory, never allocates more
 	*unicode = realloc(result, resultlen*sizeof(unicode_t));
 	*unicodelen = resultlen;
-	return 0;
+	return STATUS_OK;
 
 error:
 	if (result)

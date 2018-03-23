@@ -1,17 +1,18 @@
 // TODO: use wchars?
 
+#include "tokenizer.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "common.h"
 #include "utf8.h"
-#include "tokenizer.h"
 
 #define CHUNK_SIZE 4096
 
 
 int read_file_to_huge_string(FILE *f, char **dest, size_t *destlen)
 {
-	int errorcode=0;
+	int errorcode=STATUS_OK;
 
 	char *s = NULL;
 	char buf[CHUNK_SIZE];
@@ -21,7 +22,7 @@ int read_file_to_huge_string(FILE *f, char **dest, size_t *destlen)
 		// <jp> if s is NULL in realloc(s, sz), it acts like malloc
 		char *ptr = realloc(s, totalsize+nread);
 		if (!ptr) {
-			errorcode = -1;
+			errorcode = STATUS_NOMEM;
 			goto error;
 		}
 		s = ptr;
@@ -36,7 +37,7 @@ int read_file_to_huge_string(FILE *f, char **dest, size_t *destlen)
 
 	*dest = s;
 	*destlen = totalsize;
-	return 0;
+	return STATUS_OK;
 
 error:
 	if (s)

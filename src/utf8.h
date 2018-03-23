@@ -8,20 +8,14 @@ typedef uint32_t unicode_t;
 
 /* Convert a Unicode string to a UTF-8 string.
 
-Return values:
-
-- `0`: success
-- `-1`: not enough memory
-- `1`: the unicode string is invalid, an error message has been saved to `errormsg`
-
-The error message is never more than 100 chars long (including the `\0`), so you
-can pass an array of 100 chars to `errormsg`.
+If the unicode string is invalid, an error message is saved to errormsg and
+this returns 1. Otherwise this returns STATUS_OK or STATUS_NOMEM.
 */
 int utf8_encode(unicode_t *unicode, size_t unicodelen, char **utf8, size_t *utf8len, char *errormsg);
 
 /* Convert a UTF-8 string to a Unicode string.
 
-Errors are handled similarly to [utf8_encode].
+Errors are handled similarly to utf8_encode.
 */
 int utf8_decode(char *utf8, size_t utf8len, unicode_t **unicode, size_t *unicodelen, char *errormsg);
 

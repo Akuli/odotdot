@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 #include <stdlib.h>
-
+#include "common.h"
 #include "dynamicarray.h"
 
 
@@ -36,17 +36,18 @@ static int resize(struct DynamicArray *arr) {
 	size_t new_maxlen = arr->maxlen*2;
 	void **ptr = realloc(arr->values, new_maxlen * sizeof (void *));
 	if (!ptr)
-		return -1;
+		return STATUS_NOMEM;
 	arr->maxlen = new_maxlen;
 	arr->values = ptr;
-	return 0;
+	return STATUS_OK;
 }
 
 int dynamicarray_push(struct DynamicArray *arr, void *obj)
 {
 	if (arr->len + 1 > arr->maxlen) {
-		if (resize(arr))
-			return -1;
+		int status = resize(arr);
+		if (status != STATUS_OK)
+			return status;
 	}
 	arr->len++;
 	arr->values[arr->len-1] = obj;
