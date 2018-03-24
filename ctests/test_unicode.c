@@ -111,4 +111,4 @@ void test_utf8_encode(void)
 	}
 }
 
-TESTS_MAIN(test_utf8_encode, test_utf8_decode, NULL);
+TESTS_MAIN(test_utf8_encode, test_utf8_decode);

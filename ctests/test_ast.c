@@ -189,4 +189,4 @@ void test_attributes(void)
 }
 
 TESTS_MAIN(test_node_structs_and_ast_copynode, test_strings, test_ints,
-	test_arrays, test_getvars, test_attributes, NULL)
+	test_arrays, test_getvars, test_attributes)

@@ -1,6 +1,7 @@
 RUN ?= valgrind --quiet --leak-check=yes
 CC ?= cc
 CFLAGS += -Wall -Wextra -std=c99 -Wno-unused-parameter
+TESTARGS ?=
 
 SRC := $(wildcard src/*.c)
 OBJ := $(SRC:src/%.c=obj/%.o)
@@ -25,7 +26,7 @@ obj/%.o: src/%.c
 
 .PHONY: test
 test: $(CTESTS_EXEC)
-	@(set -e; for file in $(CTESTS_EXEC); do $(RUN) $$file; done; echo "-------- all tests pass --------")
+	@(set -e; for file in $(CTESTS_EXEC); do $(RUN) $$file $(TESTARGS); done; echo "-------- all tests pass --------")
 
 .PHONY: iwyu
 iwyu:
