@@ -125,6 +125,41 @@ int hashtable_pop(struct HashTable *ht, void *key, unsigned long keyhash, void *
 }
 
 
+void hashtable_iterbegin(struct HashTable *ht, struct HashTableIterator *it)
+{
+	it->ht = ht;
+	it->started = 0;
+	it->lastbucketno = 0;
+}
+
+int hashtable_iternext(struct HashTableIterator *it)
+{
+	if (!(it->started)) {
+		it->lastbucketno = 0;
+		it->started = 1;
+		goto starthere;     // OMG OMG ITS A GOTO KITTENS DIE OR SOMETHING
+	}
+	if (it->lastbucketno == it->ht->nbuckets)   // the end
+		return 0;
+
+	if (it->lastitem->next) {
+		it->lastitem = it->lastitem->next;
+	} else {
+		it->lastbucketno++;
+starthere:
+		while (it->lastbucketno < it->ht->nbuckets && !(it->ht->buckets[it->lastbucketno]))
+			it->lastbucketno++;
+		if (it->lastbucketno == it->ht->nbuckets)   // the end
+			return 0;
+		it->lastitem = it->ht->buckets[it->lastbucketno];
+	}
+
+	it->key = it->lastitem->key;
+	it->value = it->lastitem->value;
+	return 1;
+}
+
+
 static int make_bigger(struct HashTable *ht)
 {
 	size_t newnbuckets = ht->nbuckets*3;   // 50, 150, 450, ...

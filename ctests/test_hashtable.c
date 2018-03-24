@@ -41,16 +41,16 @@ void test_basic_stuff(void)
 	hashtable_free(ht);   // should clear the table
 }
 
-#define MANY 1000
+#define HOW_MANY 1000
 void test_many_values(void)
 {
-	int *keys[MANY];
-	int keyhashes[MANY];
-	char *values[MANY];
+	int *keys[HOW_MANY];
+	int keyhashes[HOW_MANY];
+	char *values[HOW_MANY];
 
 	struct HashTable *ht = hashtable_new(intcmp);
 	buttert(ht);
-	for (int i = 0; i < MANY; i++) {
+	for (int i = 0; i < HOW_MANY; i++) {
 		keys[i] = bmalloc(sizeof(int));
 		*keys[i] = i;
 		keyhashes[i] = inthash(i);
@@ -61,25 +61,61 @@ void test_many_values(void)
 	char *ptr;
 	int counter = 3;
 	while (counter--) {   // repeat 3 times
-		for (int i = 0; i < MANY; i++) {
+		for (int i = 0; i < HOW_MANY; i++) {
 			buttert(hashtable_set(ht, keys[i], keyhashes[i], values[i], (void *)0xdeadbeef) == STATUS_OK);
 		}
-		buttert(ht->size == MANY);
-		for (int i = 0; i < MANY; i++) {
+		buttert(ht->size == HOW_MANY);
+		for (int i = 0; i < HOW_MANY; i++) {
 			buttert(hashtable_get(ht, keys[i], keyhashes[i], (void **)(&ptr), (void *)0xdeadbeef) == 1);
 			buttert(ptr == values[i]);
 		}
-		buttert(ht->size == MANY);
+		buttert(ht->size == HOW_MANY);
 		hashtable_clear(ht);
 		buttert(ht->size == 0);
 	}
 
 	hashtable_free(ht);
-	for (int i = 0; i < MANY; i++) {
+	for (int i = 0; i < HOW_MANY; i++) {
 		free(keys[i]);
 		free(values[i]);
 	}
 }
-#undef MANY
+#undef HOW_MANY
 
-TESTS_MAIN(test_basic_stuff, test_many_values);
+#define HOW_MANY 3
+void test_iterating(void)
+{
+	int *keys[HOW_MANY];
+	int *values[HOW_MANY];
+	int got[HOW_MANY] = {0};
+
+	struct HashTable *ht = hashtable_new(intcmp);
+	buttert(ht);
+	for (int i = 0; i < HOW_MANY; i++) {
+		keys[i] = bmalloc(sizeof(int));
+		*keys[i] = i;
+		values[i] = bmalloc(sizeof(int));
+		*values[i] = i + 10;
+		buttert(hashtable_set(ht, keys[i], i, values[i], (void *)0xdeadbeef) == STATUS_OK);
+	}
+
+	struct HashTableIterator iter;
+	hashtable_iterbegin(ht, &iter);
+	for (int i=0; i < HOW_MANY; i++) {
+		buttert(hashtable_iternext(&iter) == 1);
+		buttert(*((int*)iter.value) == *((int*)iter.key)+10);
+		got[*((int*)iter.key)] = 1;
+	}
+	buttert(hashtable_iternext(&iter) == 0);
+	for (int i=0; i < HOW_MANY; i++)
+		buttert(got[i]);
+
+	hashtable_free(ht);
+	for (int i=0; i < HOW_MANY; i++) {
+		free(keys[i]);
+		free(values[i]);
+	}
+}
+#undef HOW_MANY
+
+TESTS_MAIN(test_basic_stuff, test_many_values, test_iterating);

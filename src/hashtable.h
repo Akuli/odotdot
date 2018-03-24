@@ -35,6 +35,30 @@ int hashtable_get(struct HashTable *ht, void *key, unsigned long keyhash, void *
 // returns 1 if the key was found, 0 if not and an error code from cmpfunc on failure
 int hashtable_pop(struct HashTable *ht, void *key, unsigned long keyhash, void **res, void *userdata);
 
+// everything except key and value should be considered implementation details
+struct HashTableIterator {
+	void *key;
+	void *value;
+
+	struct HashTable *ht;
+	int started;
+	size_t lastbucketno;
+	struct HashTableItem *lastitem;
+};
+
+/* usage example:
+
+	struct HashTableIterator iter;
+	hashtable_iterbegin(ht, &iter);
+	while (hashtable_iternext(&iter)) {
+		// do something with iter.key and iter.value
+	}
+
+these functions never fail
+*/
+void hashtable_iterbegin(struct HashTable *ht, struct HashTableIterator *it);
+int hashtable_iternext(struct HashTableIterator *it);     // always returns 1 or 0
+
 // pop all keys, never fails
 void hashtable_clear(struct HashTable *ht);
 
