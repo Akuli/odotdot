@@ -1,11 +1,14 @@
 #ifndef OBJECTS_FUNCTION_H
 #define OBJECTS_FUNCTION_H
 
-#include "object.h"
+#include "../objectsystem.h"
 
-typedef int (*function_cfunc)(struct Object *ctx, struct Object **retval);
 
-int function_init_class(struct ObjectClassInfo *klass);
+// should return STATUS_OK or STATUS_NOMEM
+typedef int (*functionobject_cfunc)(struct Object **retval);
+
+struct ObjectClassInfo *functionobject_createclass(void);
+struct Object *functionobject_new(functionobject_cfunc func);
 
 
 #endif   // OBJECTS_FUNCTION_H

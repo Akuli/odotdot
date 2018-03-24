@@ -1,3 +1,5 @@
+// TODO: rename the utf8_{en,de}code functions to unicode_utf8{en,de}code?
+
 #ifndef UNICODE_H
 #define UNICODE_H
 
@@ -9,8 +11,12 @@ struct UnicodeString {
 	size_t len;
 };
 
+// never fails
+unsigned long unicodestring_hash(struct UnicodeString str);
+
 // returns STATUS_OK or STATUS_NOMEM
 int unicodestring_copy(struct UnicodeString src, struct UnicodeString *dst);
+
 
 /* Convert a Unicode string to a UTF-8 string.
 

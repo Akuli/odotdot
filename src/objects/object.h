@@ -1,32 +1,10 @@
 #ifndef OBJECTS_OBJECT_H
 #define OBJECTS_OBJECT_H
 
-#include <stddef.h>
-#include "../hashtable.h"
+#include "../objectsystem.h"
 
-
-struct Object;   // forward declaration
-
-// every ö class is represented as an ObjectClassInfo struct
-struct ObjectClassInfo {
-	// the baseclass is just for inspecting stuff, methods and attribute names
-	// are copied from the baseclass when creating a new class
-	// Object's baseclass is NULL
-	struct ObjectClassInfo *baseclass;
-	struct HashTable *methods;    // keys are AstStrInfos, values are Function objects
-	struct HashTable *attrs;
-	struct Object **methodnames;
-	struct Object **methods;    // ö functions
-	size_t nmethods;
-	struct Object **attrnames;    // ö strings
-	size_t nattrs;
-};
-
-struct Object {
-	struct ObjectClassInfo *klass;
-	struct Object **attrs;
-};
-
-
+// this is not a copy/pasta, this creates the Object baseclass-of-everything
+// other wat_createclass() functions are named e.g. functionobject_createclass()
+struct ObjectClassInfo *objectobject_createclass(void);
 
 #endif   // OBJECTS_OBJECT_H

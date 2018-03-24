@@ -3,7 +3,7 @@ CC ?= cc
 CFLAGS += -Wall -Wextra -std=c99 -Wno-unused-parameter
 TESTARGS ?=
 
-SRC := $(wildcard src/*.c)
+SRC := $(wildcard src/*.c src/objects/*.c)
 OBJ := $(SRC:src/%.c=obj/%.o)
 CTESTS_SRC := $(wildcard ctests/test_*.c)
 CTESTS_EXEC := $(CTESTS_SRC:ctests/test_%.c=ctests-compiled/test_%)
