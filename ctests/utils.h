@@ -1,4 +1,4 @@
-// minimal test framework
+// fun test framework
 
 #ifndef TESTUTILS_H
 #define TESTUTILS_H
