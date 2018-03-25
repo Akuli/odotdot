@@ -5,13 +5,27 @@
 #include "common.h"
 #include "unicode.h"
 
-int unicodestring_copy(struct UnicodeString src, struct UnicodeString *dst)
+int unicodestring_copyinto(struct UnicodeString src, struct UnicodeString *dst)
 {
-	dst->val = malloc(sizeof(uint32_t) * src.len);
-	if (!dst->val)
+	uint32_t *val = malloc(sizeof(uint32_t) * src.len);
+	if (!val)
 		return STATUS_NOMEM;
-	memcpy(dst->val, src.val, sizeof(uint32_t) * src.len);
+	memcpy(val, src.val, sizeof(uint32_t) * src.len);
+	dst->len = src.len;
+	dst->val = val;
 	return STATUS_OK;
+}
+
+struct UnicodeString *unicodestring_copy(struct UnicodeString src)
+{
+	struct UnicodeString *res = malloc(sizeof(struct UnicodeString));
+	if (!res)
+		return NULL;
+	if (unicodestring_copyinto(src, res) == STATUS_NOMEM) {
+		free(res);
+		return NULL;
+	}
+	return res;
 }
 
 unsigned long unicodestring_hash(struct UnicodeString str)

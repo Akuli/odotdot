@@ -2,6 +2,7 @@
 #include <src/tokenizer.h>
 #include <src/unicode.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -17,19 +18,24 @@ static struct AstNode *newnode(char kind, void *info)
 	return res;
 }
 
-static void create_string(struct AstStrInfo **target)
+static void create_string(struct AstStrInfo *target)
 {
-	(*target) = bmalloc(sizeof(struct AstStrInfo));
-	(*target)->len = 2;
-	(*target)->val = bmalloc(sizeof(uint32_t) * 2);
-	(*target)->val[0] = 'x';
-	(*target)->val[1] = 'y';
+	target->len = 2;
+	target->val = bmalloc(sizeof(uint32_t) * 2);
+	target->val[0] = 'x';
+	target->val[1] = 'y';
+}
+
+static void create_string_bmalloc(struct AstStrInfo **target)
+{
+	*target = malloc(sizeof(struct AstStrInfo));
+	create_string(*target);
 }
 
 void test_node_structs_and_ast_copynode(void)
 {
 	struct AstStrInfo *strinfo;
-	create_string(&strinfo);
+	create_string_bmalloc(&strinfo);
 	struct AstNode *strnode = newnode(AST_STR, strinfo);
 
 	struct AstIntInfo *intinfo = bmalloc(sizeof(struct AstIntInfo));
@@ -64,7 +70,7 @@ void test_node_structs_and_ast_copynode(void)
 
 	// freeing this frees blocknode
 	struct AstCreateOrSetVarInfo *cosvinfo = bmalloc(sizeof(struct AstCreateOrSetVarInfo));
-	create_string(&(cosvinfo->varname));
+	create_string_bmalloc(&(cosvinfo->varname));
 	cosvinfo->val = blocknode;
 	// choose AST_CREATEVAR or AST_SETVAR randomly-ish
 	struct AstNode *cosvnode = newnode((((int) time(NULL))%2 ? AST_CREATEVAR : AST_SETVAR), cosvinfo);
@@ -72,7 +78,7 @@ void test_node_structs_and_ast_copynode(void)
 	// freeing this frees getattrnode and cosvnode
 	struct AstSetAttrInfo *setattrinfo = bmalloc(sizeof(struct AstSetAttrInfo));
 	setattrinfo->obj = getattrnode;
-	create_string(&(setattrinfo->attr));
+	create_string_bmalloc(&(setattrinfo->attr));
 	setattrinfo->val = cosvnode;
 	struct AstNode *setattrnode = newnode(AST_SETATTR, setattrinfo);
 
@@ -114,12 +120,12 @@ static struct AstNode *parsestring(char *s)
 	return node;
 }
 
-static int stringinfo_equals_ascii_charp(struct AstStrInfo *strinfo, char *charp)
+static int stringinfo_equals_ascii_charp(struct UnicodeString *ustr, char *charp)
 {
-	if(strinfo->len != strlen(charp))
+	if(ustr->len != strlen(charp))
 		return 0;
-	for (size_t i=0; i < strinfo->len; i++) {
-		if (strinfo->val[i] != (uint32_t) charp[i])
+	for (size_t i=0; i < ustr->len; i++) {
+		if (ustr->val[i] != (uint32_t) charp[i])
 			return 0;
 	}
 	return 1;
@@ -159,7 +165,7 @@ void test_getvars(void)
 	struct AstNode *node = parsestring("abc");
 	buttert(node->kind == AST_GETVAR);
 	struct AstGetVarInfo *info = node->info;
-	buttert(stringinfo_equals_ascii_charp(info->varname, "abc"));
+	buttert(stringinfo_equals_ascii_charp(&(info->varname), "abc"));
 	astnode_free(node);
 }
 
@@ -168,17 +174,17 @@ void test_attributes(void)
 	struct AstNode *dotc = parsestring("\"asd\".a.b.c");
 	buttert(dotc->kind == AST_GETATTR);
 	struct AstGetAttrInfo *dotcinfo = dotc->info;
-	buttert(stringinfo_equals_ascii_charp(dotcinfo->attr, "c"));
+	buttert(stringinfo_equals_ascii_charp(&(dotcinfo->attr), "c"));
 
 	struct AstNode *dotb = dotcinfo->obj;
 	buttert(dotb->kind == AST_GETATTR);
 	struct AstGetAttrInfo *dotbinfo = dotb->info;
-	buttert(stringinfo_equals_ascii_charp(dotbinfo->attr, "b"));
+	buttert(stringinfo_equals_ascii_charp(&(dotbinfo->attr), "b"));
 
 	struct AstNode *dota = dotbinfo->obj;
 	buttert(dota->kind == AST_GETATTR);
 	struct AstGetAttrInfo *dotainfo = dota->info;
-	buttert(stringinfo_equals_ascii_charp(dotainfo->attr, "a"));
+	buttert(stringinfo_equals_ascii_charp(&(dotainfo->attr), "a"));
 
 	struct AstNode *str = dotainfo->obj;
 	buttert(str->kind == AST_STR);

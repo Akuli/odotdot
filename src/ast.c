@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include "common.h"
 #include "unicode.h"
 #include "tokenizer.h"
 
@@ -26,11 +27,11 @@ static void free_info(char kind, void *info)
 		free(info_as(AstArrayOrBlockInfo)->items);
 		break;
 	case AST_GETVAR:
-		free_info(AST_STR, info_as(AstGetVarInfo)->varname);
+		free(info_as(AstGetVarInfo)->varname.val);
 		break;
 	case AST_GETATTR:
 		astnode_free(info_as(AstGetAttrInfo)->obj);
-		free_info(AST_STR, info_as(AstGetAttrInfo)->attr);
+		free(info_as(AstGetAttrInfo)->attr.val);
 		break;
 	case AST_CREATEVAR:
 	case AST_SETVAR:
@@ -67,17 +68,8 @@ static void *copy_info(char kind, void *info)
 	// can't use switch because each of these defines a res with a different type
 #define info_as(X) ((struct X *) info)
 	if(kind == AST_STR) {
-		struct AstStrInfo *res = malloc(sizeof(struct AstStrInfo));
-		if (!res)
-			return NULL;
-		res->len = info_as(AstStrInfo)->len;
-		res->val = malloc(sizeof(uint32_t) * res->len);
-		if(!res->val) {
-			free(res);
-			return NULL;
-		}
-		memcpy(res->val, info_as(AstStrInfo)->val, sizeof(uint32_t) * res->len );
-		return res;
+		// AstStrInfo is a macro for UnicodeString
+		return unicodestring_copy(*info_as(UnicodeString));
 	}
 	if (kind == AST_INT) {
 		struct AstIntInfo *res = malloc(sizeof(struct AstIntInfo));
@@ -118,8 +110,7 @@ static void *copy_info(char kind, void *info)
 		struct AstGetVarInfo *res = malloc(sizeof(struct AstGetVarInfo));
 		if(!res)
 			return NULL;
-		res->varname = copy_info(AST_STR, info_as(AstGetVarInfo)->varname);
-		if(!(res->varname)) {
+		if (unicodestring_copyinto(info_as(AstGetVarInfo)->varname, &(res->varname)) != STATUS_OK) {
 			free(res);
 			return NULL;
 		}
@@ -129,14 +120,13 @@ static void *copy_info(char kind, void *info)
 		struct AstGetAttrInfo *res = malloc(sizeof(struct AstGetAttrInfo));
 		if(!res)
 			return NULL;
-		res->attr = copy_info(AST_STR, info_as(AstGetAttrInfo)->attr);
-		if(!(res->attr)){
+		if (unicodestring_copyinto(info_as(AstGetAttrInfo)->attr, &(res->attr)) != STATUS_OK) {
 			free(res);
 			return NULL;
 		}
 		res->obj = astnode_copy(info_as(AstGetAttrInfo)->obj);
 		if(!(res->obj)) {
-			free_info(AST_STR, res->attr);
+			free(res->attr.val);
 			free(res);
 			return NULL;
 		}
@@ -253,18 +243,9 @@ struct AstStrInfo *strinfo_from_idtoken(struct Token **curtok)
 {
 	assert(*curtok);
 	assert((*curtok)->kind == TOKEN_ID);
-	struct AstStrInfo *res = malloc(sizeof(struct AstStrInfo));
-	if (!res)
-		return NULL;
-	res->len = (*curtok)->str.len;
-	res->val = malloc(sizeof(uint32_t) * res->len);
-	if (!res->val) {
-		free(res);
-		return NULL;
-	}
-	memcpy(res->val, (*curtok)->str.val, sizeof(uint32_t) * res->len);
+	struct UnicodeString *res = unicodestring_copy((*curtok)->str);
 	*curtok = (*curtok)->next;
-	return res;
+	return res;   // may be NULL
 }
 
 
@@ -340,18 +321,19 @@ static struct AstNode *parse_getvar(struct Token **curtok)
 	if (!info)
 		return NULL;
 
-	info->varname = strinfo_from_idtoken(curtok);
-	if (!info->varname) {
+	if (unicodestring_copyinto((*curtok)->str, &(info->varname)) == STATUS_NOMEM) {
 		free(info);
 		return NULL;
 	}
 
 	struct AstNode *res = new_expression(AST_GETVAR, info);
 	if (!res) {
-		free_info(AST_STR, info->varname);
+		free(info->varname.val);
 		free(info);
 		return NULL;
 	}
+
+	*curtok = (*curtok)->next;
 	return res;
 }
 
@@ -474,16 +456,16 @@ struct AstNode *parse_expression(struct Token **curtok)
 		}
 
 		gainfo->obj = res;
-		gainfo->attr = strinfo_from_idtoken(curtok);
-		if (!gainfo->attr) {
+		if (unicodestring_copyinto((*curtok)->str, &(gainfo->attr)) != STATUS_OK) {
 			free(gainfo);
 			astnode_free(res);
 			return NULL;
 		}
+		*curtok = (*curtok)->next;
 
 		struct AstNode *ga = new_expression(AST_GETATTR, gainfo);
 		if(!ga) {
-			free_info(AST_STR, gainfo->attr);
+			free(gainfo->attr.val);
 			free(gainfo);
 			astnode_free(res);
 			return NULL;

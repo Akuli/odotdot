@@ -3,21 +3,46 @@
 #include <string.h>
 
 #include "utils.h"
+#include <src/common.h>
 #include <src/unicode.h>
 
+void check(struct UnicodeString *s)
+{
+	buttert(s->len == 5);
+	buttert(s->val[0] == 'h');
+	buttert(s->val[1] == 'e');
+	buttert(s->val[2] == 'l');
+	buttert(s->val[3] == 'l');
+	buttert(s->val[4] == 'o');
+}
 
-struct UnicodeTest {
+void test_copying(void)
+{
+	uint32_t avalues[] = { 'h', 'e', 'l', 'l', 'o' };
+	struct UnicodeString a = { avalues, 5 };
+	struct UnicodeString *b = unicodestring_copy(a);
+	check(b);
+	free(b->val);
+	free(b);
+
+	struct UnicodeString *c = bmalloc(sizeof(struct UnicodeString));
+	buttert(unicodestring_copyinto(a, c) == STATUS_OK);
+	check(c);
+	free(c->val);
+	free(c);
+}
+
+
+// this doesn't test the pink and red cells of the table in the wikipedia
+// article because i don't understand the table :(
+// https://en.wikipedia.org/wiki/UTF-8#Codepage_layout
+struct Utf8Test {
 	char utf8[100];
 	int utf8len;
 	uint32_t unicodeval[100];
 	int unicodelen;    // -1 for no encode testing
 	char errormsg[100];
-};
-
-// this doesn't test the pink and red cells of the table in the wikipedia
-// article because i don't understand the table :(
-// https://en.wikipedia.org/wiki/UTF-8#Codepage_layout
-struct UnicodeTest unicode_tests[] = {
+} utf8_tests[] = {
 	// very basic stuff
 	{{ 'h', 'e', 'l', 'l', 'o' }, 5, { 'h', 'e', 'l', 'l', 'o' }, 5, "" },
 	{{ }, 0, { }, 0, "" },
@@ -48,8 +73,8 @@ struct UnicodeTest unicode_tests[] = {
 
 void test_utf8_decode(void)
 {
-	for (size_t i=0; i < sizeof(unicode_tests)/sizeof(unicode_tests[0]); i++) {
-		struct UnicodeTest test = unicode_tests[i];
+	for (size_t i=0; i < sizeof(utf8_tests)/sizeof(utf8_tests[0]); i++) {
+		struct Utf8Test test = utf8_tests[i];
 
 		char errormsg[100] = {0};
 		struct UnicodeString actual_unicode;
@@ -80,8 +105,8 @@ void test_utf8_decode(void)
 
 void test_utf8_encode(void)
 {
-	for (size_t i=0; i < sizeof(unicode_tests)/sizeof(unicode_tests[0]); i++) {
-		struct UnicodeTest test = unicode_tests[i];
+	for (size_t i=0; i < sizeof(utf8_tests)/sizeof(utf8_tests[0]); i++) {
+		struct Utf8Test test = utf8_tests[i];
 		if (test.unicodelen < 0)
 			continue;
 
@@ -111,4 +136,4 @@ void test_utf8_encode(void)
 	}
 }
 
-TESTS_MAIN(test_utf8_encode, test_utf8_decode);
+TESTS_MAIN(test_copying, test_utf8_encode, test_utf8_decode);

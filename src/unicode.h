@@ -14,8 +14,11 @@ struct UnicodeString {
 // never fails
 unsigned long unicodestring_hash(struct UnicodeString str);
 
-// returns STATUS_OK or STATUS_NOMEM
-int unicodestring_copy(struct UnicodeString src, struct UnicodeString *dst);
+// the return value's ->val and the return value must be free()'d
+struct UnicodeString *unicodestring_copy(struct UnicodeString src);
+
+// returns STATUS_OK or STATUS_NOMEM, dst->val must be free()'d
+int unicodestring_copyinto(struct UnicodeString src, struct UnicodeString *dst);
 
 
 /* Convert a Unicode string to a UTF-8 string.

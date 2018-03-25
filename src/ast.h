@@ -22,16 +22,16 @@ struct AstIntInfo { char *valstr; };
 struct AstArrayOrBlockInfo { struct AstNode **items; size_t nitems; };
 #define AST_ARRAY '['
 #define AST_BLOCK '{'
-struct AstGetVarInfo { struct AstStrInfo *varname; };
+struct AstGetVarInfo { struct UnicodeString varname; };
 #define AST_GETVAR 'x'
-struct AstGetAttrInfo { struct AstNode *obj; struct AstStrInfo *attr; };
+struct AstGetAttrInfo { struct AstNode *obj; struct UnicodeString attr; };
 #define AST_GETATTR '.'
 
 // statements
-struct AstCreateOrSetVarInfo { struct AstStrInfo *varname; struct AstNode *val; };
+struct AstCreateOrSetVarInfo { struct UnicodeString *varname; struct AstNode *val; };
 #define AST_CREATEVAR 'v'
 #define AST_SETVAR '='
-struct AstSetAttrInfo { struct AstNode *obj; struct AstStrInfo *attr; struct AstNode *val; };
+struct AstSetAttrInfo { struct AstNode *obj; struct UnicodeString *attr; struct AstNode *val; };
 #define AST_SETATTR ':'    // '.' and '=' are already used
 
 // expressions that can also be statements
