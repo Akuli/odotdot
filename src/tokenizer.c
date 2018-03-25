@@ -50,17 +50,15 @@ static struct Token *new_token(struct Token *prev, char kind, struct UnicodeStri
 	struct Token *tok = malloc(sizeof (struct Token));
 	if (!tok)
 		return NULL;
-	tok->str.len = nchars;
-	tok->str.val = malloc(nchars * sizeof(uint32_t));
-	if (!(tok->str.val)) {
+
+	hugestring.len = nchars;    // it's pass-by-value
+	if (unicodestring_copyinto(hugestring, &(tok->str)) != STATUS_OK) {
 		free(tok);
 		return NULL;
 	}
-	memcpy(tok->str.val, hugestring.val, tok->str.len*sizeof(uint32_t));
 
 	tok->kind = kind;
 	tok->lineno = lineno;
-
 	if (prev)
 		prev->next = tok;
 	return tok;
