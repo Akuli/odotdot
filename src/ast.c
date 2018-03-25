@@ -35,12 +35,12 @@ static void free_info(char kind, void *info)
 		break;
 	case AST_CREATEVAR:
 	case AST_SETVAR:
-		free_info(AST_STR, info_as(AstCreateOrSetVarInfo)->varname);
+		free(info_as(AstCreateOrSetVarInfo)->varname.val);
 		astnode_free(info_as(AstCreateOrSetVarInfo)->val);
 		break;
 	case AST_SETATTR:
 		astnode_free(info_as(AstSetAttrInfo)->obj);
-		free_info(AST_STR, info_as(AstSetAttrInfo)->attr);
+		free(info_as(AstSetAttrInfo)->attr.val);
 		astnode_free(info_as(AstSetAttrInfo)->val);
 		break;
 	case AST_CALL:
@@ -136,14 +136,13 @@ static void *copy_info(char kind, void *info)
 		struct AstCreateOrSetVarInfo *res = malloc(sizeof(struct AstCreateOrSetVarInfo));
 		if (!res)
 			return NULL;
-		res->varname = copy_info(AST_STR, info_as(AstCreateOrSetVarInfo)->varname);
-		if(!res->varname) {
+		if (unicodestring_copyinto(info_as(AstCreateOrSetVarInfo)->varname, &(res->varname)) != STATUS_OK) {
 			free(res);
 			return NULL;
 		}
 		res->val = astnode_copy(info_as(AstCreateOrSetVarInfo)->val);
 		if (!res->val) {
-			free_info(AST_STR, res->varname);
+			free(res->varname.val);
 			free(res);
 			return NULL;
 		}
@@ -158,15 +157,14 @@ static void *copy_info(char kind, void *info)
 			free(res);
 			return NULL;
 		}
-		res->attr = copy_info(AST_STR, info_as(AstSetAttrInfo)->attr);
-		if(!res->attr) {
+		if (unicodestring_copyinto(info_as(AstSetAttrInfo)->attr, &(res->attr)) != STATUS_OK) {
 			astnode_free(res->obj);
 			free(res);
 			return NULL;
 		}
 		res->val = astnode_copy(info_as(AstSetAttrInfo)->val);
 		if(!res->val) {
-			free_info(AST_STR, res->attr);
+			free(res->attr.val);
 			astnode_free(res->obj);
 			free(res);
 			return NULL;

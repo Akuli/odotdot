@@ -28,10 +28,10 @@ struct AstGetAttrInfo { struct AstNode *obj; struct UnicodeString attr; };
 #define AST_GETATTR '.'
 
 // statements
-struct AstCreateOrSetVarInfo { struct UnicodeString *varname; struct AstNode *val; };
+struct AstCreateOrSetVarInfo { struct UnicodeString varname; struct AstNode *val; };
 #define AST_CREATEVAR 'v'
 #define AST_SETVAR '='
-struct AstSetAttrInfo { struct AstNode *obj; struct UnicodeString *attr; struct AstNode *val; };
+struct AstSetAttrInfo { struct AstNode *obj; struct UnicodeString attr; struct AstNode *val; };
 #define AST_SETATTR ':'    // '.' and '=' are already used
 
 // expressions that can also be statements

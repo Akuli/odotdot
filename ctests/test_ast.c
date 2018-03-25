@@ -70,7 +70,7 @@ void test_node_structs_and_ast_copynode(void)
 
 	// freeing this frees blocknode
 	struct AstCreateOrSetVarInfo *cosvinfo = bmalloc(sizeof(struct AstCreateOrSetVarInfo));
-	create_string_bmalloc(&(cosvinfo->varname));
+	create_string(&(cosvinfo->varname));
 	cosvinfo->val = blocknode;
 	// choose AST_CREATEVAR or AST_SETVAR randomly-ish
 	struct AstNode *cosvnode = newnode((((int) time(NULL))%2 ? AST_CREATEVAR : AST_SETVAR), cosvinfo);
@@ -78,7 +78,7 @@ void test_node_structs_and_ast_copynode(void)
 	// freeing this frees getattrnode and cosvnode
 	struct AstSetAttrInfo *setattrinfo = bmalloc(sizeof(struct AstSetAttrInfo));
 	setattrinfo->obj = getattrnode;
-	create_string_bmalloc(&(setattrinfo->attr));
+	create_string(&(setattrinfo->attr));
 	setattrinfo->val = cosvnode;
 	struct AstNode *setattrnode = newnode(AST_SETATTR, setattrinfo);
 
