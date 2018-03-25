@@ -11,7 +11,7 @@ all: runtests
 
 .PHONY: clean
 clean:
-	rm -vrf obj runtests
+	rm -vrf obj runtests *-compiled
 
 misc-compiled/%: misc/%.c $(OBJ)
 	mkdir -p $(@D) && $(CC) -o $@ $(OBJ) $(CFLAGS) $< -I.
