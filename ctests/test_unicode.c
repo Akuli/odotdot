@@ -135,5 +135,3 @@ void test_utf8_encode(void)
 		}
 	}
 }
-
-TESTS_MAIN(test_copying, test_utf8_encode, test_utf8_decode);

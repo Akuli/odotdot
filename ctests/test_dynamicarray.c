@@ -69,5 +69,3 @@ void test_dynamiarray_equals_and_free(void)
 	dynamicarray_freeall(arr1, free);
 	dynamicarray_freeall(arr2, free);
 }
-
-TESTS_MAIN(test_dynamiarray_new_push_pop_and_freeall, test_dynamiarray_equals_and_free)

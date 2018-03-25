@@ -1,22 +1,17 @@
-RUN ?= valgrind --quiet --leak-check=yes
 CC ?= cc
 CFLAGS += -Wall -Wextra -std=c99 -Wno-unused-parameter
 TESTARGS ?=
 
 SRC := $(wildcard src/*.c src/objects/*.c)
 OBJ := $(SRC:src/%.c=obj/%.o)
-CTESTS_SRC := $(wildcard ctests/test_*.c)
-CTESTS_EXEC := $(CTESTS_SRC:ctests/test_%.c=ctests-compiled/test_%)
+CTESTS_SRC := $(wildcard ctests/*.c) $(wildcard ctests/*.h)
 
 .PHONY: all
-all: $(CTESTS_EXEC)
+all: runtests
 
 .PHONY: clean
 clean:
-	rm -vrf obj ctests-compiled
-
-ctests-compiled/test_%: ctests/test_%.c ctests/utils.h $(OBJ)
-	mkdir -p $(@D) && $(CC) -o $@ $(OBJ) $(CFLAGS) $< -I.
+	rm -vrf obj runtests
 
 misc-compiled/%: misc/%.c $(OBJ)
 	mkdir -p $(@D) && $(CC) -o $@ $(OBJ) $(CFLAGS) $< -I.
@@ -24,9 +19,8 @@ misc-compiled/%: misc/%.c $(OBJ)
 obj/%.o: src/%.c
 	mkdir -p $(@D) && $(CC) -c -o $@ $< $(CFLAGS)
 
-.PHONY: test
-test: $(CTESTS_EXEC)
-	@(set -e; for file in $(CTESTS_EXEC); do $(RUN) $$file $(TESTARGS); done; echo "-------- all tests pass --------")
+runtests: $(CTESTS_SRC) $(OBJ)
+	$(CC) -I. $(CFLAGS) $(CTESTS_SRC) $(OBJ) -o runtests
 
 .PHONY: iwyu
 iwyu:

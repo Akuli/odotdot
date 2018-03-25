@@ -15,7 +15,7 @@ unsigned long inthash(int i) {
 }
 
 
-void test_basic_stuff(void)
+void test_hashtable_basic_stuff(void)
 {
 	int i=1, j=2, k=3;
 	int *ptr;
@@ -42,7 +42,7 @@ void test_basic_stuff(void)
 }
 
 #define HOW_MANY 1000
-void test_many_values(void)
+void test_hashtable_many_values(void)
 {
 	int *keys[HOW_MANY];
 	int keyhashes[HOW_MANY];
@@ -83,7 +83,7 @@ void test_many_values(void)
 #undef HOW_MANY
 
 #define HOW_MANY 3
-void test_iterating(void)
+void test_hashtable_iterating(void)
 {
 	int *keys[HOW_MANY];
 	int *values[HOW_MANY];
@@ -117,5 +117,3 @@ void test_iterating(void)
 	}
 }
 #undef HOW_MANY
-
-TESTS_MAIN(test_basic_stuff, test_many_values, test_iterating);

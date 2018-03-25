@@ -9,7 +9,7 @@
 #include "utils.h"
 
 
-void test_read_file_to_huge_string(void)
+void test_tokenizer_read_file_to_huge_string(void)
 {
 	char s[] = "hellö\n\t";
 	size_t n = strlen(s) + 1;    // INCLUDE the \0 this time
@@ -54,7 +54,7 @@ struct Token *check_token(struct Token *tok, char kind, char *str, size_t lineno
 	return tok->next;
 }
 
-void test_tokenize(void)
+void test_tokenizer_tokenize(void)
 {
 	char utf8code[] =
 		"# cömment\n"
@@ -94,5 +94,3 @@ void test_tokenize(void)
 
 	token_freeall(tok1st);
 }
-
-TESTS_MAIN(test_read_file_to_huge_string, test_tokenize)

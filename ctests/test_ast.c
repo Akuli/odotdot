@@ -32,7 +32,7 @@ static void create_string_bmalloc(struct AstStrInfo **target)
 	create_string(*target);
 }
 
-void test_node_structs_and_ast_copynode(void)
+void test_ast_node_structs_and_ast_copynode(void)
 {
 	struct AstStrInfo *strinfo;
 	create_string_bmalloc(&strinfo);
@@ -131,7 +131,7 @@ static int stringinfo_equals_ascii_charp(struct UnicodeString *ustr, char *charp
 	return 1;
 }
 
-void test_strings(void)
+void test_ast_strings(void)
 {
 	struct AstNode *node = parsestring("\"hello\"");
 	buttert(node->kind == AST_STR);
@@ -140,7 +140,7 @@ void test_strings(void)
 	astnode_free(node);
 }
 
-void test_ints(void)
+void test_ast_ints(void)
 {
 	struct AstNode *node = parsestring("-123");
 	buttert(node->kind == AST_INT);
@@ -149,7 +149,7 @@ void test_ints(void)
 	astnode_free(node);
 }
 
-void test_arrays(void)
+void test_ast_arrays(void)
 {
 	struct AstNode *node = parsestring("[ \"a\" 123 ]");
 	buttert(node->kind == AST_ARRAY);
@@ -160,7 +160,7 @@ void test_arrays(void)
 	astnode_free(node);
 }
 
-void test_getvars(void)
+void test_ast_getvars(void)
 {
 	struct AstNode *node = parsestring("abc");
 	buttert(node->kind == AST_GETVAR);
@@ -169,7 +169,7 @@ void test_getvars(void)
 	astnode_free(node);
 }
 
-void test_attributes(void)
+void test_ast_attributes(void)
 {
 	struct AstNode *dotc = parsestring("\"asd\".a.b.c");
 	buttert(dotc->kind == AST_GETATTR);
@@ -193,6 +193,3 @@ void test_attributes(void)
 
 	astnode_free(dotc);
 }
-
-TESTS_MAIN(test_node_structs_and_ast_copynode, test_strings, test_ints,
-	test_arrays, test_getvars, test_attributes)
