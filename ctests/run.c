@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <string.h>
+#include <sys/time.h>    // for the posix-only and "obsolete" gettimeofday()
 #include "utils.h"
 
 typedef void (*testfunc)(void);

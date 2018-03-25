@@ -4,12 +4,9 @@
 #define TESTUTILS_H
 
 // these have retarded comments on the side because iwyu doesn't like this file
-#include <stdio.h>
-#include <stdlib.h>
 #include <stddef.h>
-#include <string.h>
-#include <ctype.h>
-#include <sys/time.h>   // for the "obsolete" and posix only gettimeofday()
+#include <stdio.h>
+#include <stdlib.h>     // for abort(), iwyu doesn't get it
 
 // these are not called assert because assert would conflict with assert.h
 // instead, replace ASS in ASSert with BUTT

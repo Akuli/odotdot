@@ -25,10 +25,6 @@ runtests: $(CTESTS_SRC) $(OBJ)
 .PHONY: iwyu
 iwyu:
 	for file in $(SRC); do iwyu $$file; done || true
-
-# ctests/utils.h is skipped, see its comments for reason
-.PHONY: iwyu-tests
-iwyu-tests:
 	for file in $(CTESTS_SRC); do iwyu -I. $$file; done || true
 
 # i wasn't sure what's going on so i used stackoverflow... https://stackoverflow.com/a/42846187

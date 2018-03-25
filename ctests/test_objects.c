@@ -1,9 +1,10 @@
-#include "utils.h"
 #include <src/common.h>
 #include <src/hashtable.h>
-#include <src/objectsystem.h>
-#include <src/objects/object.h>
 #include <src/objects/function.h>
+#include <src/objects/object.h>
+#include <src/objectsystem.h>
+#include <stddef.h>
+#include "utils.h"
 
 struct ObjectClassInfo *objectclass, *functionclass;
 
