@@ -1,9 +1,8 @@
 #ifndef OBJECTSYSTEM_H
 #define OBJECTSYSTEM_H
 
-#include <stddef.h>
-#include "hashtable.h"
-#include "unicode.h"
+#include "hashtable.h"     // needed for HashTable, iwyu doesn't get it
+#include "unicode.h"     // needed for UnicodeString, iwyu doesn't get it
 
 
 struct Object;   // forward declaration
@@ -41,6 +40,14 @@ struct ObjectClassInfo *objectclassinfo_new(struct ObjectClassInfo *base, object
 
 // never fails
 void objectclassinfo_free(struct ObjectClassInfo *klass);
+
+// some convenience methods
+// returns STATUS_NOMEM or a return value from hashtable_set
+int objectsystem_addbuiltinclass(struct HashTable *builtins, char *name, struct ObjectClassInfo *klass);
+
+// returns STATUS_OK, STATUS_NOMEM or 1 for not found, assert(0)'s if name is not utf8
+// TODO: struct Object* instead of void*
+int objectsystem_getbuiltin(struct HashTable *builtins, char *name, void **res);
 
 // this does not call the ö setup method, call it yourself if you want to
 // when an object is created from ö, this is called, followed by a setup()

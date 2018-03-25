@@ -1,14 +1,17 @@
 #include "objectsystem.h"
 #include <assert.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include "common.h"
 #include "hashtable.h"
+#include "unicode.h"
 
 
 static int compare_unicode_strings(void *a, void *b, void *userdata)
 {
-	assert(userdata == NULL);
+	assert(!userdata);
 	struct UnicodeString *astr=a, *bstr=b;
 	if (astr->len != bstr->len)
 		return 0;
@@ -87,6 +90,43 @@ int object_free(struct Object *obj)
 	hashtable_free(obj->attrs);   // TODO: decref the values or something?
 	free(obj);
 	return status;
+}
+
+// TODO: create a wrapper object instead of adding the class info directly
+int objectsystem_addbuiltinclass(struct HashTable *builtins, char *name, struct ObjectClassInfo *klass)
+{
+	char decodeerror[100] = {0};
+	struct UnicodeString *uname = malloc(sizeof(struct UnicodeString));
+	if (!uname)
+		return STATUS_NOMEM;
+	int res = utf8_decode(name, strlen(name), uname, decodeerror);
+	assert(res != 1);   // the name must be valid utf8
+	assert(decodeerror[0] == 0);
+	if (res != STATUS_OK) {
+		free(uname);
+		return res;
+	}
+
+	if ((res = hashtable_set(builtins, uname, unicodestring_hash(*uname), klass, NULL)) != STATUS_OK) {
+		free(uname->val);
+		free(uname);
+		return res;
+	}
+	return STATUS_OK;
+}
+
+int objectsystem_getbuiltin(struct HashTable *builtins, char *name, void **res)
+{
+	char decodeerror[100] = {0};
+	struct UnicodeString uname;
+	int ret = utf8_decode(name, strlen(name), &uname, decodeerror);
+	assert(ret != 1);   // name must be valid utf8
+	if (ret != STATUS_OK)
+		return ret;
+
+	ret = hashtable_get(builtins, &uname, unicodestring_hash(uname), res, NULL);
+	free(uname.val);
+	return ret;
 }
 
 struct Object *object_getmethod(struct ObjectClassInfo *klass, struct UnicodeString name)
