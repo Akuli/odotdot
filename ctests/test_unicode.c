@@ -44,7 +44,7 @@ struct Utf8Test {
 	char errormsg[100];
 };
 
-#define N_UTF8_TESTS 12
+#define N_UTF8_TESTS 13
 struct Utf8Test utf8_tests[N_UTF8_TESTS];
 
 
@@ -72,6 +72,11 @@ void unicode_test_setup(void)
 	SET_UNICODE('h', 'e', 'l', 'l', 'o');
 	SET_NO_ERROR();
 
+	// make sure that \0 is passed through as is
+	SET_UTF8('h', 'e', 'l', 'l', 0, 'o');
+	SET_UNICODE('h', 'e', 'l', 'l', 0, 'o');
+	SET_NO_ERROR();
+
 	// test empty string
 	// can't do UTF8() or UNICODE() without arguments because they would produce
 	// empty { } initializer, which is a KITTENS DIE thing according to the standards
@@ -88,9 +93,6 @@ void unicode_test_setup(void)
 		(char)0xf0,(char)0x90,(char)0x85,(char)0x83);
 	SET_UNICODE(100, 1000, 3000, 65859);
 	SET_NO_ERROR();
-
-	buttert(utf8_tests[i-1].unicodelen == 4);
-	buttert(utf8_tests[i-1].unicodeval[0] == 100);
 
 	// euro sign with an overlong encoding, from wikipedia
 	SET_UTF8((char)0xf0, (char)0x82, (char)0x82, (char)0xac);
