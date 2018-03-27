@@ -3,6 +3,6 @@
 #define COMMON_H
 
 #define STATUS_OK 0
-#define STATUS_NOMEM -1
+#define STATUS_NOMEM (-1)
 
 #endif   // COMMON_H

@@ -7,7 +7,7 @@ struct FunctionData {
 	functionobject_cfunc cfunc;
 };
 
-int function_destructor(struct Object *funcobj)
+static int function_destructor(struct Object *funcobj)
 {
 	free(funcobj->data);
 	return STATUS_OK;
