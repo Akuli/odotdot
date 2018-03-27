@@ -52,15 +52,20 @@ int main(int argc, char **argv)
 	RUN_TEST(test_hashtable_many_values);
 	RUN_TEST(test_hashtable_iterating);
 
-	void test_objects_setup(void), test_objects_teardown(void);
-	test_objects_setup();
+	void objects_test_setup(void), objects_test_teardown(void);
+	objects_test_setup();
 	RUN_TEST(test_objects_objectclass_stuff);
 	RUN_TEST(test_objects_simple);
 	RUN_TEST(test_objects_function);
-	test_objects_teardown();
+	objects_test_teardown();
 
 	RUN_TEST(test_tokenizer_read_file_to_huge_string);
 	RUN_TEST(test_tokenizer_tokenize);
+
+	void unicode_test_setup(void);
+	unicode_test_setup();
+	RUN_TEST(test_utf8_encode);
+	RUN_TEST(test_utf8_decode);
 
 	if (verbose)
 		printf("\n---------- all tests pass ----------\n");

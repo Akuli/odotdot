@@ -1,5 +1,5 @@
 CC ?= cc
-CFLAGS += -Wall -Wextra -std=c99 -Wno-unused-parameter
+CFLAGS += -Wall -Wextra -Wpedantic -std=c99 -Wno-unused-parameter
 TESTARGS ?=
 
 SRC := $(wildcard src/*.c src/objects/*.c)

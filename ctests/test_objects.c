@@ -9,15 +9,15 @@
 struct ObjectClassInfo *objectclass, *functionclass;
 
 
-void test_objects_setup(void)
+void objects_test_setup(void)
 {
 	buttert(objectclass = objectobject_createclass());
 	buttert(functionclass = functionobject_createclass(objectclass));
 }
-void test_objects_teardown(void)
+void objects_test_teardown(void)
 {
-	buttert(objectclass = objectobject_createclass());
-	buttert(functionclass = functionobject_createclass(objectclass));
+	objectclassinfo_free(functionclass);
+	objectclassinfo_free(objectclass);
 }
 
 
