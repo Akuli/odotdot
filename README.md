@@ -18,7 +18,7 @@ interpreter:
 Save this to `hello.ö`:
 
 ```python
-const msg = "hello world";
+var msg = "hello world";
 print msg;
 ```
 
@@ -34,7 +34,7 @@ and `}` is a block, and blocks have a `.run` method that works like
 this:
 
 ```python
-const helloblock = {
+var helloblock = {
     print "hello world";
 };
 
@@ -49,7 +49,7 @@ not visible outside of the `{ }`:
 
 ```python
 {
-    const a = "hello";
+    var a = "hello";
     print a;    # prints hello
 }.run;
 print a;    # error!
