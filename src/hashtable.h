@@ -23,6 +23,7 @@ struct HashTable {
 	hashtable_cmpfunc keycmp;
 };
 
+// returns NULL on no mem
 struct HashTable *hashtable_new(hashtable_cmpfunc keycmp);
 
 // return STATUS_OK on success, and on failure STATUS_NOMEM or an error code from cmpfunc
