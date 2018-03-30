@@ -3,19 +3,19 @@
 #include "../common.h"
 #include "../objectsystem.h"
 
+// because function pointers can't be void* pointers according to the standard
 struct FunctionData {
 	functionobject_cfunc cfunc;
 };
 
-static int function_destructor(struct Object *funcobj)
+static void function_destructor(struct Object *funcobj)
 {
 	free(funcobj->data);
-	return STATUS_OK;
 }
 
 struct ObjectClassInfo *functionobject_createclass(struct ObjectClassInfo *objectclass)
 {
-	return objectclassinfo_new(objectclass, function_destructor);
+	return objectclassinfo_new(objectclass, NULL, function_destructor);
 }
 
 struct Object *functionobject_new(struct ObjectClassInfo *functionclass, functionobject_cfunc cfunc)

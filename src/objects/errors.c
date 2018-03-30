@@ -3,14 +3,14 @@
 #include "../objectsystem.h"
 #include "string.h"
 
-static int error_destructor(struct Object *err)
+static void error_foreachref(struct Object *obj, void *data, objectclassinfo_foreachrefcb cb)
 {
-	return object_free(err->data);    // TODO: replace this with a decref or something?
+	cb((struct Object *) obj->data, data);
 }
 
 struct ObjectClassInfo *errorobject_createclass(struct ObjectClassInfo *objectclass)
 {
-	return objectclassinfo_new(objectclass, error_destructor);
+	return objectclassinfo_new(objectclass, error_foreachref, NULL);
 }
 
 struct Object *errorobject_newfromstringobject(struct ObjectClassInfo *errorclass, struct Object *msgstring)

@@ -8,17 +8,16 @@
 #include "../objectsystem.h"
 #include "../unicode.h"
 
-static int string_destructor(struct Object *str)
+static void string_destructor(struct Object *str)
 {
 	struct UnicodeString *data = str->data;
 	free(data->val);
 	free(data);
-	return STATUS_OK;
 }
 
 struct ObjectClassInfo *stringobject_createclass(struct ObjectClassInfo *objectclass)
 {
-	return objectclassinfo_new(objectclass, string_destructor);
+	return objectclassinfo_new(objectclass, NULL, string_destructor);
 }
 
 struct Object *stringobject_newfromustr(struct ObjectClassInfo *stringclass, struct UnicodeString ustr)

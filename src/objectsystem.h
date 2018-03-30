@@ -8,7 +8,8 @@
 // iwyu is stupid, why can't i pragma keep structs forward declarations :(
 struct Object;   // forward declaration
 
-typedef int (*objectclassinfo_destructor_t)(struct Object *obj);
+typedef void (*objectclassinfo_foreachrefcb)(struct Object *obj, void *data);
+typedef void (*objectclassinfo_foreachref)(struct Object *obj, void *data, objectclassinfo_foreachrefcb cb);
 
 // every ö class is represented as an ObjectClassInfo struct
 // these are created by whateverobject_createclass() functions
@@ -19,9 +20,14 @@ struct ObjectClassInfo {
 	// keys are UnicodeStrings, values are Function objects (see objects/function.{c,h})
 	struct HashTable *methods;
 
+	// calls cb(ref, data) for each ref object that this object refers to
+	// this is used for garbage collecting
+	// can be NULL
+	objectclassinfo_foreachref foreachref;
+
 	// called by object_free(), should return STATUS_OK or STATUS_NOMEM
 	// can be NULL
-	objectclassinfo_destructor_t destructor;
+	void (*destructor)(struct Object *obj);
 };
 
 // all ö objects are instances of this struct
@@ -34,10 +40,13 @@ struct Object {
 	// NULL for objects created from the language, but constructor functions
 	// written in C can use this for anything
 	void *data;
+
+	// the garbage collector does something implementation-detaily with this
+	int gcflag;
 };
 
 // helper for blabla_createclass() functions, returns NULL on no mem
-struct ObjectClassInfo *objectclassinfo_new(struct ObjectClassInfo *base, objectclassinfo_destructor_t destructor);
+struct ObjectClassInfo *objectclassinfo_new(struct ObjectClassInfo *base, objectclassinfo_foreachref foreachref, void (*destructor)(struct Object *));
 
 // never fails
 void objectclassinfo_free(struct ObjectClassInfo *klass);
@@ -55,8 +64,7 @@ int objectsystem_getbuiltin(struct HashTable *builtins, char *name, void **res);
 // this sets data to NULL
 struct Object *object_new(struct ObjectClassInfo *klass);
 
-// returns STATUS_something, but always frees the object making it unusable
-int object_free(struct Object *obj);
+void object_free(struct Object *obj);
 
 // returns a Function object, or NULL if not found
 struct Object *object_getmethod(struct ObjectClassInfo *klass, struct UnicodeString name);

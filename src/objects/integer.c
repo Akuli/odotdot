@@ -10,15 +10,14 @@
 #include "../objectsystem.h"
 #include "../unicode.h"
 
-static int integer_destructor(struct Object *integer)
+static void integer_destructor(struct Object *integer)
 {
 	free(integer->data);
-	return STATUS_OK;
 }
 
 struct ObjectClassInfo *integerobject_createclass(struct ObjectClassInfo *objectclass)
 {
-	return objectclassinfo_new(objectclass, integer_destructor);
+	return objectclassinfo_new(objectclass, NULL, integer_destructor);
 }
 
 // TODO: better error handling for huge values

@@ -25,7 +25,7 @@ static int compare_unicode_strings(void *a, void *b, void *userdata)
 }
 
 
-struct ObjectClassInfo *object_newclass(struct ObjectClassInfo *base, objectclassinfo_destructor_t destructor)
+struct ObjectClassInfo *objectclassinfo_new(struct ObjectClassInfo *base, objectclassinfo_foreachref foreachref, void (*destructor)(struct Object *))
 {
 	struct ObjectClassInfo *res = malloc(sizeof(struct ObjectClassInfo));
 	if (!res)
@@ -36,22 +36,7 @@ struct ObjectClassInfo *object_newclass(struct ObjectClassInfo *base, objectclas
 		return NULL;
 	}
 	res->baseclass = base;
-	res->destructor = destructor;
-	return res;
-}
-
-
-struct ObjectClassInfo *objectclassinfo_new(struct ObjectClassInfo *base, objectclassinfo_destructor_t destructor)
-{
-	struct ObjectClassInfo *res = malloc(sizeof(struct ObjectClassInfo));
-	if (!res)
-		return NULL;
-	res->methods = hashtable_new(compare_unicode_strings);
-	if (!res->methods){
-		free(res);
-		return NULL;
-	}
-	res->baseclass = base;
+	res->foreachref = foreachref;
 	res->destructor = destructor;
 	return res;
 }
@@ -80,16 +65,10 @@ struct Object *object_new(struct ObjectClassInfo *klass)
 	return obj;
 }
 
-int object_free(struct Object *obj)
+void object_free(struct Object *obj)
 {
-	int status = STATUS_OK;
-	if (obj->klass->destructor)
-		status = obj->klass->destructor(obj);
-
-	// keep going anyway, don't care about the destructor's status yet
 	hashtable_free(obj->attrs);   // TODO: decref the values or something?
 	free(obj);
-	return status;
 }
 
 // TODO: create a wrapper object instead of adding the class info directly
