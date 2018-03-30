@@ -3,11 +3,12 @@
 
 #include "integer.h"
 #include <assert.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include "../common.h"
 #include "../objectsystem.h"
-
+#include "../unicode.h"
 
 static int integer_destructor(struct Object *integer)
 {

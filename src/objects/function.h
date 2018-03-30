@@ -1,7 +1,7 @@
 #ifndef OBJECTS_FUNCTION_H
 #define OBJECTS_FUNCTION_H
 
-#include "../objectsystem.h"    // for Object, iwyu doesn't get it
+#include "../objectsystem.h"    // IWYU pragma: keep
 
 
 // these should return STATUS_OK or STATUS_NOMEM

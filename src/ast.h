@@ -2,8 +2,8 @@
 #define AST_H
 
 #include <stddef.h>
-#include "tokenizer.h"   // needed for struct Token, but iwyu doesn't get it
 #include "unicode.h"
+#include "tokenizer.h"   // IWYU pragma: keep
 
 struct AstNode {
 	char kind;

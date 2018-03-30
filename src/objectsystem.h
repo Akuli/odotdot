@@ -1,10 +1,11 @@
 #ifndef OBJECTSYSTEM_H
 #define OBJECTSYSTEM_H
 
-#include "hashtable.h"     // needed for HashTable, iwyu doesn't get it
-#include "unicode.h"     // needed for UnicodeString, iwyu doesn't get it
+#include "hashtable.h"     // IWYU pragma: keep
+#include "unicode.h"       // IWYU pragma: keep
 
 
+// iwyu is stupid, why can't i pragma keep structs forward declarations :(
 struct Object;   // forward declaration
 
 typedef int (*objectclassinfo_destructor_t)(struct Object *obj);

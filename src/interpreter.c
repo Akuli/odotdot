@@ -1,8 +1,11 @@
 #include "interpreter.h"
 #include <assert.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include "hashtable.h"
-#include "objects/string.h"
+#include "objectsystem.h"
+#include "unicode.h"
 
 // mostly copy/pasted from objectsystem.c
 // TODO: check types?

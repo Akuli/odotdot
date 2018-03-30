@@ -2,7 +2,7 @@
 #ifndef OBJECTS_ERRORS_H
 #define OBJECTS_ERRORS_H
 
-#include "../objectsystem.h"
+#include "../objectsystem.h"    // IWYU pragma: keep
 
 // returns NULL on no mem
 struct ObjectClassInfo *errorobject_createclass(struct ObjectClassInfo *objectclass);

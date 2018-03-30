@@ -4,7 +4,10 @@
 #include <src/objects/object.h>
 #include <src/objects/string.h>
 #include <src/objectsystem.h>
+#include <src/unicode.h>
 #include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include "utils.h"
 
 struct ObjectClassInfo *objectclass, *functionclass, *stringclass;

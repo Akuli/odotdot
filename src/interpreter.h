@@ -1,9 +1,7 @@
 #ifndef INTERPRETER_H
 #define INTERPRETER_H
 
-#include "common.h"
-#include "hashtable.h"
-#include "objectsystem.h"
+#include "objectsystem.h"   // IWYU pragma: keep
 
 struct Interpreter {
 	// keys are String objects, values can be any objects

@@ -6,7 +6,9 @@
 // these have retarded comments on the side because iwyu doesn't like this file
 #include <stddef.h>
 #include <stdio.h>
-#include <stdlib.h>     // for abort(), iwyu doesn't get it
+
+// for abort()
+#include <stdlib.h>      // IWYU pragma: keep
 
 // these are not called assert because assert would conflict with assert.h
 // instead, replace ASS in ASSert with BUTT

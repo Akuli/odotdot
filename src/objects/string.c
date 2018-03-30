@@ -1,11 +1,12 @@
 // most of the interesting stuff is implemented in ../unicode.c, this is just a wrapper
 
-#include "string.h"
 #include <assert.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include "../common.h"
 #include "../objectsystem.h"
+#include "../unicode.h"
 
 static int string_destructor(struct Object *str)
 {

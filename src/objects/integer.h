@@ -1,9 +1,9 @@
 #ifndef OBJECTS_INTEGER_H
 #define OBJECTS_INTEGER_H
 
-// iwyu doesn't understand these includes
-#include "../objectsystem.h"    // for Object and ObjectClassInfo
-#include "../unicode.h"    // for UnicodeString
+#include <stdint.h>
+#include "../objectsystem.h"   // IWYU pragma: keep
+#include "../unicode.h"        // IWYU pragma: keep
 
 struct ObjectClassInfo *integerobject_createclass(struct ObjectClassInfo *objectclass);
 

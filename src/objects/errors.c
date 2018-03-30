@@ -1,9 +1,7 @@
 #include "errors.h"
-#include <assert.h>
 #include <stdlib.h>
-#include "string.h"
-#include "../common.h"
 #include "../objectsystem.h"
+#include "string.h"
 
 static int error_destructor(struct Object *err)
 {
