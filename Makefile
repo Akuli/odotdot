@@ -7,7 +7,10 @@ OBJ := $(SRC:src/%.c=obj/%.o)
 CTESTS_SRC := $(wildcard ctests/*.c) $(wildcard ctests/*.h)
 
 .PHONY: all
-all: runtests
+all: ö runtests
+
+ö: $(OBJ)
+	$(CC) -I. $(CFLAGS) $(OBJ) -o ö
 
 .PHONY: clean
 clean:
