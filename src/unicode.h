@@ -51,7 +51,9 @@ int utf8_decode(char *utf8, size_t utf8len, struct UnicodeString *unicode, char 
 	(x) == 0xc5 /* Å */ || (x) == 0xc4 /* Ä */ || (x) == 0xd6 /* Ö */ || \
 	(x) == 0xe5 /* å */ || (x) == 0xe4 /* ä */ || (x) == 0xf6 /* ö */ )
 #define unicode_isdigit(x) ('0' <= (x) && (x) <= '9')
-#define unicode_is0to9(x) ('0' <= (x) && (x) <= '9')
 #define unicode_isalnum(x) (unicode_isalpha(x) || unicode_isdigit(x))
+#define unicode_isidentifier1st(x) (unicode_isalpha(x) || (x)=='_')
+#define unicode_isidentifiernot1st(x) (unicode_isalnum(x) || (x)=='_')
+#define unicode_is0to9(x) ('0' <= (x) && (x) <= '9')
 
 #endif   // UNICODE_H

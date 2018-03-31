@@ -1,3 +1,4 @@
+// TODO: fix tokenizing empty files
 #include "tokenizer.h"
 #include <stdint.h>
 #include <stdio.h>
@@ -5,9 +6,9 @@
 #include <string.h>
 #include "common.h"
 #include "unicode.h"
+
+
 #define CHUNK_SIZE 4096
-
-
 int read_file_to_huge_string(FILE *f, char **dest, size_t *destlen)
 {
 	int errorcode=STATUS_OK;
@@ -42,6 +43,7 @@ error:
 		free(s);
 	return errorcode;
 }
+#undef CHUNK_SIZE
 
 
 // creates a token of first nchars chars of hugestring
@@ -117,7 +119,7 @@ struct Token *token_ize(struct UnicodeString hugestring)
 				hugestring.val[0] == 'v' &&
 				hugestring.val[1] == 'a' &&
 				hugestring.val[2] == 'r' &&
-				!unicode_isalnum(hugestring.val[3])) {
+				!unicode_isidentifiernot1st(hugestring.val[3])) {
 			kind = TOKEN_KEYWORD;
 			nchars = 3;
 		}
@@ -150,10 +152,10 @@ struct Token *token_ize(struct UnicodeString hugestring)
 				nchars++;
 		}
 
-		else if (unicode_isalpha(hugestring.val[0])) {
+		else if (unicode_isidentifier1st(hugestring.val[0])) {
 			kind = TOKEN_ID;
 			nchars = 0;
-			while (hugestring.len > nchars && unicode_isalnum(hugestring.val[nchars]))
+			while (hugestring.len > nchars && unicode_isidentifiernot1st(hugestring.val[nchars]))
 				nchars++;
 		}
 
