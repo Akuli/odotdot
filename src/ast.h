@@ -45,8 +45,9 @@ void astnode_free(struct AstNode *node);
 // make a recursive copy of an AstNode
 struct AstNode *astnode_copy(struct AstNode *node);
 
-// TODO: make this static
+// TODO: make parse_expression() static
 struct AstNode *parse_expression(struct Token **curtok);
+struct AstNode *parse_statement(struct Token **curtok);
 
 
 #endif    // AST_H

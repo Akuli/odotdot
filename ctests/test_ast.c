@@ -99,8 +99,8 @@ void test_ast_node_structs_and_ast_copynode(void)
 }
 
 
-// this assumes that s is ascii for simplicity
-static struct AstNode *parsestring(char *s)
+// these assume ascii for simplicity
+static struct AstNode *parse_expression_string(char *s)
 {
 	struct UnicodeString hugestring;
 	hugestring.len = strlen(s);
@@ -115,6 +115,27 @@ static struct AstNode *parsestring(char *s)
 
 	struct Token *tmp = tok1st;
 	struct AstNode *node = parse_expression(&tmp);   // changes the address that tmp points to
+	buttert(!tmp);
+	token_freeall(tok1st);
+	buttert2(node, s);
+	return node;
+}
+// these assume ascii for simplicity
+static struct AstNode *parse_statement_string(char *s)
+{
+	struct UnicodeString hugestring;
+	hugestring.len = strlen(s);
+	hugestring.val = bmalloc(sizeof(uint32_t) * hugestring.len);
+	// can't use memcpy because types differ
+	for (size_t i=0; i < strlen(s); i++)
+		hugestring.val[i] = s[i];
+
+	struct Token *tok1st = token_ize(hugestring);
+	buttert(tok1st);
+	free(hugestring.val);
+
+	struct Token *tmp = tok1st;
+	struct AstNode *node = parse_statement(&tmp);   // changes the address that tmp points to
 	token_freeall(tok1st);
 	buttert2(node, s);
 	return node;
@@ -133,7 +154,7 @@ static int stringinfo_equals_ascii_charp(struct UnicodeString *ustr, char *charp
 
 void test_ast_strings(void)
 {
-	struct AstNode *node = parsestring("\"hello\"");
+	struct AstNode *node = parse_expression_string("\"hello\"");
 	buttert(node->kind == AST_STR);
 	struct AstStrInfo *info = node->info;
 	buttert(info->len == 5);
@@ -142,7 +163,7 @@ void test_ast_strings(void)
 
 void test_ast_ints(void)
 {
-	struct AstNode *node = parsestring("-123");
+	struct AstNode *node = parse_expression_string("-123");
 	buttert(node->kind == AST_INT);
 	struct AstIntInfo *info = node->info;
 	buttert(strcmp(info->valstr, "-123") == 0);
@@ -151,7 +172,7 @@ void test_ast_ints(void)
 
 void test_ast_arrays(void)
 {
-	struct AstNode *node = parsestring("[ \"a\" 123 ]");
+	struct AstNode *node = parse_expression_string("[ \"a\" 123 ]");
 	buttert(node->kind == AST_ARRAY);
 	struct AstArrayOrBlockInfo *info = node->info;
 	buttert(info->nitems == 2);
@@ -162,7 +183,7 @@ void test_ast_arrays(void)
 
 void test_ast_getvars(void)
 {
-	struct AstNode *node = parsestring("abc");
+	struct AstNode *node = parse_expression_string("abc");
 	buttert(node->kind == AST_GETVAR);
 	struct AstGetVarInfo *info = node->info;
 	buttert(stringinfo_equals_ascii_charp(&(info->varname), "abc"));
@@ -171,7 +192,7 @@ void test_ast_getvars(void)
 
 void test_ast_attributes(void)
 {
-	struct AstNode *dotc = parsestring("\"asd\".a.b.c");
+	struct AstNode *dotc = parse_expression_string("\"asd\".a.b.c");
 	buttert(dotc->kind == AST_GETATTR);
 	struct AstGetAttrInfo *dotcinfo = dotc->info;
 	buttert(stringinfo_equals_ascii_charp(&(dotcinfo->attr), "c"));
@@ -192,4 +213,29 @@ void test_ast_attributes(void)
 	buttert(stringinfo_equals_ascii_charp(strinfo, "asd"));
 
 	astnode_free(dotc);
+}
+
+void test_ast_function_call_statement(void)
+{
+	struct AstNode *call = parse_statement_string("a b c;");
+	buttert(call->kind == AST_CALL);
+	struct AstCallInfo *callinfo = call->info;
+	buttert(callinfo->nargs == 2);
+
+	struct AstNode *a = callinfo->func;
+	buttert(a->kind == AST_GETVAR);
+	struct AstGetVarInfo *ainfo = a->info;
+	buttert(stringinfo_equals_ascii_charp(&(ainfo->varname), "a"));
+
+	struct AstNode *b = callinfo->args[0];
+	buttert(b->kind == AST_GETVAR);
+	struct AstGetVarInfo *binfo = b->info;
+	buttert(stringinfo_equals_ascii_charp(&(binfo->varname), "b"));
+
+	struct AstNode *c = callinfo->args[1];
+	buttert(c->kind == AST_GETVAR);
+	struct AstGetVarInfo *cinfo = c->info;
+	buttert(stringinfo_equals_ascii_charp(&(cinfo->varname), "c"));
+
+	astnode_free(call);
 }

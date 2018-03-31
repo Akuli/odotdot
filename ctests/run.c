@@ -44,6 +44,7 @@ int main(int argc, char **argv)
 	RUN_TEST(test_ast_arrays);
 	RUN_TEST(test_ast_getvars);
 	RUN_TEST(test_ast_attributes);
+	RUN_TEST(test_ast_function_call_statement);
 
 	RUN_TEST(test_dynamiarray_new_push_pop_and_freeall);
 	RUN_TEST(test_dynamiarray_equals_and_free);

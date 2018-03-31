@@ -402,16 +402,17 @@ error:
 
 
 // remember to change this if you add more expressions!
+// this never fails
 static int expression_coming_up(struct Token *curtok)
 {
-	if ((!curtok) || (!(curtok->next)))
+	if (!curtok)
 		return 0;
-	if (curtok->next->kind == TOKEN_STR || curtok->next->kind == TOKEN_INT || curtok->next->kind == TOKEN_ID)
+	if (curtok->kind == TOKEN_STR || curtok->kind == TOKEN_INT || curtok->kind == TOKEN_ID)
 		return 1;
-#define f(x) (curtok->next->str.val[0] == (uint32_t)(x))
-	if (curtok->next->kind == TOKEN_OP)
-		return f('(') || f('{') || f('[');
-#undef f
+	if (curtok->kind == TOKEN_OP)
+		return curtok->str.val[0] == '(' ||
+			curtok->str.val[0] == '{' ||
+			curtok->str.val[0] == '[';
 	return 0;
 }
 
@@ -472,4 +473,74 @@ struct AstNode *parse_expression(struct Token **curtok)
 	}
 
 	return res;
+}
+
+
+// because i'm lazy
+#define MAX_ARGS 100
+
+// this takes the function as an already-parsed argument
+// this way parse_statement() knows when this should be called
+static struct AstNode *parse_call(struct Token **curtok, struct AstNode *func)
+{
+	size_t lineno = (*curtok)->lineno;
+
+	// TODO: when should func be free()'d?
+	struct AstCallInfo *callinfo = malloc(sizeof(struct AstCallInfo));
+	if (!callinfo)
+		return NULL;
+	callinfo->func = func;
+
+	callinfo->args = malloc(sizeof(struct AstNode) * MAX_ARGS);
+	if (!callinfo->args)
+		return NULL;
+
+	for (callinfo->nargs = 0; expression_coming_up(*curtok) && callinfo->nargs < MAX_ARGS; callinfo->nargs++) {
+		struct AstNode *arg = parse_expression(curtok);
+		if(!arg) {
+			for(size_t i=0; i < callinfo->nargs; i++)
+				astnode_free(callinfo->args[i]);
+			free(callinfo->args);
+			free(callinfo);
+			return NULL;
+		}
+		callinfo->args[callinfo->nargs] = arg;
+	}
+
+	// TODO: report error "more than MAX_ARGS arguments"
+	assert(!expression_coming_up(*curtok));
+
+	// this can't fail because this is freeing memory, not allocating more
+	callinfo->args = realloc(callinfo->args, sizeof(struct AstNode) * callinfo->nargs);
+	assert(callinfo->args);
+
+	struct AstNode *res = new_statement(AST_CALL, lineno, callinfo);
+	if (!res) {
+		free_info(AST_CALL, callinfo);     // should free everything allocated here
+		return NULL;
+	}
+	return res;
+}
+#undef MAX_ARGS
+
+struct AstNode *parse_statement(struct Token **curtok)
+{
+	// TODO: var statements and assignments
+	struct AstNode *func = parse_expression(curtok);
+	if (!func)
+		return NULL;
+
+	struct AstNode *statement = parse_call(curtok, func);
+	assert(!expression_coming_up(*curtok));
+	if (!statement) {
+		astnode_free(func);
+		return NULL;
+	}
+
+	// TODO: report error "missing ';'"
+	assert((*curtok)->kind == TOKEN_OP);
+	assert((*curtok)->str.len == 1);
+	assert((*curtok)->str.val[0] == ';');
+	*curtok = (*curtok)->next;
+	return statement;
 }
