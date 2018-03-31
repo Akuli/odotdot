@@ -6,7 +6,6 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../common.h"
 #include "../objectsystem.h"
 #include "../unicode.h"
 

@@ -1,6 +1,7 @@
 #ifndef OBJECTS_ARRAY_H
 #define OBJECTS_ARRAY_H
 
+#include <stddef.h>
 #include "../objectsystem.h"    // IWYU pragma: keep
 
 // these return NULL on no mem

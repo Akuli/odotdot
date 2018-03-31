@@ -3,6 +3,7 @@
 #include "array.h"
 #include "../common.h"
 #include "../dynamicarray.h"
+#include "../objectsystem.h"
 
 static void array_foreachref(struct Object *obj, void *data, objectclassinfo_foreachrefcb cb)
 {

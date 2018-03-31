@@ -1,6 +1,5 @@
 #include "function.h"
 #include <stdlib.h>
-#include "../common.h"
 #include "../objectsystem.h"
 
 // because function pointers can't be void* pointers according to the standard
