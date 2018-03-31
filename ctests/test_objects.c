@@ -1,5 +1,6 @@
 #include <src/common.h>
 #include <src/hashtable.h>
+#include <src/objects/classobject.h>
 #include <src/objects/function.h>
 #include <src/objects/object.h>
 #include <src/objects/string.h>
@@ -10,7 +11,7 @@
 #include <stdlib.h>
 #include "utils.h"
 
-struct ObjectClassInfo *objectclass, *functionclass, *stringclass;
+struct ObjectClassInfo *objectclass, *functionclass, *stringclass, *classobjectclass;
 
 
 void objects_test_setup(void)
@@ -18,9 +19,11 @@ void objects_test_setup(void)
 	buttert(objectclass = objectobject_createclass());
 	buttert(functionclass = functionobject_createclass(objectclass));
 	buttert(stringclass = stringobject_createclass(objectclass));
+	buttert(classobjectclass = classobject_createclass(objectclass));
 }
 void objects_test_teardown(void)
 {
+	objectclassinfo_free(classobjectclass);
 	objectclassinfo_free(stringclass);
 	objectclassinfo_free(functionclass);
 	objectclassinfo_free(objectclass);
@@ -86,4 +89,11 @@ void test_objects_string(void)
 		buttert(data->val[1] == odotdot);
 		object_free(strs[i]);
 	}
+}
+
+void test_objects_classobject(void)
+{
+	struct Object *klass = classobject_newfromclassinfo(classobjectclass, stringclass);
+	buttert(klass->data == (void *)stringclass);
+	object_free(klass);
 }

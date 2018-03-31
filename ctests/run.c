@@ -59,6 +59,7 @@ int main(int argc, char **argv)
 	RUN_TEST(test_objects_simple);
 	RUN_TEST(test_objects_function);
 	RUN_TEST(test_objects_string);
+	RUN_TEST(test_objects_classobject);
 	objects_test_teardown();
 
 	RUN_TEST(test_tokenizer_read_file_to_huge_string);
