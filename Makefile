@@ -27,8 +27,7 @@ runtests: $(CTESTS_SRC) $(OBJ)
 
 .PHONY: iwyu
 iwyu:
-	for file in $(SRC); do iwyu $$file; done || true
-	for file in $(CTESTS_SRC); do iwyu -I. $$file; done || true
+	for file in $(SRC) $(CTESTS_SRC) src/main.c; do iwyu -I. $$file; done || true
 
 # i wasn't sure what's going on so i used stackoverflow... https://stackoverflow.com/a/42846187
 .PRECIOUS: obj/%.o
