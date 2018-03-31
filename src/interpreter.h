@@ -4,6 +4,9 @@
 #include "objectsystem.h"   // IWYU pragma: keep
 
 struct Interpreter {
+	// this is set to argv[0] from main(), useful for error messages
+	char *argv0;
+
 	// keys are UnicodeString pointers, values can be any objects
 	struct HashTable *globalvars;
 
@@ -13,7 +16,7 @@ struct Interpreter {
 
 // returns NULL on no mem
 // note that nomemerr is set to NULL!
-struct Interpreter *interpreter_new(void);
+struct Interpreter *interpreter_new(char *argv0);
 
 // never fails
 void interpreter_free(struct Interpreter *interp);

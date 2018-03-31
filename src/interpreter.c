@@ -26,12 +26,13 @@ static int compare_string_objects(void *a, void *b, void *userdata)
 	return 1;
 }
 
-struct Interpreter *interpreter_new(void)
+struct Interpreter *interpreter_new(char *argv0)
 {
 	struct Interpreter *interp = malloc(sizeof(struct Interpreter));
 	if (!interp)
 		return NULL;
 
+	interp->argv0 = argv0;
 	interp->globalvars = hashtable_new(compare_string_objects);
 	if (!(interp->globalvars)) {
 		free(interp);
