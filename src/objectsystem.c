@@ -68,6 +68,8 @@ struct Object *object_new(struct ObjectClassInfo *klass)
 void object_free(struct Object *obj)
 {
 	hashtable_free(obj->attrs);   // TODO: decref the values or something?
+	if (obj->klass->destructor)
+		obj->klass->destructor(obj);
 	free(obj);
 }
 
