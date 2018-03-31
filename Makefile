@@ -29,5 +29,5 @@ runtests: $(CTESTS_SRC) $(OBJ)
 iwyu:
 	for file in $(SRC) $(CTESTS_SRC) src/main.c; do iwyu -I. $$file; done || true
 
-# i wasn't sure what's going on so i used stackoverflow... https://stackoverflow.com/a/42846187
+# i wasn't sure what was going on so i used stackoverflow... https://stackoverflow.com/a/42846187
 .PRECIOUS: obj/%.o
