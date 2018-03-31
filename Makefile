@@ -2,19 +2,19 @@ CC ?= cc
 CFLAGS += -Wall -Wextra -Wpedantic -std=c99 -Wno-unused-parameter
 TESTARGS ?=
 
-SRC := $(wildcard src/*.c src/objects/*.c)
+SRC := $(filter-out src/main.c, $(wildcard src/*.c src/objects/*.c))
 OBJ := $(SRC:src/%.c=obj/%.o)
 CTESTS_SRC := $(wildcard ctests/*.c) $(wildcard ctests/*.h)
 
 .PHONY: all
 all: ö runtests
 
-ö: $(OBJ)
-	$(CC) -I. $(CFLAGS) $(OBJ) -o ö
+ö: $(OBJ) src/main.c
+	$(CC) -I. $(CFLAGS) src/main.c $(OBJ) -o ö
 
 .PHONY: clean
 clean:
-	rm -vrf obj runtests *-compiled
+	rm -vrf obj runtests *-compiled ö
 
 misc-compiled/%: misc/%.c $(OBJ)
 	mkdir -p $(@D) && $(CC) -o $@ $(OBJ) $(CFLAGS) $< -I.
