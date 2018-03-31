@@ -14,17 +14,13 @@ static void astnode_free_voidstar(void *node)
 }
 
 
-int main(int argc, char **argv)
+// prints errors to stderr
+// returns an exit code, e.g. 0 for success
+static int run_file(char *argv0, char *path)
 {
-	if (argc != 2) {
-		assert(argc >= 1);
-		fprintf(stderr, "Usage: %s FILE\n", argv[0]);
-		return 2;
-	}
-
-	FILE *f = fopen(argv[1], "rb");
+	FILE *f = fopen(path, "rb");
 	if (!f) {
-		fprintf(stderr, "%s: cannot open '%s'\n", argv[0], argv[1]);
+		fprintf(stderr, "%s: cannot open '%s'\n", argv0, path);
 		return 1;
 	}
 
@@ -34,11 +30,11 @@ int main(int argc, char **argv)
 	fclose(f);
 
 	if (status == STATUS_NOMEM) {
-		fprintf(stderr, "%s: ran out of memory while reading '%s'\n", argv[0], argv[1]);
+		fprintf(stderr, "%s: ran out of memory while reading '%s'\n", argv0, path);
 		return 1;
 	}
 	if (status == 1) {
-		fprintf(stderr, "%s: reading '%s' failed\n", argv[0], argv[1]);
+		fprintf(stderr, "%s: reading '%s' failed\n", argv0, path);
 		return 1;
 	}
 	assert(status == STATUS_OK);
@@ -50,11 +46,11 @@ int main(int argc, char **argv)
 	free(hugestr);
 
 	if (status == 1) {
-		fprintf(stderr, "%s: the content of '%s' is not valid UTF-8: %s\n", argv[0], argv[1], errormsg);
+		fprintf(stderr, "%s: the content of '%s' is not valid UTF-8: %s\n", argv0, path, errormsg);
 		return 1;
 	}
 	if (status == STATUS_NOMEM) {
-		fprintf(stderr, "%s: ran out of memory while UTF8-decoding the content of '%s'\n", argv[0], argv[1]);
+		fprintf(stderr, "%s: ran out of memory while UTF8-decoding the content of '%s'\n", argv0, path);
 		return 1;
 	}
 	assert(status == STATUS_OK);
@@ -66,7 +62,7 @@ int main(int argc, char **argv)
 	// parse
 	struct DynamicArray *statements = dynamicarray_new();
 	if (!statements) {
-		fprintf(stderr, "%s: ran out of memory while parsing the content of '%s'\n", argv[0], argv[1]);
+		fprintf(stderr, "%s: ran out of memory while parsing the content of '%s'\n", argv0, path);
 		token_freeall(tok1st);
 		return 1;
 	}
@@ -76,7 +72,7 @@ int main(int argc, char **argv)
 		struct AstNode *st = parse_statement(&curtok);
 		if (!st) {
 			// TODO: better error reporting... also fix ast.c
-			fprintf(stderr, "%s: something went wrong with parsing the content of '%s'\n", argv[0], argv[1]);
+			fprintf(stderr, "%s: something went wrong with parsing the content of '%s'\n", argv0, path);
 			token_freeall(tok1st);
 			return 1;
 		}
@@ -90,5 +86,18 @@ int main(int argc, char **argv)
 	else
 		printf("there are %llu statements\n", (unsigned long long) statements->len);
 	dynamicarray_freeall(statements, astnode_free_voidstar);
+
 	return 0;
+}
+
+
+int main(int argc, char **argv)
+{
+	if (argc != 2) {
+		assert(argc >= 1);   // not sure if standards allow 0 args
+		fprintf(stderr, "Usage: %s FILE\n", argv[0]);
+		return 2;
+	}
+
+	return run_file(argv[0], argv[1]);
 }
