@@ -11,17 +11,17 @@
 // TODO: check types?
 static int compare_string_objects(void *a, void *b, void *userdata)
 {
-        assert(!userdata);
-        struct UnicodeString *astr=((struct Object *)a)->data, *bstr=((struct Object *)b)->data;
-        if (astr->len != bstr->len)
-                return 0;
+	assert(!userdata);
+	struct UnicodeString *astr=((struct Object *)a)->data, *bstr=((struct Object *)b)->data;
+	if (astr->len != bstr->len)
+		return 0;
 
-        // memcmp is not reliable :( https://stackoverflow.com/a/11995514
-        for (size_t i=0; i < astr->len; i++) {
-                if (astr->val[i] != bstr->val[i])
-                        return 0;
-        }
-        return 1;
+	// memcmp is not reliable :( https://stackoverflow.com/a/11995514
+	for (size_t i=0; i < astr->len; i++) {
+		if (astr->val[i] != bstr->val[i])
+			return 0;
+	}
+	return 1;
 }
 
 struct Interpreter *interpreter_new(void)
