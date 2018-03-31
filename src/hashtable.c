@@ -201,24 +201,28 @@ static int make_bigger(struct HashTable *ht)
 }
 
 
-void hashtable_clear(struct HashTable *ht)
+void hashtable_fclear(struct HashTable *ht, void (*f)(void*, void*, void*), void *data)
 {
 	for (size_t i=0; i < ht->nbuckets; i++) {
 		struct HashTableItem *item = ht->buckets[i];
 		while (item) {
 			struct HashTableItem *tmp = item;
 			item = item->next;
-			free(tmp);   // must be after the ->next
+			f(tmp->key, tmp->value, data);
+			free(tmp);
 		}
 		ht->buckets[i] = NULL;
 	}
 	ht->size = 0;
 }
 
+static void lol(void *x, void *y, void *z) { }
+void hashtable_clear(struct HashTable *ht) { hashtable_fclear(ht, lol, NULL); }
+
 
 void hashtable_free(struct HashTable *ht)
 {
-	hashtable_clear(ht);
+	assert(ht->size==0);    // must clear first
 	free(ht->buckets);
 	free(ht);
 }

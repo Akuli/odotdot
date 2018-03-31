@@ -44,7 +44,8 @@ struct ObjectClassInfo *objectclassinfo_new(struct ObjectClassInfo *base, object
 
 void objectclassinfo_free(struct ObjectClassInfo *klass)
 {
-	hashtable_free(klass->methods);   // TODO: decref the values or something?
+	hashtable_clear(klass->methods);   // TODO: decref the values or something?
+	hashtable_free(klass->methods);
 	free(klass);
 }
 
@@ -67,7 +68,8 @@ struct Object *object_new(struct ObjectClassInfo *klass)
 
 void object_free(struct Object *obj)
 {
-	hashtable_free(obj->attrs);   // TODO: decref the values or something?
+	hashtable_clear(obj->attrs);   // TODO: decref the values or something?
+	hashtable_free(obj->attrs);
 	if (obj->klass->destructor)
 		obj->klass->destructor(obj);
 	free(obj);

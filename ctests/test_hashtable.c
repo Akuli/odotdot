@@ -38,7 +38,15 @@ void test_hashtable_basic_stuff(void)
 	buttert(ptr == &k && k == 3);   // didn't change
 	buttert(ht->size == 1);   // didn't change
 
-	hashtable_free(ht);   // should clear the table
+	hashtable_clear(ht);
+	hashtable_free(ht);
+}
+
+void freekeyval(void *key, void *val, void *data)
+{
+	buttert(data == (void*)0xdeadbeef);
+	free(key);
+	free(val);
 }
 
 #define HOW_MANY 1000
@@ -74,6 +82,7 @@ void test_hashtable_many_values(void)
 		buttert(ht->size == 0);
 	}
 
+	hashtable_fclear(ht, freekeyval, (void*)0xdeadbeef);   // this should free everything
 	hashtable_free(ht);
 	for (int i = 0; i < HOW_MANY; i++) {
 		free(keys[i]);
@@ -110,6 +119,7 @@ void test_hashtable_iterating(void)
 	for (int i=0; i < HOW_MANY; i++)
 		buttert(got[i]);
 
+	hashtable_clear(ht);
 	hashtable_free(ht);
 	for (int i=0; i < HOW_MANY; i++) {
 		free(keys[i]);

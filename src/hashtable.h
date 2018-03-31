@@ -63,7 +63,10 @@ int hashtable_iternext(struct HashTableIterator *it);     // always returns 1 or
 // pop all keys, never fails
 void hashtable_clear(struct HashTable *ht);
 
-// deallocate a hashtable
+// like hashtable_clear(), but calls f(key, value, data) for every key,value pair in the hashtable
+void hashtable_fclear(struct HashTable *ht, void (*f)(void*, void*, void*), void *data);
+
+// deallocate a hashtable, must be cleared first
 void hashtable_free(struct HashTable *ht);
 
 //int hashtable_contains(struct HashTable *ht, void *key, unsigned long keyhash, void *userdata);
