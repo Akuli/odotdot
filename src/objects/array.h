@@ -2,10 +2,13 @@
 #define OBJECTS_ARRAY_H
 
 #include <stddef.h>
+#include "../interpreter.h"    // IWYU pragma: keep
 #include "../objectsystem.h"    // IWYU pragma: keep
 
-// these return NULL on no mem
-struct ObjectClassInfo *arrayobject_createclass(struct ObjectClassInfo *objectclass);
+// returns STATUS_OK or STATUS_NOMEM
+int arrayobject_createclass(struct Interpreter *interp, struct Object **errptr);
+
+// returns NULL on no mem
 struct Object *arrayobject_newempty(struct ObjectClassInfo *arrayclass);
 
 // these return NULL on no mem and always make a copy of the given array

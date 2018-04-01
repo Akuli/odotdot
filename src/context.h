@@ -17,7 +17,7 @@ struct Context *context_newglobal(struct Interpreter *interp);
 // assumes that parentctx->interp->nomemerr is set
 struct Context *context_newsub(struct Context *parentctx, struct Object **errptr);
 
-// these return STATUS_OK or STATUS_ERROR
+// these copy the name and return STATUS_OK or STATUS_ERROR
 int context_setlocalvar(struct Context *ctx, struct Object **errptr, struct UnicodeString name, struct Object *value);
 int context_setvarwheredefined(struct Context *ctx, struct Object **errptr, struct UnicodeString name, struct Object *value);
 

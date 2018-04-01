@@ -1,5 +1,6 @@
 #include <src/common.h>
 #include <src/hashtable.h>
+#include <src/interpreter.h>
 #include <src/objects/classobject.h>
 #include <src/objects/function.h>
 #include <src/objects/object.h>
@@ -11,37 +12,27 @@
 #include <stdlib.h>
 #include "utils.h"
 
-struct ObjectClassInfo *objectclass, *functionclass, *stringclass, *classobjectclass;
 
-
-void objects_test_setup(void)
-{
-	buttert(objectclass = objectobject_createclass());
-	buttert(functionclass = functionobject_createclass(objectclass));
-	buttert(stringclass = stringobject_createclass(objectclass));
-	buttert(classobjectclass = classobject_createclass(objectclass));
-}
-void objects_test_teardown(void)
-{
-	objectclassinfo_free(classobjectclass);
-	objectclassinfo_free(stringclass);
-	objectclassinfo_free(functionclass);
-	objectclassinfo_free(objectclass);
-}
-
+// TODO: get rid of these
+struct ObjectClassInfo *stringclass = NULL;
+struct ObjectClassInfo *objectclass = NULL;
+struct ObjectClassInfo *functionclass = NULL;
 
 // TODO: is this needed?
 void test_objects_objectclass_stuff(void)
 {
-	buttert(objectclass->baseclass == NULL);
-	buttert(objectclass->methods);
-	buttert(objectclass->methods->size == 0);
-	buttert(objectclass->destructor == NULL);
+	struct ObjectClassInfo *objectinfo = interpreter_getbuiltin(testinterp, NULL, "Object")->data;
+	buttert(objectinfo->baseclass == NULL);
+	buttert(objectinfo->methods);
+	buttert(objectinfo->methods->size == 0);
+	buttert(objectinfo->foreachref == NULL);
+	buttert(objectinfo->destructor == NULL);
 }
 
 void test_objects_simple(void)
 {
-	struct Object *obj = object_new(objectclass);
+	struct ObjectClassInfo *objectinfo = interpreter_getbuiltin(testinterp, NULL, "Object")->data;
+	struct Object *obj = object_new(objectinfo);
 	buttert(obj);
 	object_free(obj);
 }
@@ -91,9 +82,4 @@ void test_objects_string(void)
 	}
 }
 
-void test_objects_classobject(void)
-{
-	struct Object *klass = classobject_newfromclassinfo(classobjectclass, stringclass);
-	buttert(klass->data == (void *)stringclass);
-	object_free(klass);
-}
+// classobject isn't tested here because setup code in run.c uses it a lot anyway

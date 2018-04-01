@@ -101,9 +101,8 @@ int context_setvarwheredefined(struct Context *ctx, struct Object **errptr, stru
 		return STATUS_ERROR;
 	}
 
-	for (int i=0; i < (int)(sizeof(prefixchararr)-1); i++) {
-		msg.val[i] = prefixchararr[i];
-	}
+	for (int i=0; i < (int)(sizeof(prefixchararr)-1); i++)
+		msg.val[i] = prefixchararr[i];   // assumes ASCII
 	memcpy(msg.val + (sizeof(prefixchararr)-1), name.val, sizeof(uint32_t) * name.len);
 	msg.val[msg.len-1] = '\'';
 
@@ -132,7 +131,8 @@ static void clear_item(void *ustrkey, void *valobj, void *junkdata)
 {
 	free(((struct UnicodeString *) ustrkey)->val);
 	free(ustrkey);
-	// TODO: do something with val?
+	assert(valobj);
+	// TODO: do something with valobj?
 }
 
 void context_free(struct Context *ctx)

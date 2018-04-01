@@ -1,11 +1,9 @@
-// fun test framework
-
 #ifndef TESTUTILS_H
 #define TESTUTILS_H
 
-// these have retarded comments on the side because iwyu doesn't like this file
 #include <stddef.h>
 #include <stdio.h>
+#include <src/interpreter.h>
 
 // for abort()
 #include <stdlib.h>      // IWYU pragma: keep
@@ -22,5 +20,7 @@
 #define buttert(cond) buttert2(cond, "")
 
 void *bmalloc(size_t size);
+
+extern struct Interpreter *testinterp;
 
 #endif   // TESTUTILS_H

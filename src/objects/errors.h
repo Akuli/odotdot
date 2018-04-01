@@ -5,6 +5,7 @@
 #include "../objectsystem.h"    // IWYU pragma: keep
 
 // returns NULL on no mem
+// doesn't take errptr because errors don't exist yet when this is called
 struct ObjectClassInfo *errorobject_createclass(struct ObjectClassInfo *objectclass);
 
 // returns NULL on no mem

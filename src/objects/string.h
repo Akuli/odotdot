@@ -1,3 +1,4 @@
+// TODO: new error handling
 #ifndef OBJECTS_STRING_H
 #define OBJECTS_STRING_H
 
@@ -5,6 +6,8 @@
 #include "../objectsystem.h"    // for Object and ObjectClassInfo
 #include "../unicode.h"    // for UnicodeString
 
+// this takes the Object classinfo instead of the interpreter and returns NULL for no mem
+// because this function is called before error objects like interp->nomemerr exists
 struct ObjectClassInfo *stringobject_createclass(struct ObjectClassInfo *objectclass);
 
 // makes a copy of ustr with unicodestring_copy()

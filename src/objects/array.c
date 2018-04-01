@@ -1,6 +1,7 @@
+#include "array.h"
 #include <assert.h>
 #include <stdlib.h>
-#include "array.h"
+#include "classobject.h"
 #include "../common.h"
 #include "../dynamicarray.h"
 #include "../objectsystem.h"
@@ -17,9 +18,21 @@ static void array_destructor(struct Object *arr)
 	dynamicarray_free(arr->data);
 }
 
-struct ObjectClassInfo *arrayobject_createclass(struct ObjectClassInfo *objectclass)
+int arrayobject_createclass(struct Interpreter *interp, struct Object **errptr)
 {
-	return objectclassinfo_new(objectclass, array_foreachref, array_destructor);
+	struct Object *objectclass = interpreter_getbuiltin(interp, errptr, "Object");
+	if (!objectclass)
+		return STATUS_ERROR;
+
+	struct Object *klass = classobject_new(interp, errptr, objectclass, array_foreachref, array_destructor);
+	if (!klass) {
+		// TODO: decref objectclass?
+		*errptr = interp->nomemerr;
+		return STATUS_ERROR;
+	}
+
+	// TODO: decref objectclass and klass if this returns STATUS_ERROR
+	return interpreter_addbuiltin(interp, errptr, "Array", klass);
 }
 
 struct Object *arrayobject_newempty(struct ObjectClassInfo *arrayclass)

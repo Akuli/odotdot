@@ -18,6 +18,7 @@ struct Interpreter *interpreter_new(char *argv0)
 
 	interp->argv0 = argv0;
 	interp->nomemerr = NULL;
+	interp->classobjectinfo = NULL;
 	interp->builtinctx = context_newglobal(interp);
 	if (!(interp->builtinctx)) {
 		free(interp);
@@ -38,14 +39,16 @@ int interpreter_addbuiltin(struct Interpreter *interp, struct Object **errptr, c
 {
 	struct UnicodeString uname;
 	char stupiderrormsg[100] = {0};
-	int status = utf8_decode(name, strlen(name), &uname, stupiderrormsg);
+	int status = utf8_decode(name, strlen(name), &uname, stupiderrormsg);   // TODO: free uname.val ???
 	if (status == STATUS_NOMEM) {
 		*errptr = interp->nomemerr;
 		return STATUS_ERROR;
 	}
 	assert(status == STATUS_OK && stupiderrormsg[0] == 0);  // must be valid utf8
 
-	return context_setlocalvar(interp->builtinctx, errptr, uname, val);
+	int res = context_setlocalvar(interp->builtinctx, errptr, uname, val);
+	free(uname.val);
+	return res;
 }
 
 struct Object *interpreter_getbuiltin(struct Interpreter *interp, struct Object **errptr, char *name)
@@ -59,5 +62,7 @@ struct Object *interpreter_getbuiltin(struct Interpreter *interp, struct Object 
 	}
 	assert(status == STATUS_OK && stupiderrormsg[0] == 0);  // must be valid utf8
 
-	return context_getvar(interp->builtinctx, errptr, uname);
+	struct Object *res = context_getvar(interp->builtinctx, errptr, uname);
+	free(uname.val);
+	return res;
 }

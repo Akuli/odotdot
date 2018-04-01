@@ -13,6 +13,9 @@ struct Interpreter {
 
 	// set errptr to this when there's not enough mem
 	struct Object *nomemerr;
+
+	// set to a return value of classobject_createclass(), see classobject.h
+	struct ObjectClassInfo *classobjectinfo;
 };
 
 // returns NULL on no mem
