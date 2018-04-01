@@ -36,23 +36,8 @@ static void run_test(char *name, testfunc func)
 #define RUN_TEST(func) do { void func(void); run_test(#func, func); } while(0)
 
 
-/*void objects_test_setup(void)
-{
-	buttert(objectclass = objectobject_createclass());
-	buttert(functionclass = functionobject_createclass(objectclass));
-	buttert(stringclass = stringobject_createclass(objectclass));
-	buttert(classobjectclass = classobject_createclass(objectclass));
-}
-void objects_test_teardown(void)
-{
-	objectclassinfo_free(classobjectclass);
-	objectclassinfo_free(stringclass);
-	objectclassinfo_free(functionclass);
-	objectclassinfo_free(objectclass);
-}*/
-// TODO: get rid of these stupid globals
-struct ObjectClassInfo *objectinfo, *errorinfo, *stringinfo;
 static void setup_testinterp(void) {
+	struct ObjectClassInfo *objectinfo, *errorinfo, *stringinfo;
 	buttert(testinterp = interpreter_new("testargv0"));
 	buttert(objectinfo = objectobject_createclass());
 	buttert(errorinfo = errorobject_createclass(objectinfo));
@@ -62,10 +47,20 @@ static void setup_testinterp(void) {
 	// now we can use errptr, but tests pass NULL for errptr when errors are not welcome
 	buttert(testinterp->classobjectinfo = classobject_createclass(testinterp, NULL, objectinfo));
 	buttert(interpreter_addbuiltin(testinterp, NULL, "Object", classobject_newfromclassinfo(testinterp, NULL, objectinfo)) == STATUS_OK);
+	buttert(interpreter_addbuiltin(testinterp, NULL, "Error", classobject_newfromclassinfo(testinterp, NULL, errorinfo)) == STATUS_OK);
+	buttert(interpreter_addbuiltin(testinterp, NULL, "String", classobject_newfromclassinfo(testinterp, NULL, stringinfo)) == STATUS_OK);
 }
+
 static void teardown_testinterp(void) {
+	struct ObjectClassInfo *objectinfo = interpreter_getbuiltin(testinterp, NULL, "Object")->data;
+	struct ObjectClassInfo *errorinfo = interpreter_getbuiltin(testinterp, NULL, "Error")->data;
+	struct ObjectClassInfo *stringinfo = interpreter_getbuiltin(testinterp, NULL, "String")->data;
+
+	object_free(interpreter_getbuiltin(testinterp, NULL, "String"));
+	object_free(interpreter_getbuiltin(testinterp, NULL, "Error"));
 	object_free(interpreter_getbuiltin(testinterp, NULL, "Object"));
 	objectclassinfo_free(testinterp->classobjectinfo);
+
 	object_free(testinterp->nomemerr->data);   // the message string
 	object_free(testinterp->nomemerr);
 	objectclassinfo_free(stringinfo);

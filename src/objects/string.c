@@ -47,7 +47,7 @@ struct Object *stringobject_newfromustr(struct Interpreter *interp, struct Objec
 	return str;
 }
 
-struct Object *stringobject_newfromcharptr(struct ObjectClassInfo *stringclass, char *ptr)
+struct Object *stringobject_newfromcharptr(struct Interpreter *interp, struct Object **errptr, char *ptr)
 {
 	struct UnicodeString *data = malloc(sizeof(struct UnicodeString));
 	if (!data)
@@ -62,7 +62,14 @@ struct Object *stringobject_newfromcharptr(struct ObjectClassInfo *stringclass, 
 	}
 	assert(status == STATUS_OK);   // it shooouldn't return anything else than STATUS_{NONEM,OK} or 1
 
-	struct Object *str = object_new(stringclass, data);
+	struct Object *stringclass = interpreter_getbuiltin(interp, errptr, "String");
+	if (!stringclass) {
+		free(data->val);
+		free(data);
+		return NULL;
+	}
+
+	struct Object *str = classobject_newinstance(interp, errptr, stringclass, data);
 	if (!str) {
 		free(data->val);
 		free(data);
