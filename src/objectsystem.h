@@ -59,11 +59,8 @@ int objectsystem_addbuiltinclass(struct HashTable *builtins, char *name, struct 
 // TODO: struct Object* instead of void*
 int objectsystem_getbuiltin(struct HashTable *builtins, char *name, void **res);
 
-// this does not call the ö setup method, call it yourself if you want to
-// when an object is created from ö, this is called, followed by a setup()
-// this sets data to NULL
-// returns NULL on no mem
-struct Object *object_new(struct ObjectClassInfo *klass);
+// see also classobject_newinstance() in objects/classobject.h
+struct Object *object_new(struct ObjectClassInfo *klass, void *data);
 
 void object_free(struct Object *obj);
 

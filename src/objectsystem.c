@@ -50,19 +50,19 @@ void objectclassinfo_free(struct ObjectClassInfo *klass)
 }
 
 
-struct Object *object_new(struct ObjectClassInfo *klass)
+struct Object *object_new(struct ObjectClassInfo *klass, void *data)
 {
 	struct Object *obj = malloc(sizeof(struct Object));
 	if(!obj)
 		return NULL;
 
 	obj->klass = klass;
+	obj->data = data;
 	obj->attrs = hashtable_new(compare_unicode_strings);
 	if (!obj->attrs) {
 		free(obj);
 		return NULL;
 	}
-	obj->data = NULL;
 	return obj;
 }
 

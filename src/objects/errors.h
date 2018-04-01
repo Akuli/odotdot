@@ -9,10 +9,6 @@
 struct ObjectClassInfo *errorobject_createclass(struct ObjectClassInfo *objectclass);
 
 // returns NULL on no mem
-struct Object *errorobject_newfromstringobject(struct ObjectClassInfo *errorclass, struct Object *msgstring);
-
-// a convenience method, assumes that the char pointer is valid UTF-8
-// returns NULL on no mem
-struct Object *errorobject_newfromcharptr(struct ObjectClassInfo *errorclass, struct ObjectClassInfo *stringclass, char *msg);
+struct Object *errorobject_createnomemerr(struct ObjectClassInfo *errorclass, struct ObjectClassInfo *stringclass);
 
 #endif    // OBJECTS_ERRORS_H

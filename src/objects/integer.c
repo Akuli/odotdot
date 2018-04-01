@@ -46,12 +46,11 @@ static struct Object *integer_from_digits(struct ObjectClassInfo *integerclass, 
 		return NULL;
 	*data = isnegative ? -absval : absval;
 
-	struct Object *obj = object_new(integerclass);
+	struct Object *obj = object_new(integerclass, data);
 	if (!obj) {
 		free(data);
 		return NULL;
 	}
-	obj->data = data;
 	return obj;
 }
 

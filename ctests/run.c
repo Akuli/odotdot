@@ -11,6 +11,7 @@
 
 typedef void (*testfunc)(void);
 int verbose;
+int ntests;
 struct Interpreter *testinterp;   // externed in utils.h
 
 static void run_test(char *name, testfunc func)
@@ -30,6 +31,7 @@ static void run_test(char *name, testfunc func)
 		printf(".");
 		fflush(stdout);
 	}
+	ntests++;
 }
 #define RUN_TEST(func) do { void func(void); run_test(#func, func); } while(0)
 
@@ -55,7 +57,7 @@ static void setup_testinterp(void) {
 	buttert(objectinfo = objectobject_createclass());
 	buttert(errorinfo = errorobject_createclass(objectinfo));
 	buttert(stringinfo = stringobject_createclass(objectinfo));
-	buttert(testinterp->nomemerr = errorobject_newfromcharptr(errorinfo, stringinfo, "not enough memory"));
+	buttert(testinterp->nomemerr = errorobject_createnomemerr(errorinfo, stringinfo));
 
 	// now we can use errptr, but tests pass NULL for errptr when errors are not welcome
 	buttert(testinterp->classobjectinfo = classobject_createclass(testinterp, NULL, objectinfo));
@@ -83,6 +85,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Usage: %s [--verbose]\n", argv[0]);
 		return 1;
 	}
+	ntests = 0;
 
 	setup_testinterp();
 	RUN_TEST(test_ast_node_structs_and_ast_copynode);
@@ -115,7 +118,7 @@ int main(int argc, char **argv)
 	teardown_testinterp();
 
 	if (verbose)
-		printf("\n---------- all tests pass ----------\n");
+		printf("\n---------- all %d tests passed ----------\n", ntests);
 	else
 		printf("\nok\n");
 	return 0;

@@ -4,7 +4,9 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include "classobject.h"
 #include "../common.h"
+#include "../interpreter.h"
 #include "../objectsystem.h"
 #include "../unicode.h"
 
@@ -20,18 +22,28 @@ struct ObjectClassInfo *stringobject_createclass(struct ObjectClassInfo *objectc
 	return objectclassinfo_new(objectclass, NULL, string_destructor);
 }
 
-struct Object *stringobject_newfromustr(struct ObjectClassInfo *stringclass, struct UnicodeString ustr)
+struct Object *stringobject_newfromustr(struct Interpreter *interp, struct Object **errptr, struct UnicodeString ustr)
 {
 	struct UnicodeString *data = unicodestring_copy(ustr);
-	if (!data)
+	if (!data) {
+		*errptr = interp->nomemerr;
 		return NULL;
+	}
 
-	struct Object *str = object_new(stringclass);
-	if (!str) {
+	struct Object *stringclass = interpreter_getbuiltin(interp, errptr, "String");
+	if (!stringclass) {
+		free(data->val);
 		free(data);
 		return NULL;
 	}
-	str->data = data;
+
+	struct Object *str = classobject_newinstance(interp, errptr, stringclass, data);
+	if (!str) {
+		// TODO: decref stuff?
+		free(data->val);
+		free(data);
+		return NULL;
+	}
 	return str;
 }
 
@@ -50,12 +62,11 @@ struct Object *stringobject_newfromcharptr(struct ObjectClassInfo *stringclass, 
 	}
 	assert(status == STATUS_OK);   // it shooouldn't return anything else than STATUS_{NONEM,OK} or 1
 
-	struct Object *str = object_new(stringclass);
+	struct Object *str = object_new(stringclass, data);
 	if (!str) {
 		free(data->val);
 		free(data);
 		return NULL;
 	}
-	str->data = data;
 	return str;
 }

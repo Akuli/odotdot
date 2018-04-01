@@ -24,12 +24,11 @@ struct Object *functionobject_new(struct ObjectClassInfo *functionclass, functio
 		return NULL;
 	data->cfunc = cfunc;
 
-	struct Object *obj = object_new(functionclass);
+	struct Object *obj = object_new(functionclass, data);
 	if (!obj) {
 		free(data);
 		return NULL;
 	}
-	obj->data = data;
 	return obj;
 }
 

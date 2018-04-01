@@ -1,5 +1,6 @@
 #include "errors.h"
 #include <stdlib.h>
+#include <string.h>
 #include "../objectsystem.h"
 #include "string.h"
 
@@ -13,26 +14,36 @@ struct ObjectClassInfo *errorobject_createclass(struct ObjectClassInfo *objectcl
 	return objectclassinfo_new(objectclass, error_foreachref, NULL);
 }
 
-struct Object *errorobject_newfromstringobject(struct ObjectClassInfo *errorclass, struct Object *msgstring)
+// message string is created here because string constructors want to use interp->nomemerr and errptr
+struct Object *errorobject_createnomemerr(struct ObjectClassInfo *errorclass, struct ObjectClassInfo *stringclass)
 {
-	struct Object *err = object_new(errorclass);
-	if (!err)
-		return NULL;
-	err->data = msgstring;
-	return err;
-}
-
-struct Object *errorobject_newfromcharptr(struct ObjectClassInfo *errorclass, struct ObjectClassInfo *stringclass, char *msg)
-{
-	struct Object *msgobj = stringobject_newfromcharptr(stringclass, msg);
-	if(!msgobj)
+	struct UnicodeString *ustr = malloc(sizeof(struct UnicodeString));
+	if (!ustr)
 		return NULL;
 
-	struct Object *err = errorobject_newfromstringobject(errorclass, msgobj);
-	if(!err) {
-		free(msgobj);
+	char msg[] = "not enough memory";
+	ustr->len = strlen(msg);
+	ustr->val = malloc(sizeof(uint32_t) * ustr->len);
+	if (!(ustr->val)) {
+		free(ustr);
 		return NULL;
 	}
 
+	// can't use memcpy because different types
+	for (size_t i=0; i < ustr->len; i++)
+		ustr->val[i] = msg[i];
+
+	struct Object *str = object_new(stringclass, ustr);
+	if (!str) {
+		free(ustr->val);
+		free(ustr);
+		return NULL;
+	}
+
+	struct Object *err = object_new(errorclass, str);
+	if (!err) {
+		object_free(err);   // takes care of ustr
+		return NULL;
+	}
 	return err;
 }

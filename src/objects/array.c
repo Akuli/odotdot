@@ -37,13 +37,13 @@ int arrayobject_createclass(struct Interpreter *interp, struct Object **errptr)
 
 struct Object *arrayobject_newempty(struct ObjectClassInfo *arrayclass)
 {
-	struct Object *arr = object_new(arrayclass);
-	if(!arr)
+	struct DynamicArray *dynarray = dynamicarray_new();
+	if (!dynarray)
 		return NULL;
 
-	arr->data = dynamicarray_new();
-	if(!arr->data) {
-		free(arr);
+	struct Object *arr = object_new(arrayclass, dynarray);
+	if (!arr) {
+		dynamicarray_free(dynarray);
 		return NULL;
 	}
 	return arr;

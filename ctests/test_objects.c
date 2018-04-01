@@ -32,8 +32,9 @@ void test_objects_objectclass_stuff(void)
 void test_objects_simple(void)
 {
 	struct ObjectClassInfo *objectinfo = interpreter_getbuiltin(testinterp, NULL, "Object")->data;
-	struct Object *obj = object_new(objectinfo);
+	struct Object *obj = object_new(objectinfo, (void *)0xdeadbeef);
 	buttert(obj);
+	buttert(obj->data == (void *)0xdeadbeef);
 	object_free(obj);
 }
 
@@ -67,8 +68,8 @@ void test_objects_string(void)
 	u.val[1] = odotdot;
 
 	struct Object *strs[] = {
-		stringobject_newfromcharptr(stringclass, "Öö"),
-		stringobject_newfromustr(stringclass, u) };
+		stringobject_newfromcharptr(testinterp, NULL, "Öö"),
+		stringobject_newfromustr(testinterp, NULL, u) };
 	free(u.val);    // must not break anything, newfromustr should copy
 
 	for (size_t i=0; i < sizeof(strs)/sizeof(strs[0]); i++) {
