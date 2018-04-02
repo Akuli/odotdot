@@ -115,7 +115,7 @@ int context_setvarwheredefined(struct Context *ctx, struct Object **errptr, stru
 
 }
 
-struct Object *context_getvar(struct Context *ctx, struct Object **errptr, struct UnicodeString name)
+struct Object *context_getvar_nomalloc(struct Context *ctx, struct UnicodeString name)
 {
 	while (ctx) {
 		struct Object *val;
@@ -123,9 +123,14 @@ struct Object *context_getvar(struct Context *ctx, struct Object **errptr, struc
 			return val;
 		ctx = ctx->parentctx;
 	}
+	return NULL;
+}
 
-	// i didn't feel like copy/pasting the broken mess from above
-	assert(0);
+struct Object *context_getvar(struct Context *ctx, struct Object **errptr, struct UnicodeString name)
+{
+	struct Object *res = context_getvar_nomalloc(ctx, name);
+	assert(res);    // i didn't feel like copy/pasting the incomplete mess from context_setvarwheredefined()
+	return res;
 }
 
 static void clear_item(void *ustrkey, void *valobj, void *junkdata)

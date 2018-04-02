@@ -34,7 +34,16 @@ void interpreter_free(struct Interpreter *interp);
 // returns STATUS_OK or STATUS_ERROR
 int interpreter_addbuiltin(struct Interpreter *interp, struct Object **errptr, char *name, struct Object *val);
 
-// returns NULL on error
+// returns NULL and sets errptr on error
 struct Object *interpreter_getbuiltin(struct Interpreter *interp, struct Object **errptr, char *name);
+
+/* simple version of getbuiltin() that never calls malloc()
+useful in e.g. builtins_teardown()
+restrictions:
+	* strlen(name) must be < 50
+	* name must be ASCII only
+	* no errptr, instead returns NULL if the variable doesn't exist
+*/
+struct Object *interpreter_getbuiltin_nomalloc(struct Interpreter *interp, char *name);
 
 #endif   // INTERPRETER_H

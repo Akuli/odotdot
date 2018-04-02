@@ -94,15 +94,10 @@ error:
 // TODO: is this too copy/pasta?
 void builtins_teardown(struct Interpreter *interp)
 {
-	// usually lots of other stuff has been freed when this is called, so no mem
-	// errors are very unlikely but possible here
-	// that's why i think it's ok to ignore any errors and even leak some memory
-	struct Object *err;
-
-	struct Object *objectclass = interpreter_getbuiltin(interp, &err, "Object"); err = NULL;
-	struct Object *errorclass = interpreter_getbuiltin(interp, &err, "Error"); err = NULL;
-	struct Object *stringclass = interpreter_getbuiltin(interp, &err, "String"); err = NULL;
-	struct Object *printfunc = interpreter_getbuiltin(interp, &err, "print"); err = NULL;
+	struct Object *objectclass = interpreter_getbuiltin_nomalloc(interp, "Object");
+	struct Object *errorclass = interpreter_getbuiltin_nomalloc(interp, "Error");
+	struct Object *stringclass = interpreter_getbuiltin_nomalloc(interp, "String");
+	struct Object *printfunc = interpreter_getbuiltin_nomalloc(interp, "print");
 
 	struct ObjectClassInfo *objectinfo = objectclass ? objectclass->data : NULL;
 	struct ObjectClassInfo *errorinfo = errorclass ? errorclass->data : NULL;
@@ -121,6 +116,4 @@ void builtins_teardown(struct Interpreter *interp)
 	if (stringinfo) objectclassinfo_free(stringinfo);
 	if (errorinfo) objectclassinfo_free(errorinfo);
 	if (objectinfo) objectclassinfo_free(objectinfo);
-
-	// TODO: try freeing the errored ones again or something?
 }

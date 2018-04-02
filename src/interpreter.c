@@ -65,3 +65,16 @@ struct Object *interpreter_getbuiltin(struct Interpreter *interp, struct Object 
 	free(uname.val);
 	return res;
 }
+
+struct Object *interpreter_getbuiltin_nomalloc(struct Interpreter *interp, char *name)
+{
+	size_t namelen = strlen(name);
+	assert(namelen < 50);
+
+	uint32_t unameval[50];
+	for (int i=0; i < (int)namelen; i++)
+		unameval[i] = name[i];
+	struct UnicodeString uname = { unameval, namelen };
+
+	return context_getvar_nomalloc(interp->builtinctx, uname);
+}
