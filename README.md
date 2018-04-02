@@ -77,19 +77,6 @@ See also David Beazley's [Meẗal](https://github.com/dabeaz/me-al).
 
 Because github.
 
-### The interpreter is implemented in Python. Isn't a module named ö against PEP-8?
-
-`ö` is a perfectly PEP-8 compatible module name. [PEP-8
-says](https://www.python.org/dev/peps/pep-0008/#ascii-compatibility) that
-identifiers should be ASCII only, but module names don't need to be identifiers:
-
-```python
-import ö as odotdot     # now the identifier is named odotdot
-```
-
-You can also just `import ö` because the ASCII limitation in PEP-8 is only for
-Python's standard library.
-
 ## Tests
 
 At the time of writing this README, I have horrible test coverage. I'll
