@@ -1,6 +1,8 @@
 #ifndef INTERPRETER_H
 #define INTERPRETER_H
 
+#include "hashtable.h"
+
 // these are defined in other files that need to include this file
 // stupid IWYU doesn't get this.....
 struct Context;
@@ -16,6 +18,11 @@ struct Interpreter {
 
 	// set errptr to this when there's not enough mem
 	struct Object *nomemerr;
+
+	// keys are all objects, values are an implementation detail
+	// currently the values are pointers to a static dummy variable defined in interpreter.c
+	// see also objectsystem.h
+	struct HashTable *allobjects;
 
 	// these are not exposed as built-in variables, so they can't be in builtinctx
 	struct ObjectClassInfo *classobjectinfo;

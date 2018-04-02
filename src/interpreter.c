@@ -5,7 +5,10 @@
 #include <stdlib.h>
 #include "common.h"
 #include "context.h"
+#include "hashtable.h"
 #include "unicode.h"
+
+static int compare_by_identity(void *a, void *b, void *junkdata) { return a==b; }
 
 struct Interpreter *interpreter_new(char *argv0)
 {
@@ -13,24 +16,30 @@ struct Interpreter *interpreter_new(char *argv0)
 	if (!interp)
 		return NULL;
 
-	interp->argv0 = argv0;
-	interp->nomemerr = NULL;
-	interp->classobjectinfo = NULL;
-	interp->functionobjectinfo = NULL;
-
-	interp->builtinctx = context_newglobal(interp);
-	if (!(interp->builtinctx)) {
+	interp->allobjects = hashtable_new(compare_by_identity);
+	if (!(interp->allobjects)) {
 		free(interp);
 		return NULL;
 	}
 
+	interp->builtinctx = context_newglobal(interp);
+	if (!(interp->builtinctx)) {
+		hashtable_free(interp->allobjects);
+		free(interp);
+		return NULL;
+	}
+
+	interp->argv0 = argv0;
+	interp->nomemerr = NULL;
+	interp->classobjectinfo = NULL;
+	interp->functionobjectinfo = NULL;
 	return interp;
 }
 
 void interpreter_free(struct Interpreter *interp)
 {
-	// TODO: how about all sub contexts? assume there are none??
-	context_free(interp->builtinctx);
+	hashtable_free(interp->allobjects);
+	context_free(interp->builtinctx);   	// TODO: how about all sub contexts? assume there are none??
 	free(interp);
 }
 

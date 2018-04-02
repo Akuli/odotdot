@@ -7,6 +7,7 @@
 #include "common.h"
 #include "context.h"
 #include "dynamicarray.h"
+#include "gc.h"
 #include "interpreter.h"
 #include "run.h"
 #include "tokenizer.h"
@@ -165,6 +166,7 @@ int main(int argc, char **argv)
 
 	// TODO: run stdlib/fake_builtins.ö and don't use
 	int res = run_file(interp->builtinctx, argv[1]);
+	gc_run(interp);
 	builtins_teardown(interp);
 	interpreter_free(interp);
 	return res;

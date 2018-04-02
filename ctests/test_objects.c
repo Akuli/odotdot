@@ -29,10 +29,10 @@ void test_objects_objectclass_stuff(void)
 void test_objects_simple(void)
 {
 	struct ObjectClassInfo *objectinfo = interpreter_getbuiltin(testinterp, NULL, "Object")->data;
-	struct Object *obj = object_new(objectinfo, (void *)0xdeadbeef);
+	struct Object *obj = object_new(testinterp, objectinfo, (void *)0xdeadbeef);
 	buttert(obj);
 	buttert(obj->data == (void *)0xdeadbeef);
-	object_free(obj);
+	object_free(testinterp, obj);
 }
 
 
@@ -46,7 +46,7 @@ void test_objects_function(void)
 {
 	struct Object *func = functionobject_new(testinterp, NULL, callback);
 	buttert(functionobject_getcfunc(testinterp, func) == callback);
-	object_free(func);
+	object_free(testinterp, func);
 }
 
 #define ODOTDOT 0xd6    // Ö
@@ -72,7 +72,7 @@ void test_objects_string(void)
 		buttert(data->len == 2);
 		buttert(data->val[0] == ODOTDOT);
 		buttert(data->val[1] == odotdot);
-		object_free(strs[i]);
+		object_free(testinterp, strs[i]);
 	}
 }
 

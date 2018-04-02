@@ -2,6 +2,7 @@
 #define OBJECTSYSTEM_H
 
 #include "hashtable.h"     // IWYU pragma: keep
+#include "interpreter.h"
 #include "unicode.h"       // IWYU pragma: keep
 
 
@@ -55,10 +56,15 @@ void objectclassinfo_free(struct ObjectClassInfo *klass);
 // TODO: struct Object* instead of void*
 int objectsystem_getbuiltin(struct HashTable *builtins, char *name, void **res);
 
+// create a new object, add it to interp->allobjects and return it, returns NULL on error
 // see also classobject_newinstance() in objects/classobject.h
-struct Object *object_new(struct ObjectClassInfo *klass, void *data);
+struct Object *object_new(struct Interpreter *interp, struct ObjectClassInfo *klass, void *data);
 
-void object_free(struct Object *obj);
+// call obj->klass->destructor and free memory allocated by obj
+// this removes obj from interp->allobjects
+// usually you don't need to call this yourself
+// call gc_run() instead or just let the object wait for the next gc_run() call
+void object_free(struct Interpreter *interp, struct Object *obj);
 
 // returns a Function object, or NULL if not found
 struct Object *object_getmethod(struct ObjectClassInfo *klass, struct UnicodeString name);

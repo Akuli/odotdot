@@ -5,6 +5,7 @@
 
 #include <src/builtins.h>
 #include <src/common.h>
+#include <src/gc.h>
 #include <src/interpreter.h>
 
 typedef void (*testfunc)(void);
@@ -69,6 +70,7 @@ int main(int argc, char **argv)
 	RUN_TEST(test_objects_function);
 	RUN_TEST(test_objects_string);
 
+	gc_run(testinterp);
 	builtins_teardown(testinterp);
 	interpreter_free(testinterp);
 

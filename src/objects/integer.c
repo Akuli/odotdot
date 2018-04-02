@@ -1,3 +1,4 @@
+// TODO: interp instead of integerclass
 // TODO: implement bignums
 // TODO: better error handling than asserts
 
@@ -20,7 +21,7 @@ struct ObjectClassInfo *integerobject_createclass(struct ObjectClassInfo *object
 }
 
 // TODO: better error handling for huge values
-static struct Object *integer_from_digits(struct ObjectClassInfo *integerclass, int isnegative, int *digits, int ndigits)
+static struct Object *integer_from_digits(struct Interpreter *interp, struct ObjectClassInfo *integerclass, int isnegative, int *digits, int ndigits)
 {
 	assert(ndigits > 0);
 
@@ -46,7 +47,7 @@ static struct Object *integer_from_digits(struct ObjectClassInfo *integerclass, 
 		return NULL;
 	*data = isnegative ? -absval : absval;
 
-	struct Object *obj = object_new(integerclass, data);
+	struct Object *obj = object_new(interp, integerclass, data);
 	if (!obj) {
 		free(data);
 		return NULL;
@@ -54,7 +55,7 @@ static struct Object *integer_from_digits(struct ObjectClassInfo *integerclass, 
 	return obj;
 }
 
-struct Object *integerobject_newfromustr(struct ObjectClassInfo *integerclass, struct UnicodeString ustr)
+struct Object *integerobject_newfromustr(struct Interpreter *interp, struct ObjectClassInfo *integerclass, struct UnicodeString ustr)
 {
 	assert(1 <= ustr.len && ustr.len < 25);
 	int isnegative=(ustr.val[0] == '-');
@@ -70,10 +71,10 @@ struct Object *integerobject_newfromustr(struct ObjectClassInfo *integerclass, s
 		assert('0' <= ustr.val[i] && ustr.val[i] <= '9');
 		digits[i] = ustr.val[i] - '0';
 	}
-	return integer_from_digits(integerclass, isnegative, digits, ustr.len);
+	return integer_from_digits(interp, integerclass, isnegative, digits, ustr.len);
 }
 
-struct Object *integerobject_newfromcharptr(struct ObjectClassInfo *integerclass, char *s)
+struct Object *integerobject_newfromcharptr(struct Interpreter *interp, struct ObjectClassInfo *integerclass, char *s)
 {
 	int isnegative=(s[0] == '-');
 	if (isnegative)
@@ -89,7 +90,7 @@ struct Object *integerobject_newfromcharptr(struct ObjectClassInfo *integerclass
 		assert('0' <= s[i] && s[i] <= '9');
 		digits[i] = s[i] - '0';
 	}
-	return integer_from_digits(integerclass, isnegative, digits, ndigits);
+	return integer_from_digits(interp, integerclass, isnegative, digits, ndigits);
 }
 
 int64_t integerobject_toint64(struct Object *integer)

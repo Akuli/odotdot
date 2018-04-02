@@ -45,7 +45,7 @@ struct Object *classobject_new(struct Interpreter *interp, struct Object **errpt
 struct Object *classobject_newinstance(struct Interpreter *interp, struct Object **errptr, struct Object *klass, void *data)
 {
 	assert(klass->klass == interp->classobjectinfo);      // TODO: better type check
-	struct Object *res = object_new(klass->data, data);
+	struct Object *res = object_new(interp, klass->data, data);
 	if (!res) {
 		*errptr = interp->nomemerr;
 		return NULL;
@@ -56,7 +56,7 @@ struct Object *classobject_newinstance(struct Interpreter *interp, struct Object
 struct Object *classobject_newfromclassinfo(struct Interpreter *interp, struct Object **errptr, struct ObjectClassInfo *wrapped)
 {
 	assert(interp->classobjectinfo);
-	struct Object *klass = object_new(interp->classobjectinfo, wrapped);
+	struct Object *klass = object_new(interp, interp->classobjectinfo, wrapped);
 	if (!klass) {
 		*errptr = interp->nomemerr;
 		return NULL;

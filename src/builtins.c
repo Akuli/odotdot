@@ -1,6 +1,7 @@
 #include "builtins.h"
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "common.h"
 #include "context.h"
 #include "dynamicarray.h"
@@ -32,11 +33,12 @@ static struct Object *print_builtin(struct Context *ctx, struct Object **errptr,
 		*errptr = ctx->interp->nomemerr;
 		return NULL;
 	}
-	assert(status == STATUS_OK);    // TODO: how about invalid unicode strings?
+	assert(status == STATUS_OK);  // TODO: how about invalid unicode strings? make sure they don't exist when creating strings?
 
 	// TODO: avoid writing 1 byte at a time... seems to be hard with c \0 strings
 	for (size_t i=0; i < utf8len; i++)
 		putchar(utf8[i]);
+	free(utf8);
 	putchar('\n');
 
 	// this must return some non-NULL value
@@ -54,7 +56,7 @@ int builtins_setup(struct Interpreter *interp, struct Object **errptr)
 	if (!(objectinfo = objectobject_createclass())) goto nomem;
 	if (!(errorinfo = errorobject_createclass(objectinfo))) goto nomem;
 	if (!(stringinfo = stringobject_createclass(objectinfo))) goto nomem;
-	if (!(interp->nomemerr = errorobject_createnomemerr(errorinfo, stringinfo))) goto nomem;
+	if (!(interp->nomemerr = errorobject_createnomemerr(interp, errorinfo, stringinfo))) goto nomem;
 	// now we can use errptr
 
 	if (classobject_createclass(interp, errptr, objectinfo) == STATUS_ERROR) goto error;
@@ -86,19 +88,19 @@ nomem:
 error:
 	// these undo the above stuff, in a reversed order
 	// e.g. objectinfo is created first, so it's freed last
-	if (printfunc) object_free(printfunc);
+	if (printfunc) object_free(interp, printfunc);
 
 	if (interp->functionobjectinfo) objectclassinfo_free(interp->functionobjectinfo);
 
-	if (stringclass) object_free(stringclass);
-	if (errorclass) object_free(errorclass);
-	if (objectclass) object_free(objectclass);
+	if (stringclass) object_free(interp, stringclass);
+	if (errorclass) object_free(interp, errorclass);
+	if (objectclass) object_free(interp, objectclass);
 
 	if (interp->classobjectinfo) objectclassinfo_free(interp->classobjectinfo);
 
 	if (interp->nomemerr) {
-		object_free(interp->nomemerr->data);   // the message string
-		object_free(interp->nomemerr);
+		object_free(interp, interp->nomemerr->data);   // the message string
+		object_free(interp, interp->nomemerr);
 	}
 	if (stringinfo) objectclassinfo_free(stringinfo);
 	if (errorinfo) objectclassinfo_free(stringinfo);
@@ -122,16 +124,16 @@ void builtins_teardown(struct Interpreter *interp)
 	struct ObjectClassInfo *stringinfo = stringclass ? stringclass->data : NULL;
 
 	assert(printfunc->klass == interp->functionobjectinfo);
-	if (printfunc) object_free(printfunc);
-	if (stringclass) object_free(stringclass);
-	if (errorclass) object_free(errorclass);
-	if (objectclass) object_free(objectclass);
+	if (printfunc) object_free(interp, printfunc);
+	if (stringclass) object_free(interp, stringclass);
+	if (errorclass) object_free(interp, errorclass);
+	if (objectclass) object_free(interp, objectclass);
 
 	objectclassinfo_free(interp->functionobjectinfo);
 	objectclassinfo_free(interp->classobjectinfo);
 
-	object_free(interp->nomemerr->data);   // the message string
-	object_free(interp->nomemerr);
+	object_free(interp, interp->nomemerr->data);   // the message string
+	object_free(interp, interp->nomemerr);
 	if (stringinfo) objectclassinfo_free(stringinfo);
 	if (errorinfo) objectclassinfo_free(errorinfo);
 	if (objectinfo) objectclassinfo_free(objectinfo);

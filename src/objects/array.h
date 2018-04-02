@@ -1,4 +1,5 @@
-// TODO: interp and errptr
+// TODO: interp and errptr, uncomment everything
+/*
 #ifndef OBJECTS_ARRAY_H
 #define OBJECTS_ARRAY_H
 
@@ -17,3 +18,4 @@ struct Object *arrayobject_newfromarrayandsize(struct ObjectClassInfo *arrayclas
 struct Object *arrayobject_newfromnullterminated(struct ObjectClassInfo *arrayclass, struct Object **nullterminated);
 
 #endif    // OBJECTS_ARRAY_H
+*/

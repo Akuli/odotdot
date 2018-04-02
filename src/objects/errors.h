@@ -9,6 +9,6 @@
 struct ObjectClassInfo *errorobject_createclass(struct ObjectClassInfo *objectclass);
 
 // returns NULL on no mem
-struct Object *errorobject_createnomemerr(struct ObjectClassInfo *errorclass, struct ObjectClassInfo *stringclass);
+struct Object *errorobject_createnomemerr(struct Interpreter *interp, struct ObjectClassInfo *errorclass, struct ObjectClassInfo *stringclass);
 
 #endif    // OBJECTS_ERRORS_H

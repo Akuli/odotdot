@@ -17,7 +17,7 @@ struct ObjectClassInfo *errorobject_createclass(struct ObjectClassInfo *objectcl
 }
 
 // message string is created here because string constructors want to use interp->nomemerr and errptr
-struct Object *errorobject_createnomemerr(struct ObjectClassInfo *errorclass, struct ObjectClassInfo *stringclass)
+struct Object *errorobject_createnomemerr(struct Interpreter *interp, struct ObjectClassInfo *errorclass, struct ObjectClassInfo *stringclass)
 {
 	struct UnicodeString *ustr = malloc(sizeof(struct UnicodeString));
 	if (!ustr)
@@ -35,16 +35,16 @@ struct Object *errorobject_createnomemerr(struct ObjectClassInfo *errorclass, st
 	for (size_t i=0; i < ustr->len; i++)
 		ustr->val[i] = msg[i];
 
-	struct Object *str = object_new(stringclass, ustr);
+	struct Object *str = object_new(interp, stringclass, ustr);
 	if (!str) {
 		free(ustr->val);
 		free(ustr);
 		return NULL;
 	}
 
-	struct Object *err = object_new(errorclass, str);
+	struct Object *err = object_new(interp, errorclass, str);
 	if (!err) {
-		object_free(err);   // takes care of ustr
+		object_free(interp, str);   // takes care of ustr
 		return NULL;
 	}
 	return err;

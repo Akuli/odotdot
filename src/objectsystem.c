@@ -8,6 +8,8 @@
 #include "hashtable.h"
 #include "unicode.h"
 
+// the values of interp->allobjects are &dummy
+static int dummy = 123;
 
 static int compare_unicode_strings(void *a, void *b, void *userdata)
 {
@@ -50,24 +52,35 @@ void objectclassinfo_free(struct ObjectClassInfo *klass)
 }
 
 
-struct Object *object_new(struct ObjectClassInfo *klass, void *data)
+struct Object *object_new(struct Interpreter *interp, struct ObjectClassInfo *klass, void *data)
 {
 	struct Object *obj = malloc(sizeof(struct Object));
 	if(!obj)
 		return NULL;
 
-	obj->klass = klass;
-	obj->data = data;
 	obj->attrs = hashtable_new(compare_unicode_strings);
 	if (!obj->attrs) {
+		free(obj);
+		return NULL;
+	}
+
+	obj->klass = klass;
+	obj->data = data;
+	obj->gcflag = 0;
+
+	if (hashtable_set(interp->allobjects, obj, (unsigned long)((uintptr_t)obj), &dummy, NULL) == STATUS_NOMEM) {
+		hashtable_free(obj->attrs);
 		free(obj);
 		return NULL;
 	}
 	return obj;
 }
 
-void object_free(struct Object *obj)
+void object_free(struct Interpreter *interp, struct Object *obj)
 {
+	void *dummyptr;
+	assert(hashtable_pop(interp->allobjects, obj, (unsigned long)((uintptr_t)obj), &dummyptr, NULL) == 1);
+
 	hashtable_clear(obj->attrs);   // TODO: decref the values or something?
 	hashtable_free(obj->attrs);
 	if (obj->klass->destructor)

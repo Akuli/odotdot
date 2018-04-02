@@ -1,3 +1,4 @@
+/*
 #include "array.h"
 #include <assert.h>
 #include "classobject.h"
@@ -84,3 +85,4 @@ struct Object *arrayobject_newfromnullterminated(struct ObjectClassInfo *arraycl
 
 	return arr;
 }
+*/

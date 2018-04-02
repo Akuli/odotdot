@@ -39,33 +39,24 @@ int run_statement(struct Context *ctx, struct Object **errptr, struct AstNode *s
 		struct Object **args = malloc(sizeof(struct Object*) * INFO_AS(AstCallInfo)->nargs);
 		if (!args) {
 			*errptr = ctx->interp->nomemerr;
-			//object_free(func);      // TODO: decref instead
 			return STATUS_ERROR;
 		}
 		for (size_t i=0; i < INFO_AS(AstCallInfo)->nargs; i++) {
 			struct Object *arg = run_expression(ctx, errptr, INFO_AS(AstCallInfo)->args[i]);
 			if (!arg) {
-				for (size_t j=0; j<i; j++)
-					object_free(args[j]);        // TODO: decref instead
 				free(args);
-				//object_free(func);    // TODO: decref instead
 				return STATUS_ERROR;
 			}
 			args[i] = arg;
 		}
 
 		struct Object *res = (functionobject_getcfunc(ctx->interp, func))(ctx, errptr, args, INFO_AS(AstCallInfo)->nargs);
-		for (size_t i=0; i < INFO_AS(AstCallInfo)->nargs; i++)
-			object_free(args[i]);
 		free(args);
-		//object_free(func);
 
-		if (res) {
-			object_free(res);     // ignore return value
+		if (res)
 			return STATUS_OK;
-		} else {
+		else
 			return STATUS_ERROR;
-		}
 #undef INFO_AS
 	default:
 		assert(0);
