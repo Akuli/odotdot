@@ -66,8 +66,8 @@ int main(int argc, char **argv)
 
 	RUN_TEST(test_objects_objectclass_stuff);
 	RUN_TEST(test_objects_simple);
-	//RUN_TEST(test_objects_function);   // TODO: do functions well
-	//RUN_TEST(test_objects_string);   // TODO: replace passing in ObjectClassInfo with interp or something
+	RUN_TEST(test_objects_function);
+	RUN_TEST(test_objects_string);
 
 	builtins_teardown(testinterp);
 	interpreter_free(testinterp);

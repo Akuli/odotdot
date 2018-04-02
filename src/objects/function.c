@@ -41,6 +41,7 @@ struct Object *functionobject_new(struct Interpreter *interp, struct Object **er
 	}
 	data->cfunc = cfunc;
 
+	assert(interp->functionobjectinfo);
 	struct Object *obj = object_new(interp->functionobjectinfo, data);
 	if (!obj) {
 		*errptr = interp->nomemerr;
