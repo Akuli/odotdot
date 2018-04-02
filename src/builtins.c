@@ -1,10 +1,10 @@
 #include "builtins.h"
 #include <assert.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "common.h"
 #include "context.h"
-#include "dynamicarray.h"
 #include "interpreter.h"
 #include "unicode.h"
 #include "objectsystem.h"

@@ -2,7 +2,6 @@
 #define TOKENIZER_H
 
 #include <stddef.h>
-#include <stdio.h>
 #include "unicode.h"
 
 #define TOKEN_KEYWORD 'k'

@@ -1,5 +1,6 @@
 #include "run.h"
 #include <assert.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include "ast.h"
 #include "common.h"

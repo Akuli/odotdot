@@ -1,8 +1,8 @@
 #ifndef OBJECTS_FUNCTION_H
 #define OBJECTS_FUNCTION_H
 
+#include <stddef.h>
 #include "../context.h"         // IWYU pragma: keep
-#include "../dynamicarray.h"    // IWYU pragma: keep
 #include "../objectsystem.h"    // IWYU pragma: keep
 
 

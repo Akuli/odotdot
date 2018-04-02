@@ -6,6 +6,7 @@
 #include <string.h>
 #include "common.h"
 #include "hashtable.h"
+#include "interpreter.h"
 #include "unicode.h"
 
 // the values of interp->allobjects are &dummy

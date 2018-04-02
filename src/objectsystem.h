@@ -2,7 +2,7 @@
 #define OBJECTSYSTEM_H
 
 #include "hashtable.h"     // IWYU pragma: keep
-#include "interpreter.h"
+#include "interpreter.h"   // IWYU pragma: keep
 #include "unicode.h"       // IWYU pragma: keep
 
 

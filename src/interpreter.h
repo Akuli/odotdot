@@ -1,7 +1,7 @@
 #ifndef INTERPRETER_H
 #define INTERPRETER_H
-
-#include "hashtable.h"
+ 
+#include "hashtable.h"    // IWYU pragma: keep
 
 // these are defined in other files that need to include this file
 // stupid IWYU doesn't get this.....
