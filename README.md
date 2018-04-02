@@ -27,7 +27,7 @@ parentheses.
 
 Run the code like this:
 
-    $ python3 -m ö hello.ö
+    $ python3 -m pythoninterp hello.ö
 
 My favorite feature with this language is blocks. Anything between `{`
 and `}` is a block, and blocks have a `.run` method that works like

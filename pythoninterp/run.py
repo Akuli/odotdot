@@ -2,7 +2,7 @@ import collections
 import functools
 import os
 
-from ö import tokenizer, ast_tree, objects
+from . import tokenizer, ast_tree, objects
 
 
 def _create_context_info():

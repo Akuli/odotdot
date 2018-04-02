@@ -1,7 +1,7 @@
 import argparse
 import traceback
 
-from ö import tokenizer, ast_tree, run, objects, stack_trace
+from . import tokenizer, ast_tree, run, objects, stack_trace
 
 
 def main():
