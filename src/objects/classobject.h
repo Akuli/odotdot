@@ -5,8 +5,8 @@
 #include "../interpreter.h"
 #include "../objectsystem.h"
 
-// returns NULL on no mem
-struct ObjectClassInfo *classobject_createclass(struct Interpreter *interp, struct Object **errptr, struct ObjectClassInfo *objectclass);
+// sets interp->classobjectinfo and returns STATUS_OK or STATUS_ERROR
+int classobject_createclass(struct Interpreter *interp, struct Object **errptr, struct ObjectClassInfo *objectclass);
 
 // a wrapper for objectclassinfo_new()
 struct Object *classobject_new(struct Interpreter *interp, struct Object **errptr, struct Object *baseclass, objectclassinfo_foreachref foreachref, void (*destructor)(struct Object *));

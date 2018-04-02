@@ -1,9 +1,11 @@
 #ifndef INTERPRETER_H
 #define INTERPRETER_H
 
-#include "objectsystem.h"   // IWYU pragma: keep
+// these are defined in other files that need to include this file
+struct Context;
+struct Object;
+struct ObjectClassInfo;
 
-struct Context;     // defined in context.h
 struct Interpreter {
 	// this is set to argv[0] from main(), useful for error messages
 	char *argv0;
@@ -14,8 +16,9 @@ struct Interpreter {
 	// set errptr to this when there's not enough mem
 	struct Object *nomemerr;
 
-	// set to a return value of classobject_createclass(), see classobject.h
+	// these are not exposed as built-in variables, so they can't be in builtinctx
 	struct ObjectClassInfo *classobjectinfo;
+	struct ObjectClassInfo *functionobjectinfo;
 };
 
 // returns NULL on no mem

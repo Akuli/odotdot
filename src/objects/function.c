@@ -1,8 +1,11 @@
+#include <assert.h>
 #include "function.h"
 #include <stdlib.h>
+#include "../common.h"
+#include "../interpreter.h"
 #include "../objectsystem.h"
 
-// because function pointers can't be void* pointers according to the standard
+// because void* can't hold function pointers according to the standard
 struct FunctionData {
 	functionobject_cfunc cfunc;
 };
@@ -12,28 +15,45 @@ static void function_destructor(struct Object *funcobj)
 	free(funcobj->data);
 }
 
-struct ObjectClassInfo *functionobject_createclass(struct ObjectClassInfo *objectclass)
+int functionobject_createclass(struct Interpreter *interp, struct Object **errptr)
 {
-	return objectclassinfo_new(objectclass, NULL, function_destructor);
+	struct Object *objectclass = interpreter_getbuiltin(interp, errptr, "Object");
+	if (!objectclass)    // errptr is set already
+		return STATUS_ERROR;
+
+	struct ObjectClassInfo *klass = objectclassinfo_new(objectclass->data, NULL, function_destructor);
+	if (!klass) {
+		*errptr = interp->nomemerr;
+		// TODO: decref objectclass??
+		return STATUS_ERROR;
+	}
+
+	interp->functionobjectinfo = klass;
+	return STATUS_OK;
 }
 
-struct Object *functionobject_new(struct ObjectClassInfo *functionclass, functionobject_cfunc cfunc)
+struct Object *functionobject_new(struct Interpreter *interp, struct Object **errptr, functionobject_cfunc cfunc)
 {
 	struct FunctionData *data = malloc(sizeof(struct FunctionData));
-	if (!data)
+	if (!data) {
+		*errptr = interp->nomemerr;
 		return NULL;
+	}
 	data->cfunc = cfunc;
 
-	struct Object *obj = object_new(functionclass, data);
+	struct Object *obj = object_new(interp->functionobjectinfo, data);
 	if (!obj) {
+		*errptr = interp->nomemerr;
 		free(data);
 		return NULL;
 	}
 	return obj;
 }
 
-// TODO: better API for calling the functions
-functionobject_cfunc functionobject_get_cfunc(struct Object *funcobj)
+functionobject_cfunc functionobject_getcfunc(struct Interpreter *interp, struct Object **errptr, struct Object *func)
 {
-	return ((struct FunctionData*) funcobj->data)->cfunc;
+	// TODO: better type check using errptr
+	assert(func->klass == interp->functionobjectinfo);
+
+	return ((struct FunctionData *) func->data)->cfunc;
 }

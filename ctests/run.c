@@ -3,6 +3,7 @@
 #include <sys/time.h>    // for the posix-only and "obsolete" gettimeofday()
 #include "utils.h"
 
+#include <src/builtins.h>
 #include <src/common.h>
 #include <src/objects/classobject.h>
 #include <src/objects/errors.h>
@@ -36,40 +37,6 @@ static void run_test(char *name, testfunc func)
 #define RUN_TEST(func) do { void func(void); run_test(#func, func); } while(0)
 
 
-static void setup_testinterp(void) {
-	struct ObjectClassInfo *objectinfo, *errorinfo, *stringinfo;
-	buttert(testinterp = interpreter_new("testargv0"));
-	buttert(objectinfo = objectobject_createclass());
-	buttert(errorinfo = errorobject_createclass(objectinfo));
-	buttert(stringinfo = stringobject_createclass(objectinfo));
-	buttert(testinterp->nomemerr = errorobject_createnomemerr(errorinfo, stringinfo));
-
-	// now we can use errptr, but tests pass NULL for errptr when errors are not welcome
-	buttert(testinterp->classobjectinfo = classobject_createclass(testinterp, NULL, objectinfo));
-	buttert(interpreter_addbuiltin(testinterp, NULL, "Object", classobject_newfromclassinfo(testinterp, NULL, objectinfo)) == STATUS_OK);
-	buttert(interpreter_addbuiltin(testinterp, NULL, "Error", classobject_newfromclassinfo(testinterp, NULL, errorinfo)) == STATUS_OK);
-	buttert(interpreter_addbuiltin(testinterp, NULL, "String", classobject_newfromclassinfo(testinterp, NULL, stringinfo)) == STATUS_OK);
-}
-
-static void teardown_testinterp(void) {
-	struct ObjectClassInfo *objectinfo = interpreter_getbuiltin(testinterp, NULL, "Object")->data;
-	struct ObjectClassInfo *errorinfo = interpreter_getbuiltin(testinterp, NULL, "Error")->data;
-	struct ObjectClassInfo *stringinfo = interpreter_getbuiltin(testinterp, NULL, "String")->data;
-
-	object_free(interpreter_getbuiltin(testinterp, NULL, "String"));
-	object_free(interpreter_getbuiltin(testinterp, NULL, "Error"));
-	object_free(interpreter_getbuiltin(testinterp, NULL, "Object"));
-	objectclassinfo_free(testinterp->classobjectinfo);
-
-	object_free(testinterp->nomemerr->data);   // the message string
-	object_free(testinterp->nomemerr);
-	objectclassinfo_free(stringinfo);
-	objectclassinfo_free(errorinfo);
-	objectclassinfo_free(objectinfo);
-	interpreter_free(testinterp);
-}
-
-
 int main(int argc, char **argv)
 {
 	if (argc == 1)
@@ -82,7 +49,6 @@ int main(int argc, char **argv)
 	}
 	ntests = 0;
 
-	setup_testinterp();
 	RUN_TEST(test_ast_node_structs_and_ast_copynode);
 	RUN_TEST(test_ast_strings);
 	RUN_TEST(test_ast_ints);
@@ -98,10 +64,16 @@ int main(int argc, char **argv)
 	RUN_TEST(test_hashtable_many_values);
 	RUN_TEST(test_hashtable_iterating);
 
+	buttert(testinterp = interpreter_new("testargv0"));
+	buttert(builtins_setup(testinterp, NULL) == STATUS_OK);
+
 	RUN_TEST(test_objects_objectclass_stuff);
 	RUN_TEST(test_objects_simple);
 	//RUN_TEST(test_objects_function);   // TODO: do functions well
 	//RUN_TEST(test_objects_string);   // TODO: replace passing in ObjectClassInfo with interp or something
+
+	builtins_teardown(testinterp);
+	interpreter_free(testinterp);
 
 	RUN_TEST(test_tokenizer_read_file_to_huge_string);
 	RUN_TEST(test_tokenizer_tokenize);
@@ -109,8 +81,6 @@ int main(int argc, char **argv)
 	void unicode_test_setup(void); unicode_test_setup();
 	RUN_TEST(test_utf8_encode);
 	RUN_TEST(test_utf8_decode);
-
-	teardown_testinterp();
 
 	if (verbose)
 		printf("\n---------- all %d tests passed ----------\n", ntests);

@@ -39,20 +39,16 @@ void test_objects_simple(void)
 }
 
 
-int callback_ran;
-int callback(struct Object **retval)
+struct Object *callback(struct Context *callctx, struct Object **errptr, struct DynamicArray *args)
 {
-	callback_ran = 1;
-	return STATUS_OK;
+	buttert2(0, "the callback ran unexpectedly");
+	return (struct Object*) 0xdeadbeef;
 }
 
 void test_objects_function(void)
 {
-	callback_ran = 0;
-	struct Object *func = functionobject_new(functionclass, callback);
-	buttert(!callback_ran);
-	functionobject_get_cfunc(func)(NULL);
-	buttert(callback_ran);
+	struct Object *func = functionobject_new(testinterp, NULL, callback);
+	buttert(functionobject_getcfunc(testinterp, NULL, func) == callback);
 	object_free(func);
 }
 

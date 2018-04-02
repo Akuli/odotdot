@@ -9,15 +9,16 @@ static void classobject_free(struct Object *obj)
 	// TODO: objectclassinfo_free(obj->data);  ???
 }
 
-struct ObjectClassInfo *classobject_createclass(struct Interpreter *interp, struct Object **errptr, struct ObjectClassInfo *objectclass)
+int classobject_createclass(struct Interpreter *interp, struct Object **errptr, struct ObjectClassInfo *objectclass)
 {
 	struct ObjectClassInfo *res = objectclassinfo_new(objectclass, NULL, classobject_free);
 	if (!res) {
 		*errptr = interp->nomemerr;
 		// TODO: decref objectclass or something?
-		return NULL;
+		return STATUS_ERROR;
 	}
-	return res;
+	interp->classobjectinfo = res;
+	return STATUS_OK;
 }
 
 struct Object *classobject_new(struct Interpreter *interp, struct Object **errptr, struct Object *base, objectclassinfo_foreachref foreachref, void (*destructor)(struct Object *))
