@@ -8,44 +8,6 @@
 #include "unicode.h"
 
 
-#define CHUNK_SIZE 4096
-int read_file_to_huge_string(FILE *f, char **dest, size_t *destlen)
-{
-	int errorcode=STATUS_OK;
-
-	char *s = NULL;
-	char buf[CHUNK_SIZE];
-	size_t totalsize=0;
-	size_t nread;
-	while ((nread = fread(buf, 1, CHUNK_SIZE, f))) {
-		// <jp> if s is NULL in realloc(s, sz), it acts like malloc
-		char *ptr = realloc(s, totalsize+nread);
-		if (!ptr) {
-			errorcode = STATUS_NOMEM;
-			goto error;
-		}
-		s = ptr;
-		memcpy(s+totalsize, buf, nread);
-		totalsize += nread;
-	}
-
-	if (!feof(f)) {
-		errorcode = 1;
-		goto error;
-	}
-
-	*dest = s;
-	*destlen = totalsize;
-	return STATUS_OK;
-
-error:
-	if (s)
-		free(s);
-	return errorcode;
-}
-#undef CHUNK_SIZE
-
-
 // creates a token of first nchars chars of hugestring
 static struct Token *new_token(struct Token *prev, char kind, struct UnicodeString hugestring, size_t nchars, size_t lineno)
 {

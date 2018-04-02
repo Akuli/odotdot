@@ -23,7 +23,7 @@ struct Interpreter {
 };
 
 // returns NULL on no mem
-// note that nomemerr is set to NULL!
+// pretty much nothing is ready after calling this, use builtins_setup()
 struct Interpreter *interpreter_new(char *argv0);
 
 // never fails

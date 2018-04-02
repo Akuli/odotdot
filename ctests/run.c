@@ -72,7 +72,6 @@ int main(int argc, char **argv)
 	builtins_teardown(testinterp);
 	interpreter_free(testinterp);
 
-	RUN_TEST(test_tokenizer_read_file_to_huge_string);
 	RUN_TEST(test_tokenizer_tokenize);
 
 	void unicode_test_setup(void); unicode_test_setup();

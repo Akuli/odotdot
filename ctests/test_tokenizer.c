@@ -9,29 +9,6 @@
 #include "utils.h"
 
 
-void test_tokenizer_read_file_to_huge_string(void)
-{
-	char s[] = "hellö\n\t";
-	size_t n = strlen(s) + 1;    // INCLUDE the \0 this time
-	s[2] = 0;   // even this must work
-
-	FILE *f = tmpfile();
-	buttert(f);
-	buttert(fwrite(s, 1, n, f));
-	rewind(f);   // the standards don't guarantee that this works :(
-
-	size_t n2;
-	char *s2;
-	read_file_to_huge_string(f, &s2, &n2);
-	buttert(fclose(f) == 0);
-
-	buttert(n == n2);
-	buttert(memcmp(s, s2, n) == 0);
-
-	free(s2);
-}
-
-
 static char *unicode_to_utf8_ending_with_0(struct UnicodeString unicode)
 {
 	char *utf8;
