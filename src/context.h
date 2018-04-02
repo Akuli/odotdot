@@ -1,9 +1,11 @@
 #ifndef CONTEXT_H
 #define CONTEXT_H
 
-#include "objectsystem.h"
+#include "objectsystem.h"       // IWYU pragma: keep
 
-struct Interpreter;    // defined in interpreter.h
+// Interpreter defined in interpreter.h but it needs to include this file
+// IWYU doesn't get this and there seems to be no way to pragma keep structs :(
+struct Interpreter;
 struct Context {
 	struct Context *parentctx;
 	struct Interpreter *interp;

@@ -2,12 +2,9 @@
 #include <assert.h>
 #include <string.h>
 #include <stddef.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include "common.h"
 #include "context.h"
-#include "hashtable.h"
-#include "objectsystem.h"
 #include "unicode.h"
 
 struct Interpreter *interpreter_new(char *argv0)

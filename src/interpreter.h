@@ -2,6 +2,7 @@
 #define INTERPRETER_H
 
 // these are defined in other files that need to include this file
+// stupid IWYU doesn't get this.....
 struct Context;
 struct Object;
 struct ObjectClassInfo;

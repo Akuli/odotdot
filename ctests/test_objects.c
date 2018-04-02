@@ -1,9 +1,6 @@
-#include <src/common.h>
 #include <src/hashtable.h>
 #include <src/interpreter.h>
-#include <src/objects/classobject.h>
 #include <src/objects/function.h>
-#include <src/objects/object.h>
 #include <src/objects/string.h>
 #include <src/objectsystem.h>
 #include <src/unicode.h>

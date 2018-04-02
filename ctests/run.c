@@ -5,10 +5,7 @@
 
 #include <src/builtins.h>
 #include <src/common.h>
-#include <src/objects/classobject.h>
-#include <src/objects/errors.h>
-#include <src/objects/object.h>
-#include <src/objects/string.h>
+#include <src/interpreter.h>
 
 typedef void (*testfunc)(void);
 int verbose;

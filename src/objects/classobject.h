@@ -2,7 +2,7 @@
 #ifndef OBJECTS_CLASSOBJECT_H
 #define OBJECTS_CLASSOBJECT_H
 
-#include "../interpreter.h"
+#include "../interpreter.h"         // IWYU pragma: keep
 #include "../objectsystem.h"
 
 // sets interp->classobjectinfo and returns STATUS_OK or STATUS_ERROR

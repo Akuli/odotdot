@@ -1,12 +1,13 @@
 #include "context.h"
 #include <assert.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include "common.h"
 #include "hashtable.h"
 #include "interpreter.h"
 #include "unicode.h"
-#include "objects/errors.h"
 
 // grep for this function's name, it's copy/pasted in a couple other places too
 static int compare_unicode_strings(void *a, void *b, void *userdata)

@@ -1,5 +1,6 @@
 #include "builtins.h"
 #include <assert.h>
+#include <stdlib.h>
 #include "common.h"
 #include "interpreter.h"
 #include "objectsystem.h"

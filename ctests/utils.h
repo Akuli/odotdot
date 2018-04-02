@@ -3,7 +3,6 @@
 
 #include <stddef.h>
 #include <stdio.h>
-#include <src/interpreter.h>
 
 // for abort()
 #include <stdlib.h>      // IWYU pragma: keep

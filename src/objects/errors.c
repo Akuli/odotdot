@@ -1,8 +1,10 @@
 #include "errors.h"
+#include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include "../objectsystem.h"
-#include "string.h"
+#include "../unicode.h"
 
 static void error_foreachref(struct Object *obj, void *data, objectclassinfo_foreachrefcb cb)
 {

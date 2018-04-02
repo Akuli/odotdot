@@ -2,8 +2,8 @@
 #ifndef BUILTINS_H
 #define BUILTINS_H
 
-#include "interpreter.h"
-#include "objectsystem.h"
+#include "interpreter.h"     // IWYU pragma: keep
+#include "objectsystem.h"    // IWYU pragma: keep
 
 // returns STATUS_OK, STATUS_ERROR or STATUS_NOMEM because interp->errptr
 // doesn't need to exist when this is called
