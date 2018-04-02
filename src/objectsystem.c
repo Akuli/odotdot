@@ -75,29 +75,6 @@ void object_free(struct Object *obj)
 	free(obj);
 }
 
-// TODO: create a wrapper object instead of adding the class info directly
-int objectsystem_addbuiltinclass(struct HashTable *builtins, char *name, struct ObjectClassInfo *klass)
-{
-	char decodeerror[100] = {0};
-	struct UnicodeString *uname = malloc(sizeof(struct UnicodeString));
-	if (!uname)
-		return STATUS_NOMEM;
-	int res = utf8_decode(name, strlen(name), uname, decodeerror);
-	assert(res != 1);   // the name must be valid utf8
-	assert(decodeerror[0] == 0);
-	if (res != STATUS_OK) {
-		free(uname);
-		return res;
-	}
-
-	if ((res = hashtable_set(builtins, uname, unicodestring_hash(*uname), klass, NULL)) != STATUS_OK) {
-		free(uname->val);
-		free(uname);
-		return res;
-	}
-	return STATUS_OK;
-}
-
 int objectsystem_getbuiltin(struct HashTable *builtins, char *name, void **res)
 {
 	char decodeerror[100] = {0};
