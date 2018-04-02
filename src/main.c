@@ -8,6 +8,7 @@
 #include "context.h"
 #include "dynamicarray.h"
 #include "interpreter.h"
+#include "run.h"
 #include "tokenizer.h"
 #include "unicode.h"
 
@@ -54,11 +55,11 @@ static void astnode_free_voidstar(void *node)
 
 // prints errors to stderr
 // returns an exit code, e.g. 0 for success
-static int run_file(struct Context *globalctx, char *path)
+static int run_file(struct Context *ctx, char *path)
 {
 	FILE *f = fopen(path, "rb");   // b because the content is decoded below... i think this is good
 	if (!f) {
-		fprintf(stderr, "%s: cannot open '%s'\n", globalctx->interp->argv0, path);
+		fprintf(stderr, "%s: cannot open '%s'\n", ctx->interp->argv0, path);
 		return 1;
 	}
 
@@ -68,11 +69,11 @@ static int run_file(struct Context *globalctx, char *path)
 	fclose(f);
 
 	if (status == STATUS_NOMEM) {
-		fprintf(stderr, "%s: ran out of memory while reading '%s'\n", globalctx->interp->argv0, path);
+		fprintf(stderr, "%s: ran out of memory while reading '%s'\n", ctx->interp->argv0, path);
 		return 1;
 	}
 	if (status == 1) {
-		fprintf(stderr, "%s: reading '%s' failed\n", globalctx->interp->argv0, path);
+		fprintf(stderr, "%s: reading '%s' failed\n", ctx->interp->argv0, path);
 		return 1;
 	}
 	assert(status == STATUS_OK);
@@ -84,11 +85,11 @@ static int run_file(struct Context *globalctx, char *path)
 	free(hugestr);
 
 	if (status == 1) {
-		fprintf(stderr, "%s: the content of '%s' is not valid UTF-8: %s\n", globalctx->interp->argv0, path, errormsg);
+		fprintf(stderr, "%s: the content of '%s' is not valid UTF-8: %s\n", ctx->interp->argv0, path, errormsg);
 		return 1;
 	}
 	if (status == STATUS_NOMEM) {
-		fprintf(stderr, "%s: ran out of memory while UTF8-decoding the content of '%s'\n", globalctx->interp->argv0, path);
+		fprintf(stderr, "%s: ran out of memory while UTF8-decoding the content of '%s'\n", ctx->interp->argv0, path);
 		return 1;
 	}
 	assert(status == STATUS_OK);
@@ -100,7 +101,7 @@ static int run_file(struct Context *globalctx, char *path)
 	// parse
 	struct DynamicArray *statements = dynamicarray_new();
 	if (!statements) {
-		fprintf(stderr, "%s: ran out of memory while parsing the content of '%s'\n", globalctx->interp->argv0, path);
+		fprintf(stderr, "%s: ran out of memory while parsing the content of '%s'\n", ctx->interp->argv0, path);
 		token_freeall(tok1st);
 		return 1;
 	}
@@ -110,7 +111,7 @@ static int run_file(struct Context *globalctx, char *path)
 		struct AstNode *st = parse_statement(&curtok);
 		if (!st) {
 			// TODO: better error reporting... also fix ast.c
-			fprintf(stderr, "%s: something went wrong with parsing the content of '%s'\n", globalctx->interp->argv0, path);
+			fprintf(stderr, "%s: something went wrong with parsing the content of '%s'\n", ctx->interp->argv0, path);
 			token_freeall(tok1st);
 			return 1;
 		}
@@ -118,13 +119,18 @@ static int run_file(struct Context *globalctx, char *path)
 	}
 	token_freeall(tok1st);
 
-	// TODO: run it instead of this
-	if (statements->len == 1)
-		printf("there is 1 statement\n");
-	else
-		printf("there are %llu statements\n", (unsigned long long) statements->len);
-	dynamicarray_freeall(statements, astnode_free_voidstar);
+	// run!
+	struct Object *err = NULL;
+	for (size_t i=0; i < statements->len; i++) {
+		run_statement(ctx, &err, statements->values[i]);
+		if (err) {
+			fprintf(stderr, "an error occurred, printing errors is not implemented yet :(\n");
+			dynamicarray_freeall(statements, astnode_free_voidstar);
+			return 1;
+		}
+	}
 
+	dynamicarray_freeall(statements, astnode_free_voidstar);
 	return 0;
 }
 
@@ -157,6 +163,7 @@ int main(int argc, char **argv)
 	}
 	assert(status == STATUS_OK);
 
+	// TODO: run stdlib/fake_builtins.ö and don't use
 	int res = run_file(interp->builtinctx, argv[1]);
 	builtins_teardown(interp);
 	interpreter_free(interp);

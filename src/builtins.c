@@ -5,6 +5,7 @@
 #include "context.h"
 #include "dynamicarray.h"
 #include "interpreter.h"
+#include "unicode.h"
 #include "objectsystem.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
@@ -13,20 +14,33 @@
 #include "objects/string.h"
 
 
-static struct Object *print_builtin(struct Context *ctx, struct Object **errptr, struct DynamicArray *args)
+static struct Object *print_builtin(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
 {
 	struct Object *stringclass = interpreter_getbuiltin(ctx->interp, errptr, "String");
 	if (!stringclass)    // errptr is set
 		return NULL;
 
 	// TODO: call to_string() and check arguments with errptr instead of assert
-	assert(args->len == 1);
-	struct Object *str = args->values[0];
-	assert(str->klass == (struct ObjectClassInfo *) stringclass->data);
+	assert(nargs == 1);
+	assert(args[0]->klass == (struct ObjectClassInfo *) stringclass->data);
 
-	// this must return some non-NULL value, so let's hope for the best...
-	// i haven't created the ö null object yet
-	return (struct Object*) 0xdeadbeef;
+	char *utf8;
+	size_t utf8len;
+	char errormsg[100];
+	int status = utf8_encode(*((struct UnicodeString *) args[0]->data), &utf8, &utf8len, errormsg);
+	if (status == STATUS_NOMEM) {
+		*errptr = ctx->interp->nomemerr;
+		return NULL;
+	}
+	assert(status == STATUS_OK);    // TODO: how about invalid unicode strings?
+
+	// TODO: avoid writing 1 byte at a time... seems to be hard with c \0 strings
+	for (size_t i=0; i < utf8len; i++)
+		putchar(utf8[i]);
+	putchar('\n');
+
+	// this must return some non-NULL value
+	return stringobject_newfromcharptr(ctx->interp, errptr, "asd");
 }
 
 // this is ugly
@@ -56,8 +70,12 @@ int builtins_setup(struct Interpreter *interp, struct Object **errptr)
 	if (functionobject_createclass(interp, errptr) == STATUS_ERROR) goto error;
 
 	printfunc = functionobject_new(interp, errptr, print_builtin);
+	assert(printfunc->klass == interp->functionobjectinfo);
 	if (!printfunc) goto error;
 	if (interpreter_addbuiltin(interp, errptr, "print", printfunc) == STATUS_ERROR) goto error;
+	assert(interpreter_getbuiltin(interp, NULL, "print"));
+	assert(interpreter_getbuiltin_nomalloc(interp, "print"));
+	assert(interpreter_getbuiltin_nomalloc(interp, "print") == printfunc);
 
 	return STATUS_OK;
 
@@ -103,6 +121,7 @@ void builtins_teardown(struct Interpreter *interp)
 	struct ObjectClassInfo *errorinfo = errorclass ? errorclass->data : NULL;
 	struct ObjectClassInfo *stringinfo = stringclass ? stringclass->data : NULL;
 
+	assert(printfunc->klass == interp->functionobjectinfo);
 	if (printfunc) object_free(printfunc);
 	if (stringclass) object_free(stringclass);
 	if (errorclass) object_free(errorclass);

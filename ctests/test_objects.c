@@ -36,7 +36,7 @@ void test_objects_simple(void)
 }
 
 
-struct Object *callback(struct Context *callctx, struct Object **errptr, struct DynamicArray *args)
+struct Object *callback(struct Context *callctx, struct Object **errptr, struct Object **args, size_t nargs)
 {
 	buttert2(0, "the callback ran unexpectedly");
 	return (struct Object*) 0xdeadbeef;
@@ -45,7 +45,7 @@ struct Object *callback(struct Context *callctx, struct Object **errptr, struct 
 void test_objects_function(void)
 {
 	struct Object *func = functionobject_new(testinterp, NULL, callback);
-	buttert(functionobject_getcfunc(testinterp, NULL, func) == callback);
+	buttert(functionobject_getcfunc(testinterp, func) == callback);
 	object_free(func);
 }
 

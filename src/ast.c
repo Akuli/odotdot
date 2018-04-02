@@ -512,7 +512,8 @@ static struct AstNode *parse_call(struct Token **curtok, struct AstNode *func)
 
 	// this can't fail because this is freeing memory, not allocating more
 	callinfo->args = realloc(callinfo->args, sizeof(struct AstNode) * callinfo->nargs);
-	assert(callinfo->args);
+	if (callinfo->nargs)       // 0 bytes of memory *MAY* be represented as NULL
+		assert(callinfo->args);
 
 	struct AstNode *res = new_statement(AST_CALL, lineno, callinfo);
 	if (!res) {

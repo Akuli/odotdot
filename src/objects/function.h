@@ -7,7 +7,7 @@
 
 
 // these should set errptr and return NULL on error
-typedef struct Object* (*functionobject_cfunc)(struct Context *callctx, struct Object **errptr, struct DynamicArray *args);
+typedef struct Object* (*functionobject_cfunc)(struct Context *callctx, struct Object **errptr, struct Object **args, size_t nargs);
 
 // sets interp->functionobjectinfo, returns STATUS_OK or STATUS_ERROR
 int functionobject_createclass(struct Interpreter *interp, struct Object **errptr);
@@ -15,7 +15,8 @@ int functionobject_createclass(struct Interpreter *interp, struct Object **errpt
 // returns NULL and sets errptr on error
 struct Object *functionobject_new(struct Interpreter *interp, struct Object **errptr, functionobject_cfunc func);
 
-functionobject_cfunc functionobject_getcfunc(struct Interpreter *interp, struct Object **errptr, struct Object *func);
+// never fails
+functionobject_cfunc functionobject_getcfunc(struct Interpreter *interp, struct Object *func);
 
 
 #endif   // OBJECTS_FUNCTION_H
