@@ -2,6 +2,7 @@
 
 #include "hashtable.h"
 #include <assert.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include "common.h"
@@ -25,7 +26,7 @@ struct HashTable *hashtable_new(hashtable_cmpfunc keycmp)
 
 static int make_bigger(struct HashTable *);   // forward declaration
 
-int hashtable_set(struct HashTable *ht, void *key, unsigned long keyhash, void *value, void *userdata)
+int hashtable_set(struct HashTable *ht, void *key, unsigned int keyhash, void *value, void *userdata)
 {
 	/*
 	https://en.wikipedia.org/wiki/Hash_table#Key_statistics
@@ -40,7 +41,7 @@ int hashtable_set(struct HashTable *ht, void *key, unsigned long keyhash, void *
 			return status;
 	}
 
-	unsigned long i = keyhash % ht->nbuckets;
+	unsigned int i = keyhash % ht->nbuckets;
 	if (ht->buckets[i]) {
 		for (struct HashTableItem *olditem = ht->buckets[i]; olditem; olditem=olditem->next) {
 			int cmpres = ht->keycmp(olditem->key, key, userdata);
@@ -74,7 +75,7 @@ int hashtable_set(struct HashTable *ht, void *key, unsigned long keyhash, void *
 }
 
 
-int hashtable_get(struct HashTable *ht, void *key, unsigned long keyhash, void **res, void *userdata)
+int hashtable_get(struct HashTable *ht, void *key, unsigned int keyhash, void **res, void *userdata)
 {
 	struct HashTableItem *item = ht->buckets[keyhash % ht->nbuckets];
 	if (item) {
@@ -94,9 +95,9 @@ int hashtable_get(struct HashTable *ht, void *key, unsigned long keyhash, void *
 }
 
 
-int hashtable_pop(struct HashTable *ht, void *key, unsigned long keyhash, void **res, void *userdata)
+int hashtable_pop(struct HashTable *ht, void *key, unsigned int keyhash, void **res, void *userdata)
 {
-	unsigned long i = keyhash % ht->nbuckets;
+	unsigned int i = keyhash % ht->nbuckets;
 	if (ht->buckets[i]) {
 		struct HashTableItem *prev = NULL;
 		for (struct HashTableItem *item = ht->buckets[i]; item; item=item->next) {
@@ -163,6 +164,10 @@ starthere:
 static int make_bigger(struct HashTable *ht)
 {
 	size_t newnbuckets = ht->nbuckets*3;   // 50, 150, 450, ...
+	if (newnbuckets > UINT_MAX) {
+		// TODO: a better error message?
+		return STATUS_NOMEM;
+	}
 
 	struct HashTableItem **tmp = realloc(ht->buckets, newnbuckets * sizeof(struct HashTableItem));
 	if (!tmp)

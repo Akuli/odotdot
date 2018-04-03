@@ -28,11 +28,11 @@ struct UnicodeString *unicodestring_copy(struct UnicodeString src)
 	return res;
 }
 
-unsigned long unicodestring_hash(struct UnicodeString str)
+unsigned int unicodestring_hash(struct UnicodeString str)
 {
 	// djb2 hash
 	// http://www.cse.yorku.ca/~oz/hash.html
-	unsigned long hash = 5381;
+	unsigned int hash = 5381;
 	for (size_t i=0; i < str.len; i++)
 		hash = hash*33 + str.val[i];
 	return hash;

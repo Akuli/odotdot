@@ -12,7 +12,7 @@ struct UnicodeString {
 };
 
 // never fails
-unsigned long unicodestring_hash(struct UnicodeString str);
+unsigned int unicodestring_hash(struct UnicodeString str);
 
 // the return value's ->val and the return value must be free()'d
 struct UnicodeString *unicodestring_copy(struct UnicodeString src);

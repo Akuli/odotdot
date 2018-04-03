@@ -69,7 +69,7 @@ struct Object *object_new(struct Interpreter *interp, struct ObjectClassInfo *kl
 	obj->data = data;
 	obj->gcflag = 0;
 
-	if (hashtable_set(interp->allobjects, obj, (unsigned long)((uintptr_t)obj), &dummy, NULL) == STATUS_NOMEM) {
+	if (hashtable_set(interp->allobjects, obj, (unsigned int)((uintptr_t)obj), &dummy, NULL) == STATUS_NOMEM) {
 		hashtable_free(obj->attrs);
 		free(obj);
 		return NULL;
@@ -80,7 +80,7 @@ struct Object *object_new(struct Interpreter *interp, struct ObjectClassInfo *kl
 void object_free(struct Interpreter *interp, struct Object *obj)
 {
 	void *dummyptr;
-	assert(hashtable_pop(interp->allobjects, obj, (unsigned long)((uintptr_t)obj), &dummyptr, NULL) == 1);
+	assert(hashtable_pop(interp->allobjects, obj, (unsigned int)((uintptr_t)obj), &dummyptr, NULL) == 1);
 
 	hashtable_clear(obj->attrs);   // TODO: decref the values or something?
 	hashtable_free(obj->attrs);
