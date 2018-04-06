@@ -68,7 +68,7 @@ int objectsystem_getbuiltin(struct HashTable *builtins, char *name, void **res);
 // RETURNS A NEW REFERENCE
 struct Object *object_new(struct Interpreter *interp, struct ObjectClassInfo *klass, void *data);
 
-// quite self-explanatory
+// quite self-explanatory, these functions never fail
 #define OBJECT_INCREF(interp, obj) do { ATOMIC_INCR(((struct Object *)(obj))->refcount); } while(0)
 #define OBJECT_DECREF(interp, obj) do { \
 	if (ATOMIC_DECR(((struct Object *)(obj))->refcount) <= 0) \

@@ -7,6 +7,7 @@
 #include "context.h"
 #include "interpreter.h"
 #include "objectsystem.h"
+#include "objects/array.h"
 #include "objects/function.h"
 #include "objects/string.h"
 
@@ -19,6 +20,33 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 		return context_getvar(ctx, errptr, INFO_AS(AstGetVarInfo)->varname);
 	case AST_STR:
 		return stringobject_newfromustr(ctx->interp, errptr, *((struct UnicodeString *)expr->info));
+	case AST_ARRAY:
+		// this is handled specially because malloc(0) MAY return NULL
+		if (INFO_AS(AstArrayOrBlockInfo)->nitems == 0)
+			return arrayobject_newempty(ctx->interp, errptr);
+
+		// TODO: create a DynamicArray directly instead of a temporary shit
+		struct Object **elems = malloc(sizeof(struct Object *) * INFO_AS(AstArrayOrBlockInfo)->nitems);
+		if (!elems) {
+			*errptr = ctx->interp->nomemerr;
+			return NULL;
+		}
+
+		for (size_t i=0; i < INFO_AS(AstArrayOrBlockInfo)->nitems; i++) {
+			elems[i] = run_expression(ctx, errptr, INFO_AS(AstArrayOrBlockInfo)->items[i]);
+			if (!elems[i]) {
+				for (size_t j=0; j<i; j++)
+					OBJECT_DECREF(ctx->interp, elems[i]);
+				free(elems);
+				return NULL;
+			}
+		}
+
+		struct Object *arr = arrayobject_new(ctx->interp, errptr, elems, INFO_AS(AstArrayOrBlockInfo)->nitems);
+		for (size_t i=0; i < INFO_AS(AstArrayOrBlockInfo)->nitems; i++)
+			OBJECT_DECREF(ctx->interp, elems[i]);
+		free(elems);
+		return arr;
 #undef INFO_AS
 	default:
 		assert(0);
@@ -29,7 +57,6 @@ int run_statement(struct Context *ctx, struct Object **errptr, struct AstNode *s
 {
 #define INFO_AS(X) ((struct X *)stmt->info)
 	if (stmt->kind == AST_CALL) {
-		(void) 1;  // i'm not sure why, but compilers want this
 		struct Object *func = run_expression(ctx, errptr, INFO_AS(AstCallInfo)->func);
 		if (!func)
 			return STATUS_ERROR;

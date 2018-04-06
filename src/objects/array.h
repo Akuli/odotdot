@@ -1,5 +1,5 @@
 // TODO: interp and errptr, uncomment everything
-/*
+
 #ifndef OBJECTS_ARRAY_H
 #define OBJECTS_ARRAY_H
 
@@ -7,15 +7,14 @@
 #include "../interpreter.h"    // IWYU pragma: keep
 #include "../objectsystem.h"    // IWYU pragma: keep
 
-// returns STATUS_OK or STATUS_NOMEM
+// returns STATUS_OK or STATUS_ERROR
 int arrayobject_createclass(struct Interpreter *interp, struct Object **errptr);
 
-// returns NULL on no mem
-struct Object *arrayobject_newempty(struct ObjectClassInfo *arrayclass);
+// RETURNS A NEW REFERENCE or NULL on error
+struct Object *arrayobject_new(struct Interpreter *interp, struct Object **errptr, struct Object **elems, size_t nelems);
 
-// these return NULL on no mem and always make a copy of the given array
-struct Object *arrayobject_newfromarrayandsize(struct ObjectClassInfo *arrayclass, struct Object **array, size_t size);
-struct Object *arrayobject_newfromnullterminated(struct ObjectClassInfo *arrayclass, struct Object **nullterminated);
+// creates NEW REFERENCES to each object
+// RETURNS A NEW REFERENCE or NULL on error
+struct Object *arrayobject_newempty(struct Interpreter *interp, struct Object **errptr);
 
 #endif    // OBJECTS_ARRAY_H
-*/

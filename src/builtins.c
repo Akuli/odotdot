@@ -8,6 +8,7 @@
 #include "interpreter.h"
 #include "unicode.h"
 #include "objectsystem.h"
+#include "objects/array.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
 #include "objects/function.h"
@@ -70,6 +71,7 @@ int builtins_setup(struct Interpreter *interp, struct Object **errptr)
 	if (interpreter_addbuiltin(interp, errptr, "Error", errorclass) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, errptr, "String", stringclass) == STATUS_ERROR) goto error;
 
+	if (arrayobject_createclass(interp, errptr) == STATUS_ERROR) goto error;
 	if (functionobject_createclass(interp, errptr) == STATUS_ERROR) goto error;
 
 	printfunc = functionobject_new(interp, errptr, print_builtin);
@@ -128,17 +130,21 @@ void builtins_teardown(struct Interpreter *interp)
 	struct Object *objectclass = interpreter_getbuiltin_nomalloc(interp, "Object");
 	struct Object *errorclass = interpreter_getbuiltin_nomalloc(interp, "Error");
 	struct Object *stringclass = interpreter_getbuiltin_nomalloc(interp, "String");
+	struct Object *arrayclass = interpreter_getbuiltin_nomalloc(interp, "Array");
 	struct ObjectClassInfo *objectinfo = objectclass ? objectclass->data : NULL;
 	struct ObjectClassInfo *errorinfo = errorclass ? errorclass->data : NULL;
 	struct ObjectClassInfo *stringinfo = stringclass ? stringclass->data : NULL;
+	struct ObjectClassInfo *arrayinfo = arrayclass ? arrayclass->data : NULL;
 	if (objectclass) OBJECT_DECREF(interp, objectclass);
 	if (errorclass) OBJECT_DECREF(interp, errorclass);
 	if (stringclass) OBJECT_DECREF(interp, stringclass);
+	if (arrayclass) OBJECT_DECREF(interp, arrayclass);
 
 	// this must be before freeing class infos but after getting them
 	// TODO: how about all sub contexts? this assumes that there are none
 	context_free(interp->builtinctx);
 
+	if (arrayinfo) objectclassinfo_free(arrayinfo);
 	if (stringinfo) objectclassinfo_free(stringinfo);
 	if (errorinfo) objectclassinfo_free(errorinfo);
 	if (objectinfo) objectclassinfo_free(objectinfo);

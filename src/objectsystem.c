@@ -93,10 +93,11 @@ void object_free_impl(struct Interpreter *interp, struct Object *obj)
 	assert(obj->refcount >= 0);
 	assert(obj->refcount <= 0);
 
-	if (obj->klass->destructor)
-		obj->klass->destructor(obj);
+	// TODO: document this behavior, it really makes a difference with e.g. Array
 	if (obj->klass->foreachref)
 		obj->klass->foreachref(obj, interp, decref_the_ref);
+	if (obj->klass->destructor)
+		obj->klass->destructor(obj);
 
 	void *dummyptr;
 	assert(hashtable_pop(interp->allobjects, obj, (unsigned int)((uintptr_t)obj), &dummyptr, NULL) == 1);

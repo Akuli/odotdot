@@ -1,4 +1,3 @@
-/*
 #include "array.h"
 #include <assert.h>
 #include "classobject.h"
@@ -25,24 +24,31 @@ int arrayobject_createclass(struct Interpreter *interp, struct Object **errptr)
 	if (!objectclass)
 		return STATUS_ERROR;
 
-	struct Object *klass = classobject_new(interp, errptr, objectclass, array_foreachref, array_destructor);
-	if (!klass) {
-		// TODO: decref objectclass?
-		*errptr = interp->nomemerr;
+	struct Object *klass = classobject_new(interp, errptr, "Array", objectclass, array_foreachref, array_destructor);
+	OBJECT_DECREF(interp, objectclass);
+	if (!klass)
 		return STATUS_ERROR;
-	}
 
-	// TODO: decref objectclass and klass if this returns STATUS_ERROR
-	return interpreter_addbuiltin(interp, errptr, "Array", klass);
+	int res = interpreter_addbuiltin(interp, errptr, "Array", klass);
+	OBJECT_DECREF(interp, klass);
+	return res;
 }
 
-struct Object *arrayobject_newempty(struct ObjectClassInfo *arrayclass)
+// TODO: add something for creating DynamicArrays from existing item lists efficiently
+struct Object *arrayobject_newempty(struct Interpreter *interp, struct Object **errptr)
 {
 	struct DynamicArray *dynarray = dynamicarray_new();
 	if (!dynarray)
 		return NULL;
 
-	struct Object *arr = object_new(arrayclass, dynarray);
+	struct Object *klass = interpreter_getbuiltin(interp, errptr, "Array");
+	if (!klass) {
+		dynamicarray_free(dynarray);
+		return NULL;
+	}
+
+	struct Object *arr = classobject_newinstance(interp, errptr, klass, dynarray);
+	OBJECT_DECREF(interp, klass);
 	if (!arr) {
 		dynamicarray_free(dynarray);
 		return NULL;
@@ -50,39 +56,25 @@ struct Object *arrayobject_newempty(struct ObjectClassInfo *arrayclass)
 	return arr;
 }
 
-// TODO: reduce copy/pasting?
-struct Object *arrayobject_newfromarrayandsize(struct ObjectClassInfo *arrayclass, struct Object **array, size_t size)
+struct Object *arrayobject_new(struct Interpreter *interp, struct Object **errptr, struct Object **elems, size_t nelems)
 {
-	struct Object *arr = arrayobject_newempty(arrayclass);
+	struct Object *arr = arrayobject_newempty(interp, errptr);
 	if (!arr)
 		return NULL;
 
-	for (size_t i=0; i < size; i++) {
-		int status = dynamicarray_push(arr->data, array[i]);
+	for (size_t i=0; i < nelems; i++) {
+		int status = dynamicarray_push(arr->data, elems[i]);
 		if (status != STATUS_OK) {
 			assert(status == STATUS_NOMEM);
-			object_free(arr);
+			*errptr = interp->nomemerr;
+			OBJECT_DECREF(interp, arr);
 			return NULL;
 		}
 	}
 
-	return arr;
-}
-struct Object *arrayobject_newfromnullterminated(struct ObjectClassInfo *arrayclass, struct Object **nullterminated)
-{
-	struct Object *arr = arrayobject_newempty(arrayclass);
-	if (!arr)
-		return NULL;
-
-	for (size_t i=0; nullterminated[i]; i++) {
-		int status = dynamicarray_push(arr->data, nullterminated[i]);
-		if (status != STATUS_OK) {
-			assert(status == STATUS_NOMEM);
-			object_free(arr);
-			return NULL;
-		}
-	}
+	// this way stuff doesn't need to be decreffed in a second loop when dynamicarray_push fails
+	for (size_t i=0; i < nelems; i++)
+		OBJECT_INCREF(interp, elems[i]);
 
 	return arr;
 }
-*/
