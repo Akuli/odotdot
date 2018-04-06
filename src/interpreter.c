@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>       // this thing prints messages for debugging refcount problems
 #include <stdlib.h>
 #include <string.h>
 #include "common.h"
@@ -39,8 +40,10 @@ struct Interpreter *interpreter_new(char *argv0)
 
 void interpreter_free(struct Interpreter *interp)
 {
-	hashtable_free(interp->allobjects);
-	context_free(interp->builtinctx);   	// TODO: how about all sub contexts? assume there are none??
+	/* interp->builtinctx is freed in builtins_teardown() because it also frees
+	   stuff that are needed for freeing interp->builtinctx */
+
+	hashtable_free(interp->allobjects);   // fails if there are any objects left
 	free(interp);
 }
 
@@ -48,7 +51,7 @@ int interpreter_addbuiltin(struct Interpreter *interp, struct Object **errptr, c
 {
 	struct UnicodeString uname;
 	char stupiderrormsg[100] = {0};
-	int status = utf8_decode(name, strlen(name), &uname, stupiderrormsg);   // TODO: free uname.val ???
+	int status = utf8_decode(name, strlen(name), &uname, stupiderrormsg);
 	if (status == STATUS_NOMEM) {
 		*errptr = interp->nomemerr;
 		return STATUS_ERROR;

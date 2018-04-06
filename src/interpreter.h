@@ -22,6 +22,7 @@ struct Interpreter {
 	// keys are all objects, values are an implementation detail
 	// currently the values are pointers to a static dummy variable defined in interpreter.c
 	// see also objectsystem.h
+	// this doesn't hold any references, object_free_impl() takes care of that
 	struct HashTable *allobjects;
 
 	// these are not exposed as built-in variables, so they can't be in builtinctx
@@ -42,14 +43,17 @@ void interpreter_free(struct Interpreter *interp);
 int interpreter_addbuiltin(struct Interpreter *interp, struct Object **errptr, char *name, struct Object *val);
 
 // returns NULL and sets errptr on error
+// RETURNS A NEW REFERENCE
 struct Object *interpreter_getbuiltin(struct Interpreter *interp, struct Object **errptr, char *name);
 
-/* simple version of getbuiltin() that never calls malloc()
+/*
+simple version of getbuiltin() that never calls malloc()
 useful in e.g. builtins_teardown()
 restrictions:
 	* strlen(name) must be < 50
 	* name must be ASCII only
 	* no errptr, instead returns NULL if the variable doesn't exist
+RETURNS A NEW REFERENCE
 */
 struct Object *interpreter_getbuiltin_nomalloc(struct Interpreter *interp, char *name);
 

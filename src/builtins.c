@@ -24,6 +24,7 @@ static struct Object *print_builtin(struct Context *ctx, struct Object **errptr,
 	// TODO: call to_string() and check arguments with errptr instead of assert
 	assert(nargs == 1);
 	assert(args[0]->klass == (struct ObjectClassInfo *) stringclass->data);
+	OBJECT_DECREF(ctx->interp, stringclass);
 
 	char *utf8;
 	size_t utf8len;
@@ -41,7 +42,7 @@ static struct Object *print_builtin(struct Context *ctx, struct Object **errptr,
 	free(utf8);
 	putchar('\n');
 
-	// this must return some non-NULL value
+	// this must return a new reference on success
 	return stringobject_newfromcharptr(ctx->interp, errptr, "asd");
 }
 
@@ -75,9 +76,12 @@ int builtins_setup(struct Interpreter *interp, struct Object **errptr)
 	assert(printfunc->klass == interp->functionobjectinfo);
 	if (!printfunc) goto error;
 	if (interpreter_addbuiltin(interp, errptr, "print", printfunc) == STATUS_ERROR) goto error;
-	assert(interpreter_getbuiltin(interp, NULL, "print"));
-	assert(interpreter_getbuiltin_nomalloc(interp, "print"));
-	assert(interpreter_getbuiltin_nomalloc(interp, "print") == printfunc);
+
+	// release refs from creating the objects, now the context holds references to these
+	OBJECT_DECREF(interp, objectclass);
+	OBJECT_DECREF(interp, errorclass);
+	OBJECT_DECREF(interp, stringclass);
+	OBJECT_DECREF(interp, printfunc);
 
 	return STATUS_OK;
 
@@ -86,22 +90,27 @@ nomem:
 	// "fall through" to error
 
 error:
+	// FIXME: this might be very broken, it's hard to test this code
+	if (status == STATUS_ERROR) {
+		assert(interp->nomemerr);
+		assert(*errptr == interp->nomemerr);
+		// TODO: decreff *errptr if it will be increffed everywhere some day?
+		status = STATUS_NOMEM;
+	}
+
 	// these undo the above stuff, in a reversed order
 	// e.g. objectinfo is created first, so it's freed last
-	if (printfunc) object_free(interp, printfunc);
+	if (printfunc) OBJECT_DECREF(interp, printfunc);
 
 	if (interp->functionobjectinfo) objectclassinfo_free(interp->functionobjectinfo);
 
-	if (stringclass) object_free(interp, stringclass);
-	if (errorclass) object_free(interp, errorclass);
-	if (objectclass) object_free(interp, objectclass);
+	if (stringclass) OBJECT_DECREF(interp, stringclass);
+	if (errorclass) OBJECT_DECREF(interp, errorclass);
+	if (objectclass) OBJECT_DECREF(interp, objectclass);
 
 	if (interp->classobjectinfo) objectclassinfo_free(interp->classobjectinfo);
 
-	if (interp->nomemerr) {
-		object_free(interp, interp->nomemerr->data);   // the message string
-		object_free(interp, interp->nomemerr);
-	}
+	if (interp->nomemerr)	OBJECT_DECREF(interp, interp->nomemerr);
 	if (stringinfo) objectclassinfo_free(stringinfo);
 	if (errorinfo) objectclassinfo_free(stringinfo);
 	if (objectinfo) objectclassinfo_free(objectinfo);
@@ -114,27 +123,22 @@ error:
 // TODO: is this too copy/pasta?
 void builtins_teardown(struct Interpreter *interp)
 {
+	OBJECT_DECREF(interp, interp->nomemerr);
+
 	struct Object *objectclass = interpreter_getbuiltin_nomalloc(interp, "Object");
 	struct Object *errorclass = interpreter_getbuiltin_nomalloc(interp, "Error");
 	struct Object *stringclass = interpreter_getbuiltin_nomalloc(interp, "String");
-	struct Object *printfunc = interpreter_getbuiltin_nomalloc(interp, "print");
-
 	struct ObjectClassInfo *objectinfo = objectclass ? objectclass->data : NULL;
 	struct ObjectClassInfo *errorinfo = errorclass ? errorclass->data : NULL;
 	struct ObjectClassInfo *stringinfo = stringclass ? stringclass->data : NULL;
-
-	assert(printfunc->klass == interp->functionobjectinfo);
-	if (printfunc) object_free(interp, printfunc);
-	if (stringclass) object_free(interp, stringclass);
-	if (errorclass) object_free(interp, errorclass);
-	if (objectclass) object_free(interp, objectclass);
-
-	objectclassinfo_free(interp->functionobjectinfo);
-	objectclassinfo_free(interp->classobjectinfo);
-
-	object_free(interp, interp->nomemerr->data);   // the message string
-	object_free(interp, interp->nomemerr);
+	if (objectclass) OBJECT_DECREF(interp, objectclass);
+	if (errorclass) OBJECT_DECREF(interp, errorclass);
+	if (stringclass) OBJECT_DECREF(interp, stringclass);
 	if (stringinfo) objectclassinfo_free(stringinfo);
 	if (errorinfo) objectclassinfo_free(errorinfo);
 	if (objectinfo) objectclassinfo_free(objectinfo);
+
+	context_free(interp->builtinctx);   	// TODO: how about all sub contexts? assume there are none??
+	objectclassinfo_free(interp->functionobjectinfo);
+	objectclassinfo_free(interp->classobjectinfo);
 }

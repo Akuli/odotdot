@@ -5,5 +5,5 @@
 
 struct ObjectClassInfo *objectobject_createclass(void)
 {
-	return objectclassinfo_new(NULL, NULL, NULL);
+	return objectclassinfo_new("Object", NULL, NULL, NULL);
 }

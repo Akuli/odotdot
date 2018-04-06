@@ -9,9 +9,11 @@
 struct ObjectClassInfo *integerobject_createclass(struct ObjectClassInfo *objectclass);
 
 // doesn't change ustr
+// RETURNS A NEW REFERENCE
 struct Object *integerobject_newfromustr(struct Interpreter *interp, struct ObjectClassInfo *integerclass, struct UnicodeString ustr);
 
 // asserts that the char pointer is digits only, i.e. don't use with user-inputted strings
+// RETURNS A NEW REFERENCE
 struct Object *integerobject_newfromcharptr(struct Interpreter *interp, struct ObjectClassInfo *integerclass, char *ptr);
 
 // never fails

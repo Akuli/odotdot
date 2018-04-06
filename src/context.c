@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>    // for printing messages about refcount problems
 #include <stdlib.h>
 #include <string.h>
 #include "common.h"
@@ -61,10 +62,11 @@ int context_setlocalvar(struct Context *ctx, struct Object **errptr, struct Unic
 		return STATUS_ERROR;
 	}
 
-	// if it's there already, be sure to free the name pointer correctly
+	// if it's there already, be sure to free the name pointer and decref the old value correctly
 	struct Object *oldval;
 	if (hashtable_get(ctx->localvars, nameptr, unicodestring_hash(name), (void **) (&oldval), NULL)) {
-		// FIXME: hmm..... how to do this?
+		OBJECT_DECREF(ctx->interp, oldval);
+		// FIXME: hmm..... how to free the old name key??
 		assert(0);
 	}
 
@@ -74,6 +76,7 @@ int context_setlocalvar(struct Context *ctx, struct Object **errptr, struct Unic
 		return STATUS_ERROR;
 	}
 	assert(status == STATUS_OK);
+	OBJECT_INCREF(ctx->interp, value);
 	return STATUS_OK;
 }
 
@@ -119,8 +122,10 @@ struct Object *context_getvar_nomalloc(struct Context *ctx, struct UnicodeString
 {
 	while (ctx) {
 		struct Object *val;
-		if (hashtable_get(ctx->localvars, &name, unicodestring_hash(name), (void **)(&val), NULL))
+		if (hashtable_get(ctx->localvars, &name, unicodestring_hash(name), (void **)(&val), NULL)) {
+			OBJECT_INCREF(ctx->interp, val);
 			return val;
+		}
 		ctx = ctx->parentctx;
 	}
 	return NULL;
@@ -128,22 +133,21 @@ struct Object *context_getvar_nomalloc(struct Context *ctx, struct UnicodeString
 
 struct Object *context_getvar(struct Context *ctx, struct Object **errptr, struct UnicodeString name)
 {
-	struct Object *res = context_getvar_nomalloc(ctx, name);
+	struct Object *res = context_getvar_nomalloc(ctx, name);   // returns a new reference
 	assert(res);    // i didn't feel like copy/pasting the incomplete mess from context_setvarwheredefined()
 	return res;
 }
 
-static void clear_item(void *ustrkey, void *valobj, void *junkdata)
+static void clear_item(void *ustrkey, void *valobj, void *interp)
 {
 	free(((struct UnicodeString *) ustrkey)->val);
 	free(ustrkey);
-	assert(valobj);
-	// TODO: do something with valobj?
+	OBJECT_DECREF(interp, valobj);
 }
 
 void context_free(struct Context *ctx)
 {
-	hashtable_fclear(ctx->localvars, clear_item, NULL);
+	hashtable_fclear(ctx->localvars, clear_item, ctx->interp);
 	hashtable_free(ctx->localvars);
 	free(ctx);
 }

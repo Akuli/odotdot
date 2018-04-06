@@ -21,10 +21,10 @@ int functionobject_createclass(struct Interpreter *interp, struct Object **errpt
 	if (!objectclass)    // errptr is set already
 		return STATUS_ERROR;
 
-	struct ObjectClassInfo *klass = objectclassinfo_new(objectclass->data, NULL, function_destructor);
+	struct ObjectClassInfo *klass = objectclassinfo_new("Function", objectclass->data, NULL, function_destructor);
+	OBJECT_DECREF(interp, objectclass);
 	if (!klass) {
 		*errptr = interp->nomemerr;
-		// TODO: decref objectclass??
 		return STATUS_ERROR;
 	}
 

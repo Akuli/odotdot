@@ -4,6 +4,7 @@
 #include "hashtable.h"     // IWYU pragma: keep
 #include "interpreter.h"   // IWYU pragma: keep
 #include "unicode.h"       // IWYU pragma: keep
+#include "atomicincrdecr.h"
 
 
 // iwyu is stupid, why can't i pragma keep structs forward declarations :(
@@ -15,6 +16,9 @@ typedef void (*objectclassinfo_foreachref)(struct Object *obj, void *data, objec
 // every ö class is represented as an ObjectClassInfo struct
 // these are created by whateverobject_createclass() functions
 struct ObjectClassInfo {
+	// TODO: replace this with something better
+	char name[10];
+
 	// Object's baseclass is set to NULL
 	struct ObjectClassInfo *baseclass;
 
@@ -26,7 +30,7 @@ struct ObjectClassInfo {
 	// can be NULL
 	objectclassinfo_foreachref foreachref;
 
-	// called by object_free(), should return STATUS_OK or STATUS_NOMEM
+	// called by object_free_impl (see OBJECT_DECREF)
 	// can be NULL
 	void (*destructor)(struct Object *obj);
 };
@@ -42,12 +46,15 @@ struct Object {
 	// written in C can use this for anything
 	void *data;
 
+	// use with atomicincrdecr.h functions only
+	int refcount;
+
 	// the garbage collector does something implementation-detaily with this
 	int gcflag;
 };
 
 // helper for blabla_createclass() functions, returns NULL on no mem
-struct ObjectClassInfo *objectclassinfo_new(struct ObjectClassInfo *base, objectclassinfo_foreachref foreachref, void (*destructor)(struct Object *));
+struct ObjectClassInfo *objectclassinfo_new(char *name, struct ObjectClassInfo *base, objectclassinfo_foreachref foreachref, void (*destructor)(struct Object *));
 
 // never fails
 void objectclassinfo_free(struct ObjectClassInfo *klass);
@@ -58,13 +65,21 @@ int objectsystem_getbuiltin(struct HashTable *builtins, char *name, void **res);
 
 // create a new object, add it to interp->allobjects and return it, returns NULL on error
 // see also classobject_newinstance() in objects/classobject.h
+// RETURNS A NEW REFERENCE
 struct Object *object_new(struct Interpreter *interp, struct ObjectClassInfo *klass, void *data);
 
-// call obj->klass->destructor and free memory allocated by obj
+// quite self-explanatory
+#define OBJECT_INCREF(interp, obj) do { ATOMIC_INCR(((struct Object *)(obj))->refcount); } while(0)
+#define OBJECT_DECREF(interp, obj) do { \
+	if (ATOMIC_DECR(((struct Object *)(obj))->refcount) <= 0) \
+		object_free_impl((interp), (obj)); \
+} while (0)
+
+// like the name says, this is pretty much an implementation detail
+// calls obj->klass->destructor and frees memory allocated by obj
 // this removes obj from interp->allobjects
-// usually you don't need to call this yourself
-// call gc_run() instead or just let the object wait for the next gc_run() call
-void object_free(struct Interpreter *interp, struct Object *obj);
+// use OBJECT_DECREF instead of calling this
+void object_free_impl(struct Interpreter *interp, struct Object *obj);
 
 // returns a Function object, or NULL if not found
 struct Object *object_getmethod(struct ObjectClassInfo *klass, struct UnicodeString name);

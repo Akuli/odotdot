@@ -13,7 +13,7 @@ static void error_foreachref(struct Object *obj, void *data, objectclassinfo_for
 
 struct ObjectClassInfo *errorobject_createclass(struct ObjectClassInfo *objectclass)
 {
-	return objectclassinfo_new(objectclass, error_foreachref, NULL);
+	return objectclassinfo_new("Error", objectclass, error_foreachref, NULL);
 }
 
 // message string is created here because string constructors want to use interp->nomemerr and errptr
@@ -44,7 +44,7 @@ struct Object *errorobject_createnomemerr(struct Interpreter *interp, struct Obj
 
 	struct Object *err = object_new(interp, errorclass, str);
 	if (!err) {
-		object_free(interp, str);   // takes care of ustr
+		OBJECT_DECREF(interp, str);   // takes care of ustr->val
 		return NULL;
 	}
 	return err;

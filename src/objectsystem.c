@@ -28,7 +28,8 @@ static int compare_unicode_strings(void *a, void *b, void *userdata)
 }
 
 
-struct ObjectClassInfo *objectclassinfo_new(struct ObjectClassInfo *base, objectclassinfo_foreachref foreachref, void (*destructor)(struct Object *))
+#include <stdio.h>           // debugging only
+struct ObjectClassInfo *objectclassinfo_new(char *name, struct ObjectClassInfo *base, objectclassinfo_foreachref foreachref, void (*destructor)(struct Object *))
 {
 	struct ObjectClassInfo *res = malloc(sizeof(struct ObjectClassInfo));
 	if (!res)
@@ -38,6 +39,9 @@ struct ObjectClassInfo *objectclassinfo_new(struct ObjectClassInfo *base, object
 		free(res);
 		return NULL;
 	}
+
+	strncpy(res->name, name, 10);
+	res->name[9] = 0;
 	res->baseclass = base;
 	res->foreachref = foreachref;
 	res->destructor = destructor;
@@ -67,6 +71,7 @@ struct Object *object_new(struct Interpreter *interp, struct ObjectClassInfo *kl
 
 	obj->klass = klass;
 	obj->data = data;
+	obj->refcount = 1;   // the returned reference
 	obj->gcflag = 0;
 
 	if (hashtable_set(interp->allobjects, obj, (unsigned int)((uintptr_t)obj), &dummy, NULL) == STATUS_NOMEM) {
@@ -77,15 +82,27 @@ struct Object *object_new(struct Interpreter *interp, struct ObjectClassInfo *kl
 	return obj;
 }
 
-void object_free(struct Interpreter *interp, struct Object *obj)
+static void decref_the_ref(struct Object *ref, void *interpdata)
 {
+	OBJECT_DECREF(interpdata, ref);
+}
+
+void object_free_impl(struct Interpreter *interp, struct Object *obj)
+{
+	// these two asserts make sure that the sign of the refcount is shown in error messages
+	assert(obj->refcount >= 0);
+	assert(obj->refcount <= 0);
+
+	if (obj->klass->destructor)
+		obj->klass->destructor(obj);
+	if (obj->klass->foreachref)
+		obj->klass->foreachref(obj, interp, decref_the_ref);
+
 	void *dummyptr;
 	assert(hashtable_pop(interp->allobjects, obj, (unsigned int)((uintptr_t)obj), &dummyptr, NULL) == 1);
 
 	hashtable_clear(obj->attrs);   // TODO: decref the values or something?
 	hashtable_free(obj->attrs);
-	if (obj->klass->destructor)
-		obj->klass->destructor(obj);
 	free(obj);
 }
 

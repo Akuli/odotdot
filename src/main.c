@@ -17,7 +17,7 @@
 #define FILE_CHUNK_SIZE 4096
 
 
-// returns STATUS_OK, STATUS_NOMEM or -1 for a reading error
+// returns STATUS_OK, STATUS_NOMEM or 1 for a reading error
 int read_file_to_huge_string(FILE *f, char **dest, size_t *destlen)
 {
 	char *s = NULL;
@@ -165,9 +165,9 @@ int main(int argc, char **argv)
 	}
 	assert(status == STATUS_OK);
 
-	// TODO: run stdlib/fake_builtins.ö and don't use
+	// TODO: run stdlib/fake_builtins.ö and create a new subcontext for this file
 	int res = run_file(interp->builtinctx, argv[1]);
-	gc_run(interp);
+	//gc_run(interp);
 	builtins_teardown(interp);
 	interpreter_free(interp);
 	return res;

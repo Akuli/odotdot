@@ -24,10 +24,12 @@ int context_setlocalvar(struct Context *ctx, struct Object **errptr, struct Unic
 int context_setvarwheredefined(struct Context *ctx, struct Object **errptr, struct UnicodeString name, struct Object *value);
 
 // returns NULL and sets errptr when the var is not found
+// RETURNS A NEW REFERENCE
 struct Object *context_getvar(struct Context *ctx, struct Object **errptr, struct UnicodeString name);
 
 // returns NULL when the var is not found instead of taking an errptr
 // never calls malloc(), cannot run out of mem
+// RETURNS A NEW REFERENCE
 struct Object *context_getvar_nomalloc(struct Context *ctx, struct UnicodeString name);
 
 void context_free(struct Context *ctx);

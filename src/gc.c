@@ -1,3 +1,5 @@
+// this is an implementation of "Naive mark and sweep"
+// https://en.wikipedia.org/wiki/Tracing_garbage_collection#Na%C3%AFve_mark-and-sweep
 #include "gc.h"
 #include <assert.h>
 #include <stdio.h>
@@ -12,14 +14,16 @@
 // may call with same obj multiple times because the same object may be referred to in many places
 static void foreach_baseset_element(struct Interpreter *interp, void (*func)(struct Object *, void *), void *data)
 {
-	func(interp->nomemerr->data, NULL);    // the message string
-	func(interp->nomemerr, NULL);
+	func(interp->nomemerr->data, data);    // the message string
+	func(interp->nomemerr, data);
 
 	// TODO: support other contexts than interp->builtinctx
 	struct HashTableIterator iter;
 	hashtable_iterbegin(interp->builtinctx->localvars, &iter);
-	while (hashtable_iternext(&iter))
+	while (hashtable_iternext(&iter)) {
+		// TODO: how about everything that iter.value refers to??
 		func(iter.value, data);
+	}
 }
 
 static void mark(struct Object *obj, void *junkdata)
@@ -32,7 +36,6 @@ static void mark(struct Object *obj, void *junkdata)
 }
 
 
-// https://en.wikipedia.org/wiki/Tracing_garbage_collection#Na%C3%AFve_mark-and-sweep
 void gc_run(struct Interpreter *interp)
 {
 	// mark
@@ -52,7 +55,11 @@ void gc_run(struct Interpreter *interp)
 			((struct Object *) iter.key)->gcflag = 0;
 	}
 
-	while (gonnasweep->len != 0)
-		object_free(interp, dynamicarray_pop(gonnasweep));
+	// FIXME: do decref magics instead!
+	while (gonnasweep->len != 0) {
+		struct Object *obj = dynamicarray_pop(gonnasweep);
+		obj->refcount = 0;
+		object_free_impl(interp, obj);
+	}
 	dynamicarray_free(gonnasweep);
 }

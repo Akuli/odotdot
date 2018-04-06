@@ -17,7 +17,7 @@ static void integer_destructor(struct Object *integer)
 
 struct ObjectClassInfo *integerobject_createclass(struct ObjectClassInfo *objectclass)
 {
-	return objectclassinfo_new(objectclass, NULL, integer_destructor);
+	return objectclassinfo_new("Integer", objectclass, NULL, integer_destructor);
 }
 
 // TODO: better error handling for huge values
@@ -57,6 +57,8 @@ static struct Object *integer_from_digits(struct Interpreter *interp, struct Obj
 
 struct Object *integerobject_newfromustr(struct Interpreter *interp, struct ObjectClassInfo *integerclass, struct UnicodeString ustr)
 {
+	// 64-bit ints are never 25 digits or more long
+	// TODO: better error handling
 	assert(1 <= ustr.len && ustr.len < 25);
 	int isnegative=(ustr.val[0] == '-');
 	if (isnegative) {
