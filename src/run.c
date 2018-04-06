@@ -27,10 +27,9 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 
 int run_statement(struct Context *ctx, struct Object **errptr, struct AstNode *stmt)
 {
-	switch(stmt->kind) {
 #define INFO_AS(X) ((struct X *)stmt->info)
-	case AST_CALL:
-		(void) INFO_AS(AstCallInfo)->func;
+	if (stmt->kind == AST_CALL) {
+		(void) 1;  // i'm not sure why, but compilers want this
 		struct Object *func = run_expression(ctx, errptr, INFO_AS(AstCallInfo)->func);
 		if (!func)
 			return STATUS_ERROR;
@@ -70,8 +69,18 @@ int run_statement(struct Context *ctx, struct Object **errptr, struct AstNode *s
 		} else {
 			return STATUS_ERROR;
 		}
-#undef INFO_AS
-	default:
-		assert(0);
 	}
+
+	if (stmt->kind == AST_CREATEVAR) {
+		struct Object *val = run_expression(ctx, errptr, INFO_AS(AstCreateOrSetVarInfo)->val);
+		if (!val)
+			return STATUS_ERROR;
+
+		int status = context_setlocalvar(ctx, errptr, INFO_AS(AstCreateOrSetVarInfo)->varname, val);
+		OBJECT_DECREF(ctx->interp, val);
+		return status;
+	}
+
+#undef INFO_AS
+	assert(0);
 }

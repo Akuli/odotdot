@@ -492,8 +492,10 @@ static struct AstNode *parse_call(struct Token **curtok, struct AstNode *func)
 	callinfo->func = func;
 
 	callinfo->args = malloc(sizeof(struct AstNode) * MAX_ARGS);
-	if (!callinfo->args)
+	if (!callinfo->args) {
+		free(callinfo);
 		return NULL;
+	}
 
 	for (callinfo->nargs = 0; expression_coming_up(*curtok) && callinfo->nargs < MAX_ARGS; callinfo->nargs++) {
 		struct AstNode *arg = parse_expression(curtok);
@@ -524,18 +526,71 @@ static struct AstNode *parse_call(struct Token **curtok, struct AstNode *func)
 }
 #undef MAX_ARGS
 
+static struct AstNode *parse_var_statement(struct Token **curtok)
+{
+	// parse_statement() has checked (*curtok)->kind
+	// TODO: report error?
+	size_t lineno = (*curtok)->lineno;
+	assert((*curtok)->str.len == 3);
+	assert((*curtok)->str.val[0] == 'v');
+	assert((*curtok)->str.val[1] == 'a');
+	assert((*curtok)->str.val[2] == 'r');
+	*curtok = (*curtok)->next;
+
+	// TODO: report error
+	assert((*curtok)->kind == TOKEN_ID);
+	struct UnicodeString varname;
+	if (unicodestring_copyinto((*curtok)->str, &varname) == STATUS_NOMEM)
+		return NULL;
+	*curtok = (*curtok)->next;
+
+	// TODO: 'var x;' should set x to NULL
+	assert((*curtok)->kind == TOKEN_OP);
+	assert((*curtok)->str.len == 1);
+	assert((*curtok)->str.val[0] == '=');
+	*curtok = (*curtok)->next;
+
+	struct AstNode *value = parse_expression(curtok);
+	if (!value) {
+		free(varname.val);
+		return NULL;
+	}
+
+	struct AstCreateOrSetVarInfo *info = malloc(sizeof(struct AstCreateOrSetVarInfo));
+	if (!info) {
+		astnode_free(value);
+		free(varname.val);
+		return NULL;
+	}
+	info->varname = varname;
+	info->val = value;
+
+	struct AstNode *res = new_statement(AST_CREATEVAR, lineno, info);
+	if (!res) {
+		free_info(AST_CREATEVAR, info);     // should free everything allocated here
+		return NULL;
+	}
+	return res;
+}
+
 struct AstNode *parse_statement(struct Token **curtok)
 {
-	// TODO: var statements and assignments
-	struct AstNode *func = parse_expression(curtok);
-	if (!func)
-		return NULL;
+	struct AstNode *res;
+	if ((*curtok)->kind == TOKEN_KEYWORD) {
+		// var is currently the only keyword
+		res = parse_var_statement(curtok);
+	} else {
+		// assume it's a function call
+		struct AstNode *func = parse_expression(curtok);
+		if (!func)
+			return NULL;
 
-	struct AstNode *statement = parse_call(curtok, func);
-	assert(!expression_coming_up(*curtok));
-	if (!statement) {
-		astnode_free(func);
-		return NULL;
+		res = parse_call(curtok, func);
+		assert(!expression_coming_up(*curtok));
+		if (!res) {
+			astnode_free(func);
+			return NULL;
+		}
 	}
 
 	// TODO: report error "missing ';'"
@@ -543,5 +598,5 @@ struct AstNode *parse_statement(struct Token **curtok)
 	assert((*curtok)->str.len == 1);
 	assert((*curtok)->str.val[0] == ';');
 	*curtok = (*curtok)->next;
-	return statement;
+	return res;
 }

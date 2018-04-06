@@ -134,11 +134,15 @@ void builtins_teardown(struct Interpreter *interp)
 	if (objectclass) OBJECT_DECREF(interp, objectclass);
 	if (errorclass) OBJECT_DECREF(interp, errorclass);
 	if (stringclass) OBJECT_DECREF(interp, stringclass);
+
+	// this must be before freeing class infos but after getting them
+	// TODO: how about all sub contexts? this assumes that there are none
+	context_free(interp->builtinctx);
+
 	if (stringinfo) objectclassinfo_free(stringinfo);
 	if (errorinfo) objectclassinfo_free(errorinfo);
 	if (objectinfo) objectclassinfo_free(objectinfo);
 
-	context_free(interp->builtinctx);   	// TODO: how about all sub contexts? assume there are none??
 	objectclassinfo_free(interp->functionobjectinfo);
 	objectclassinfo_free(interp->classobjectinfo);
 }
