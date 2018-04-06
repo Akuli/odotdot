@@ -28,7 +28,6 @@ static int compare_unicode_strings(void *a, void *b, void *userdata)
 }
 
 
-#include <stdio.h>           // debugging only
 struct ObjectClassInfo *objectclassinfo_new(char *name, struct ObjectClassInfo *base, objectclassinfo_foreachref foreachref, void (*destructor)(struct Object *))
 {
 	struct ObjectClassInfo *res = malloc(sizeof(struct ObjectClassInfo));
