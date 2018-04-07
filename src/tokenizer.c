@@ -23,6 +23,7 @@ static struct Token *new_token(struct Token *prev, char kind, struct UnicodeStri
 
 	tok->kind = kind;
 	tok->lineno = lineno;
+	tok->next = NULL;
 	if (prev)
 		prev->next = tok;
 	return tok;
