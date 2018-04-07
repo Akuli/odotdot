@@ -6,15 +6,15 @@
 #include "../objectsystem.h"   // IWYU pragma: keep
 #include "../unicode.h"        // IWYU pragma: keep
 
-struct ObjectClassInfo *integerobject_createclass(struct ObjectClassInfo *objectclass);
+int integerobject_createclass(struct Interpreter *interp, struct Object **errptr);
 
 // doesn't change ustr
 // RETURNS A NEW REFERENCE
-struct Object *integerobject_newfromustr(struct Interpreter *interp, struct ObjectClassInfo *integerclass, struct UnicodeString ustr);
+struct Object *integerobject_newfromustr(struct Interpreter *interp, struct Object **errptr, struct UnicodeString ustr);
 
 // asserts that the char pointer is digits only, i.e. don't use with user-inputted strings
 // RETURNS A NEW REFERENCE
-struct Object *integerobject_newfromcharptr(struct Interpreter *interp, struct ObjectClassInfo *integerclass, char *ptr);
+struct Object *integerobject_newfromcharptr(struct Interpreter *interp, struct Object **errptr, char *s);
 
 // never fails
 int64_t integerobject_toint64(struct Object *integer);

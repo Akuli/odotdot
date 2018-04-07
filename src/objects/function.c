@@ -24,10 +24,8 @@ int functionobject_createclass(struct Interpreter *interp, struct Object **errpt
 
 	struct Object *klass = classobject_new(interp, errptr, "Function", objectclass, NULL, function_destructor);
 	OBJECT_DECREF(interp, objectclass);
-	if (!klass) {
-		*errptr = interp->nomemerr;
+	if (!klass)
 		return STATUS_ERROR;
-	}
 
 	interp->functionclass = klass;
 	return STATUS_OK;

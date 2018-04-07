@@ -12,6 +12,7 @@
 #include "objects/classobject.h"
 #include "objects/errors.h"
 #include "objects/function.h"
+#include "objects/integer.h"
 #include "objects/object.h"
 #include "objects/string.h"
 
@@ -71,8 +72,9 @@ int builtins_setup(struct Interpreter *interp, struct Object **errptr)
 	if (interpreter_addbuiltin(interp, errptr, "Error", errorclass) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, errptr, "String", stringclass) == STATUS_ERROR) goto error;
 
-	if (arrayobject_createclass(interp, errptr) == STATUS_ERROR) goto error;
 	if (functionobject_createclass(interp, errptr) == STATUS_ERROR) goto error;
+	if (arrayobject_createclass(interp, errptr) == STATUS_ERROR) goto error;
+	if (integerobject_createclass(interp, errptr) == STATUS_ERROR) goto error;
 
 	printfunc = functionobject_new(interp, errptr, print_builtin);
 	if (!printfunc) goto error;
@@ -99,12 +101,8 @@ error:
 		status = STATUS_NOMEM;
 	}
 
-	// these undo the above stuff, in a reversed order
-	// e.g. objectinfo is created first, so it's freed last
 	if (printfunc) OBJECT_DECREF(interp, printfunc);
-
 	if (interp->functionclass) OBJECT_DECREF(interp, interp->functionclass);
-
 	if (interp->nomemerr)	OBJECT_DECREF(interp, interp->nomemerr);
 
 	if (stringclass) OBJECT_DECREF(interp, stringclass);
@@ -116,7 +114,7 @@ error:
 
 	if (interp->classclass) OBJECT_DECREF(interp, interp->classclass);
 
-	assert(status == STATUS_OK || status == STATUS_NOMEM);
+	assert(status == STATUS_ERROR || status == STATUS_NOMEM);
 	return status;
 }
 

@@ -1,5 +1,4 @@
-// TODO: interp instead of integerclass
-// TODO: implement bignums
+// TODO: implement bignums? maybe a pure-ö BigInteger class?
 // TODO: better error handling than asserts
 
 #include "integer.h"
@@ -7,6 +6,8 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include "classobject.h"
+#include "../common.h"
 #include "../objectsystem.h"
 #include "../unicode.h"
 
@@ -15,21 +16,36 @@ static void integer_destructor(struct Object *integer)
 	free(integer->data);
 }
 
-struct ObjectClassInfo *integerobject_createclass(struct ObjectClassInfo *objectclass)
+int integerobject_createclass(struct Interpreter *interp, struct Object **errptr)
 {
-	return objectclassinfo_new("Integer", objectclass, NULL, integer_destructor);
+	struct Object *objectclass = interpreter_getbuiltin(interp, errptr, "Object");
+	if (!objectclass)
+		return STATUS_ERROR;
+
+	struct Object *klass = classobject_new(interp, errptr, "Integer", objectclass, NULL, integer_destructor);
+	OBJECT_DECREF(interp, objectclass);
+	if (!klass)
+		return STATUS_ERROR;
+
+	int ret = interpreter_addbuiltin(interp, errptr, "Integer", klass);
+	OBJECT_DECREF(interp, klass);
+	return ret;
 }
 
-// TODO: better error handling for huge values
-static struct Object *integer_from_digits(struct Interpreter *interp, struct ObjectClassInfo *integerclass, int isnegative, int *digits, int ndigits)
+static struct Object *integer_from_digits(struct Interpreter *interp, struct Object **errptr, int isnegative, int *digits, int ndigits)
 {
+	struct Object *integerclass = interpreter_getbuiltin(interp, errptr, "Integer");
+	if (!integerclass)
+		return NULL;
+
 	assert(ndigits > 0);
 
 	// uint64_t can handle these because it doesn't use one bit for the sign
 	uint64_t absval = 0;
 
 	// careful here... -INT64_MIN doesn't fit in an int64_t, but -(INT64_MIN+1) fits
-#define ABSMAX (uint64_t)(isnegative ? (uint64_t)(-(INT64_MIN + 1)) + 1 : INT64_MAX)
+	// everything fits into an uint64_t
+#define ABSMAX (isnegative ? (uint64_t)(-(INT64_MIN + 1)) + 1 : (uint64_t)INT64_MAX)
 
 	uint64_t multipleby = 1;
 	for (int i=ndigits-1; i>=0; i--) {
@@ -47,15 +63,16 @@ static struct Object *integer_from_digits(struct Interpreter *interp, struct Obj
 		return NULL;
 	*data = isnegative ? -absval : absval;
 
-	struct Object *obj = object_new(interp, integerclass, data);
-	if (!obj) {
+	struct Object *integer = classobject_newinstance(interp, errptr, integerclass, data);
+	OBJECT_DECREF(interp, integerclass);
+	if (!integer) {
 		free(data);
 		return NULL;
 	}
-	return obj;
+	return integer;
 }
 
-struct Object *integerobject_newfromustr(struct Interpreter *interp, struct ObjectClassInfo *integerclass, struct UnicodeString ustr)
+struct Object *integerobject_newfromustr(struct Interpreter *interp, struct Object **errptr, struct UnicodeString ustr)
 {
 	// 64-bit ints are never 25 digits or more long
 	// TODO: better error handling
@@ -73,10 +90,10 @@ struct Object *integerobject_newfromustr(struct Interpreter *interp, struct Obje
 		assert('0' <= ustr.val[i] && ustr.val[i] <= '9');
 		digits[i] = ustr.val[i] - '0';
 	}
-	return integer_from_digits(interp, integerclass, isnegative, digits, ustr.len);
+	return integer_from_digits(interp, errptr, isnegative, digits, ustr.len);
 }
 
-struct Object *integerobject_newfromcharptr(struct Interpreter *interp, struct ObjectClassInfo *integerclass, char *s)
+struct Object *integerobject_newfromcharptr(struct Interpreter *interp, struct Object **errptr, char *s)
 {
 	int isnegative=(s[0] == '-');
 	if (isnegative)
@@ -86,13 +103,12 @@ struct Object *integerobject_newfromcharptr(struct Interpreter *interp, struct O
 	assert(ndigits != 0);
 	assert(ndigits < 25);
 
-	// this is more than enough digits for 64-bit ints
 	int digits[25];
-	for (size_t i=0; i < ndigits; i++) {
+	for (int i=0; i < (int)ndigits; i++) {
 		assert('0' <= s[i] && s[i] <= '9');
 		digits[i] = s[i] - '0';
 	}
-	return integer_from_digits(interp, integerclass, isnegative, digits, ndigits);
+	return integer_from_digits(interp, errptr, isnegative, digits, ndigits);
 }
 
 int64_t integerobject_toint64(struct Object *integer)

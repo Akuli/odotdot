@@ -18,8 +18,10 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 #define INFO_AS(X) ((struct X *)expr->info)
 	case AST_GETVAR:
 		return context_getvar(ctx, errptr, INFO_AS(AstGetVarInfo)->varname);
+
 	case AST_STR:
 		return stringobject_newfromustr(ctx->interp, errptr, *((struct UnicodeString *)expr->info));
+
 	case AST_ARRAY:
 		// this is handled specially because malloc(0) MAY return NULL
 		if (INFO_AS(AstArrayOrBlockInfo)->nitems == 0)
@@ -47,6 +49,9 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 			OBJECT_DECREF(ctx->interp, elems[i]);
 		free(elems);
 		return arr;
+
+	case AST_INT:
+		return integerobject_newfromcharptr(ctx->interp, errptr, INFO_AS(AstIntInfo)->valstr);
 #undef INFO_AS
 	default:
 		assert(0);
