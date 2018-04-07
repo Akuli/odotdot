@@ -35,14 +35,14 @@ struct Object *errorobject_createnomemerr(struct Interpreter *interp, struct Obj
 	for (size_t i=0; i < ustr->len; i++)
 		ustr->val[i] = msg[i];
 
-	struct Object *str = object_new(interp, stringclass, ustr);
+	struct Object *str = object_new(interp, NULL, ustr);
 	if (!str) {
 		free(ustr->val);
 		free(ustr);
 		return NULL;
 	}
 
-	struct Object *err = object_new(interp, errorclass, str);
+	struct Object *err = object_new(interp, NULL, str);
 	if (!err) {
 		OBJECT_DECREF(interp, str);   // takes care of ustr->val
 		return NULL;

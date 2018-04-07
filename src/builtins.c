@@ -25,7 +25,7 @@ static struct Object *print_builtin(struct Context *ctx, struct Object **errptr,
 
 	// TODO: call to_string() and check arguments with errptr instead of assert
 	assert(nargs == 1);
-	assert(args[0]->klass == (struct ObjectClassInfo *) stringclass->data);
+	assert(args[0]->klass == stringclass);
 	OBJECT_DECREF(ctx->interp, stringclass);
 
 	char *utf8;
@@ -48,7 +48,6 @@ static struct Object *print_builtin(struct Context *ctx, struct Object **errptr,
 	return stringobject_newfromcharptr(ctx->interp, errptr, "asd");
 }
 
-// this is ugly
 int builtins_setup(struct Interpreter *interp, struct Object **errptr)
 {
 	int status = STATUS_ERROR;   // only used on error
@@ -71,6 +70,12 @@ int builtins_setup(struct Interpreter *interp, struct Object **errptr)
 	if (interpreter_addbuiltin(interp, errptr, "Object", objectclass) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, errptr, "Error", errorclass) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, errptr, "String", stringclass) == STATUS_ERROR) goto error;
+
+	// yes, this is the best way to do this i could think of
+	((struct Object *) interp->nomemerr->data)->klass = stringclass;
+	OBJECT_INCREF(interp, stringclass);
+	interp->nomemerr->klass = errorclass;
+	OBJECT_INCREF(interp, errorclass);
 
 	if (functionobject_createclass(interp, errptr) == STATUS_ERROR) goto error;
 	if (arrayobject_createclass(interp, errptr) == STATUS_ERROR) goto error;
@@ -128,5 +133,16 @@ void builtins_teardown(struct Interpreter *interp)
 	context_free(interp->builtinctx);
 
 	OBJECT_DECREF(interp, interp->functionclass);
+	OBJECT_DECREF(interp, interp->classclass);
+
+	/* this is a bit tricky because interp->classclass->klass == interp->classclass
+	OBJECT_DECREF(interp->classclass) doesn't work because OBJECT_DECREF also decrefs ->klass
+	this is one of the reasons why ->klass can be NULL and OBJECT_DECREF will ignore it
+
+	TODO: implement gc nicely and use it instead
+	*/
+	struct ObjectClassInfo *info = interp->classclass->data;
+	objectclassinfo_free(info);
+	interp->classclass->klass = NULL;
 	OBJECT_DECREF(interp, interp->classclass);
 }

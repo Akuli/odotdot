@@ -13,13 +13,15 @@ struct Object;   // forward declaration
 typedef void (*objectclassinfo_foreachrefcb)(struct Object *obj, void *data);
 typedef void (*objectclassinfo_foreachref)(struct Object *obj, void *data, objectclassinfo_foreachrefcb cb);
 
-// every ö class is represented as an ObjectClassInfo struct
-// these are created by whateverobject_createclass() functions
+/* every ö class is represented as an ObjectClassInfo struct and a classobject
+   see objects/classobject.h */
 struct ObjectClassInfo {
-	// TODO: replace this with something better
+	// TODO: something better
 	char name[10];
 
 	// Object's baseclass is set to NULL
+	// TODO: class objects should hold references to base classes
+	// TODO: should this be a class object?
 	struct ObjectClassInfo *baseclass;
 
 	// keys are UnicodeStrings, values are Function objects (see objects/function.{c,h})
@@ -37,7 +39,8 @@ struct ObjectClassInfo {
 
 // all ö objects are instances of this struct
 struct Object {
-	struct ObjectClassInfo *klass;
+	// see objects/classobject.h
+	struct Object *klass;
 
 	// keys are UnicodeStrings pointers, values are pointers to Function objects
 	struct HashTable *attrs;
@@ -65,10 +68,11 @@ int objectsystem_getbuiltin(struct HashTable *builtins, char *name, void **res);
 
 // create a new object, add it to interp->allobjects and return it, returns NULL on no mem
 // see also classobject_newinstance() in objects/classobject.h
+// caller MUST incref the klass
 // RETURNS A NEW REFERENCE
-struct Object *object_new(struct Interpreter *interp, struct ObjectClassInfo *klass, void *data);
+struct Object *object_new(struct Interpreter *interp, struct Object *klass, void *data);
 
-// quite self-explanatory, these functions never fail
+// quite self-explanatory, these never fail
 #define OBJECT_INCREF(interp, obj) do { ATOMIC_INCR(((struct Object *)(obj))->refcount); } while(0)
 #define OBJECT_DECREF(interp, obj) do { \
 	if (ATOMIC_DECR(((struct Object *)(obj))->refcount) <= 0) \

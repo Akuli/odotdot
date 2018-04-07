@@ -156,7 +156,7 @@ void context_free(struct Context *ctx)
 		struct HashTableIterator iter;
 		hashtable_iterbegin(ctx->localvars, &iter);
 		while (hashtable_iternext(&iter)) {
-			if (((struct Object *) iter.value)->klass != (struct ObjectClassInfo *) ctx->interp->classclass->data) {
+			if (((struct Object *) iter.value)->klass != ctx->interp->classclass) {
 				// this is not a class
 				struct UnicodeString *key = iter.key;
 				assert(hashtable_pop(ctx->localvars, key, unicodestring_hash(*key), NULL, NULL) == 1);

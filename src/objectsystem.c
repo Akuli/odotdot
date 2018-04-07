@@ -56,7 +56,7 @@ void objectclassinfo_free(struct ObjectClassInfo *klass)
 }
 
 
-struct Object *object_new(struct Interpreter *interp, struct ObjectClassInfo *klass, void *data)
+struct Object *object_new(struct Interpreter *interp, struct Object *klass, void *data)
 {
 	struct Object *obj = malloc(sizeof(struct Object));
 	if(!obj)
@@ -92,11 +92,20 @@ void object_free_impl(struct Interpreter *interp, struct Object *obj)
 	assert(obj->refcount >= 0);
 	assert(obj->refcount <= 0);
 
-	// TODO: document this behavior, it really makes a difference with e.g. Array
-	if (obj->klass->foreachref)
-		obj->klass->foreachref(obj, interp, decref_the_ref);
-	if (obj->klass->destructor)
-		obj->klass->destructor(obj);
+	// obj->klass can be set to NULL to prevent running stuff
+	// see builtins_teardown() for an example
+	if (obj->klass) {
+		struct ObjectClassInfo *classinfo = obj->klass->data;
+
+		// TODO: document the order that these are called in
+		// it really makes a difference with e.g. Array
+		if (classinfo->foreachref)
+			classinfo->foreachref(obj, interp, decref_the_ref);
+		if (classinfo->destructor)
+			classinfo->destructor(obj);
+
+		OBJECT_DECREF(interp, obj->klass);
+	}
 
 	void *dummyptr;
 	assert(hashtable_pop(interp->allobjects, obj, (unsigned int)((uintptr_t)obj), &dummyptr, NULL) == 1);

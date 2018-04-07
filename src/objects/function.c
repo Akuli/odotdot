@@ -52,7 +52,7 @@ struct Object *functionobject_new(struct Interpreter *interp, struct Object **er
 functionobject_cfunc functionobject_getcfunc(struct Interpreter *interp, struct Object *func)
 {
 	// TODO: better type check using errptr
-	assert(func->klass == (struct ObjectClassInfo *) interp->functionclass->data);
+	assert(func->klass == interp->functionclass);
 
 	return ((struct FunctionData *) func->data)->cfunc;
 }

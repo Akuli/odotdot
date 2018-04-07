@@ -31,8 +31,10 @@ static void mark(struct Object *obj, void *junkdata)
 	if (obj->gcflag == 1)   // cyclic reference or called multiple times, see foreach_baseset_element()
 		return;
 	obj->gcflag = 1;
-	if (obj->klass->foreachref)
-		obj->klass->foreachref(obj, NULL, mark);
+
+	struct ObjectClassInfo *oci = obj->klass->data;
+	if (oci->foreachref)
+		oci->foreachref(obj, NULL, mark);
 }
 
 
