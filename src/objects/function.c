@@ -10,6 +10,7 @@
 // because void* can't hold function pointers according to the standard
 struct FunctionData {
 	functionobject_cfunc cfunc;
+	void *data;
 };
 
 static void function_destructor(struct Object *funcobj)
@@ -32,17 +33,18 @@ int functionobject_createclass(struct Interpreter *interp, struct Object **errpt
 	return STATUS_OK;
 }
 
-struct Object *functionobject_new(struct Interpreter *interp, struct Object **errptr, functionobject_cfunc cfunc)
+struct Object *functionobject_new(struct Interpreter *interp, struct Object **errptr, functionobject_cfunc cfunc, void *data)
 {
-	struct FunctionData *data = malloc(sizeof(struct FunctionData));
-	if (!data) {
+	struct FunctionData *funcdata = malloc(sizeof(struct FunctionData));
+	if (!funcdata) {
 		*errptr = interp->nomemerr;
 		return NULL;
 	}
-	data->cfunc = cfunc;
+	funcdata->cfunc = cfunc;
+	funcdata->data = data;
 
 	assert(interp->functionclass);
-	struct Object *obj = classobject_newinstance(interp, errptr, interp->functionclass, data);
+	struct Object *obj = classobject_newinstance(interp, errptr, interp->functionclass, funcdata);
 	if (!obj) {
 		free(data);
 		return NULL;
@@ -65,6 +67,8 @@ functionobject_cfunc functionobject_getcfunc(struct Interpreter *interp, struct 
 
 struct Object *functionobject_call(struct Context *ctx, struct Object **errptr, struct Object *func, ...)
 {
+	assert(func->klass == ctx->interp->functionclass);
+
 	struct Object *args[NARGS_MAX];
 	va_list ap;
 	va_start(ap, func);
@@ -77,7 +81,13 @@ struct Object *functionobject_call(struct Context *ctx, struct Object **errptr, 
 	}
 	va_end(ap);
 
-	return (functionobject_getcfunc(ctx->interp, func))(ctx, errptr, args, nargs);
+	return functionobject_vcall(ctx, errptr, func, args, nargs);
+}
+
+struct Object *functionobject_vcall(struct Context *ctx, struct Object **errptr, struct Object *func, struct Object **args, size_t nargs)
+{
+	struct FunctionData *funcdata = func->data;     // casts implicitly
+	return funcdata->cfunc(ctx, errptr, args, nargs, funcdata->data);
 }
 
 #undef NARGS_MAX

@@ -103,7 +103,7 @@ int run_statement(struct Context *ctx, struct Object **errptr, struct AstNode *s
 			args[i] = arg;
 		}
 
-		struct Object *res = (functionobject_getcfunc(ctx->interp, func))(ctx, errptr, args, INFO_AS(AstCallInfo)->nargs);
+		struct Object *res = functionobject_vcall(ctx, errptr, func, args, INFO_AS(AstCallInfo)->nargs);
 		for (size_t i=0; i < INFO_AS(AstCallInfo)->nargs; i++)
 			OBJECT_DECREF(ctx->interp, args[i]);
 		free(args);

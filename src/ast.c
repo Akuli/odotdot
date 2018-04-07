@@ -117,7 +117,7 @@ static void *copy_info(char kind, void *info)
 		}
 		return res;
 	}
-	if (kind == AST_GETATTR) {
+	if (kind == AST_GETATTR || kind == AST_GETMETHOD) {
 		struct AstGetAttrOrMethodInfo *res = malloc(sizeof(struct AstGetAttrOrMethodInfo));
 		if(!res)
 			return NULL;

@@ -17,7 +17,7 @@
 #include "objects/string.h"
 
 
-static struct Object *print_builtin(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
+static struct Object *print_builtin(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs, void *junkdata)
 {
 	struct Object *stringclass = interpreter_getbuiltin(ctx->interp, errptr, "String");
 	if (!stringclass)    // errptr is set
@@ -83,7 +83,7 @@ int builtins_setup(struct Interpreter *interp, struct Object **errptr)
 
 	if (stringobject_addmethods(interp, errptr) == STATUS_ERROR) goto error;
 
-	printfunc = functionobject_new(interp, errptr, print_builtin);
+	printfunc = functionobject_new(interp, errptr, print_builtin, NULL);
 	if (!printfunc) goto error;
 	if (interpreter_addbuiltin(interp, errptr, "print", printfunc) == STATUS_ERROR) goto error;
 

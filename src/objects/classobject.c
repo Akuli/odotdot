@@ -71,7 +71,7 @@ struct Object *classobject_newfromclassinfo(struct Interpreter *interp, struct O
 	return classobject_newinstance(interp, errptr, interp->classclass, wrapped);
 }
 
-int classobject_addmethod(struct Interpreter *interp, struct Object **errptr, struct Object *klass, char *name, functionobject_cfunc cfunc)
+int classobject_addmethod(struct Interpreter *interp, struct Object **errptr, struct Object *klass, char *name, functionobject_cfunc cfunc, void *data)
 {
 	assert(klass->klass = interp->classclass);    // TODO: better type check
 
@@ -90,7 +90,7 @@ int classobject_addmethod(struct Interpreter *interp, struct Object **errptr, st
 		return STATUS_ERROR;
 	}
 
-	struct Object *func = functionobject_new(interp, errptr, cfunc);
+	struct Object *func = functionobject_new(interp, errptr, cfunc, data);
 	if (!func) {
 		free(uname->val);
 		free(uname);
