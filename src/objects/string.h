@@ -10,6 +10,10 @@
 // because this function is called before error objects like interp->nomemerr exists
 struct ObjectClassInfo *stringobject_createclass(struct ObjectClassInfo *objectclass);
 
+// should be called when other stuff is set up, see builtins_setup()
+// returns STATUS_OK or STATUS_ERROR
+int stringobject_addmethods(struct Interpreter *interp, struct Object **errptr);
+
 // makes a copy of ustr with unicodestring_copy(), returns NULL on error
 // RETURNS A NEW REFERENCE
 struct Object *stringobject_newfromustr(struct Interpreter *interp, struct Object **errptr, struct UnicodeString ustr);

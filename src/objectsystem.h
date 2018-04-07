@@ -13,7 +13,7 @@ struct Object;   // forward declaration
 typedef void (*objectclassinfo_foreachrefcb)(struct Object *ref, void *data);
 typedef void (*objectclassinfo_foreachref)(struct Object *obj, void *data, objectclassinfo_foreachrefcb cb);
 
-/* every ö class is represented as an ObjectClassInfo struct and a classobject
+/* every ö class is represented as an ObjectClassInfo struct wrapped in a classobject
    see objects/classobject.h */
 struct ObjectClassInfo {
 	// TODO: something better
@@ -60,7 +60,7 @@ struct Object {
 struct ObjectClassInfo *objectclassinfo_new(char *name, struct ObjectClassInfo *base, objectclassinfo_foreachref foreachref, void (*destructor)(struct Object *));
 
 // never fails
-void objectclassinfo_free(struct ObjectClassInfo *klass);
+void objectclassinfo_free(struct Interpreter *interp, struct ObjectClassInfo *klass);
 
 // create a new object, add it to interp->allobjects and return it, returns NULL on no mem
 // see also classobject_newinstance() in objects/classobject.h
@@ -80,9 +80,6 @@ struct Object *object_new(struct Interpreter *interp, struct Object *klass, void
 // this removes obj from interp->allobjects
 // use OBJECT_DECREF instead of calling this
 void object_free_impl(struct Interpreter *interp, struct Object *obj);
-
-// returns a Function object, or NULL if not found
-struct Object *object_getmethod(struct ObjectClassInfo *klass, struct UnicodeString name);
 
 
 #endif   // OBJECTSYSTEM_H

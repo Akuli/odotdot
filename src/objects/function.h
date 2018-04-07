@@ -19,10 +19,14 @@ int functionobject_createclass(struct Interpreter *interp, struct Object **errpt
 
 // returns NULL and sets errptr on error
 // RETURNS A NEW REFERENCE
-struct Object *functionobject_new(struct Interpreter *interp, struct Object **errptr, functionobject_cfunc func);
+struct Object *functionobject_new(struct Interpreter *interp, struct Object **errptr, functionobject_cfunc cfunc);
 
 // never fails
 functionobject_cfunc functionobject_getcfunc(struct Interpreter *interp, struct Object *func);
+
+// example: functionobject_call(ctx, errptr, func, a, b, c, NULL) calls func with arguments a, b, c
+// RETURNS A NEW REFERENCE or NULL on error
+struct Object *functionobject_call(struct Context *ctx, struct Object **errptr, struct Object *func, ...);
 
 
 #endif   // OBJECTS_FUNCTION_H

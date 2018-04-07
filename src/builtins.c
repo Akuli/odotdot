@@ -81,6 +81,8 @@ int builtins_setup(struct Interpreter *interp, struct Object **errptr)
 	if (arrayobject_createclass(interp, errptr) == STATUS_ERROR) goto error;
 	if (integerobject_createclass(interp, errptr) == STATUS_ERROR) goto error;
 
+	if (stringobject_addmethods(interp, errptr) == STATUS_ERROR) goto error;
+
 	printfunc = functionobject_new(interp, errptr, print_builtin);
 	if (!printfunc) goto error;
 	if (interpreter_addbuiltin(interp, errptr, "print", printfunc) == STATUS_ERROR) goto error;
@@ -111,11 +113,11 @@ error:
 	if (interp->nomemerr)	OBJECT_DECREF(interp, interp->nomemerr);
 
 	if (stringclass) OBJECT_DECREF(interp, stringclass);
-	else if (stringinfo) objectclassinfo_free(stringinfo);
+	else if (stringinfo) objectclassinfo_free(interp, stringinfo);
 	if (errorclass) OBJECT_DECREF(interp, errorclass);
-	else if (errorinfo) objectclassinfo_free(errorinfo);
+	else if (errorinfo) objectclassinfo_free(interp, errorinfo);
 	if (objectclass) OBJECT_DECREF(interp, errorclass);
-	else if (objectinfo) objectclassinfo_free(objectinfo);
+	else if (objectinfo) objectclassinfo_free(interp, objectinfo);
 
 	if (interp->classclass) OBJECT_DECREF(interp, interp->classclass);
 
@@ -142,7 +144,7 @@ void builtins_teardown(struct Interpreter *interp)
 	TODO: implement gc nicely and use it instead
 	*/
 	struct ObjectClassInfo *info = interp->classclass->data;
-	objectclassinfo_free(info);
+	objectclassinfo_free(interp, info);
 	interp->classclass->klass = NULL;
 	OBJECT_DECREF(interp, interp->classclass);
 }

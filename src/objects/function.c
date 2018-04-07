@@ -1,5 +1,6 @@
 #include <assert.h>
 #include "function.h"
+#include <stdarg.h>
 #include <stdlib.h>
 #include "../common.h"
 #include "../interpreter.h"
@@ -56,3 +57,27 @@ functionobject_cfunc functionobject_getcfunc(struct Interpreter *interp, struct 
 
 	return ((struct FunctionData *) func->data)->cfunc;
 }
+
+// passing more than 10 arguments would be kinda insane, and more than 20 would be really insane
+// if this was a part of some kind of API, i would allow at least 100 arguments though
+// but calling a function from ö doesn't call this, so that's no problem
+#define NARGS_MAX 20
+
+struct Object *functionobject_call(struct Context *ctx, struct Object **errptr, struct Object *func, ...)
+{
+	struct Object *args[NARGS_MAX];
+	va_list ap;
+	va_start(ap, func);
+	int nargs;
+	for (nargs=0; nargs < NARGS_MAX; nargs++) {
+		struct Object *arg = va_arg(ap, struct Object *);
+		if (!arg)
+			break;
+		args[nargs] = arg;
+	}
+	va_end(ap);
+
+	return (functionobject_getcfunc(ctx->interp, func))(ctx, errptr, args, nargs);
+}
+
+#undef NARGS_MAX

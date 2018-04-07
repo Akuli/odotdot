@@ -69,6 +69,7 @@ int main(int argc, char **argv)
 	RUN_TEST(test_objects_simple);
 	RUN_TEST(test_objects_function);
 	RUN_TEST(test_objects_string);
+	RUN_TEST(test_objects_string_tostring);
 	RUN_TEST(test_objects_array);
 	RUN_TEST(test_objects_integer);
 

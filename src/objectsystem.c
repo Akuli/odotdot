@@ -46,10 +46,17 @@ struct ObjectClassInfo *objectclassinfo_new(char *name, struct ObjectClassInfo *
 	return res;
 }
 
-
-void objectclassinfo_free(struct ObjectClassInfo *klass)
+void decref_and_stuff(void *keyustr, void *valobj, void *interpdata)
 {
-	hashtable_clear(klass->methods);   // TODO: decref the values or something?
+	free(((struct UnicodeString *) keyustr)->val);
+	free(keyustr);
+	OBJECT_DECREF(interpdata, valobj);
+}
+
+
+void objectclassinfo_free(struct Interpreter *interp, struct ObjectClassInfo *klass)
+{
+	hashtable_fclear(klass->methods, decref_and_stuff, interp);
 	hashtable_free(klass->methods);
 	free(klass);
 }

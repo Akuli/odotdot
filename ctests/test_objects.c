@@ -84,6 +84,20 @@ void test_objects_string(void)
 	}
 }
 
+void test_objects_string_tostring(void)
+{
+	struct Object *s = stringobject_newfromcharptr(testinterp, NULL, "Öö");
+	buttert(s);
+	struct Object *tostring = classobject_getmethod(testinterp, NULL, s->klass, "to_string");
+	buttert(tostring);
+	struct Object *ret = functionobject_call(testinterp->builtinctx, NULL, tostring, s, NULL);
+	OBJECT_DECREF(testinterp, tostring);
+
+	buttert(ret == s);
+	OBJECT_DECREF(testinterp, s);    // functionobject_call() returned a new reference
+	OBJECT_DECREF(testinterp, s);    // stringobject_newfromustr() returned a new reference
+}
+
 #define NOBJS 3
 void test_objects_array(void)
 {
