@@ -7,7 +7,7 @@
 
 static void classobject_free(struct Object *obj)
 {
-	// TODO: objectclassinfo_free(obj->data);  ???
+	objectclassinfo_free(obj->data);
 }
 
 int classobject_createclass(struct Interpreter *interp, struct Object **errptr, struct ObjectClassInfo *objectclass)

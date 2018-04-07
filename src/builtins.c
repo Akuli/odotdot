@@ -106,16 +106,16 @@ error:
 
 	if (interp->functionobjectinfo) objectclassinfo_free(interp->functionobjectinfo);
 
+	if (interp->nomemerr)	OBJECT_DECREF(interp, interp->nomemerr);
+
 	if (stringclass) OBJECT_DECREF(interp, stringclass);
+	else if (stringinfo) objectclassinfo_free(stringinfo);
 	if (errorclass) OBJECT_DECREF(interp, errorclass);
-	if (objectclass) OBJECT_DECREF(interp, objectclass);
+	else if (errorinfo) objectclassinfo_free(errorinfo);
+	if (objectclass) OBJECT_DECREF(interp, errorclass);
+	else if (objectinfo) objectclassinfo_free(objectinfo);
 
 	if (interp->classobjectinfo) objectclassinfo_free(interp->classobjectinfo);
-
-	if (interp->nomemerr)	OBJECT_DECREF(interp, interp->nomemerr);
-	if (stringinfo) objectclassinfo_free(stringinfo);
-	if (errorinfo) objectclassinfo_free(stringinfo);
-	if (objectinfo) objectclassinfo_free(objectinfo);
 
 	assert(status == STATUS_OK || status == STATUS_NOMEM);
 	return status;
@@ -127,27 +127,9 @@ void builtins_teardown(struct Interpreter *interp)
 {
 	OBJECT_DECREF(interp, interp->nomemerr);
 
-	struct Object *objectclass = interpreter_getbuiltin_nomalloc(interp, "Object");
-	struct Object *errorclass = interpreter_getbuiltin_nomalloc(interp, "Error");
-	struct Object *stringclass = interpreter_getbuiltin_nomalloc(interp, "String");
-	struct Object *arrayclass = interpreter_getbuiltin_nomalloc(interp, "Array");
-	struct ObjectClassInfo *objectinfo = objectclass ? objectclass->data : NULL;
-	struct ObjectClassInfo *errorinfo = errorclass ? errorclass->data : NULL;
-	struct ObjectClassInfo *stringinfo = stringclass ? stringclass->data : NULL;
-	struct ObjectClassInfo *arrayinfo = arrayclass ? arrayclass->data : NULL;
-	if (objectclass) OBJECT_DECREF(interp, objectclass);
-	if (errorclass) OBJECT_DECREF(interp, errorclass);
-	if (stringclass) OBJECT_DECREF(interp, stringclass);
-	if (arrayclass) OBJECT_DECREF(interp, arrayclass);
-
 	// this must be before freeing class infos but after getting them
 	// TODO: how about all sub contexts? this assumes that there are none
 	context_free(interp->builtinctx);
-
-	if (arrayinfo) objectclassinfo_free(arrayinfo);
-	if (stringinfo) objectclassinfo_free(stringinfo);
-	if (errorinfo) objectclassinfo_free(errorinfo);
-	if (objectinfo) objectclassinfo_free(objectinfo);
 
 	objectclassinfo_free(interp->functionobjectinfo);
 	objectclassinfo_free(interp->classobjectinfo);
