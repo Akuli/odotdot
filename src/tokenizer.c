@@ -1,5 +1,6 @@
 // TODO: fix tokenizing empty files
 #include "tokenizer.h"
+#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,6 +38,39 @@ void token_freeall(struct Token *tok1st)
 		free(tok);
 		tok = tok2;
 	}
+}
+
+
+// returns 1 if an integer literal is valid and 0 if it's not
+static int check_integer(struct UnicodeString hugestring, size_t nchars, size_t lineno)
+{
+	if (hugestring.val[0] == '-') {
+		// this relies on pass-by-value
+		hugestring.val++;
+		nchars--;
+	}
+	assert(nchars >= 1);  // token_ize() should handle this
+
+	// any single-digit integer is valid, including 0
+	if (nchars == 1)
+		return 1;
+
+	/*
+	leading zeros are not allowed
+	in c, 0123 != 123 because the prefix 0 means octal, ö doesn't do that because i don't like that
+	0123 == 123 might be confusing to c programmers
+	so let's do this like python 3 does it, disallow 0 prefixes
+
+	but integerobject_newfromwhatever functions ignore leading 0s because it's
+	handy when working with data that has 0-starting integers, python 3 does it too
+	in python 3, int('0123') == 123
+	*/
+	if (hugestring.val[0] == '0') {
+		// FIXME: better error message
+		fprintf(stderr, "line %llu: leading zeros are not allowed\n", (unsigned long long) lineno);
+		return 0;
+	}
+	return 1;
 }
 
 
@@ -104,6 +138,7 @@ struct Token *token_ize(struct UnicodeString hugestring)
 			nchars = 0;
 			while (hugestring.len > nchars && unicode_is0to9(hugestring.val[nchars]))
 				nchars++;
+			check_integer(hugestring, nchars, lineno);
 		}
 
 		else if (hugestring.len >= 2 && hugestring.val[0] == '-' && unicode_is0to9(hugestring.val[1])) {
@@ -111,6 +146,7 @@ struct Token *token_ize(struct UnicodeString hugestring)
 			nchars = 1;
 			while (hugestring.len > nchars && unicode_is0to9(hugestring.val[nchars]))
 				nchars++;
+			check_integer(hugestring, nchars, lineno);
 		}
 
 		else if (unicode_isidentifier1st(hugestring.val[0])) {
