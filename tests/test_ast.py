@@ -1,7 +1,7 @@
 import pytest
 
-from ö import tokenizer, ast_tree
-from ö.ast_tree import (
+from pythoninterp import tokenizer, ast_tree
+from pythoninterp.ast_tree import (
     Array, String, Integer, Call, Block,
     SetVar, SetAttr, GetVar, GetAttr, CreateVar)
 

@@ -2,8 +2,8 @@ import functools
 
 import pytest
 
-from ö import ast_tree, tokenizer, objects
-from ö.run import Interpreter
+from pythoninterp import ast_tree, tokenizer, objects
+from pythoninterp.run import Interpreter
 
 
 # run a bunch of code in the same interpreter and context
@@ -73,13 +73,13 @@ def test_object_stuff(run_code, capsys):
 
     run_code.set_var('d1', objects.Öbject(dummy_info))
     assert capsys.readouterr() == ('', '')
-    run_code('d1.setup "a" "b";')
+    run_code('d1::setup "a" "b";')
     assert capsys.readouterr() == ('setting up\n', '')
 
     run_code('var d2 = (new Dummy "a" "b");')
     assert capsys.readouterr() == ('setting up\n', '')
 
-    run_code('d1.toot; d2.toot;')
+    run_code('d1::toot; d2::toot;')
     assert capsys.readouterr() == ('toot toot\ntoot toot\n', '')
 
 
@@ -114,7 +114,7 @@ def test_blocks(run_code, capsys):
 
     with pytest.raises(AttributeError):     # lol
         run_code('hello;')
-    run_code('hello.run;')
+    run_code('hello::run;')
     assert capsys.readouterr() == ('hello world\nhello again\n', '')
 
     run_code('''
@@ -124,7 +124,7 @@ def test_blocks(run_code, capsys):
         a = "new a";
         print a;
     };
-    firstblock.run;
+    firstblock::run;
     print a;
     ''')
     assert capsys.readouterr() == ('original a\nnew a\nnew a\n', '')
@@ -133,14 +133,14 @@ def test_blocks(run_code, capsys):
     {
         var a = "even newer a";
         print a;
-    }.run;
+    }::run;
     print a;    # it didn't change this
     ''')
     assert capsys.readouterr() == ('even newer a\nnew a\n', '')
 
     run_code('''
     var a = "damn new a";
-    firstblock.run;      # it changed everything that uses this context
+    firstblock::run;      # it changed everything that uses this context
     ''')
     assert capsys.readouterr() == ('damn new a\nnew a\n', '')
 
@@ -154,7 +154,7 @@ def test_funny_idiom(run_code, capsys):
         var a=a;    # localize a
         a = "local a";
         print a;
-    }.run;
+    }::run;
     print a;
     ''')
     assert capsys.readouterr() == ('local a\nglobal a\n', '')

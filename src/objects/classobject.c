@@ -110,9 +110,21 @@ int classobject_addmethod(struct Interpreter *interp, struct Object **errptr, st
 	return STATUS_OK;
 }
 
+struct Object *classobject_getmethod_ustr(struct Interpreter *interp, struct Object **errptr, struct Object *klass, struct UnicodeString uname)
+{
+	assert(klass->klass == interp->classclass);    // TODO: better type check
+
+	struct Object *res;
+	int found = hashtable_get(((struct ObjectClassInfo *) klass->data)->methods, &uname, unicodestring_hash(uname), (void **)(&res), NULL);
+	if (!found)
+		return NULL;
+	OBJECT_INCREF(interp, res);
+	return res;
+}
+
 struct Object *classobject_getmethod(struct Interpreter *interp, struct Object **errptr, struct Object *klass, char *name)
 {
-	assert(klass->klass = interp->classclass);    // TODO: better type check
+	assert(klass->klass == interp->classclass);    // TODO: better type check
 
 	struct UnicodeString *uname = malloc(sizeof(struct UnicodeString));
 	if (!uname) {
@@ -129,13 +141,9 @@ struct Object *classobject_getmethod(struct Interpreter *interp, struct Object *
 		return NULL;
 	}
 
-	struct Object *res;
-	int found = hashtable_get(((struct ObjectClassInfo *) klass->data)->methods, uname, unicodestring_hash(*uname), (void **)(&res), NULL);
+	struct Object *res = classobject_getmethod_ustr(interp, errptr, klass, *uname);
 	free(uname->val);
 	free(uname);
-
-	if (!found)
-		return NULL;
-	OBJECT_INCREF(interp, res);
 	return res;
 }
+

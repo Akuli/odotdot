@@ -39,10 +39,10 @@ int main(int argc, char **argv)
 {
 	if (argc == 1)
 		verbose = 0;
-	else if (argc == 2 && strcmp(argv[1], "--verbose") == 0)
+	else if (argc == 2 && (strcmp(argv[1], "--verbose") == 0 || strcmp(argv[1], "-v") == 0))
 		verbose = 1;
 	else {
-		fprintf(stderr, "Usage: %s [--verbose]\n", argv[0]);
+		fprintf(stderr, "Usage: %s [--verbose|-v]\n", argv[0]);
 		return 1;
 	}
 	ntests = 0;
@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 	RUN_TEST(test_ast_ints);
 	RUN_TEST(test_ast_arrays);
 	RUN_TEST(test_ast_getvars);
-	RUN_TEST(test_ast_attributes);
+	RUN_TEST(test_ast_attributes_and_methods);
 	RUN_TEST(test_ast_function_call_statement);
 
 	RUN_TEST(test_dynamiarray_new_push_pop_and_freeall);

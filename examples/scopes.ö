@@ -1,5 +1,5 @@
 {
     var a = "hello";
     print a;    # prints hello
-}.run;
+}::run;
 print a;     # error!

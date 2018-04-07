@@ -6,7 +6,7 @@ import re
 token_spec = [
     ('keyword', r'var\b'),      # the only keyword
     ('identifier', r'[^\W\d]\w*'),
-    ('op', r'[{}()\[\]=;.]'),
+    ('op', r'[{}()\[\]=;.]|::'),
     ('string', '".*?"'),
     ('integer', r'-?\d+'),
     ('comment', r'#[^\n]*'),

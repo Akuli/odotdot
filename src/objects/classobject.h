@@ -26,7 +26,8 @@ struct Object *classobject_newfromclassinfo(struct Interpreter *interp, struct O
 // name must be valid UTF-8
 int classobject_addmethod(struct Interpreter *interp, struct Object **errptr, struct Object *klass, char *name, functionobject_cfunc cfunc);
 
-// returns NULL on error or A NEW REFERENCE
+// these RETURN A NEW REFERENCE or NULL on error
 struct Object *classobject_getmethod(struct Interpreter *interp, struct Object **errptr, struct Object *klass, char *name);
+struct Object *classobject_getmethod_ustr(struct Interpreter *interp, struct Object **errptr, struct Object *klass, struct UnicodeString name);
 
 #endif    // OBJECTS_CLASSOBJECT_H

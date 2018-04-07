@@ -90,7 +90,11 @@ class Interpreter:
 
         if isinstance(ast_expression, ast_tree.GetAttr):
             obj = self.evaluate(ast_expression.object, context)
-            return obj.attributes[ast_expression.attribute]
+            return obj.attributes[ast_expression.attributename]
+
+        if isinstance(ast_expression, ast_tree.GetMethod):
+            obj = self.evaluate(ast_expression.object, context)
+            return obj.methods[ast_expression.methodname]
 
         if isinstance(ast_expression, ast_tree.Call):
             func = self.evaluate(ast_expression.func, context)

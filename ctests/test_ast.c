@@ -32,6 +32,9 @@ static void create_string_bmalloc(struct AstStrInfo **target)
 	create_string(*target);
 }
 
+// not really random at all, that's why lol
+#define RANDOM_CHOICE_LOL(a, b) ( ((int) time(NULL)) % 2 == 0 ? (a) : (b) )
+
 void test_ast_node_structs_and_ast_copynode(void)
 {
 	struct AstStrInfo *strinfo;
@@ -63,21 +66,21 @@ void test_ast_node_structs_and_ast_copynode(void)
 	struct AstNode *getvarnode = newnode(AST_GETVAR, getvarinfo);
 
 	// freeing this frees getvarnode
-	struct AstGetAttrInfo *getattrinfo = bmalloc(sizeof(struct AstGetAttrInfo));
-	getattrinfo->obj = getvarnode;
-	create_string(&(getattrinfo->attr));
-	struct AstNode *getattrnode = newnode(AST_GETATTR, getattrinfo);
+	struct AstGetAttrOrMethodInfo *gaminfo = bmalloc(sizeof(struct AstGetAttrOrMethodInfo));
+	gaminfo->obj = getvarnode;
+	create_string(&(gaminfo->name));
+	struct AstNode *gamnode = newnode(RANDOM_CHOICE_LOL(AST_GETATTR, AST_GETMETHOD), gaminfo);
 
 	// freeing this frees blocknode
 	struct AstCreateOrSetVarInfo *cosvinfo = bmalloc(sizeof(struct AstCreateOrSetVarInfo));
 	create_string(&(cosvinfo->varname));
 	cosvinfo->val = blocknode;
 	// choose AST_CREATEVAR or AST_SETVAR randomly-ish
-	struct AstNode *cosvnode = newnode((((int) time(NULL))%2 ? AST_CREATEVAR : AST_SETVAR), cosvinfo);
+	struct AstNode *cosvnode = newnode(RANDOM_CHOICE_LOL(AST_CREATEVAR, AST_SETVAR), cosvinfo);
 
-	// freeing this frees getattrnode and cosvnode
+	// freeing this frees gamnode and cosvnode
 	struct AstSetAttrInfo *setattrinfo = bmalloc(sizeof(struct AstSetAttrInfo));
-	setattrinfo->obj = getattrnode;
+	setattrinfo->obj = gamnode;
 	create_string(&(setattrinfo->attr));
 	setattrinfo->val = cosvnode;
 	struct AstNode *setattrnode = newnode(AST_SETATTR, setattrinfo);
@@ -190,22 +193,22 @@ void test_ast_getvars(void)
 	astnode_free(node);
 }
 
-void test_ast_attributes(void)
+void test_ast_attributes_and_methods(void)
 {
-	struct AstNode *dotc = parse_expression_string("\"asd\".a.b.c");
+	struct AstNode *dotc = parse_expression_string("\"asd\".a::b.c");
 	buttert(dotc->kind == AST_GETATTR);
-	struct AstGetAttrInfo *dotcinfo = dotc->info;
-	buttert(stringinfo_equals_ascii_charp(&(dotcinfo->attr), "c"));
+	struct AstGetAttrOrMethodInfo *dotcinfo = dotc->info;
+	buttert(stringinfo_equals_ascii_charp(&(dotcinfo->name), "c"));
 
 	struct AstNode *dotb = dotcinfo->obj;
-	buttert(dotb->kind == AST_GETATTR);
-	struct AstGetAttrInfo *dotbinfo = dotb->info;
-	buttert(stringinfo_equals_ascii_charp(&(dotbinfo->attr), "b"));
+	buttert(dotb->kind == AST_GETMETHOD);
+	struct AstGetAttrOrMethodInfo *dotbinfo = dotb->info;
+	buttert(stringinfo_equals_ascii_charp(&(dotbinfo->name), "b"));
 
 	struct AstNode *dota = dotbinfo->obj;
 	buttert(dota->kind == AST_GETATTR);
-	struct AstGetAttrInfo *dotainfo = dota->info;
-	buttert(stringinfo_equals_ascii_charp(&(dotainfo->attr), "a"));
+	struct AstGetAttrOrMethodInfo *dotainfo = dota->info;
+	buttert(stringinfo_equals_ascii_charp(&(dotainfo->name), "a"));
 
 	struct AstNode *str = dotainfo->obj;
 	buttert(str->kind == AST_STR);

@@ -5,7 +5,7 @@ import sys
 
 import pytest
 
-import ö.__main__
+import pythoninterp.__main__
 
 
 @contextlib.contextmanager
@@ -27,7 +27,7 @@ def create_tester_function(filename, expected_output,
             sys.argv[1:] = [os.path.join('examples', filename)]
             with should_raise:
                 # pytest catches SystemExits raised in tests
-                ö.__main__.main()
+                pythoninterp.__main__.main()
         finally:
             sys.argv[1:] = old_argv
 
@@ -39,7 +39,7 @@ def create_tester_function(filename, expected_output,
     tested_filenames.add(filename)
 
 
-create_tester_function('hello.ö', 'hello world\n')
+create_tester_function('hello.ö', 'Hello World!!\n')
 create_tester_function('block.ö', 'hello\n' * 3)
 create_tester_function('scopes.ö', 'hello\n', pytest.raises(ValueError))
 create_tester_function('mapping.ö', 'hello\nhi\n')

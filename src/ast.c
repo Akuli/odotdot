@@ -30,8 +30,9 @@ static void free_info(char kind, void *info)
 		free(info_as(AstGetVarInfo)->varname.val);
 		break;
 	case AST_GETATTR:
-		astnode_free(info_as(AstGetAttrInfo)->obj);
-		free(info_as(AstGetAttrInfo)->attr.val);
+	case AST_GETMETHOD:
+		astnode_free(info_as(AstGetAttrOrMethodInfo)->obj);
+		free(info_as(AstGetAttrOrMethodInfo)->name.val);
 		break;
 	case AST_CREATEVAR:
 	case AST_SETVAR:
@@ -117,16 +118,16 @@ static void *copy_info(char kind, void *info)
 		return res;
 	}
 	if (kind == AST_GETATTR) {
-		struct AstGetAttrInfo *res = malloc(sizeof(struct AstGetAttrInfo));
+		struct AstGetAttrOrMethodInfo *res = malloc(sizeof(struct AstGetAttrOrMethodInfo));
 		if(!res)
 			return NULL;
-		if (unicodestring_copyinto(info_as(AstGetAttrInfo)->attr, &(res->attr)) != STATUS_OK) {
+		if (unicodestring_copyinto(info_as(AstGetAttrOrMethodInfo)->name, &(res->name)) != STATUS_OK) {
 			free(res);
 			return NULL;
 		}
-		res->obj = astnode_copy(info_as(AstGetAttrInfo)->obj);
+		res->obj = astnode_copy(info_as(AstGetAttrOrMethodInfo)->obj);
 		if(!(res->obj)) {
-			free(res->attr.val);
+			free(res->name.val);
 			free(res);
 			return NULL;
 		}
@@ -443,33 +444,36 @@ struct AstNode *parse_expression(struct Token **curtok)
 		return NULL;
 
 	// attributes
-	while ((*curtok) && (*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == '.') {
-		*curtok = (*curtok)->next;   // skip '.'
+	while ((*curtok) && (*curtok)->kind == TOKEN_OP && (
+			((*curtok)->str.len == 1 && (*curtok)->str.val[0] == '.') ||
+			((*curtok)->str.len == 2 && (*curtok)->str.val[0] == ':' && (*curtok)->str.val[1] == ':'))) {
+		char asttype = (*curtok)->str.len == 1 ? AST_GETATTR : AST_GETMETHOD;
+		*curtok = (*curtok)->next;   // skip '.' or '::'
 		assert((*curtok));     // TODO: report error "expected an attribute name, but the file ended"
 		assert((*curtok)->kind == TOKEN_ID);   // TODO: report error "invalid attribute name 'bla bla'"
 
-		struct AstGetAttrInfo *gainfo = malloc(sizeof(struct AstGetAttrInfo));
-		if(!gainfo) {
+		struct AstGetAttrOrMethodInfo *gaminfo = malloc(sizeof(struct AstGetAttrOrMethodInfo));
+		if(!gaminfo) {
 			astnode_free(res);
 			return NULL;
 		}
 
-		gainfo->obj = res;
-		if (unicodestring_copyinto((*curtok)->str, &(gainfo->attr)) != STATUS_OK) {
-			free(gainfo);
+		gaminfo->obj = res;
+		if (unicodestring_copyinto((*curtok)->str, &(gaminfo->name)) != STATUS_OK) {
+			free(gaminfo);
 			astnode_free(res);
 			return NULL;
 		}
 		*curtok = (*curtok)->next;
 
-		struct AstNode *ga = new_expression(AST_GETATTR, gainfo);
-		if(!ga) {
-			free(gainfo->attr.val);
-			free(gainfo);
+		struct AstNode *gam = new_expression(asttype, gaminfo);
+		if(!gam) {
+			free(gaminfo->name.val);
+			free(gaminfo);
 			astnode_free(res);
 			return NULL;
 		}
-		res = ga;
+		res = gam;
 	}
 
 	return res;

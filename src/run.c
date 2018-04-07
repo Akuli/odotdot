@@ -8,6 +8,7 @@
 #include "interpreter.h"
 #include "objectsystem.h"
 #include "objects/array.h"
+#include "objects/classobject.h"
 #include "objects/function.h"
 #include "objects/integer.h"
 #include "objects/string.h"
@@ -19,6 +20,17 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 #define INFO_AS(X) ((struct X *)expr->info)
 	case AST_GETVAR:
 		return context_getvar(ctx, errptr, INFO_AS(AstGetVarInfo)->varname);
+
+	case AST_GETMETHOD:
+		(void) 1;    // yes, this is needed
+		struct Object *obj = run_expression(ctx, errptr, INFO_AS(AstGetAttrOrMethodInfo)->obj);
+		if (!obj)
+			return NULL;
+
+		// FIXME: obj should be partialled as the first argument, nothing happens now :(
+		struct Object *res = classobject_getmethod_ustr(ctx->interp, errptr, obj->klass, INFO_AS(AstGetAttrOrMethodInfo)->name);
+		OBJECT_DECREF(ctx->interp, obj);
+		return res;
 
 	case AST_STR:
 		return stringobject_newfromustr(ctx->interp, errptr, *((struct UnicodeString *)expr->info));

@@ -15,7 +15,8 @@ Integer = _node_class('Integer', ['python_int'])
 Array = _node_class('Array', ['elements'])
 Block = _node_class('Block', ['statements'])
 GetVar = _node_class('GetVar', ['varname'])
-GetAttr = _node_class('GetAttr', ['object', 'attribute'])
+GetAttr = _node_class('GetAttr', ['object', 'attributename'])
+GetMethod = _node_class('GetMethod', ['object', 'methodname'])
 
 # statements
 # TODO: should attributes and variables be treated differently? people
@@ -28,7 +29,7 @@ SetAttr = _node_class('SetAttr', ['object', 'attribute', 'value'])
 Call = _node_class('Call', ['func', 'args'])
 
 
-# this kind of abuses EOFError... feels nice and evil >:D MUHAHAHAA!!!
+# this abuses EOFError... feels nice and evil >:D MUHAHAHAA!!!
 class _HandyTokenIterator:
 
     def __init__(self, iterable):
@@ -128,15 +129,16 @@ class _Parser:
                 "expected a string, an integer, a variable name, '(', '[' or "
                 "'{', not '%s'" % self.tokens.coming_up().value)
 
-        # attributes
+        # attributes and methods
         while (self.tokens.coming_up().kind == 'op' and
-               self.tokens.coming_up().value == '.'):
-            self.tokens.pop()
+               self.tokens.coming_up().value in {'.', '::'}):
+            # attribute
+            klass = GetAttr if self.tokens.pop().value == '.' else GetMethod
             attribute = self.tokens.pop()
             if attribute.kind != 'identifier':
                 raise ValueError("invalid attribute name '%s'"
                                  % attribute.value)
-            result = GetAttr(result, attribute.value)
+            result = klass(result, attribute.value)
 
         return result
 
@@ -191,7 +193,7 @@ class _Parser:
         if isinstance(target, GetVar):
             return SetVar(target.varname, value)
         if isinstance(target, GetAttr):
-            return SetAttr(target.object, target.attribute, value)
+            return SetAttr(target.object, target.attributename, value)
         raise ValueError(
             "the x of 'x = y;' must be a variable name or an attribute")
 

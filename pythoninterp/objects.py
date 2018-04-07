@@ -53,7 +53,8 @@ class Öbject:
 
     def __init__(self, class_info):
         self.class_info = class_info
-        self.attributes = DefaultDictLikeThingy(self._get_method)
+        self.attributes = {}
+        self.methods = DefaultDictLikeThingy(self._get_method)
 
     def _get_method(self, name):
         try:
@@ -65,7 +66,7 @@ class Öbject:
 
     # just for convenience
     def call_method(self, name, *args):
-        return self.attributes[name].python_func(*args)
+        return self.methods[name].python_func(*args)
 
     # for debugging the python code
     def __repr__(self):

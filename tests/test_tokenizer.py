@@ -1,6 +1,6 @@
 import pytest
 
-from ö.tokenizer import Token, Location, tokenize
+from pythoninterp.tokenizer import Token, Location, tokenize
 
 
 # this is lol

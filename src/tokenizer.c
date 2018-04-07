@@ -111,6 +111,13 @@ struct Token *token_ize(struct UnicodeString hugestring)
 			nchars = 1;
 		}
 
+		else if (hugestring.len >= 2 &&
+				hugestring.val[0] == ':' &&
+				hugestring.val[1] == ':') {
+			kind = TOKEN_OP;
+			nchars = 2;
+		}
+
 		else if (hugestring.len >= 4 &&
 				hugestring.val[0] == 'v' &&
 				hugestring.val[1] == 'a' &&
@@ -145,7 +152,7 @@ struct Token *token_ize(struct UnicodeString hugestring)
 
 		else if (hugestring.len >= 2 && hugestring.val[0] == '-' && unicode_is0to9(hugestring.val[1])) {
 			kind = TOKEN_INT;
-			nchars = 1;
+			nchars = 1;    // don't give the '-' to the while loop below
 			while (hugestring.len > nchars && unicode_is0to9(hugestring.val[nchars]))
 				nchars++;
 			if (!check_integer(hugestring, nchars, lineno))
@@ -160,6 +167,7 @@ struct Token *token_ize(struct UnicodeString hugestring)
 		}
 
 		else {
+			// TODO: better error message
 			fprintf(stderr, "line %llu: unknown token\n", (unsigned long long)lineno);
 			goto error;
 		}
