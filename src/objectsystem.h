@@ -10,7 +10,7 @@
 // iwyu is stupid, why can't i pragma keep structs forward declarations :(
 struct Object;   // forward declaration
 
-typedef void (*objectclassinfo_foreachrefcb)(struct Object *obj, void *data);
+typedef void (*objectclassinfo_foreachrefcb)(struct Object *ref, void *data);
 typedef void (*objectclassinfo_foreachref)(struct Object *obj, void *data, objectclassinfo_foreachrefcb cb);
 
 /* every ö class is represented as an ObjectClassInfo struct and a classobject
