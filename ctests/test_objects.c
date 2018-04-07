@@ -45,7 +45,7 @@ void test_objects_simple(void)
 
 
 // TODO: test actually running this thing to make sure that data is passed correctly
-struct Object *callback(struct Context *callctx, struct Object **errptr, struct Object **args, size_t nargs, void *data)
+struct Object *callback(struct Context *callctx, struct Object **errptr, struct Object **args, size_t nargs)
 {
 	buttert2(0, "the callback ran unexpectedly");
 	return (struct Object*) 0xdeadbeef;
@@ -53,7 +53,7 @@ struct Object *callback(struct Context *callctx, struct Object **errptr, struct 
 
 void test_objects_function(void)
 {
-	struct Object *func = functionobject_new(testinterp, NULL, callback, (void*)0xdeadbeef);
+	struct Object *func = functionobject_new(testinterp, NULL, callback, NULL);
 	buttert(functionobject_getcfunc(testinterp, func) == callback);
 	OBJECT_DECREF(testinterp, func);
 }
@@ -89,9 +89,9 @@ void test_objects_string_tostring(void)
 {
 	struct Object *s = stringobject_newfromcharptr(testinterp, NULL, "Öö");
 	buttert(s);
-	struct Object *tostring = classobject_getmethod(testinterp, NULL, s->klass, "to_string");
+	struct Object *tostring = classobject_getmethod(testinterp, NULL, s, "to_string");
 	buttert(tostring);
-	struct Object *ret = functionobject_call(testinterp->builtinctx, NULL, tostring, s, NULL);
+	struct Object *ret = functionobject_call(testinterp->builtinctx, NULL, tostring, NULL);
 	OBJECT_DECREF(testinterp, tostring);
 
 	buttert(ret == s);

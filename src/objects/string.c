@@ -22,7 +22,7 @@ struct ObjectClassInfo *stringobject_createclass(struct ObjectClassInfo *objectc
 	return objectclassinfo_new("String", objectclass, NULL, string_destructor);
 }
 
-static struct Object *to_string(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs, void *junkdata)
+static struct Object *to_string(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
 {
 	assert(nargs == 1);    // TODO: better argument check
 	OBJECT_INCREF(ctx->interp, args[0]);   // we're returning a reference
@@ -35,7 +35,7 @@ int stringobject_addmethods(struct Interpreter *interp, struct Object **errptr)
 	if (!stringclass)
 		return STATUS_ERROR;
 
-	int res = classobject_addmethod(interp, errptr, stringclass, "to_string", to_string, NULL);
+	int res = classobject_addmethod(interp, errptr, stringclass, "to_string", to_string);
 	OBJECT_DECREF(interp, stringclass);
 	return res;
 }

@@ -43,6 +43,15 @@ void interpreter_free(struct Interpreter *interp)
 	/* interp->builtinctx is freed in builtins_teardown() because it also frees
 	   stuff that are needed for freeing interp->builtinctx */
 
+	if (interp->allobjects->size != 0) {
+		fprintf(stderr, "%s: reference counting problem: %d unfreed objects\n", interp->argv0, (int) interp->allobjects->size);
+
+		struct HashTableIterator iter;
+		hashtable_iterbegin(interp->allobjects, &iter);
+		while (hashtable_iternext(&iter))
+			fprintf(stderr, "   %p: refcount=%d\n", iter.key, ((struct Object *) iter.key)->refcount);
+	}
+
 	hashtable_free(interp->allobjects);   // fails if there are any objects left
 	free(interp);
 }

@@ -71,9 +71,9 @@ struct Object *classobject_newfromclassinfo(struct Interpreter *interp, struct O
 	return classobject_newinstance(interp, errptr, interp->classclass, wrapped);
 }
 
-int classobject_addmethod(struct Interpreter *interp, struct Object **errptr, struct Object *klass, char *name, functionobject_cfunc cfunc, void *data)
+int classobject_addmethod(struct Interpreter *interp, struct Object **errptr, struct Object *klass, char *name, functionobject_cfunc cfunc)
 {
-	assert(klass->klass = interp->classclass);    // TODO: better type check
+	assert(klass->klass == interp->classclass);    // TODO: better type check
 
 	struct UnicodeString *uname = malloc(sizeof(struct UnicodeString));
 	if (!uname) {
@@ -90,7 +90,7 @@ int classobject_addmethod(struct Interpreter *interp, struct Object **errptr, st
 		return STATUS_ERROR;
 	}
 
-	struct Object *func = functionobject_new(interp, errptr, cfunc, data);
+	struct Object *func = functionobject_new(interp, errptr, cfunc, NULL);
 	if (!func) {
 		free(uname->val);
 		free(uname);
@@ -110,22 +110,23 @@ int classobject_addmethod(struct Interpreter *interp, struct Object **errptr, st
 	return STATUS_OK;
 }
 
-struct Object *classobject_getmethod_ustr(struct Interpreter *interp, struct Object **errptr, struct Object *klass, struct UnicodeString uname)
+// TODO: cache methods instead of creating new objects every time
+struct Object *classobject_getmethod_ustr(struct Interpreter *interp, struct Object **errptr, struct Object *obj, struct UnicodeString uname)
 {
-	assert(klass->klass == interp->classclass);    // TODO: better type check
-
-	struct Object *res;
-	int found = hashtable_get(((struct ObjectClassInfo *) klass->data)->methods, &uname, unicodestring_hash(uname), (void **)(&res), NULL);
+	// TODO: inheritance??
+	struct Object *nopartial;
+	int found = hashtable_get(((struct ObjectClassInfo *) obj->klass->data)->methods, &uname, unicodestring_hash(uname), (void **)(&nopartial), NULL);
 	if (!found)
 		return NULL;
-	OBJECT_INCREF(interp, res);
-	return res;
+
+	// now we have a function that takes self as the first argument, let's partial it
+	// no need to decref nopartial because hashtable_get() doesn't incref
+	// functionobject_newpartial() will take care of the rest
+	return functionobject_newpartial(interp, errptr, nopartial, obj);
 }
 
-struct Object *classobject_getmethod(struct Interpreter *interp, struct Object **errptr, struct Object *klass, char *name)
+struct Object *classobject_getmethod(struct Interpreter *interp, struct Object **errptr, struct Object *obj, char *name)
 {
-	assert(klass->klass == interp->classclass);    // TODO: better type check
-
 	struct UnicodeString *uname = malloc(sizeof(struct UnicodeString));
 	if (!uname) {
 		*errptr = interp->nomemerr;
@@ -141,9 +142,8 @@ struct Object *classobject_getmethod(struct Interpreter *interp, struct Object *
 		return NULL;
 	}
 
-	struct Object *res = classobject_getmethod_ustr(interp, errptr, klass, *uname);
+	struct Object *res = classobject_getmethod_ustr(interp, errptr, obj, *uname);
 	free(uname->val);
 	free(uname);
 	return res;
 }
-

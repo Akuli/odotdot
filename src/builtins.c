@@ -17,7 +17,7 @@
 #include "objects/string.h"
 
 
-static struct Object *print_builtin(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs, void *junkdata)
+static struct Object *print_builtin(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
 {
 	struct Object *stringclass = interpreter_getbuiltin(ctx->interp, errptr, "String");
 	if (!stringclass)    // errptr is set

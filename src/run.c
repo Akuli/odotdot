@@ -28,7 +28,7 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 			return NULL;
 
 		// FIXME: obj should be partialled as the first argument, nothing happens now :(
-		struct Object *res = classobject_getmethod_ustr(ctx->interp, errptr, obj->klass, INFO_AS(AstGetAttrOrMethodInfo)->name);
+		struct Object *res = classobject_getmethod_ustr(ctx->interp, errptr, obj, INFO_AS(AstGetAttrOrMethodInfo)->name);
 		OBJECT_DECREF(ctx->interp, obj);
 		return res;
 
