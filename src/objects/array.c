@@ -67,14 +67,13 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **errpt
 		if (status != STATUS_OK) {
 			assert(status == STATUS_NOMEM);
 			*errptr = interp->nomemerr;
+			for (size_t j=0; j<i; j++)
+				OBJECT_DECREF(interp, elems[i]);
 			OBJECT_DECREF(interp, arr);
 			return NULL;
 		}
-	}
-
-	// this way stuff doesn't need to be decreffed in a second loop when dynamicarray_push fails
-	for (size_t i=0; i < nelems; i++)
 		OBJECT_INCREF(interp, elems[i]);
+	}
 
 	return arr;
 }

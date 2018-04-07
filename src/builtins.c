@@ -124,7 +124,6 @@ void builtins_teardown(struct Interpreter *interp)
 {
 	OBJECT_DECREF(interp, interp->nomemerr);
 
-	// this must be before freeing class infos but after getting them
 	// TODO: how about all sub contexts? this assumes that there are none
 	context_free(interp->builtinctx);
 

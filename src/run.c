@@ -9,6 +9,7 @@
 #include "objectsystem.h"
 #include "objects/array.h"
 #include "objects/function.h"
+#include "objects/integer.h"
 #include "objects/string.h"
 
 // RETURNS A NEW REFERENCE
@@ -53,6 +54,7 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 	case AST_INT:
 		return integerobject_newfromcharptr(ctx->interp, errptr, INFO_AS(AstIntInfo)->valstr);
 #undef INFO_AS
+
 	default:
 		assert(0);
 	}
