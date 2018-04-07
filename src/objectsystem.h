@@ -62,10 +62,6 @@ struct ObjectClassInfo *objectclassinfo_new(char *name, struct ObjectClassInfo *
 // never fails
 void objectclassinfo_free(struct ObjectClassInfo *klass);
 
-// returns STATUS_OK, STATUS_NOMEM or 1 for not found, assert(0)'s if name is not utf8
-// TODO: struct Object* instead of void*
-int objectsystem_getbuiltin(struct HashTable *builtins, char *name, void **res);
-
 // create a new object, add it to interp->allobjects and return it, returns NULL on no mem
 // see also classobject_newinstance() in objects/classobject.h
 // caller MUST incref the klass

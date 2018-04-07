@@ -27,7 +27,6 @@ static int compare_unicode_strings(void *a, void *b, void *userdata)
 	return 1;
 }
 
-
 struct ObjectClassInfo *objectclassinfo_new(char *name, struct ObjectClassInfo *base, objectclassinfo_foreachref foreachref, void (*destructor)(struct Object *))
 {
 	struct ObjectClassInfo *res = malloc(sizeof(struct ObjectClassInfo));
@@ -113,20 +112,6 @@ void object_free_impl(struct Interpreter *interp, struct Object *obj)
 	hashtable_clear(obj->attrs);   // TODO: decref the values or something?
 	hashtable_free(obj->attrs);
 	free(obj);
-}
-
-int objectsystem_getbuiltin(struct HashTable *builtins, char *name, void **res)
-{
-	char decodeerror[100] = {0};
-	struct UnicodeString uname;
-	int ret = utf8_decode(name, strlen(name), &uname, decodeerror);
-	assert(ret != 1);   // name must be valid utf8
-	if (ret != STATUS_OK)
-		return ret;
-
-	ret = hashtable_get(builtins, &uname, unicodestring_hash(uname), res, NULL);
-	free(uname.val);
-	return ret;
 }
 
 struct Object *object_getmethod(struct ObjectClassInfo *klass, struct UnicodeString name)
