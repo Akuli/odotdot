@@ -75,7 +75,6 @@ int builtins_setup(struct Interpreter *interp, struct Object **errptr)
 	if (functionobject_createclass(interp, errptr) == STATUS_ERROR) goto error;
 
 	printfunc = functionobject_new(interp, errptr, print_builtin);
-	assert(printfunc->klass == interp->functionobjectinfo);
 	if (!printfunc) goto error;
 	if (interpreter_addbuiltin(interp, errptr, "print", printfunc) == STATUS_ERROR) goto error;
 
@@ -104,7 +103,7 @@ error:
 	// e.g. objectinfo is created first, so it's freed last
 	if (printfunc) OBJECT_DECREF(interp, printfunc);
 
-	if (interp->functionobjectinfo) objectclassinfo_free(interp->functionobjectinfo);
+	if (interp->functionclass) OBJECT_DECREF(interp, interp->functionclass);
 
 	if (interp->nomemerr)	OBJECT_DECREF(interp, interp->nomemerr);
 
@@ -115,7 +114,7 @@ error:
 	if (objectclass) OBJECT_DECREF(interp, errorclass);
 	else if (objectinfo) objectclassinfo_free(objectinfo);
 
-	if (interp->classobjectinfo) objectclassinfo_free(interp->classobjectinfo);
+	if (interp->classclass) OBJECT_DECREF(interp, interp->classclass);
 
 	assert(status == STATUS_OK || status == STATUS_NOMEM);
 	return status;
@@ -131,6 +130,6 @@ void builtins_teardown(struct Interpreter *interp)
 	// TODO: how about all sub contexts? this assumes that there are none
 	context_free(interp->builtinctx);
 
-	objectclassinfo_free(interp->functionobjectinfo);
-	objectclassinfo_free(interp->classobjectinfo);
+	OBJECT_DECREF(interp, interp->functionclass);
+	OBJECT_DECREF(interp, interp->classclass);
 }

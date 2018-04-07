@@ -4,6 +4,7 @@
 #include "../common.h"
 #include "../interpreter.h"
 #include "../objectsystem.h"
+#include "classobject.h"
 
 // because void* can't hold function pointers according to the standard
 struct FunctionData {
@@ -21,14 +22,14 @@ int functionobject_createclass(struct Interpreter *interp, struct Object **errpt
 	if (!objectclass)    // errptr is set already
 		return STATUS_ERROR;
 
-	struct ObjectClassInfo *klass = objectclassinfo_new("Function", objectclass->data, NULL, function_destructor);
+	struct Object *klass = classobject_new(interp, errptr, "Function", objectclass, NULL, function_destructor);
 	OBJECT_DECREF(interp, objectclass);
 	if (!klass) {
 		*errptr = interp->nomemerr;
 		return STATUS_ERROR;
 	}
 
-	interp->functionobjectinfo = klass;
+	interp->functionclass = klass;
 	return STATUS_OK;
 }
 
@@ -41,10 +42,9 @@ struct Object *functionobject_new(struct Interpreter *interp, struct Object **er
 	}
 	data->cfunc = cfunc;
 
-	assert(interp->functionobjectinfo);
-	struct Object *obj = object_new(interp, interp->functionobjectinfo, data);
+	assert(interp->functionclass);
+	struct Object *obj = classobject_newinstance(interp, errptr, interp->functionclass, data);
 	if (!obj) {
-		*errptr = interp->nomemerr;
 		free(data);
 		return NULL;
 	}
@@ -54,7 +54,7 @@ struct Object *functionobject_new(struct Interpreter *interp, struct Object **er
 functionobject_cfunc functionobject_getcfunc(struct Interpreter *interp, struct Object *func)
 {
 	// TODO: better type check using errptr
-	assert(func->klass == interp->functionobjectinfo);
+	assert(func->klass == (struct ObjectClassInfo *) interp->functionclass->data);
 
 	return ((struct FunctionData *) func->data)->cfunc;
 }

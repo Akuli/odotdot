@@ -63,7 +63,7 @@ void objectclassinfo_free(struct ObjectClassInfo *klass);
 // TODO: struct Object* instead of void*
 int objectsystem_getbuiltin(struct HashTable *builtins, char *name, void **res);
 
-// create a new object, add it to interp->allobjects and return it, returns NULL on error
+// create a new object, add it to interp->allobjects and return it, returns NULL on no mem
 // see also classobject_newinstance() in objects/classobject.h
 // RETURNS A NEW REFERENCE
 struct Object *object_new(struct Interpreter *interp, struct ObjectClassInfo *klass, void *data);

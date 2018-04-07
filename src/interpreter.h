@@ -26,8 +26,8 @@ struct Interpreter {
 	struct HashTable *allobjects;
 
 	// these are not exposed as built-in variables, so they can't be in builtinctx
-	struct ObjectClassInfo *classobjectinfo;
-	struct ObjectClassInfo *functionobjectinfo;
+	struct Object *classclass;      // class of classes, this is not a copy-pasta
+	struct Object *functionclass;
 };
 
 // returns NULL on no mem

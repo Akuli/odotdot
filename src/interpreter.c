@@ -33,8 +33,8 @@ struct Interpreter *interpreter_new(char *argv0)
 
 	interp->argv0 = argv0;
 	interp->nomemerr = NULL;
-	interp->classobjectinfo = NULL;
-	interp->functionobjectinfo = NULL;
+	interp->classclass = NULL;
+	interp->functionclass = NULL;
 	return interp;
 }
 

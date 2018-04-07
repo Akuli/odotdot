@@ -12,19 +12,27 @@ static void classobject_free(struct Object *obj)
 
 int classobject_createclass(struct Interpreter *interp, struct Object **errptr, struct ObjectClassInfo *objectclass)
 {
-	struct ObjectClassInfo *res = objectclassinfo_new("Class", objectclass, NULL, classobject_free);
-	if (!res) {
+	struct ObjectClassInfo *info = objectclassinfo_new("Class", objectclass, NULL, classobject_free);
+	if (!info) {
 		*errptr = interp->nomemerr;
 		return STATUS_ERROR;
 	}
-	interp->classobjectinfo = res;
+
+	struct Object *klass = object_new(interp, info, info);
+	if (!klass) {
+		objectclassinfo_free(info);
+		*errptr = interp->nomemerr;
+		return STATUS_ERROR;
+	}
+
+	interp->classclass = klass;
 	return STATUS_OK;
 }
 
 struct Object *classobject_new(struct Interpreter *interp, struct Object **errptr, char *name, struct Object *base, objectclassinfo_foreachref foreachref, void (*destructor)(struct Object *))
 {
 	// TODO: better type check
-	assert(base->klass == interp->classobjectinfo);
+	assert(base->klass == (struct ObjectClassInfo *) interp->classclass->data);
 
 	struct ObjectClassInfo *info = objectclassinfo_new(name, (struct ObjectClassInfo*) base->data, foreachref, destructor);
 	if (!info) {
@@ -42,7 +50,7 @@ struct Object *classobject_new(struct Interpreter *interp, struct Object **errpt
 
 struct Object *classobject_newinstance(struct Interpreter *interp, struct Object **errptr, struct Object *klass, void *data)
 {
-	assert(klass->klass == interp->classobjectinfo);      // TODO: better type check
+	assert(klass->klass == (struct ObjectClassInfo *) interp->classclass->data);      // TODO: better type check
 	struct Object *res = object_new(interp, klass->data, data);
 	if (!res) {
 		*errptr = interp->nomemerr;
@@ -53,8 +61,8 @@ struct Object *classobject_newinstance(struct Interpreter *interp, struct Object
 
 struct Object *classobject_newfromclassinfo(struct Interpreter *interp, struct Object **errptr, struct ObjectClassInfo *wrapped)
 {
-	assert(interp->classobjectinfo);
-	struct Object *klass = object_new(interp, interp->classobjectinfo, wrapped);
+	assert(interp->classclass);
+	struct Object *klass = object_new(interp, interp->classclass->data, wrapped);
 	if (!klass) {
 		*errptr = interp->nomemerr;
 		return NULL;

@@ -62,7 +62,7 @@ int run_statement(struct Context *ctx, struct Object **errptr, struct AstNode *s
 			return STATUS_ERROR;
 
 		// TODO: better type check
-		assert(func->klass == ctx->interp->functionobjectinfo);
+		assert(func->klass == (struct ObjectClassInfo *) ctx->interp->functionclass->data);
 
 		// TODO: optimize with the at most 100 args limit?
 		struct Object **args = malloc(sizeof(struct Object*) * INFO_AS(AstCallInfo)->nargs);
