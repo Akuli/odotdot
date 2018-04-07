@@ -147,30 +147,6 @@ static void clear_item(void *ustrkey, void *valobj, void *interp)
 
 void context_free(struct Context *ctx)
 {
-	// classes must be freed last, then other objects which may be instances of those classes
-	// FIXME: it would be much better for each object to hold a reference to the class
-	// FIXME: this code sucks
-	int nonclassfound;
-	do {
-		nonclassfound = 0;
-		struct HashTableIterator iter;
-		hashtable_iterbegin(ctx->localvars, &iter);
-		while (hashtable_iternext(&iter)) {
-			if (((struct Object *) iter.value)->klass != ctx->interp->classclass) {
-				// this is not a class
-				struct UnicodeString *key = iter.key;
-				assert(hashtable_pop(ctx->localvars, key, unicodestring_hash(*key), NULL, NULL) == 1);
-				free(key->val);
-				free(key);
-				OBJECT_DECREF(ctx->interp, iter.value);
-
-				// the iterating gets messed up because the hashtable was edited with hashtable_pop
-				nonclassfound = 1;
-				break;
-			}
-		}
-	} while (nonclassfound);
-
 	hashtable_fclear(ctx->localvars, clear_item, ctx->interp);
 	hashtable_free(ctx->localvars);
 	free(ctx);
