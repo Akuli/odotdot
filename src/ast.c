@@ -432,7 +432,7 @@ struct AstNode *parse_expression(struct Token **curtok)
 		res = parse_getvar(curtok);
 		break;
 	case TOKEN_OP:
-		if ((*curtok)->str.len == 1) {
+		if ((*curtok)->str.len == 1 && (*curtok)->str.val[0] == '[') {
 			res = parse_array(curtok);
 			break;
 		}
