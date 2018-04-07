@@ -138,7 +138,8 @@ struct Token *token_ize(struct UnicodeString hugestring)
 			nchars = 0;
 			while (hugestring.len > nchars && unicode_is0to9(hugestring.val[nchars]))
 				nchars++;
-			check_integer(hugestring, nchars, lineno);
+			if (!check_integer(hugestring, nchars, lineno))
+				goto error;
 		}
 
 		else if (hugestring.len >= 2 && hugestring.val[0] == '-' && unicode_is0to9(hugestring.val[1])) {
@@ -146,7 +147,8 @@ struct Token *token_ize(struct UnicodeString hugestring)
 			nchars = 1;
 			while (hugestring.len > nchars && unicode_is0to9(hugestring.val[nchars]))
 				nchars++;
-			check_integer(hugestring, nchars, lineno);
+			if (!check_integer(hugestring, nchars, lineno))
+				goto error;
 		}
 
 		else if (unicode_isidentifier1st(hugestring.val[0])) {
