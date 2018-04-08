@@ -1,5 +1,6 @@
 // most of the interesting stuff is implemented in ../unicode.c, this is just a wrapper
 
+#include "string.h"
 #include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -30,15 +31,41 @@ static struct Object *to_string(struct Context *ctx, struct Object **errptr, str
 	return args[0];
 }
 
+static struct Object *to_debug_string(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
+{
+	assert(nargs == 1);    // TODO: better argument check
+
+	struct UnicodeString noquotes = *((struct UnicodeString*) args[0]->data);
+	struct UnicodeString yesquotes;
+	yesquotes.len = noquotes.len + 2;
+	yesquotes.val = malloc(sizeof(uint32_t) * yesquotes.len);
+	if (!yesquotes.val) {
+		*errptr = ctx->interp->nomemerr;
+		return NULL;
+	}
+	yesquotes.val[0] = yesquotes.val[yesquotes.len - 1] = '"';
+	memcpy(yesquotes.val + 1, noquotes.val, sizeof(uint32_t) * noquotes.len);
+
+	struct Object *res = stringobject_newfromustr(ctx->interp, errptr, yesquotes);
+	free(yesquotes.val);
+	return res;
+}
+
 int stringobject_addmethods(struct Interpreter *interp, struct Object **errptr)
 {
 	struct Object *stringclass = interpreter_getbuiltin(interp, errptr, "String");
 	if (!stringclass)
 		return STATUS_ERROR;
 
-	int res = method_add(interp, errptr, stringclass, "to_string", to_string);
+	if (method_add(interp, errptr, stringclass, "to_string", to_string) == STATUS_ERROR) goto error;
+	if (method_add(interp, errptr, stringclass, "to_debug_string", to_debug_string) == STATUS_ERROR) goto error;
+
 	OBJECT_DECREF(interp, stringclass);
-	return res;
+	return STATUS_OK;
+
+error:
+	OBJECT_DECREF(interp, stringclass);
+	return STATUS_ERROR;
 }
 
 struct Object *stringobject_newfromustr(struct Interpreter *interp, struct Object **errptr, struct UnicodeString ustr)

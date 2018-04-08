@@ -87,6 +87,7 @@ int builtins_setup(struct Interpreter *interp, struct Object **errptr)
 	if (arrayobject_createclass(interp, errptr) == STATUS_ERROR) goto error;
 	if (integerobject_createclass(interp, errptr) == STATUS_ERROR) goto error;
 
+	if (objectobject_addmethods(interp, errptr) == STATUS_ERROR) goto error;
 	if (stringobject_addmethods(interp, errptr) == STATUS_ERROR) goto error;
 
 	printfunc = functionobject_new(interp, errptr, print_builtin, NULL);
@@ -118,6 +119,7 @@ error:
 	if (interp->functionclass) OBJECT_DECREF(interp, interp->functionclass);
 	if (interp->nomemerr)	OBJECT_DECREF(interp, interp->nomemerr);
 
+	// FIXME: when should these run??
 	if (stringclass) OBJECT_DECREF(interp, stringclass);
 	else if (stringinfo) objectclassinfo_free(interp, stringinfo);
 	if (errorclass) OBJECT_DECREF(interp, errorclass);

@@ -1,4 +1,3 @@
-// TODO: new error handling
 #ifndef OBJECTS_STRING_H
 #define OBJECTS_STRING_H
 
