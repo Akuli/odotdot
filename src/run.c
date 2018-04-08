@@ -17,13 +17,15 @@
 // RETURNS A NEW REFERENCE
 static struct Object *run_expression(struct Context *ctx, struct Object **errptr, struct AstNode *expr)
 {
-	switch(expr->kind) {
 #define INFO_AS(X) ((struct X *)expr->info)
-	case AST_GETVAR:
+	if (expr->kind == AST_GETVAR)
 		return context_getvar(ctx, errptr, INFO_AS(AstGetVarInfo)->varname);
+	if (expr->kind == AST_STR)
+		return stringobject_newfromustr(ctx->interp, errptr, *((struct UnicodeString *)expr->info));
+	if (expr->kind == AST_INT)
+		return integerobject_newfromcharptr(ctx->interp, errptr, INFO_AS(AstIntInfo)->valstr);
 
-	case AST_GETMETHOD:
-		(void) 1;    // yes, this is needed
+	if (expr->kind == AST_GETMETHOD) {
 		struct Object *obj = run_expression(ctx, errptr, INFO_AS(AstGetAttrOrMethodInfo)->obj);
 		if (!obj)
 			return NULL;
@@ -31,13 +33,9 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 		struct Object *res = method_getwithustr(ctx->interp, errptr, obj, INFO_AS(AstGetAttrOrMethodInfo)->name);
 		OBJECT_DECREF(ctx->interp, obj);
 		return res;
+	}
 
-	case AST_STR:
-		return stringobject_newfromustr(ctx->interp, errptr, *((struct UnicodeString *)expr->info));
-
-	case AST_CALL:
-	{
-		(void) 1;    // yes, this is needed
+	if (expr->kind == AST_CALL) {
 		struct Object *func = run_expression(ctx, errptr, INFO_AS(AstCallInfo)->func);
 		if (!func)
 			return NULL;
@@ -45,7 +43,6 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 		// TODO: better type check
 		assert(func->klass == ctx->interp->functionclass);
 
-		// TODO: optimize with the at most 100 args limit?
 		struct Object **args = malloc(sizeof(struct Object*) * INFO_AS(AstCallInfo)->nargs);
 		if (!args) {
 			OBJECT_DECREF(ctx->interp, func);
@@ -73,7 +70,7 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 		return res;
 	}
 
-	case AST_ARRAY:
+	if (expr->kind == AST_ARRAY) {
 		// this is handled specially because malloc(0) MAY return NULL
 		if (INFO_AS(AstArrayOrBlockInfo)->nitems == 0)
 			return arrayobject_newempty(ctx->interp, errptr);
@@ -100,14 +97,10 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 			OBJECT_DECREF(ctx->interp, elems[i]);
 		free(elems);
 		return arr;
-
-	case AST_INT:
-		return integerobject_newfromcharptr(ctx->interp, errptr, INFO_AS(AstIntInfo)->valstr);
+	}
 #undef INFO_AS
 
-	default:
-		assert(0);
-	}
+	assert(0);
 }
 
 int run_statement(struct Context *ctx, struct Object **errptr, struct AstNode *stmt)
@@ -131,7 +124,7 @@ int run_statement(struct Context *ctx, struct Object **errptr, struct AstNode *s
 		OBJECT_DECREF(ctx->interp, val);
 		return status;
 	}
-
 #undef INFO_AS
+
 	assert(0);
 }
