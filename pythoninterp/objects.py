@@ -117,6 +117,8 @@ def _error_raiser(message):
 object_info.methods['setup'] = lambda this: null
 object_info.methods['to_string'] = (
     lambda this: new_string('<an object at %#x>' % id(this)))
+object_info.methods['to_debug_string'] = (
+    lambda this: this.call_method('to_string'))
 object_info.methods['equals'] = (
     lambda this, that: true if this is that else false)
 object_info.methods['get_hash'] = (
@@ -148,6 +150,7 @@ string_info = ClassInfo(object_info, {
     'equals': _string_equals,
     'get_hash': (lambda this: new_integer(hash(this.python_string))),
     'to_string': (lambda this: this),
+    'to_debug_string': (lambda this: new_string('"' + this.python_string + '"')),
     'to_integer': (lambda this: new_integer(int(this.python_string))),
     'to_array': (lambda this: new_array(map(new_string, this.python_string))),
 })
@@ -232,7 +235,7 @@ def _create_array_info():
         #    >>> a.append(a)
         #    >>> a
         #    [1, [...]]
-        stringed = (element.call_method('to_string').python_string
+        stringed = (element.call_method('to_debug_string').python_string
                     for element in self.python_list)
         return new_string('[' + ' '.join(stringed) + ']')
 
