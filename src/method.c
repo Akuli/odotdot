@@ -45,16 +45,29 @@ int method_add(struct Interpreter *interp, struct Object **errptr, struct Object
 	return STATUS_OK;
 }
 
+// the base class is an ObjectClassInfo for some reason
+// that's why the recursive stuff needs to work with ObjectClassInfo
+static struct Object *get_the_method(struct ObjectClassInfo *classinfo, struct UnicodeString *uname, unsigned int unamehash)
+{
+	struct Object *res;
+	if (hashtable_get(classinfo->methods, uname, unamehash, (void **)(&res), NULL))
+		return res;
+
+	// maybe this is defined in a base class?
+	if (classinfo->baseclass)
+		return get_the_method(classinfo->baseclass, uname, unamehash);
+	// nope
+	return NULL;
+}
+
 struct Object *method_getwithustr(struct Interpreter *interp, struct Object **errptr, struct Object *obj, struct UnicodeString uname)
 {
 	// TODO: inheritance??
-	struct Object *nopartial;
-	int found = hashtable_get(((struct ObjectClassInfo *) obj->klass->data)->methods, &uname, unicodestring_hash(uname), (void **)(&nopartial), NULL);
-	assert(found);    // TODO: set errptr instead :(((
+	struct Object *nopartial = get_the_method(obj->klass->data, &uname, unicodestring_hash(uname));
+	assert(nopartial);    // FIXME: better error handling :(( e.g. a "no 'asd' method" error
 
 	// now we have a function that takes self as the first argument, let's partial it
-	// no need to decref nopartial because hashtable_get() doesn't incref
-	// functionobject_newpartial() will take care of the rest
+	// no need to decref nopartial because get_the_method() doesn't incref
 	return functionobject_newpartial(interp, errptr, nopartial, obj);
 }
 

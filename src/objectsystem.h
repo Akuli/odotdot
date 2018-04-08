@@ -20,7 +20,7 @@ struct ObjectClassInfo {
 	char name[10];
 
 	// Object's baseclass is set to NULL
-	// TODO: class objects should hold references to base classes
+	// FIXME: class objects should hold references to base classes
 	// TODO: should this be a class object?
 	struct ObjectClassInfo *baseclass;
 
