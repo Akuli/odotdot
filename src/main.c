@@ -124,9 +124,11 @@ static int run_file(struct Context *ctx, char *path)
 	// run!
 	struct Object *err = NULL;
 	for (size_t i=0; i < statements->len; i++) {
-		run_statement(ctx, &err, statements->values[i]);
-		if (err) {
-			fprintf(stderr, "an error occurred, printing errors is not implemented yet :(\n");
+		if (run_statement(ctx, &err, statements->values[i]) == STATUS_ERROR) {
+			if (err)
+				fprintf(stderr, "an error occurred, printing errors is not implemented yet :(\n");
+			else
+				fprintf(stderr, "%s: errptr wasn't set correctly\n", ctx->interp->argv0);
 			dynamicarray_freeall(statements, astnode_free_voidstar);
 			return 1;
 		}

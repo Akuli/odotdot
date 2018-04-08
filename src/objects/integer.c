@@ -7,13 +7,50 @@
 #include <stdlib.h>
 #include <string.h>
 #include "classobject.h"
+#include "string.h"
 #include "../common.h"
+#include "../method.h"
 #include "../objectsystem.h"
 #include "../unicode.h"
+
 
 static void integer_destructor(struct Object *integer)
 {
 	free(integer->data);
+}
+
+static struct Object *to_string(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
+{
+	struct Object *integerclass = interpreter_getbuiltin(ctx->interp, errptr, "Integer");
+	if (!integerclass)
+		return NULL;
+
+	// TODO: better argument check
+	assert(nargs == 1 && args[0]->klass == integerclass);
+	OBJECT_DECREF(ctx->interp, integerclass);
+
+	int64_t val = *((int64_t *) args[0]->data);
+	uint64_t absval;
+	if (val < 0) {
+		// '-' will be added to res later
+		// careful here... -INT64_MIN overflows, but -(INT64_MIN+1) doesn't
+		// uint64_t can hold anything
+		absval = (uint64_t)(-(val+1)) + 1;
+	} else {
+		absval = val;
+	}
+
+	char res[INTEGER_MAXLEN+1];
+	res[INTEGER_MAXLEN] = 0;
+	int i = INTEGER_MAXLEN;
+	while( absval != 0) {
+		res[--i] = (char)(absval % 10) + '0';
+		absval /= 10;
+	}
+	if (val < 0)
+		res[--i] = '-';
+
+	return stringobject_newfromcharptr(ctx->interp, errptr, res+i);
 }
 
 int integerobject_createclass(struct Interpreter *interp, struct Object **errptr)
@@ -26,6 +63,11 @@ int integerobject_createclass(struct Interpreter *interp, struct Object **errptr
 	OBJECT_DECREF(interp, objectclass);
 	if (!klass)
 		return STATUS_ERROR;
+
+	if (method_add(interp, errptr, klass, "to_string", to_string) == STATUS_ERROR) {
+		OBJECT_DECREF(interp, klass);
+		return STATUS_ERROR;
+	}
 
 	int ret = interpreter_addbuiltin(interp, errptr, "Integer", klass);
 	OBJECT_DECREF(interp, klass);
@@ -74,9 +116,8 @@ static struct Object *integer_from_digits(struct Interpreter *interp, struct Obj
 
 struct Object *integerobject_newfromustr(struct Interpreter *interp, struct Object **errptr, struct UnicodeString ustr)
 {
-	// 64-bit ints are never 25 digits or more long
 	// TODO: better error handling
-	assert(1 <= ustr.len && ustr.len < 25);
+	assert(1 <= ustr.len && ustr.len <= INTEGER_MAXLEN);
 	int isnegative=(ustr.val[0] == '-');
 	if (isnegative) {
 		// this relies on pass-by-value
@@ -85,7 +126,7 @@ struct Object *integerobject_newfromustr(struct Interpreter *interp, struct Obje
 		assert(ustr.len >= 1);
 	}
 
-	int digits[25];
+	int digits[INTEGER_MAXLEN];
 	for (int i=0; i < (int)ustr.len; i++) {
 		assert('0' <= ustr.val[i] && ustr.val[i] <= '9');
 		digits[i] = ustr.val[i] - '0';
@@ -100,10 +141,10 @@ struct Object *integerobject_newfromcharptr(struct Interpreter *interp, struct O
 		s++;
 
 	size_t ndigits = strlen(s);
-	assert(ndigits != 0);
+	assert(ndigits != 0 && ndigits <= INTEGER_MAXLEN);
 	assert(ndigits < 25);
 
-	int digits[25];
+	int digits[INTEGER_MAXLEN];
 	for (int i=0; i < (int)ndigits; i++) {
 		assert('0' <= s[i] && s[i] <= '9');
 		digits[i] = s[i] - '0';

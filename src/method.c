@@ -1,5 +1,6 @@
 #include "method.h"
 #include <assert.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include "common.h"
@@ -49,8 +50,7 @@ struct Object *method_getwithustr(struct Interpreter *interp, struct Object **er
 	// TODO: inheritance??
 	struct Object *nopartial;
 	int found = hashtable_get(((struct ObjectClassInfo *) obj->klass->data)->methods, &uname, unicodestring_hash(uname), (void **)(&nopartial), NULL);
-	if (!found)
-		return NULL;
+	assert(found);    // TODO: set errptr instead :(((
 
 	// now we have a function that takes self as the first argument, let's partial it
 	// no need to decref nopartial because hashtable_get() doesn't incref
@@ -80,3 +80,30 @@ struct Object *method_get(struct Interpreter *interp, struct Object **errptr, st
 	free(uname);
 	return res;
 }
+
+
+#define NARGS_MAX 20   // same as in objects/function.c
+struct Object *method_call(struct Context *ctx, struct Object **errptr, struct Object *obj, char *methname, ...)
+{
+	struct Object *method = method_get(ctx->interp, errptr, obj, methname);
+	if (!method)
+		return NULL;
+
+	struct Object *args[NARGS_MAX];
+	va_list ap;
+	va_start(ap, methname);
+
+	int nargs;
+	for (nargs = 0; nargs < NARGS_MAX; nargs++) {
+		struct Object *arg = va_arg(ap, struct Object*);
+		if (!arg)
+			break;
+		args[nargs] = arg;
+	}
+	va_end(ap);
+
+	struct Object *res = functionobject_vcall(ctx, errptr, method, args, nargs);
+	OBJECT_DECREF(ctx->interp, method);
+	return res;
+}
+#undef NARGS_MAX

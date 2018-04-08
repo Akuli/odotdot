@@ -17,4 +17,10 @@ struct Object *method_get(struct Interpreter *interp, struct Object **errptr, st
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *method_getwithustr(struct Interpreter *interp, struct Object **errptr, struct Object *obj, struct UnicodeString name);
 
+// the ultimate convenience method for calling methods
+// see also functionobject_call
+// there is no method_vcall, use method_get with functionobject_vcall
+// RETURNS A NEW REFERENCE or NULL on error
+struct Object *method_call(struct Context *ctx, struct Object **errptr, struct Object *obj, char *methname, ...);
+
 #endif    // METHOD_H

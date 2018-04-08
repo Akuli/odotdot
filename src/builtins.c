@@ -6,6 +6,7 @@
 #include "common.h"
 #include "context.h"
 #include "interpreter.h"
+#include "method.h"
 #include "unicode.h"
 #include "objectsystem.h"
 #include "objects/array.h"
@@ -19,19 +20,24 @@
 
 static struct Object *print_builtin(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	struct Object *stringclass = interpreter_getbuiltin(ctx->interp, errptr, "String");
-	if (!stringclass)    // errptr is set
+	assert(nargs == 1);       // TODO: use errptr instead
+	struct Object *stringed = method_call(ctx, errptr, args[0], "to_string", NULL);
+	if (!stringed)
 		return NULL;
 
-	// TODO: call to_string() and check arguments with errptr instead of assert
-	assert(nargs == 1);
-	assert(args[0]->klass == stringclass);
+	struct Object *stringclass = interpreter_getbuiltin(ctx->interp, errptr, "String");
+	if (!stringclass) {
+		OBJECT_DECREF(ctx->interp, stringed);
+		return NULL;
+	}
+	assert(stringed->klass == stringclass);  // TODO: use errptr
 	OBJECT_DECREF(ctx->interp, stringclass);
 
 	char *utf8;
 	size_t utf8len;
 	char errormsg[100];
-	int status = utf8_encode(*((struct UnicodeString *) args[0]->data), &utf8, &utf8len, errormsg);
+	int status = utf8_encode(*((struct UnicodeString *) stringed->data), &utf8, &utf8len, errormsg);
+	OBJECT_DECREF(ctx->interp, stringed);
 	if (status == STATUS_NOMEM) {
 		*errptr = ctx->interp->nomemerr;
 		return NULL;
