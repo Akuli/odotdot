@@ -17,8 +17,10 @@ Here are examples of all supported kinds of expressions:
 
 - String literals: `""` and `"hello"` return `String` objects.
 - Integer literals: `123`, `-5` and `0` returns `Integer` objects.
-- Variable references: `print` and `some_message` return values of variables.
-- Attribute references: `expr.attr` returns the `.attr` attribute of the object
+- Variable lookups: `print` and `magic_number` return values of variables.
+- Attribute lookups: `expr.attr` returns the `.attr` attribute of the object
+  returned by the `expr` expression.
+- Method lookups: `expr::meth` returns the `::meth` method of the object
   returned by the `expr` expression.
 - List literals: `[element1 element2 element3]` and `[]` return `List` objects.
   The elements can be any expressions.
@@ -63,11 +65,13 @@ var a = "old a";
     print a;            # old a
     var a = "new a";    # set it locally
     print a;            # new a
-}.run;
+}::run;
 print a;    # old a
 
 {
+    print a;                # old a
     a = "really new a";     # set it where it was defined
-}.run;
+    print a;                # really new a
+}::run;
 print a;    # really new a
 ```
