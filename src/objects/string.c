@@ -7,6 +7,7 @@
 #include "classobject.h"
 #include "../common.h"
 #include "../interpreter.h"
+#include "../method.h"
 #include "../objectsystem.h"
 #include "../unicode.h"
 
@@ -35,7 +36,7 @@ int stringobject_addmethods(struct Interpreter *interp, struct Object **errptr)
 	if (!stringclass)
 		return STATUS_ERROR;
 
-	int res = classobject_addmethod(interp, errptr, stringclass, "to_string", to_string);
+	int res = method_add(interp, errptr, stringclass, "to_string", to_string);
 	OBJECT_DECREF(interp, stringclass);
 	return res;
 }
