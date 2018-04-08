@@ -119,15 +119,22 @@ static struct Object *integer_from_digits(struct Interpreter *interp, struct Obj
 
 struct Object *integerobject_newfromustr(struct Interpreter *interp, struct Object **errptr, struct UnicodeString ustr)
 {
-	// TODO: better error handling
-	assert(1 <= ustr.len && ustr.len <= INTEGER_MAXLEN);
 	int isnegative=(ustr.val[0] == '-');
 	if (isnegative) {
 		// this relies on pass-by-value
 		ustr.val++;
 		ustr.len--;
-		assert(ustr.len >= 1);
 	}
+
+	// remove leading zeros, but leave a single digit zero alone
+	// e.g. 0000000123 ==> 123, 00000000 ==> 0, 000001 ==> 1
+	while (ustr.len > 1 && ustr.val[0] == '0') {
+		ustr.val++;
+		ustr.len--;
+	}
+
+	// TODO: better error handling
+	assert(1 <= ustr.len && ustr.len <= INTEGER_MAXLEN);
 
 	int digits[INTEGER_MAXLEN];
 	for (int i=0; i < (int)ustr.len; i++) {
@@ -137,6 +144,7 @@ struct Object *integerobject_newfromustr(struct Interpreter *interp, struct Obje
 	return integer_from_digits(interp, errptr, isnegative, digits, ustr.len);
 }
 
+// this is a lot like newfromustr, see above
 struct Object *integerobject_newfromcharptr(struct Interpreter *interp, struct Object **errptr, char *s)
 {
 	int isnegative=(s[0] == '-');
@@ -144,8 +152,11 @@ struct Object *integerobject_newfromcharptr(struct Interpreter *interp, struct O
 		s++;
 
 	size_t ndigits = strlen(s);
-	assert(ndigits != 0 && ndigits <= INTEGER_MAXLEN);
-	assert(ndigits < 25);
+	while (ndigits > 1 && s[0] == '0') {
+		s++;
+		ndigits--;
+	}
+	assert(1 <= ndigits && ndigits <= INTEGER_MAXLEN);
 
 	int digits[INTEGER_MAXLEN];
 	for (int i=0; i < (int)ndigits; i++) {
