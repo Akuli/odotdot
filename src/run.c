@@ -35,6 +35,44 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 	case AST_STR:
 		return stringobject_newfromustr(ctx->interp, errptr, *((struct UnicodeString *)expr->info));
 
+	case AST_CALL:
+	{
+		(void) 1;    // yes, this is needed
+		struct Object *func = run_expression(ctx, errptr, INFO_AS(AstCallInfo)->func);
+		if (!func)
+			return NULL;
+
+		// TODO: better type check
+		assert(func->klass == ctx->interp->functionclass);
+
+		// TODO: optimize with the at most 100 args limit?
+		struct Object **args = malloc(sizeof(struct Object*) * INFO_AS(AstCallInfo)->nargs);
+		if (!args) {
+			OBJECT_DECREF(ctx->interp, func);
+			*errptr = ctx->interp->nomemerr;
+			return NULL;
+		}
+
+		for (size_t i=0; i < INFO_AS(AstCallInfo)->nargs; i++) {
+			struct Object *arg = run_expression(ctx, errptr, INFO_AS(AstCallInfo)->args[i]);
+			if (!arg) {
+				for (size_t j=0; j<i; j++)
+					OBJECT_DECREF(ctx->interp, args[j]);
+				free(args);
+				OBJECT_DECREF(ctx->interp, func);
+				return NULL;
+			}
+			args[i] = arg;
+		}
+
+		struct Object *res = functionobject_vcall(ctx, errptr, func, args, INFO_AS(AstCallInfo)->nargs);
+		for (size_t i=0; i < INFO_AS(AstCallInfo)->nargs; i++)
+			OBJECT_DECREF(ctx->interp, args[i]);
+		free(args);
+		OBJECT_DECREF(ctx->interp, func);
+		return res;
+	}
+
 	case AST_ARRAY:
 		// this is handled specially because malloc(0) MAY return NULL
 		if (INFO_AS(AstArrayOrBlockInfo)->nitems == 0)
@@ -76,45 +114,12 @@ int run_statement(struct Context *ctx, struct Object **errptr, struct AstNode *s
 {
 #define INFO_AS(X) ((struct X *)stmt->info)
 	if (stmt->kind == AST_CALL) {
-		struct Object *func = run_expression(ctx, errptr, INFO_AS(AstCallInfo)->func);
-		if (!func)
+		struct Object *ret = run_expression(ctx, errptr, stmt);
+		if (!ret)
 			return STATUS_ERROR;
 
-		// TODO: better type check
-		assert(func->klass == ctx->interp->functionclass);
-
-		// TODO: optimize with the at most 100 args limit?
-		struct Object **args = malloc(sizeof(struct Object*) * INFO_AS(AstCallInfo)->nargs);
-		if (!args) {
-			OBJECT_DECREF(ctx->interp, func);
-			*errptr = ctx->interp->nomemerr;
-			return STATUS_ERROR;
-		}
-
-		for (size_t i=0; i < INFO_AS(AstCallInfo)->nargs; i++) {
-			struct Object *arg = run_expression(ctx, errptr, INFO_AS(AstCallInfo)->args[i]);
-			if (!arg) {
-				for (size_t j=0; j<i; j++)
-					OBJECT_DECREF(ctx->interp, args[j]);
-				free(args);
-				OBJECT_DECREF(ctx->interp, func);
-				return STATUS_ERROR;
-			}
-			args[i] = arg;
-		}
-
-		struct Object *res = functionobject_vcall(ctx, errptr, func, args, INFO_AS(AstCallInfo)->nargs);
-		for (size_t i=0; i < INFO_AS(AstCallInfo)->nargs; i++)
-			OBJECT_DECREF(ctx->interp, args[i]);
-		free(args);
-		OBJECT_DECREF(ctx->interp, func);
-
-		if (res) {
-			OBJECT_DECREF(ctx->interp, res);
-			return STATUS_OK;
-		} else {
-			return STATUS_ERROR;
-		}
+		OBJECT_DECREF(ctx->interp, ret);  // ignore the return value
+		return STATUS_OK;
 	}
 
 	if (stmt->kind == AST_CREATEVAR) {
