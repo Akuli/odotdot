@@ -30,6 +30,9 @@ static struct Object *to_string(struct Context *ctx, struct Object **errptr, str
 	OBJECT_DECREF(ctx->interp, integerclass);
 
 	int64_t val = *((int64_t *) args[0]->data);
+	if (val == 0)   // special case
+		return stringobject_newfromcharptr(ctx->interp, errptr, "0");
+
 	uint64_t absval;
 	if (val < 0) {
 		// '-' will be added to res later
