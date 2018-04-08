@@ -27,10 +27,9 @@ Here are examples of all supported kinds of expressions:
   arguments can be any expressions, and you can have any number of arguments
   you want.
 - Blocks: `{ statement1; statement2; }` returns a block object. You can have
-  any number of [statements](#statements) inside the block you want (e.g. `{ }`
-  is a b, and for
-  convenience, `{ expression }` without a `;` is equivalent to
-  `{ return expression; }`.
+  any number of [statements](#statements) inside the block you want. `{ }` is a
+  code block that does nothing, and `{ expression }` without a `;` is
+  equivalent to `{ return expression; }`.
 
 So far we have called functions like `function a b c;` instead of
 `(function a b c)`. The big difference is that the function's return value is
