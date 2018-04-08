@@ -28,7 +28,6 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 		if (!obj)
 			return NULL;
 
-		// FIXME: obj should be partialled as the first argument, nothing happens now :(
 		struct Object *res = method_getwithustr(ctx->interp, errptr, obj, INFO_AS(AstGetAttrOrMethodInfo)->name);
 		OBJECT_DECREF(ctx->interp, obj);
 		return res;
