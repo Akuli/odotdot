@@ -14,6 +14,22 @@
 */
 typedef struct Object* (*functionobject_cfunc)(struct Context *callctx, struct Object **errptr, struct Object **args, size_t nargs);
 
+/* for example, do this in the beginning of a functionobject_cfunc...
+
+	if (function_checktypes(ctx, errptr, args, nargs, "String", "Integer", "Object", NULL) == STATUS_ERROR)
+		return STATUS_ERROR;
+
+...to make sure that:
+	* the function was called with 3 arguments
+	* the first argument was a String
+	* the second argument was an Integer
+
+the types are looked up with interpreter_getbuiltin()
+the 3rd argument can be anything because all classes inherit from Object
+returns STATUS_OK or STATUS_ERROR
+*/
+int functionobject_checktypes(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs, ...);
+
 // sets interp->functionobjectinfo, returns STATUS_OK or STATUS_ERROR
 int functionobject_createclass(struct Interpreter *interp, struct Object **errptr);
 
@@ -22,7 +38,7 @@ int functionobject_createclass(struct Interpreter *interp, struct Object **errpt
 struct Object *functionobject_new(struct Interpreter *interp, struct Object **errptr, functionobject_cfunc cfunc, struct Object *partialarg);
 
 // never fails
-// TODO: remove this, functionobject_{v,}call() are better because the data
+// TODO: remove this, functionobject_{v,}call() are better because partialled arguments
 functionobject_cfunc functionobject_getcfunc(struct Interpreter *interp, struct Object *func);
 
 // example: functionobject_call(ctx, errptr, func, a, b, c, NULL) calls func with arguments a, b, c

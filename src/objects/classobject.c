@@ -70,3 +70,13 @@ struct Object *classobject_newfromclassinfo(struct Interpreter *interp, struct O
 {
 	return classobject_newinstance(interp, errptr, interp->classclass, wrapped);
 }
+
+int classobject_istypeof(struct Object *klass, struct Object *obj)
+{
+	struct ObjectClassInfo *info = klass->data;
+	do {
+		if (info == (struct ObjectClassInfo *) obj->klass->data)
+			return 1;
+	} while ((info = info->baseclass));
+	return 0;
+}

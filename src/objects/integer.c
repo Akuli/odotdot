@@ -21,13 +21,8 @@ static void integer_destructor(struct Object *integer)
 
 static struct Object *to_string(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	struct Object *integerclass = interpreter_getbuiltin(ctx->interp, errptr, "Integer");
-	if (!integerclass)
+	if (functionobject_checktypes(ctx, errptr, args, nargs, "Integer", NULL) == STATUS_ERROR)
 		return NULL;
-
-	// TODO: better argument check
-	assert(nargs == 1 && args[0]->klass == integerclass);
-	OBJECT_DECREF(ctx->interp, integerclass);
 
 	int64_t val = *((int64_t *) args[0]->data);
 	if (val == 0)   // special case

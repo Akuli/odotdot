@@ -26,14 +26,17 @@ struct ObjectClassInfo *stringobject_createclass(struct ObjectClassInfo *objectc
 
 static struct Object *to_string(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	assert(nargs == 1);    // TODO: better argument check
+	if (functionobject_checktypes(ctx, errptr, args, nargs, "String", NULL) == STATUS_ERROR)
+		return NULL;
+
 	OBJECT_INCREF(ctx->interp, args[0]);   // we're returning a reference
 	return args[0];
 }
 
 static struct Object *to_debug_string(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	assert(nargs == 1);    // TODO: better argument check
+	if (!functionobject_checktypes(ctx, errptr, args, nargs, "String", NULL))
+		return NULL;
 
 	struct UnicodeString noquotes = *((struct UnicodeString*) args[0]->data);
 	struct UnicodeString yesquotes;

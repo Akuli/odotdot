@@ -22,4 +22,8 @@ struct Object *classobject_newinstance(struct Interpreter *interp, struct Object
 // RETURNS A NEW REFERENCE
 struct Object *classobject_newfromclassinfo(struct Interpreter *interp, struct Object **errptr, struct ObjectClassInfo *wrapped);
 
+// like obj->klass == klass, but checks for inheritance
+// never fails if klass is a classobject, bad things happen if it isn't
+int classobject_istypeof(struct Object *klass, struct Object *obj);
+
 #endif    // OBJECTS_CLASSOBJECT_H

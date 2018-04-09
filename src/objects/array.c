@@ -66,17 +66,15 @@ static struct Object *to_string_joiner(struct Interpreter *interp, struct Object
 
 static struct Object *to_string(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	// TODO: better argument checks
-	struct Object *arrayclass = interpreter_getbuiltin(ctx->interp, errptr, "Array");
-	assert(nargs == 1);
-	assert(args[0]->klass == arrayclass);
-	OBJECT_DECREF(ctx->interp, arrayclass);
-
-	// special case
-	if (nargs == 0)
-		return stringobject_newfromcharptr(ctx->interp, errptr, "[]");
+	if (functionobject_checktypes(ctx, errptr, args, nargs, "Array", NULL) == STATUS_ERROR)
+		return NULL;
 
 	struct DynamicArray *dynarr = args[0]->data;
+
+	// this is handeled specially because malloc(0) may return NULL
+	if (dynarr->len == 0)
+		return stringobject_newfromcharptr(ctx->interp, errptr, "[]");
+
 	struct Object **strings = malloc(sizeof(struct Object*) * dynarr->len);
 	if (!strings) {
 		*errptr = ctx->interp->nomemerr;

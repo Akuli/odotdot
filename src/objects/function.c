@@ -1,5 +1,5 @@
-#include <assert.h>
 #include "function.h"
+#include <assert.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,6 +7,13 @@
 #include "../interpreter.h"
 #include "../objectsystem.h"
 #include "classobject.h"
+
+/* see below for how this is used
+   passing more than 10 arguments would be kinda insane, and more than 20 would be really insane
+   if this was a part of some kind of API, i would allow at least 100 arguments though
+   but calling a function from ö doesn't call anything that uses this, so that's no problem */
+#define NARGS_MAX 20
+
 
 struct FunctionData {
 	functionobject_cfunc cfunc;
@@ -44,6 +51,39 @@ int functionobject_createclass(struct Interpreter *interp, struct Object **errpt
 	return STATUS_OK;
 }
 
+int functionobject_checktypes(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs, ...)
+{
+	va_list ap;
+	va_start(ap, nargs);
+
+	int expectnargs;   // expected number of arguments
+	struct Object *classes[NARGS_MAX];
+	for (expectnargs=0; expectnargs < NARGS_MAX; expectnargs++) {
+		char *classname = va_arg(ap, char*);
+		if (!classname)
+			break;
+
+		struct Object *klass = interpreter_getbuiltin(ctx->interp, errptr, classname);
+		if (!klass) {
+			for (int i=0; i < expectnargs; i++)
+				OBJECT_DECREF(ctx->interp, classes[i]);
+			return STATUS_ERROR;
+		}
+		assert(klass->klass == ctx->interp->classclass);
+		classes[expectnargs] = klass;
+	}
+	va_end(ap);
+
+	// TODO: do actual errors instead of stupid assertions :(
+	assert(nargs == (size_t) expectnargs);
+	for (int i=0; i < expectnargs; i++) {
+		assert(classobject_istypeof(classes[i], args[i]));
+		OBJECT_DECREF(ctx->interp, classes[i]);
+	}
+
+	return STATUS_OK;
+}
+
 struct Object *functionobject_new(struct Interpreter *interp, struct Object **errptr, functionobject_cfunc cfunc, struct Object *partialarg)
 {
 	struct FunctionData *data = malloc(sizeof(struct FunctionData));
@@ -74,10 +114,6 @@ functionobject_cfunc functionobject_getcfunc(struct Interpreter *interp, struct 
 	return ((struct FunctionData *) func->data)->cfunc;
 }
 
-// passing more than 10 arguments would be kinda insane, and more than 20 would be really insane
-// if this was a part of some kind of API, i would allow at least 100 arguments though
-// but calling a function from ö doesn't call this, so that's no problem
-#define NARGS_MAX 20
 struct Object *functionobject_call(struct Context *ctx, struct Object **errptr, struct Object *func, ...)
 {
 	assert(func->klass == ctx->interp->functionclass);    // TODO: better type check
@@ -97,7 +133,6 @@ struct Object *functionobject_call(struct Context *ctx, struct Object **errptr, 
 
 	return functionobject_vcall(ctx, errptr, func, args, nargs);
 }
-#undef NARGS_MAX
 
 struct Object *functionobject_vcall(struct Context *ctx, struct Object **errptr, struct Object *func, struct Object **args, size_t nargs)
 {
