@@ -1,6 +1,7 @@
 #include <src/dynamicarray.h>
 #include <src/hashtable.h>
 #include <src/interpreter.h>
+#include <src/method.h>
 #include <src/objects/array.h>
 #include <src/objects/classobject.h>
 #include <src/objects/function.h>
@@ -28,7 +29,7 @@ void test_objects_objectclass_stuff(void)
 
 	buttert(objectinfo->baseclass == NULL);
 	buttert(objectinfo->methods);
-	buttert(objectinfo->methods->size == 0);
+	buttert(objectinfo->methods->size > 0);
 	buttert(objectinfo->foreachref == NULL);
 	buttert(objectinfo->destructor == NULL);
 }
@@ -89,10 +90,8 @@ void test_objects_string_tostring(void)
 {
 	struct Object *s = stringobject_newfromcharptr(testinterp, NULL, "Öö");
 	buttert(s);
-	struct Object *tostring = classobject_getmethod(testinterp, NULL, s, "to_string");
-	buttert(tostring);
-	struct Object *ret = functionobject_call(testinterp->builtinctx, NULL, tostring, NULL);
-	OBJECT_DECREF(testinterp, tostring);
+	struct Object *ret = method_call(testinterp->builtinctx, NULL, s, "to_string", NULL);
+	buttert(ret);
 
 	buttert(ret == s);
 	OBJECT_DECREF(testinterp, s);    // functionobject_call() returned a new reference
