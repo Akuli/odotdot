@@ -2,6 +2,7 @@
 
 #include "string.h"
 #include <assert.h>
+#include <stdarg.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,7 +36,7 @@ static struct Object *to_string(struct Context *ctx, struct Object **errptr, str
 
 static struct Object *to_debug_string(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	if (!functionobject_checktypes(ctx, errptr, args, nargs, "String", NULL))
+	if (functionobject_checktypes(ctx, errptr, args, nargs, "String", NULL) == STATUS_ERROR)
 		return NULL;
 
 	struct UnicodeString noquotes = *((struct UnicodeString*) args[0]->data);
@@ -126,4 +127,123 @@ struct Object *stringobject_newfromcharptr(struct Interpreter *interp, struct Ob
 		return NULL;
 	}
 	return str;
+}
+
+#define MAX_PARTS 20
+#define BETWEEN_SPECIFIERS_MAX 200
+struct Object *stringobject_newfromfmt(struct Context *ctx, struct Object **errptr, char *fmt, ...)
+{
+	struct UnicodeString parts[MAX_PARTS];
+	int nparts = 0;
+
+	// setting everything to 0 is much easier than setting to 1
+	int skipfreeval[MAX_PARTS] = {0};    // set skipfreeval[i]=1 to prevent freeing parts[i].val
+
+	// there are at most MAX_PARTS of these
+	// can't decref right away if the data of the object is still used in this function
+	struct Object *gonnadecref[MAX_PARTS+1 /* always ends with NULL */] = { NULL };
+	struct Object **gonnadecrefptr = gonnadecref;   // add a new object like *gonnadecrefptr++ = ...
+
+	va_list ap;
+	va_start(ap, fmt);
+
+	while(*fmt) {
+		if (*fmt == '%') {
+			fmt += 2;  // skip % followed by some character
+
+			if (*(fmt-1) == 's') {   // c char pointer
+				char *part = va_arg(ap, char*);
+
+				// segfaults if the part is not valid utf8 because the NULL
+				if (utf8_decode(part, strlen(part), parts + nparts, NULL) != STATUS_OK)
+					goto nomem;
+			}
+
+			else if (*(fmt-1) == 'U') {   // struct UnicodeString
+				parts[nparts] = va_arg(ap, struct UnicodeString);
+				skipfreeval[nparts] = 1;
+			}
+
+			else if (*(fmt-1) == 'S' || *(fmt-1) == 'D') {   // to_string or to_debug_string
+				// no need to mess with refcounts, let's consistently not touch them
+				struct Object *obj = va_arg(ap, struct Object *);
+				assert(obj);
+
+				struct Object *strobj;
+				if (*(fmt-1) == 'D')
+					strobj = method_call_todebugstring(ctx, errptr, obj);
+				else
+					strobj = method_call_tostring(ctx, errptr, obj);
+				if (!strobj)
+					goto error;
+				*gonnadecrefptr++ = strobj;
+
+				parts[nparts] = *((struct UnicodeString *) strobj->data);
+				skipfreeval[nparts] = 1;
+			}
+
+			else if (*(fmt-1) == '%') {   // literal %
+				parts[nparts].len = 1;
+				parts[nparts].val = malloc(sizeof(uint32_t));
+				if (!(parts[nparts].val))
+					goto nomem;
+				*(parts[nparts].val) = '%';
+			}
+
+			else {
+				assert(0);   // unknown format character
+			}
+
+		} else {
+			char part[BETWEEN_SPECIFIERS_MAX];
+			int len = 0;
+			while (*fmt != '%' && *fmt)
+				part[len++] = *fmt++;
+			if (utf8_decode(part, len, parts + nparts, NULL) != STATUS_OK)
+				goto nomem;
+		}
+
+		nparts++;
+	}
+	va_end(ap);
+
+	struct UnicodeString everything;
+	everything.len = 0;
+	for (int i=0; i < nparts; i++)
+		everything.len += parts[i].len;
+
+	everything.val = malloc(sizeof(uint32_t) * everything.len);
+	if (!everything.val)
+		goto nomem;
+
+	uint32_t *ptr = everything.val;
+	for (int i=0; i < nparts; i++) {
+		memcpy(ptr, parts[i].val, sizeof(uint32_t) * parts[i].len);
+		ptr += parts[i].len;
+	}
+
+	struct Object *res = stringobject_newfromustr(ctx->interp, errptr, everything);
+
+	free(everything.val);
+	for (int i=0; i < nparts; i++) {
+		if (!skipfreeval[i])
+			free(parts[i].val);
+	}
+	for (int i=0; gonnadecref[i]; i++)
+		OBJECT_DECREF(ctx->interp, gonnadecref[i]);
+
+	return res;
+
+nomem:
+	*errptr = ctx->interp->nomemerr;
+	// "fall through" to error
+
+error:
+	for (int i=0; i < nparts; i++) {
+		if (!skipfreeval[i])
+			free(parts[i].val);
+	}
+	for (int i=0; gonnadecref[i]; i++)
+		OBJECT_DECREF(ctx->interp, gonnadecref[i]);
+	return NULL;
 }

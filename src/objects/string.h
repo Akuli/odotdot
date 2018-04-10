@@ -21,6 +21,23 @@ struct Object *stringobject_newfromustr(struct Interpreter *interp, struct Objec
 // RETURNS A NEW REFERENCE
 struct Object *stringobject_newfromcharptr(struct Interpreter *interp, struct Object **errptr, char *ptr);
 
+/* create a new string kinda like printf
+
+fmt must be valid UTF-8, and it can contain any of these format specifiers:
+	%s   char *                 must be valid utf8, at most 200 bytes without \0
+	%U   struct UnicodeString
+	%S   struct Object *        to_string will be called
+	%D   struct Object *        to_debug_string will be called
+	%%   nothing                a % in the output
+
+nothing else works, not even padding like %5s
+
+these fixed limits are NOT CHECKED even with assert:
+	* stuff between format specifiers can be at most 200 characters long
+	* number of format specifiers + number of texts between them must be <= 20
+*/
+struct Object *stringobject_newfromfmt(struct Context *ctx, struct Object **errptr, char *fmt, ...);
+
 // the returned UnicodeString's val must NOT be free()'d
 struct UnicodeString *stringobject_getustr(struct Object *str);
 

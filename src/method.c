@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "common.h"
+#include "interpreter.h"
 #include "unicode.h"
 
 int method_add(struct Interpreter *interp, struct Object **errptr, struct Object *klass, char *name, functionobject_cfunc cfunc)
@@ -120,3 +121,30 @@ struct Object *method_call(struct Context *ctx, struct Object **errptr, struct O
 	return res;
 }
 #undef NARGS_MAX
+
+static struct Object *to_maybe_debug_string(struct Context *ctx, struct Object **errptr, struct Object *obj, char *methname)
+{
+	struct Object *stringclass = interpreter_getbuiltin(ctx->interp, errptr, "String");
+	if (!stringclass)
+		return NULL;
+
+	struct Object *res = method_call(ctx, errptr, obj, methname, NULL);
+	if (!res) {
+		OBJECT_DECREF(ctx->interp, stringclass);
+		return NULL;
+	}
+
+	assert(res->klass == stringclass);   // TODO: better error handling
+	OBJECT_DECREF(ctx->interp, stringclass);
+	return res;
+}
+
+struct Object *method_call_tostring(struct Context *ctx, struct Object **errptr, struct Object *obj)
+{
+	return to_maybe_debug_string(ctx, errptr, obj, "to_string");
+}
+
+struct Object *method_call_todebugstring(struct Context *ctx, struct Object **errptr, struct Object *obj)
+{
+	return to_maybe_debug_string(ctx, errptr, obj, "to_debug_string");
+}

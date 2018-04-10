@@ -23,4 +23,9 @@ struct Object *method_getwithustr(struct Interpreter *interp, struct Object **er
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *method_call(struct Context *ctx, struct Object **errptr, struct Object *obj, char *methname, ...);
 
+// these call to_string or to_debug_string and check the return type
+// RETURNS A NEW REFERENCE or NULL on error
+struct Object *method_call_tostring(struct Context *ctx, struct Object **errptr, struct Object *obj);
+struct Object *method_call_todebugstring(struct Context *ctx, struct Object **errptr, struct Object *obj);
+
 #endif    // METHOD_H

@@ -98,6 +98,39 @@ void test_objects_string_tostring(void)
 	OBJECT_DECREF(testinterp, s);    // stringobject_newfromustr() returned a new reference
 }
 
+void test_objects_string_newfromfmt(void)
+{
+	uint32_t bval = 'b';
+	struct UnicodeString b;
+	b.len = 1;
+	b.val = &bval;
+
+	struct Object *c = stringobject_newfromcharptr(testinterp, NULL, "c");
+	buttert(c);
+
+	struct Object *res = stringobject_newfromfmt(testinterp->builtinctx, NULL, "-%s-%U-%S-%D-%%-", "a", b, c, c);
+	buttert(res);
+	OBJECT_DECREF(testinterp, c);
+
+	struct UnicodeString *s = res->data;
+	buttert(s->len == 13 /* OMG BAD LUCK */);
+	buttert(
+		s->val[0] == '-' &&
+		s->val[1] == 'a' &&
+		s->val[2] == '-' &&
+		s->val[3] == 'b' &&
+		s->val[4] == '-' &&
+		s->val[5] == 'c' &&
+		s->val[6] == '-' &&
+		s->val[7] == '"' &&
+		s->val[8] == 'c' &&
+		s->val[9] == '"' &&
+		s->val[10] == '-' &&
+		s->val[11] == '%' &&
+		s->val[12] == '-');
+	OBJECT_DECREF(testinterp, res);
+}
+
 #define NOBJS 3
 void test_objects_array(void)
 {
