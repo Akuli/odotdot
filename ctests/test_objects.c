@@ -4,6 +4,7 @@
 #include <src/method.h>
 #include <src/objects/array.h>
 #include <src/objects/classobject.h>
+#include <src/objects/errors.h>
 #include <src/objects/function.h>
 #include <src/objects/integer.h>
 #include <src/objects/string.h>
@@ -44,6 +45,24 @@ void test_objects_simple(void)
 	OBJECT_DECREF(testinterp, obj);
 }
 
+void test_objects_error(void)
+{
+	struct Object *err = NULL;
+	errorobject_setwithfmt(testinterp->builtinctx, &err, "oh %s", "shit");
+	buttert(err);
+	struct UnicodeString *msg = ((struct Object*) err->data)->data;
+	buttert(msg);
+	buttert(msg->len = 7);
+	buttert(
+		msg->val[0] == 'o' &&
+		msg->val[1] == 'h' &&
+		msg->val[2] == ' ' &&
+		msg->val[3] == 's' &&
+		msg->val[4] == 'h' &&
+		msg->val[5] == 'i' &&
+		msg->val[6] == 't');
+	OBJECT_DECREF(testinterp, err);
+}
 
 // TODO: test actually running this thing to make sure that data is passed correctly
 struct Object *callback(struct Context *callctx, struct Object **errptr, struct Object **args, size_t nargs)

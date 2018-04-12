@@ -15,33 +15,25 @@ struct ObjectClassInfo *objectobject_createclass(void)
 }
 
 
-static inline int is_a_wovel(char c)
-{
-	// TODO: how about e.g. ä, ö? they are wovels but not bytes in utf8
-#define f(x) c==(x)
-	return f('A')||f('a')||
-		f('E')||f('e')||
-		f('I')||f('i')||
-		f('O')||f('o')||
-		f('U')||f('u')||
-		f('Y')||f('y');
-#undef f
-}
-
+#define BIG_ENOUGH 50
 static struct Object *to_string(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	assert(nargs == 1);     // TODO: better type check
+	if (functionobject_checktypes(ctx, errptr, args, nargs, "Object", NULL) == STATUS_ERROR)
+		return NULL;
 
-	// TODO: utf8 strings are not really a good solution here....
-	char res[100];
+	char ptrmsg[BIG_ENOUGH+1];
+	snprintf(ptrmsg, BIG_ENOUGH, "%p", (void*) args[0]);
+
 	char *name = ((struct ObjectClassInfo*) args[0]->klass->data)->name;
-	sprintf(res, "<%s %.50s at %p>", is_a_wovel(name[0]) ? "an" : "a", name, (void*) args[0]);
-	return stringobject_newfromcharptr(ctx->interp, errptr, res);
+	// FIXME: unicode_iswovel is supposed to be used with unicodes, so this breaks with e.g. ä, ö
+	uint32_t first = name[0];    // needed to suppress compiler warnings
+	return stringobject_newfromfmt(ctx, errptr, "<%s %s at %s>", unicode_iswovel(first) ? "an" : "a", name, ptrmsg);
 }
 
 static struct Object *to_debug_string(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	assert(nargs == 1);
+	if (functionobject_checktypes(ctx, errptr, args, nargs, "Object", NULL) == STATUS_ERROR)
+		return NULL;
 	return method_call(ctx, errptr, args[0], "to_string", NULL);
 }
 

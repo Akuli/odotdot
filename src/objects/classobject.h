@@ -24,6 +24,7 @@ struct Object *classobject_newfromclassinfo(struct Interpreter *interp, struct O
 
 // like obj->klass == klass, but checks for inheritance
 // never fails if klass is a classobject, bad things happen if it isn't
+// returns 1 or 0
 int classobject_istypeof(struct Object *klass, struct Object *obj);
 
 #endif    // OBJECTS_CLASSOBJECT_H

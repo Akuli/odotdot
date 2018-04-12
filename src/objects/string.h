@@ -1,6 +1,7 @@
 #ifndef OBJECTS_STRING_H
 #define OBJECTS_STRING_H
 
+#include <stdarg.h>           // for va_list
 #include "../interpreter.h"
 #include "../objectsystem.h"
 #include "../unicode.h"
@@ -37,6 +38,9 @@ these fixed limits are NOT CHECKED even with assert:
 	* number of format specifiers + number of texts between them must be <= 20
 */
 struct Object *stringobject_newfromfmt(struct Context *ctx, struct Object **errptr, char *fmt, ...);
+
+// like newfromfmt, but vprintf style
+struct Object *stringobject_newfromvfmt(struct Context *ctx, struct Object **errptr, char *fmt, va_list ap);
 
 // the returned UnicodeString's val must NOT be free()'d
 struct UnicodeString *stringobject_getustr(struct Object *str);

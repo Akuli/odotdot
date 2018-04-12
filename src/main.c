@@ -13,6 +13,7 @@
 #include "run.h"
 #include "tokenizer.h"
 #include "unicode.h"
+#include "objects/function.h"
 
 #define FILE_CHUNK_SIZE 4096
 
@@ -52,6 +53,30 @@ int read_file_to_huge_string(FILE *f, char **dest, size_t *destlen)
 static void astnode_free_voidstar(void *node)
 {
 	astnode_free(node);    // casts the node to struct AstNode*
+}
+
+
+// TODO: print a stack trace and use stderr instead of stdout
+static void print_error(struct Context *ctx, struct Object *err)
+{
+	struct Object *err2 = NULL;
+
+	struct Object *printfunc = interpreter_getbuiltin(ctx->interp, &err2, "print");
+	if (!printfunc) {
+		fprintf(stderr, "%s: printing an error failed\n", ctx->interp->argv0);
+		OBJECT_DECREF(ctx->interp, err2);
+		return;
+	}
+
+	printf("errör: ");
+	struct Object *printres = functionobject_call(ctx, &err2, printfunc, err->data, NULL);
+	OBJECT_DECREF(ctx->interp, printfunc);
+	if (!printres) {
+		fprintf(stderr, "%s: printing an error failed\n", ctx->interp->argv0);
+		OBJECT_DECREF(ctx->interp, err2);
+		return;
+	}
+	OBJECT_DECREF(ctx->interp, printres);
 }
 
 
@@ -125,10 +150,12 @@ static int run_file(struct Context *ctx, char *path)
 	struct Object *err = NULL;
 	for (size_t i=0; i < statements->len; i++) {
 		if (run_statement(ctx, &err, statements->values[i]) == STATUS_ERROR) {
-			if (err)
-				fprintf(stderr, "an error occurred, printing errors is not implemented yet :(\n");
-			else
+			if (err) {
+				print_error(ctx, err);
+				OBJECT_DECREF(ctx->interp, err);
+			} else {
 				fprintf(stderr, "%s: errptr wasn't set correctly\n", ctx->interp->argv0);
+			}
 			dynamicarray_freeall(statements, astnode_free_voidstar);
 			return 1;
 		}
@@ -161,7 +188,9 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	if (status == STATUS_ERROR) {
-		fprintf(stderr, "an error occurred, printing errors is not implemented yet :(\n");
+		// FIXME: is builtinctx guaranteed to exist yet?? hopefully it is
+		print_error(interp->builtinctx, setuperr);
+		OBJECT_DECREF(interp, setuperr);
 		interpreter_free(interp);
 		return 1;
 	}

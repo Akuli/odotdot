@@ -10,6 +10,7 @@
 #include "objectsystem.h"
 #include "objects/array.h"
 #include "objects/classobject.h"
+#include "objects/errors.h"
 #include "objects/function.h"
 #include "objects/integer.h"
 #include "objects/string.h"
@@ -46,7 +47,7 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 		struct Object **args = malloc(sizeof(struct Object*) * INFO_AS(AstCallInfo)->nargs);
 		if (!args) {
 			OBJECT_DECREF(ctx->interp, func);
-			*errptr = ctx->interp->nomemerr;
+			errorobject_setnomem(ctx->interp, errptr);
 			return NULL;
 		}
 
@@ -78,7 +79,7 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 		// TODO: create a DynamicArray directly instead of a temporary shit
 		struct Object **elems = malloc(sizeof(struct Object *) * INFO_AS(AstArrayOrBlockInfo)->nitems);
 		if (!elems) {
-			*errptr = ctx->interp->nomemerr;
+			errorobject_setnomem(ctx->interp, errptr);
 			return NULL;
 		}
 

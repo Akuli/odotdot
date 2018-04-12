@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include "errors.h"
 #include "../common.h"
 #include "../interpreter.h"
 #include "../objectsystem.h"
@@ -19,14 +20,14 @@ int classobject_createclass(struct Interpreter *interp, struct Object **errptr, 
 	shit = interp;
 	struct ObjectClassInfo *info = objectclassinfo_new("Class", objectclass, NULL, classobject_free);
 	if (!info) {
-		*errptr = interp->nomemerr;
+		errorobject_setnomem(interp, errptr);
 		return STATUS_ERROR;
 	}
 
 	struct Object *klass = object_new(interp, NULL, info);
 	if (!klass) {
 		objectclassinfo_free(interp, info);
-		*errptr = interp->nomemerr;
+		errorobject_setnomem(interp, errptr);
 		return STATUS_ERROR;
 	}
 	klass->klass = klass;      // cyclic reference!
@@ -37,12 +38,16 @@ int classobject_createclass(struct Interpreter *interp, struct Object **errptr, 
 
 struct Object *classobject_new(struct Interpreter *interp, struct Object **errptr, char *name, struct Object *base, objectclassinfo_foreachref foreachref, void (*destructor)(struct Object *))
 {
-	// TODO: better type check
-	assert(base->klass == interp->classclass);
+	if (!classobject_istypeof(interp->classclass, base->klass)) {
+		// TODO: test this
+		// FIXME: don't use builtinctx, instead require passing in a context to this function
+		errorobject_setwithfmt(interp->builtinctx, errptr, "cannot inherit a new class from %D", base);
+		return NULL;
+	}
 
 	struct ObjectClassInfo *info = objectclassinfo_new(name, base->data, foreachref, destructor);
 	if (!info) {
-		*errptr = interp->nomemerr;
+		errorobject_setnomem(interp, errptr);
 		return NULL;
 	}
 
@@ -56,10 +61,16 @@ struct Object *classobject_new(struct Interpreter *interp, struct Object **errpt
 
 struct Object *classobject_newinstance(struct Interpreter *interp, struct Object **errptr, struct Object *klass, void *data)
 {
-	assert(klass->klass == interp->classclass);      // TODO: better type check
+	if (!classobject_istypeof(interp->classclass, klass->klass)) {
+		// TODO: test this
+		// FIXME: don't use builtinctx, instead require passing in a context to this function
+		errorobject_setwithfmt(interp->builtinctx, errptr, "cannot create an instance of %D", klass);
+		return NULL;
+	}
+
 	struct Object *instance = object_new(interp, klass, data);
 	if (!instance) {
-		*errptr = interp->nomemerr;
+		errorobject_setnomem(interp, errptr);
 		return NULL;
 	}
 	OBJECT_INCREF(interp, klass);
@@ -73,9 +84,9 @@ struct Object *classobject_newfromclassinfo(struct Interpreter *interp, struct O
 
 int classobject_istypeof(struct Object *klass, struct Object *obj)
 {
-	struct ObjectClassInfo *info = klass->data;
+	struct ObjectClassInfo *info = obj->klass->data;
 	do {
-		if (info == (struct ObjectClassInfo *) obj->klass->data)
+		if (info == (struct ObjectClassInfo *) klass->data)
 			return 1;
 	} while ((info = info->baseclass));
 	return 0;

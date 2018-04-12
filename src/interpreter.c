@@ -9,6 +9,7 @@
 #include "context.h"
 #include "hashtable.h"
 #include "unicode.h"
+#include "objects/errors.h"
 
 static int compare_by_identity(void *a, void *b, void *junkdata) { return a==b; }
 
@@ -62,7 +63,7 @@ int interpreter_addbuiltin(struct Interpreter *interp, struct Object **errptr, c
 	char stupiderrormsg[100] = {0};
 	int status = utf8_decode(name, strlen(name), &uname, stupiderrormsg);
 	if (status == STATUS_NOMEM) {
-		*errptr = interp->nomemerr;
+		errorobject_setnomem(interp, errptr);
 		return STATUS_ERROR;
 	}
 	assert(status == STATUS_OK && stupiderrormsg[0] == 0);  // must be valid utf8
@@ -78,7 +79,7 @@ struct Object *interpreter_getbuiltin(struct Interpreter *interp, struct Object 
 	char stupiderrormsg[100] = {0};
 	int status = utf8_decode(name, strlen(name), &uname, stupiderrormsg);
 	if (status == STATUS_NOMEM) {
-		*errptr = interp->nomemerr;
+		errorobject_setnomem(interp, errptr);
 		return NULL;
 	}
 	assert(status == STATUS_OK && stupiderrormsg[0] == 0);  // must be valid utf8

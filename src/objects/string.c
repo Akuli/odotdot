@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "classobject.h"
+#include "errors.h"
 #include "../common.h"
 #include "../interpreter.h"
 #include "../method.h"
@@ -44,7 +45,7 @@ static struct Object *to_debug_string(struct Context *ctx, struct Object **errpt
 	yesquotes.len = noquotes.len + 2;
 	yesquotes.val = malloc(sizeof(uint32_t) * yesquotes.len);
 	if (!yesquotes.val) {
-		*errptr = ctx->interp->nomemerr;
+		errorobject_setnomem(ctx->interp, errptr);
 		return NULL;
 	}
 	yesquotes.val[0] = yesquotes.val[yesquotes.len - 1] = '"';
@@ -76,7 +77,7 @@ struct Object *stringobject_newfromustr(struct Interpreter *interp, struct Objec
 {
 	struct UnicodeString *data = unicodestring_copy(ustr);
 	if (!data) {
-		*errptr = interp->nomemerr;
+		errorobject_setnomem(interp, errptr);
 		return NULL;
 	}
 
@@ -131,7 +132,7 @@ struct Object *stringobject_newfromcharptr(struct Interpreter *interp, struct Ob
 
 #define MAX_PARTS 20
 #define BETWEEN_SPECIFIERS_MAX 200
-struct Object *stringobject_newfromfmt(struct Context *ctx, struct Object **errptr, char *fmt, ...)
+struct Object *stringobject_newfromvfmt(struct Context *ctx, struct Object **errptr, char *fmt, va_list ap)
 {
 	struct UnicodeString parts[MAX_PARTS];
 	int nparts = 0;
@@ -143,9 +144,6 @@ struct Object *stringobject_newfromfmt(struct Context *ctx, struct Object **errp
 	// can't decref right away if the data of the object is still used in this function
 	struct Object *gonnadecref[MAX_PARTS+1 /* always ends with NULL */] = { NULL };
 	struct Object **gonnadecrefptr = gonnadecref;   // add a new object like *gonnadecrefptr++ = ...
-
-	va_list ap;
-	va_start(ap, fmt);
 
 	while(*fmt) {
 		if (*fmt == '%') {
@@ -205,7 +203,6 @@ struct Object *stringobject_newfromfmt(struct Context *ctx, struct Object **errp
 
 		nparts++;
 	}
-	va_end(ap);
 
 	struct UnicodeString everything;
 	everything.len = 0;
@@ -235,7 +232,7 @@ struct Object *stringobject_newfromfmt(struct Context *ctx, struct Object **errp
 	return res;
 
 nomem:
-	*errptr = ctx->interp->nomemerr;
+	errorobject_setnomem(ctx->interp, errptr);
 	// "fall through" to error
 
 error:
@@ -246,4 +243,14 @@ error:
 	for (int i=0; gonnadecref[i]; i++)
 		OBJECT_DECREF(ctx->interp, gonnadecref[i]);
 	return NULL;
+}
+
+
+struct Object *stringobject_newfromfmt(struct Context *ctx, struct Object **errptr, char *fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+	struct Object *res = stringobject_newfromvfmt(ctx, errptr, fmt, ap);
+	va_end(ap);
+	return res;
 }

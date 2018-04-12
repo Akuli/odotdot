@@ -6,14 +6,17 @@
 #include "common.h"
 #include "interpreter.h"
 #include "unicode.h"
+#include "objects/classobject.h"
+#include "objects/errors.h"
 
 int method_add(struct Interpreter *interp, struct Object **errptr, struct Object *klass, char *name, functionobject_cfunc cfunc)
 {
+	// TODO: this should take ctx and use errorobject_typecheck()
 	assert(klass->klass == interp->classclass);    // TODO: better type check
 
 	struct UnicodeString *uname = malloc(sizeof(struct UnicodeString));
 	if (!uname) {
-		*errptr = interp->nomemerr;
+		errorobject_setnomem(interp, errptr);
 		return STATUS_ERROR;
 	}
 
@@ -21,8 +24,8 @@ int method_add(struct Interpreter *interp, struct Object **errptr, struct Object
 	int status = utf8_decode(name, strlen(name), uname, errormsg);
 	if (status != STATUS_OK) {
 		assert(status == STATUS_NOMEM);
-		*errptr = interp->nomemerr;
 		free(uname);
+		errorobject_setnomem(interp, errptr);
 		return STATUS_ERROR;
 	}
 
@@ -34,10 +37,10 @@ int method_add(struct Interpreter *interp, struct Object **errptr, struct Object
 	}
 
 	if (hashtable_set(((struct ObjectClassInfo *) klass->data)->methods, uname, unicodestring_hash(*uname), func, NULL) == STATUS_NOMEM) {
-		*errptr = interp->nomemerr;
 		free(uname->val);
 		free(uname);
 		OBJECT_DECREF(interp, func);
+		errorobject_setnomem(interp, errptr);
 		return STATUS_ERROR;
 	}
 
@@ -54,18 +57,30 @@ static struct Object *get_the_method(struct ObjectClassInfo *classinfo, struct U
 	if (hashtable_get(classinfo->methods, uname, unamehash, (void **)(&res), NULL))
 		return res;
 
-	// maybe this is defined in a base class?
+	// inheritance: maybe this is defined in a base class?
 	if (classinfo->baseclass)
 		return get_the_method(classinfo->baseclass, uname, unamehash);
+
 	// nope
 	return NULL;
 }
 
 struct Object *method_getwithustr(struct Interpreter *interp, struct Object **errptr, struct Object *obj, struct UnicodeString uname)
 {
-	// TODO: inheritance??
 	struct Object *nopartial = get_the_method(obj->klass->data, &uname, unicodestring_hash(uname));
-	assert(nopartial);    // FIXME: better error handling :(( e.g. a "no 'asd' method" error
+	if (!nopartial) {
+		assert(0);
+		// FIXME: this thing needs a ctx
+		/*
+		char *classname = ((struct ObjectClassInfo*) obj->klass->data)->name;
+		errorobject_setwithfmt(ctx, errptr,
+			"%s objects don't have %s '%U' method",
+			classname,
+			(uname.len >= 1 && unicode_iswovel(uname.val[0])) ? "an" : "a",
+			uname);
+		*/
+		return NULL;
+	}
 
 	// now we have a function that takes self as the first argument, let's partial it
 	// no need to decref nopartial because get_the_method() doesn't incref
@@ -76,7 +91,7 @@ struct Object *method_get(struct Interpreter *interp, struct Object **errptr, st
 {
 	struct UnicodeString *uname = malloc(sizeof(struct UnicodeString));
 	if (!uname) {
-		*errptr = interp->nomemerr;
+		errorobject_setnomem(interp, errptr);
 		return NULL;
 	}
 
@@ -84,8 +99,8 @@ struct Object *method_get(struct Interpreter *interp, struct Object **errptr, st
 	int status = utf8_decode(name, strlen(name), uname, errormsg);
 	if (status != STATUS_OK) {
 		assert(status == STATUS_NOMEM);
-		*errptr = interp->nomemerr;
 		free(uname);
+		errorobject_setnomem(interp, errptr);
 		return NULL;
 	}
 
@@ -111,7 +126,7 @@ struct Object *method_call(struct Context *ctx, struct Object **errptr, struct O
 	for (nargs = 0; nargs < NARGS_MAX; nargs++) {
 		struct Object *arg = va_arg(ap, struct Object*);
 		if (!arg)
-			break;
+			break;   // end of argument list, not an error
 		args[nargs] = arg;
 	}
 	va_end(ap);
@@ -134,8 +149,15 @@ static struct Object *to_maybe_debug_string(struct Context *ctx, struct Object *
 		return NULL;
 	}
 
-	assert(res->klass == stringclass);   // TODO: better error handling
+	// this doesn't use errorobject_typecheck() because this uses a custom error message string
+	// TODO: test this
+	if (!classobject_istypeof(stringclass, res)) {
+		// FIXME: is it possible to make this recurse infinitely by returning the object itself from to_{debug,}string?
+		errorobject_setwithfmt(ctx, errptr, "%s should return a String, but it returned %D", methname, res);
+		return NULL;
+	}
 	OBJECT_DECREF(ctx->interp, stringclass);
+	assert(res->klass == stringclass);   // TODO: better error handling
 	return res;
 }
 

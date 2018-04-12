@@ -45,15 +45,22 @@ int utf8_decode(char *utf8, size_t utf8len, struct UnicodeString *unicode, char 
 
 
 // these operate on uint32_t unicode characters, not UnicodeString structs
-// FIXME: unicode_isalpha sucks, maybe unicode_isdigit sucks too?
+// FIXME: unicode_isalpha and unicode_iswovel suck, maybe unicode_isdigit sucks too?
+// TODO: remove unicode_is0to9
 #define unicode_isalpha(x) ( \
 	('a' <= (x) && (x) <= 'z') || ('A' <= (x) && (x) <= 'Z') || \
 	(x) == 0xc5 /* Å */ || (x) == 0xc4 /* Ä */ || (x) == 0xd6 /* Ö */ || \
 	(x) == 0xe5 /* å */ || (x) == 0xe4 /* ä */ || (x) == 0xf6 /* ö */ )
 #define unicode_isdigit(x) ('0' <= (x) && (x) <= '9')
+#define unicode_is0to9(x) ('0' <= (x) && (x) <= '9')   // if there are other unicode digits, this must ignore them
 #define unicode_isalnum(x) (unicode_isalpha(x) || unicode_isdigit(x))
 #define unicode_isidentifier1st(x) (unicode_isalpha(x) || (x)=='_')
 #define unicode_isidentifiernot1st(x) (unicode_isalnum(x) || (x)=='_')
-#define unicode_is0to9(x) ('0' <= (x) && (x) <= '9')
+
+#define unicode_iswovel(x) ( \
+	(x) == 'A' || (x) == 'E' || (x) == 'I' || (x) == 'O' || (x) == 'U' || (x) == 'Y' || \
+	(x) == 'a' || (x) == 'e' || (x) == 'i' || (x) == 'o' || (x) == 'u' || (x) == 'y' || \
+	(x) == 0xc5 /* Å */ || (x) == 0xc4 /* Ä */ || (x) == 0xd6 /* Ö */ || \
+	(x) == 0xe5 /* å */ || (x) == 0xe4 /* ä */ || (x) == 0xf6 /* ö */ )
 
 #endif   // UNICODE_H

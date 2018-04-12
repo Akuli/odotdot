@@ -20,26 +20,15 @@
 
 static struct Object *print_builtin(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	assert(nargs == 1);       // TODO: use errptr instead
-	struct Object *stringed = method_call(ctx, errptr, args[0], "to_string", NULL);
-	if (!stringed)
+	if (functionobject_checktypes(ctx, errptr, args, nargs, "String", NULL) == STATUS_ERROR)
 		return NULL;
-
-	struct Object *stringclass = interpreter_getbuiltin(ctx->interp, errptr, "String");
-	if (!stringclass) {
-		OBJECT_DECREF(ctx->interp, stringed);
-		return NULL;
-	}
-	assert(stringed->klass == stringclass);  // TODO: use errptr
-	OBJECT_DECREF(ctx->interp, stringclass);
 
 	char *utf8;
 	size_t utf8len;
 	char errormsg[100];
-	int status = utf8_encode(*((struct UnicodeString *) stringed->data), &utf8, &utf8len, errormsg);
-	OBJECT_DECREF(ctx->interp, stringed);
+	int status = utf8_encode(*((struct UnicodeString *) args[0]->data), &utf8, &utf8len, errormsg);
 	if (status == STATUS_NOMEM) {
-		*errptr = ctx->interp->nomemerr;
+		errorobject_setnomem(ctx->interp, errptr);
 		return NULL;
 	}
 	assert(status == STATUS_OK);  // TODO: how about invalid unicode strings? make sure they don't exist when creating strings?
@@ -56,7 +45,7 @@ static struct Object *print_builtin(struct Context *ctx, struct Object **errptr,
 
 int builtins_setup(struct Interpreter *interp, struct Object **errptr)
 {
-	int status = STATUS_ERROR;   // only used on error
+	int status = 123;   // a special-enough marker value
 	struct ObjectClassInfo *objectinfo = NULL, *errorinfo = NULL, *stringinfo = NULL;
 	struct Object *objectclass = NULL, *errorclass = NULL, *stringclass = NULL;
 	struct Object *printfunc = NULL;
@@ -108,10 +97,10 @@ nomem:
 
 error:
 	// FIXME: this might be very broken, it's hard to test this code
-	if (status == STATUS_ERROR) {
+	if (status == 123) {    // not set yet
 		assert(interp->nomemerr);
-		assert(*errptr == interp->nomemerr);
-		// TODO: decreff *errptr if it will be increffed everywhere some day?
+		errorobject_setnomem(interp, errptr);
+		OBJECT_DECREF(interp, *errptr);  // the nomem error will be destroyed soon with another decref
 		status = STATUS_NOMEM;
 	}
 
@@ -147,7 +136,7 @@ void builtins_teardown(struct Interpreter *interp)
 
 	/* this is a bit tricky because interp->classclass->klass == interp->classclass
 	OBJECT_DECREF(interp->classclass) doesn't work because OBJECT_DECREF also decrefs ->klass
-	this is one of the reasons why ->klass can be NULL and OBJECT_DECREF will ignore it
+	this is one of the reasons why ->klass can be NULL and OBJECT_DECREF's destroyer will ignore it
 
 	TODO: implement gc nicely and use it instead
 	*/

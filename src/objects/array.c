@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "classobject.h"
+#include "errors.h"
 #include "string.h"
 #include "../common.h"
 #include "../dynamicarray.h"
@@ -45,7 +46,7 @@ static struct Object *to_string_joiner(struct Interpreter *interp, struct Object
 
 	ustr.val = malloc(sizeof(uint32_t) * ustr.len);
 	if (!ustr.val) {
-		*errptr = interp->nomemerr;
+		errorobject_setnomem(interp, errptr);
 		return NULL;
 	}
 
@@ -77,13 +78,13 @@ static struct Object *to_string(struct Context *ctx, struct Object **errptr, str
 
 	struct Object **strings = malloc(sizeof(struct Object*) * dynarr->len);
 	if (!strings) {
-		*errptr = ctx->interp->nomemerr;
+		errorobject_setnomem(ctx->interp, errptr);
 		return NULL;
 	}
 
 	struct Object *stringclass = interpreter_getbuiltin(ctx->interp, errptr, "String");
 	for (size_t i = 0; i < dynarr->len; i++) {
-		struct Object *stringed = method_call(ctx, errptr, dynarr->values[i], "to_debug_string", NULL);
+		struct Object *stringed = method_call_todebugstring(ctx, errptr, dynarr->values[i]);
 		if (!stringed) {
 			for (size_t j=0; j<i; j++)
 				OBJECT_DECREF(ctx->interp, strings[i]);
@@ -91,7 +92,6 @@ static struct Object *to_string(struct Context *ctx, struct Object **errptr, str
 			OBJECT_DECREF(ctx->interp, stringclass);
 			return NULL;
 		}
-		assert(stringed->klass == stringclass);    // TODO: better error handling
 		strings[i] = stringed;
 	}
 	OBJECT_DECREF(ctx->interp, stringclass);
@@ -156,10 +156,10 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **errpt
 		int status = dynamicarray_push(arr->data, elems[i]);
 		if (status != STATUS_OK) {
 			assert(status == STATUS_NOMEM);
-			*errptr = interp->nomemerr;
 			for (size_t j=0; j<i; j++)
 				OBJECT_DECREF(interp, elems[i]);
 			OBJECT_DECREF(interp, arr);
+			errorobject_setnomem(interp, errptr);
 			return NULL;
 		}
 		OBJECT_INCREF(interp, elems[i]);

@@ -72,6 +72,7 @@ int integerobject_createclass(struct Interpreter *interp, struct Object **errptr
 	return ret;
 }
 
+// TODO: take a context and use errorobject_setwithfmt instead
 static struct Object *integer_from_digits(struct Interpreter *interp, struct Object **errptr, int isnegative, int *digits, int ndigits)
 {
 	struct Object *integerclass = interpreter_getbuiltin(interp, errptr, "Integer");

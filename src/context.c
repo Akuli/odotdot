@@ -9,6 +9,7 @@
 #include "hashtable.h"
 #include "interpreter.h"
 #include "unicode.h"
+#include "objects/errors.h"
 
 // grep for this function's name, it's copy/pasted in a couple other places too
 static int compare_unicode_strings(void *a, void *b, void *userdata)
@@ -47,7 +48,7 @@ struct Context *context_newsub(struct Context *parentctx, struct Object **errptr
 {
 	struct Context *ctx = context_newglobal(parentctx->interp);
 	if (!ctx) {
-		*errptr = parentctx->interp->nomemerr;
+		errorobject_setnomem(parentctx->interp, errptr);
 		return NULL;
 	}
 	ctx->parentctx = parentctx;
@@ -58,7 +59,7 @@ int context_setlocalvar(struct Context *ctx, struct Object **errptr, struct Unic
 {
 	struct UnicodeString *nameptr = unicodestring_copy(name);
 	if (!nameptr) {
-		*errptr = ctx->interp->nomemerr;
+		errorobject_setnomem(ctx->interp, errptr);
 		return STATUS_ERROR;
 	}
 
@@ -72,7 +73,7 @@ int context_setlocalvar(struct Context *ctx, struct Object **errptr, struct Unic
 
 	int status = hashtable_set(ctx->localvars, nameptr, unicodestring_hash(name), value, NULL);
 	if (status == STATUS_NOMEM) {
-		*errptr = ctx->interp->nomemerr;
+		errorobject_setnomem(ctx->interp, errptr);
 		return STATUS_ERROR;
 	}
 	assert(status == STATUS_OK);
@@ -82,40 +83,16 @@ int context_setlocalvar(struct Context *ctx, struct Object **errptr, struct Unic
 
 int context_setvarwheredefined(struct Context *ctx, struct Object **errptr, struct UnicodeString name, struct Object *value)
 {
-	while (ctx) {
+	// this is a do-while to make sure it fails with ctx == NULL
+	do {
 		// check if the var is defined in this context
 		void *junk;
-		if (hashtable_get(ctx->localvars, &name, unicodestring_hash(name), &junk, NULL)) {
-			// yes
+		if (hashtable_get(ctx->localvars, &name, unicodestring_hash(name), &junk, NULL))
 			return context_setlocalvar(ctx, errptr, name, value);
-		}
-		// no luck... look up from parent context
-		ctx = ctx->parentctx;
-	}
+	} while ((ctx = ctx->parentctx));    // no luck, look up from parent context
 
-	// this is my attempt at creating a concatenated UnicodeString
-	char prefixchararr[] = "no variable named '";
-	struct UnicodeString msg;
-	// sizeof(prefixchararr)-1 == strlen(prefixchararr)
-	// last +1 is for trailing '
-	msg.len = sizeof(prefixchararr)-1 + name.len + 1;
-	msg.val = malloc(sizeof(uint32_t) * msg.len);
-	if (!msg.val) {
-		*errptr = ctx->interp->nomemerr;
-		return STATUS_ERROR;
-	}
-
-	for (int i=0; i < (int)(sizeof(prefixchararr)-1); i++)
-		msg.val[i] = prefixchararr[i];   // assumes ASCII
-	memcpy(msg.val + (sizeof(prefixchararr)-1), name.val, sizeof(uint32_t) * name.len);
-	msg.val[msg.len-1] = '\'';
-
-	// now we have a carefully created msg, almost done
-	// TODO: errorobject_newfromstringobject should take something like interp or ctx
-	// as an argument instead of the Error classinfo
-	assert(0);
-	//struct Object *err = errorobject_newfromstringobject(????)
-
+	errorobject_setwithfmt(ctx, errptr, "there's no '%U' variable", name);
+	return STATUS_ERROR;
 }
 
 struct Object *context_getvar_nomalloc(struct Context *ctx, struct UnicodeString name)
@@ -134,7 +111,10 @@ struct Object *context_getvar_nomalloc(struct Context *ctx, struct UnicodeString
 struct Object *context_getvar(struct Context *ctx, struct Object **errptr, struct UnicodeString name)
 {
 	struct Object *res = context_getvar_nomalloc(ctx, name);   // returns a new reference
-	assert(res);    // i didn't feel like copy/pasting the incomplete mess from context_setvarwheredefined()
+	if (!res) {
+		errorobject_setwithfmt(ctx, errptr, "there's no '%U' variable", name);   // allocates mem
+		return NULL;
+	}
 	return res;
 }
 

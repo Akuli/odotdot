@@ -3,10 +3,11 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#include "classobject.h"
+#include "errors.h"
 #include "../common.h"
 #include "../interpreter.h"
 #include "../objectsystem.h"
-#include "classobject.h"
 
 /* see below for how this is used
    passing more than 10 arguments would be kinda insane, and more than 20 would be really insane
@@ -56,16 +57,16 @@ int functionobject_checktypes(struct Context *ctx, struct Object **errptr, struc
 	va_list ap;
 	va_start(ap, nargs);
 
-	int expectnargs;   // expected number of arguments
+	unsigned int expectnargs;   // expected number of arguments
 	struct Object *classes[NARGS_MAX];
 	for (expectnargs=0; expectnargs < NARGS_MAX; expectnargs++) {
 		char *classname = va_arg(ap, char*);
 		if (!classname)
-			break;
+			break;      // end of argument list, not an error
 
 		struct Object *klass = interpreter_getbuiltin(ctx->interp, errptr, classname);
 		if (!klass) {
-			for (int i=0; i < expectnargs; i++)
+			for (unsigned int i=0; i < expectnargs; i++)
 				OBJECT_DECREF(ctx->interp, classes[i]);
 			return STATUS_ERROR;
 		}
@@ -74,10 +75,22 @@ int functionobject_checktypes(struct Context *ctx, struct Object **errptr, struc
 	}
 	va_end(ap);
 
-	// TODO: do actual errors instead of stupid assertions :(
-	assert(nargs == (size_t) expectnargs);
-	for (int i=0; i < expectnargs; i++) {
-		assert(classobject_istypeof(classes[i], args[i]));
+	// TODO: test these
+	// TODO: include the function name in the error?
+	if (nargs != expectnargs) {
+		errorobject_setwithfmt(ctx, errptr, "%s arguments", nargs > expectnargs ? "too many" : "not enough");
+		for (unsigned int i=0; i < expectnargs; i++)
+			OBJECT_DECREF(ctx->interp, classes[i]);
+		return STATUS_ERROR;
+	}
+
+	assert(nargs == expectnargs);
+	for (unsigned int i=0; i < nargs; i++) {
+		if (errorobject_typecheck(ctx, errptr, classes[i], args[i]) == STATUS_ERROR) {
+			for (unsigned int j=i; j < nargs; j++)
+				OBJECT_DECREF(ctx->interp, classes[j]);
+			return STATUS_ERROR;
+		}
 		OBJECT_DECREF(ctx->interp, classes[i]);
 	}
 
@@ -88,7 +101,7 @@ struct Object *functionobject_new(struct Interpreter *interp, struct Object **er
 {
 	struct FunctionData *data = malloc(sizeof(struct FunctionData));
 	if (!data) {
-		*errptr = interp->nomemerr;
+		errorobject_setnomem(interp, errptr);
 		return NULL;
 	}
 	data->cfunc = cfunc;
@@ -146,7 +159,7 @@ struct Object *functionobject_vcall(struct Context *ctx, struct Object **errptr,
 		thenargs = nargs+1;
 		theargs = malloc(sizeof(struct Object *) * thenargs);
 		if (!theargs) {
-			*errptr = ctx->interp->nomemerr;
+			errorobject_setnomem(ctx->interp, errptr);
 			return NULL;
 		}
 		theargs[0] = data->partialarg;
