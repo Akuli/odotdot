@@ -1,10 +1,10 @@
 #ifndef OBJECTS_STRING_H
 #define OBJECTS_STRING_H
 
-#include <stdarg.h>           // for va_list
-#include "../interpreter.h"
-#include "../objectsystem.h"
-#include "../unicode.h"
+#include <stdarg.h>
+#include "../interpreter.h"    // IWYU pragma: keep
+#include "../objectsystem.h"   // IWYU pragma: keep
+#include "../unicode.h"        // IWYU pragma: keep
 
 // this takes the Object classinfo instead of the interpreter and returns NULL for no mem
 // because this function is called before error objects like interp->nomemerr exists

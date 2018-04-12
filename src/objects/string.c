@@ -4,12 +4,15 @@
 #include <assert.h>
 #include <stdarg.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "classobject.h"
 #include "errors.h"
+#include "function.h"
 #include "../common.h"
+#include "../context.h"
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"

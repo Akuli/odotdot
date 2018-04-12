@@ -4,7 +4,6 @@
 
 #include "../interpreter.h"         // IWYU pragma: keep
 #include "../objectsystem.h"
-#include "function.h"
 
 // sets interp->classobjectinfo and returns STATUS_OK or STATUS_ERROR
 int classobject_createclass(struct Interpreter *interp, struct Object **errptr, struct ObjectClassInfo *objectclass);

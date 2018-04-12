@@ -2,8 +2,8 @@
 #ifndef METHOD_H
 #define METHOD_H
 
-#include "interpreter.h"
-#include "objectsystem.h"
+#include "interpreter.h"       // IWYU pragma: keep
+#include "objectsystem.h"      // IWYU pragma: keep
 #include "objects/function.h"
 
 // returns STATUS_OK or STATUS_ERROR

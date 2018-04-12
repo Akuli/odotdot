@@ -6,7 +6,6 @@
 #include "common.h"
 #include "context.h"
 #include "interpreter.h"
-#include "method.h"
 #include "unicode.h"
 #include "objectsystem.h"
 #include "objects/array.h"

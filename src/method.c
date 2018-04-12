@@ -5,9 +5,13 @@
 #include <string.h>
 #include "common.h"
 #include "interpreter.h"
-#include "unicode.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
+#include "context.h"
+#include "hashtable.h"
+#include "objects/function.h"
+#include "objectsystem.h"
+#include "unicode.h"
 
 int method_add(struct Interpreter *interp, struct Object **errptr, struct Object *klass, char *name, functionobject_cfunc cfunc)
 {

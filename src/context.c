@@ -2,12 +2,11 @@
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>    // for printing messages about refcount problems
 #include <stdlib.h>
-#include <string.h>
 #include "common.h"
 #include "hashtable.h"
-#include "interpreter.h"
+#include "interpreter.h"    // IWYU pragma: keep
+#include "objectsystem.h"
 #include "unicode.h"
 #include "objects/errors.h"
 

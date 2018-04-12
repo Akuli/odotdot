@@ -5,7 +5,6 @@
 
 #include <src/builtins.h>
 #include <src/common.h>
-#include <src/gc.h>
 #include <src/interpreter.h>
 
 typedef void (*testfunc)(void);

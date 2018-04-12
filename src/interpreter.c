@@ -8,6 +8,7 @@
 #include "common.h"
 #include "context.h"
 #include "hashtable.h"
+#include "objectsystem.h"
 #include "unicode.h"
 #include "objects/errors.h"
 

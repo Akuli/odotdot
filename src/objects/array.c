@@ -1,15 +1,19 @@
 #include "array.h"
 #include <assert.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include "classobject.h"
 #include "errors.h"
+#include "function.h"
 #include "string.h"
 #include "../common.h"
+#include "../context.h"
 #include "../dynamicarray.h"
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"
+#include "../unicode.h"
 
 static void array_foreachref(struct Object *obj, void *data, objectclassinfo_foreachrefcb cb)
 {

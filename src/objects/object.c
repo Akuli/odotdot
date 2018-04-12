@@ -1,12 +1,13 @@
 #include "object.h"
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <stddef.h>
+#include <stdint.h>
+#include "function.h"
 #include "string.h"
 #include "../common.h"
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"
+#include "../unicode.h"
 
 
 struct ObjectClassInfo *objectobject_createclass(void)

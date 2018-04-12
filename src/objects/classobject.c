@@ -1,7 +1,5 @@
 #include "classobject.h"
-#include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 #include "errors.h"
 #include "../common.h"
 #include "../interpreter.h"
