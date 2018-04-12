@@ -64,7 +64,7 @@ void objectclassinfo_free(struct Interpreter *interp, struct ObjectClassInfo *kl
 
 // create a new object, add it to interp->allobjects and return it, returns NULL on no mem
 // see also classobject_newinstance() in objects/classobject.h
-// caller MUST incref the klass
+// caller MUST hold a reference to the klass
 // RETURNS A NEW REFERENCE
 struct Object *object_new(struct Interpreter *interp, struct Object *klass, void *data);
 
