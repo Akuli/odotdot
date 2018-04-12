@@ -47,13 +47,13 @@ static struct Object *to_debug_string(struct Context *ctx, struct Object **errpt
 	struct UnicodeString noquotes = *((struct UnicodeString*) args[0]->data);
 	struct UnicodeString yesquotes;
 	yesquotes.len = noquotes.len + 2;
-	yesquotes.val = malloc(sizeof(uint32_t) * yesquotes.len);
+	yesquotes.val = malloc(sizeof(unicode_char) * yesquotes.len);
 	if (!yesquotes.val) {
 		errorobject_setnomem(ctx->interp, errptr);
 		return NULL;
 	}
 	yesquotes.val[0] = yesquotes.val[yesquotes.len - 1] = '"';
-	memcpy(yesquotes.val + 1, noquotes.val, sizeof(uint32_t) * noquotes.len);
+	memcpy(yesquotes.val + 1, noquotes.val, sizeof(unicode_char) * noquotes.len);
 
 	struct Object *res = stringobject_newfromustr(ctx->interp, errptr, yesquotes);
 	free(yesquotes.val);
@@ -162,7 +162,7 @@ struct Object *stringobject_newfromvfmt(struct Context *ctx, struct Object **err
 				msg[POINTER_MAXSTR] = 0;
 
 				parts[nparts].len = strlen(msg);
-				parts[nparts].val = malloc(sizeof(uint32_t) * parts[nparts].len);
+				parts[nparts].val = malloc(sizeof(unicode_char) * parts[nparts].len);
 				if (!parts[nparts].val)
 					goto nomem;
 
@@ -204,7 +204,7 @@ struct Object *stringobject_newfromvfmt(struct Context *ctx, struct Object **err
 
 			else if (*(fmt-1) == '%') {   // literal %
 				parts[nparts].len = 1;
-				parts[nparts].val = malloc(sizeof(uint32_t));
+				parts[nparts].val = malloc(sizeof(unicode_char));
 				if (!(parts[nparts].val))
 					goto nomem;
 				*(parts[nparts].val) = '%';
@@ -231,13 +231,13 @@ struct Object *stringobject_newfromvfmt(struct Context *ctx, struct Object **err
 	for (int i=0; i < nparts; i++)
 		everything.len += parts[i].len;
 
-	everything.val = malloc(sizeof(uint32_t) * everything.len);
+	everything.val = malloc(sizeof(unicode_char) * everything.len);
 	if (!everything.val)
 		goto nomem;
 
-	uint32_t *ptr = everything.val;
+	unicode_char *ptr = everything.val;
 	for (int i=0; i < nparts; i++) {
-		memcpy(ptr, parts[i].val, sizeof(uint32_t) * parts[i].len);
+		memcpy(ptr, parts[i].val, sizeof(unicode_char) * parts[i].len);
 		ptr += parts[i].len;
 	}
 

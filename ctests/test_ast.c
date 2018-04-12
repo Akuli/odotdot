@@ -21,7 +21,7 @@ static struct AstNode *newnode(char kind, void *info)
 static void create_string(struct AstStrInfo *target)
 {
 	target->len = 2;
-	target->val = bmalloc(sizeof(uint32_t) * 2);
+	target->val = bmalloc(sizeof(unicode_char) * 2);
 	target->val[0] = 'x';
 	target->val[1] = 'y';
 }
@@ -107,7 +107,7 @@ static struct AstNode *parse_expression_string(char *s)
 {
 	struct UnicodeString hugestring;
 	hugestring.len = strlen(s);
-	hugestring.val = bmalloc(sizeof(uint32_t) * hugestring.len);
+	hugestring.val = bmalloc(sizeof(unicode_char) * hugestring.len);
 	// can't use memcpy because types differ
 	for (size_t i=0; i < strlen(s); i++)
 		hugestring.val[i] = s[i];
@@ -128,7 +128,7 @@ static struct AstNode *parse_statement_string(char *s)
 {
 	struct UnicodeString hugestring;
 	hugestring.len = strlen(s);
-	hugestring.val = bmalloc(sizeof(uint32_t) * hugestring.len);
+	hugestring.val = bmalloc(sizeof(unicode_char) * hugestring.len);
 	// can't use memcpy because types differ
 	for (size_t i=0; i < strlen(s); i++)
 		hugestring.val[i] = s[i];
@@ -149,7 +149,7 @@ static int stringinfo_equals_ascii_charp(struct UnicodeString *ustr, char *charp
 	if(ustr->len != strlen(charp))
 		return 0;
 	for (size_t i=0; i < ustr->len; i++) {
-		if (ustr->val[i] != (uint32_t) charp[i])
+		if (ustr->val[i] != (unicode_char) charp[i])
 			return 0;
 	}
 	return 1;

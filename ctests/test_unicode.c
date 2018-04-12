@@ -18,7 +18,7 @@ void check(struct UnicodeString *s)
 
 void test_copying(void)
 {
-	uint32_t avalues[] = { 'h', 'e', 'l', 'l', 'o' };
+	unicode_char avalues[] = { 'h', 'e', 'l', 'l', 'o' };
 	struct UnicodeString a = { avalues, 5 };
 	struct UnicodeString *b = unicodestring_copy(a);
 	check(b);
@@ -39,7 +39,7 @@ void test_copying(void)
 struct Utf8Test {
 	char utf8[100];
 	int utf8len;
-	uint32_t unicodeval[100];
+	unicode_char unicodeval[100];
 	int unicodelen;    // -1 for no encode testing
 	char errormsg[100];
 };
@@ -62,7 +62,7 @@ void unicode_test_setup(void)
 			dst[j] = tmp[j];\
 	} while(0)
 #define SET_UTF8(...) INIT_ARRAY(char, utf8_tests[i].utf8, utf8_tests[i].utf8len, __VA_ARGS__)
-#define SET_UNICODE(...) INIT_ARRAY(uint32_t, utf8_tests[i].unicodeval, utf8_tests[i].unicodelen, __VA_ARGS__)
+#define SET_UNICODE(...) INIT_ARRAY(unicode_char, utf8_tests[i].unicodeval, utf8_tests[i].unicodelen, __VA_ARGS__)
 #define SET_NO_UNICODE() (utf8_tests[i].unicodelen = -1)
 #define SET_ERROR(msg) strcpy(utf8_tests[i++].errormsg, (msg))
 #define SET_NO_ERROR() SET_ERROR("")
@@ -186,14 +186,14 @@ void test_utf8_decode(void)
 		char errormsg[100] = {0};
 		struct UnicodeString actual_unicode;
 		actual_unicode.len = 123;
-		actual_unicode.val = (uint32_t*)0xdeadbeef;   // lol
+		actual_unicode.val = (unicode_char*)0xdeadbeef;   // lol
 		int res = utf8_decode(test.utf8, (size_t) test.utf8len, &actual_unicode, errormsg);
 
 		if (strlen(test.errormsg) == 0) {
 			// should succeed
 			buttert(res == 0);
 			buttert(actual_unicode.len == (size_t) test.unicodelen);
-			buttert(memcmp(test.unicodeval, actual_unicode.val, sizeof(uint32_t)*test.unicodelen) == 0);
+			buttert(memcmp(test.unicodeval, actual_unicode.val, sizeof(unicode_char)*test.unicodelen) == 0);
 			for (int i=0; i < 100; i++)
 				buttert(errormsg[i] == 0);
 			free(actual_unicode.val);
@@ -203,7 +203,7 @@ void test_utf8_decode(void)
 			buttert(strcmp(errormsg, test.errormsg) == 0);
 
 			// these must be left untouched
-			buttert(actual_unicode.val == (uint32_t *) 0xdeadbeef);
+			buttert(actual_unicode.val == (unicode_char *) 0xdeadbeef);
 			buttert(actual_unicode.len == 123);
 		}
 	}

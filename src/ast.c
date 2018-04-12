@@ -277,12 +277,12 @@ static struct AstNode *parse_string(struct Token **curtok)
 	// remove " from both ends
 	// TODO: do something more? e.g. \n, \t
 	info->len = (*curtok)->str.len - 2;
-	info->val = malloc(sizeof(uint32_t) * info->len);
+	info->val = malloc(sizeof(unicode_char) * info->len);
 	if (!(info->val)) {
 		free(info);
 		return NULL;
 	}
-	memcpy(info->val, (*curtok)->str.val+1, sizeof(uint32_t) * info->len);
+	memcpy(info->val, (*curtok)->str.val+1, sizeof(unicode_char) * info->len);
 
 	*curtok = (*curtok)->next;
 	struct AstNode *res = new_expression(AST_STR, info);
@@ -310,7 +310,7 @@ static struct AstNode *parse_int(struct Token **curtok)
 		return NULL;
 	}
 
-	// can't use memcpy because (*curtok)->str.val is uint32_t*
+	// can't use memcpy because (*curtok)->str.val is unicode_char*
 	// TODO: should construct the integer object here??
 	for (size_t i=0; i < (*curtok)->str.len; i++)
 		info->valstr[i] = (char) ((*curtok)->str.val[i]);

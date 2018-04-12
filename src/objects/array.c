@@ -48,17 +48,17 @@ static struct Object *to_string_joiner(struct Interpreter *interp, struct Object
 	ustr.len += nstrings - 1;   // spaces between the items
 	ustr.len += 2;     // [ ]
 
-	ustr.val = malloc(sizeof(uint32_t) * ustr.len);
+	ustr.val = malloc(sizeof(unicode_char) * ustr.len);
 	if (!ustr.val) {
 		errorobject_setnomem(interp, errptr);
 		return NULL;
 	}
 
-	uint32_t *ptr = ustr.val;
+	unicode_char *ptr = ustr.val;
 	*ptr++ = '[';
 	for (size_t i=0; i < nstrings; i++) {
 		struct UnicodeString *part = strings[i]->data;
-		memcpy(ptr, part->val, sizeof(uint32_t) * part->len);
+		memcpy(ptr, part->val, sizeof(unicode_char) * part->len);
 		ptr += part->len;
 		*ptr++ = (i==nstrings-1 ? ']' : ' ');
 	}

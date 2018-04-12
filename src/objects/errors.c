@@ -31,7 +31,7 @@ struct Object *errorobject_createnomemerr(struct Interpreter *interp, struct Obj
 
 	char msg[] = "not enough memory";
 	ustr->len = strlen(msg);
-	ustr->val = malloc(sizeof(uint32_t) * ustr->len);
+	ustr->val = malloc(sizeof(unicode_char) * ustr->len);
 	if (!(ustr->val)) {
 		free(ustr);
 		return NULL;
@@ -99,7 +99,7 @@ int errorobject_typecheck(struct Context *ctx, struct Object **errptr, struct Ob
 
 	if (!classobject_istypeof(klass, obj)) {
 		char *name = ((struct ObjectClassInfo*) klass->data)->name;
-		uint32_t first = name[0];    // FIXME
+		unicode_char first = name[0];    // FIXME
 		errorobject_setwithfmt(ctx, errptr, "should be %s %s, not %D", unicode_iswovel(first) ? "an" : "a", name, obj);
 		return STATUS_ERROR;
 	}

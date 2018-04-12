@@ -85,7 +85,7 @@ void test_objects_string(void)
 {
 	struct UnicodeString u;
 	u.len = 2;
-	u.val = bmalloc(sizeof(uint32_t) * 2);
+	u.val = bmalloc(sizeof(unicode_char) * 2);
 	u.val[0] = ODOTDOT;
 	u.val[1] = odotdot;
 
@@ -119,7 +119,7 @@ void test_objects_string_tostring(void)
 
 void test_objects_string_newfromfmt(void)
 {
-	uint32_t bval = 'b';
+	unicode_char bval = 'b';
 	struct UnicodeString b;
 	b.len = 1;
 	b.val = &bval;
@@ -182,7 +182,7 @@ void test_objects_integer(void)
 {
 	struct UnicodeString u;
 	u.len = 5;
-	u.val = bmalloc(sizeof(uint32_t) * 5);
+	u.val = bmalloc(sizeof(unicode_char) * 5);
 	u.val[0] = '-';
 	u.val[1] = '0';     // leading zeros don't matter
 	u.val[2] = '1';

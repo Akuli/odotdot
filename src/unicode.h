@@ -6,8 +6,14 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef UINT32_MAX
+typedef uint32_t unicode_char;
+#else
+typedef uint_least32_t unicode_char;
+#endif     // UINT64_MAX
+
 struct UnicodeString {
-	uint32_t *val;    // usually from malloc(), must be free()'d
+	unicode_char *val;    // usually from malloc(), must be free()'d
 	size_t len;
 };
 
@@ -44,7 +50,7 @@ Errors are handled similarly to utf8_encode.
 int utf8_decode(char *utf8, size_t utf8len, struct UnicodeString *unicode, char *errormsg);
 
 
-// these operate on uint32_t unicode characters, not UnicodeString structs
+// these operate on unicode_chars, not UnicodeString structs
 // FIXME: unicode_isalpha and unicode_iswovel suck, maybe unicode_isdigit sucks too?
 // TODO: remove unicode_is0to9
 #define unicode_isalpha(x) ( \
