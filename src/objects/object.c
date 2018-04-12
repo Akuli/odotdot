@@ -21,13 +21,10 @@ static struct Object *to_string(struct Context *ctx, struct Object **errptr, str
 	if (functionobject_checktypes(ctx, errptr, args, nargs, "Object", NULL) == STATUS_ERROR)
 		return NULL;
 
-	char ptrmsg[BIG_ENOUGH+1];
-	snprintf(ptrmsg, BIG_ENOUGH, "%p", (void*) args[0]);
-
 	char *name = ((struct ObjectClassInfo*) args[0]->klass->data)->name;
 	// FIXME: unicode_iswovel is supposed to be used with unicodes, so this breaks with e.g. ä, ö
 	uint32_t first = name[0];    // needed to suppress compiler warnings
-	return stringobject_newfromfmt(ctx, errptr, "<%s %s at %s>", unicode_iswovel(first) ? "an" : "a", name, ptrmsg);
+	return stringobject_newfromfmt(ctx, errptr, "<%s %s at %p>", unicode_iswovel(first) ? "an" : "a", name, (void *) args[0]);
 }
 
 static struct Object *to_debug_string(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)

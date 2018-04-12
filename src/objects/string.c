@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <stdarg.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "classobject.h"
@@ -130,8 +131,9 @@ struct Object *stringobject_newfromcharptr(struct Interpreter *interp, struct Ob
 	return str;
 }
 
-#define MAX_PARTS 20
-#define BETWEEN_SPECIFIERS_MAX 200
+#define POINTER_MAXSTR 50            // should be big enough
+#define MAX_PARTS 20                 // feel free to make this bigger
+#define BETWEEN_SPECIFIERS_MAX 200   // makes really long error messages possible... not sure if that's good
 struct Object *stringobject_newfromvfmt(struct Context *ctx, struct Object **errptr, char *fmt, va_list ap)
 {
 	struct UnicodeString parts[MAX_PARTS];
@@ -149,7 +151,24 @@ struct Object *stringobject_newfromvfmt(struct Context *ctx, struct Object **err
 		if (*fmt == '%') {
 			fmt += 2;  // skip % followed by some character
 
-			if (*(fmt-1) == 's') {   // c char pointer
+			if (*(fmt-1) == 'p') {   // a pointer
+				void *ptr = va_arg(ap, void*);
+
+				char msg[POINTER_MAXSTR+1];
+				snprintf(msg, POINTER_MAXSTR, "%p", ptr);
+				msg[POINTER_MAXSTR] = 0;
+
+				parts[nparts].len = strlen(msg);
+				parts[nparts].val = malloc(sizeof(uint32_t) * parts[nparts].len);
+				if (!parts[nparts].val)
+					goto nomem;
+
+				// can't memcpy because different types
+				for (int i=0; i < (int) parts[nparts].len; i++)
+					parts[nparts].val[i] = msg[i];
+			}
+
+			else if (*(fmt-1) == 's') {   // c char pointer
 				char *part = va_arg(ap, char*);
 
 				// segfaults if the part is not valid utf8 because the NULL
