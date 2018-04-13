@@ -117,7 +117,7 @@ int utf8_encode(struct UnicodeString unicode, char **utf8, size_t *utf8len, char
 
 
 // there are many casts to unsigned char
-// i don't want to cast a pointer to  because i'm not
+// i don't want to cast a char pointer to unsigned char because i'm not sure if that's standardy
 #define U(x) ((unsigned char)(x))
 
 int utf8_decode(char *utf8, size_t utf8len, struct UnicodeString *unicode, char *errormsg)
