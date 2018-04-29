@@ -1,7 +1,6 @@
 #include "context.h"
 #include <assert.h>
 #include <stddef.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include "common.h"
 #include "hashtable.h"

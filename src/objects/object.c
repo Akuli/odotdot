@@ -1,6 +1,5 @@
 #include "object.h"
 #include <stddef.h>
-#include <stdint.h>
 #include "function.h"
 #include "string.h"
 #include "../common.h"

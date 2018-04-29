@@ -1,7 +1,6 @@
 #include "interpreter.h"
 #include <assert.h>
 #include <stddef.h>
-#include <stdint.h>
 #include <stdio.h>       // this thing prints messages for debugging refcount problems
 #include <stdlib.h>
 #include <string.h>

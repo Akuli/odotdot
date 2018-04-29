@@ -1,7 +1,6 @@
 #include <src/common.h>
 #include <src/unicode.h>
 #include <stddef.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include "utils.h"

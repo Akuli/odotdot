@@ -1,7 +1,6 @@
 // TODO: fix tokenizing empty files
 #include "tokenizer.h"
 #include <assert.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "common.h"

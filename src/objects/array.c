@@ -1,6 +1,5 @@
 #include "array.h"
 #include <assert.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include "classobject.h"
