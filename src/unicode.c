@@ -216,3 +216,5 @@ error:
 		free(result);
 	return 1;
 }
+
+#undef U
