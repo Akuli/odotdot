@@ -158,3 +158,19 @@ def test_funny_idiom(run_code, capsys):
     print a;
     ''')
     assert capsys.readouterr() == ('local a\nglobal a\n', '')
+
+
+def test_return_bug(run_code, capsys):
+    run_code('''
+    var lol = (func {
+        while { true } {
+            # there used to be a bug that made the while function return
+            # "lol" here, that was awful
+            return "lol";
+        };
+        assert false "returning in loop didn't work";
+    });
+
+    print (lol);
+    ''')
+    assert capsys.readouterr() == ('lol\n', '')

@@ -62,16 +62,17 @@ class Öbject:
         except KeyError:
             raise Errör("no attribute named '%s'" % name)
 
+        # TODO: support methods that want a context?
         return new_function(functools.partial(python_func, self))
 
     # just for convenience
     def call_method(self, name, *args):
-        return self.methods[name].python_func(*args)
+        return self.methods[name].call(None, *args)    # lol the None
 
     # for debugging the python code
     def __repr__(self):
         return ('<ö object: %s>' %
-                self.call_method('to_string').python_string)
+                self.call_method('to_debug_string').python_string)
 
     # __eq__ and __hash__ are for things like python's dict
     def __eq__(self, other):
@@ -101,9 +102,14 @@ object_info = ClassInfo(None, {})
 function_info = ClassInfo(object_info, {})
 
 
-def new_function(python_func):
+def new_function(python_func, wants_context=False):
+    def call(context, *args):
+        if wants_context:
+            return python_func(context, *args)
+        return python_func(*args)
+
     this = Öbject(function_info)
-    this.python_func = python_func
+    this.call = call
     return this
 
 
@@ -190,7 +196,7 @@ def _integer_equals(this, that):
 
 integer_info = ClassInfo(object_info, {
     'setup': _error_raiser("use integer literals like 0 or 123 instead of "
-                           "'new new_integer'"),
+                           "'new Integer'"),
     'equals': _integer_equals,
     'get_hash': (lambda this: new_integer(hash(this.python_int))),
     'to_string': (lambda this: new_string(str(this.python_int))),
@@ -343,10 +349,26 @@ def _create_block_info():
         return null
 
     def run_with_return(this, context=null):
+        if context is null:
+            context = (this.attributes['definition_context']
+                       .call_method('create_subcontext'))
+        assert context is not null
+
         try:
             this.call_method('run', context)
         except ReturnAValue as e:
-            return e.value
+            # make sure that the return statement was in the running
+            # context or a subcontext of the running context
+            return_context = e.return_context
+            while return_context is not null:
+                if return_context is context:
+                    # yes, this run_with_return() is supposed to return now
+                    return e.value
+                return_context = return_context.attributes['parent_context']
+
+            # some other run_with_return() call should return, not this
+            raise e
+
         return null
 
     return ClassInfo(object_info, {
@@ -379,6 +401,7 @@ class_objects = DefaultDictLikeThingy(_wrap_class_info)
 def _setup_class_object(this, baseclass, methods):
     if baseclass is null:
         baseclass = class_objects[object_info]
+    assert not methods, "sorry, the context stuff isn't implemented yet"
     the_methods = {key.python_string: value.python_func
                    for key, value in methods.python_dict.items()}
 
@@ -410,18 +433,19 @@ def new(class_object, *setup_args):
 # practicality beats purity
 class ReturnAValue(Exception):
 
-    def __init__(self, value):
+    def __init__(self, value, context):
         super().__init__(value)
         self.value = value
+        self.return_context = context
 
 
-def return_(value=null):
-    raise ReturnAValue(value)
+def return_(context, value=null):
+    raise ReturnAValue(value, context)
 
 
 # like apply in python 2
-def call(func, arg_list):
-    return func.python_func(*arg_list.python_list)
+def call(context, func, arg_list):
+    return func.call(context, *arg_list.python_list)
 
 
 # setup is added after creating the only two instances
@@ -473,10 +497,10 @@ def add_real_builtins(context):
     var_dict[new_string('null')] = null
     var_dict[new_string('true')] = true
     var_dict[new_string('false')] = false
-    var_dict[new_string('return')] = new_function(return_)
+    var_dict[new_string('return')] = new_function(return_, wants_context=True)
     var_dict[new_string('if')] = new_function(if_)
     var_dict[new_string('print')] = new_function(print_)
-    var_dict[new_string('call')] = new_function(call)
+    var_dict[new_string('call')] = new_function(call, wants_context=True)
     var_dict[new_string('setattr')] = new_function(setattr_)
     var_dict[new_string('getattr')] = new_function(getattr_)
     var_dict[new_string('array_func')] = new_function(array_func)

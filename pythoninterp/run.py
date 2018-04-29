@@ -99,7 +99,7 @@ class Interpreter:
         if isinstance(ast_expression, ast_tree.Call):
             func = self.evaluate(ast_expression.func, context)
             args = [self.evaluate(arg, context) for arg in ast_expression.args]
-            return func.python_func(*args)
+            return func.call(context, *args)
 
         if isinstance(ast_expression, ast_tree.Block):
             return objects.new_block(self, context, ast_expression.statements)

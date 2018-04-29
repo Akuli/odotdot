@@ -119,15 +119,13 @@ var partial = (array_func {
 # oop
 var is_instance_of = (func "object" "klass" {
     var looking4 = (get_class object);
-    var result = false;
     while { (and (not (same_object klass null)) (not result)) } {
         if (same_object klass looking4) {
-            # FIXME: we have a horrible bug that prevents returning here :(
-            result = true;
+            return true;
         };
         klass = klass.baseclass;
     };
-    return result;
+    return false;
 });
 
 var inheriting = (new Object);    # special marker
