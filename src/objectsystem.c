@@ -46,7 +46,7 @@ struct ObjectClassInfo *objectclassinfo_new(char *name, struct ObjectClassInfo *
 	return res;
 }
 
-void decref_and_stuff(void *keyustr, void *valobj, void *interpdata)
+static void decref_and_stuff(void *keyustr, void *valobj, void *interpdata)
 {
 	free(((struct UnicodeString *) keyustr)->val);
 	free(keyustr);
