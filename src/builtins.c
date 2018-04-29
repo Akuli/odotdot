@@ -78,7 +78,7 @@ int builtins_setup(struct Interpreter *interp, struct Object **errptr)
 	if (objectobject_addmethods(interp, errptr) == STATUS_ERROR) goto error;
 	if (stringobject_addmethods(interp, errptr) == STATUS_ERROR) goto error;
 
-	printfunc = functionobject_new(interp, errptr, print_builtin, NULL);
+	printfunc = functionobject_new(interp, errptr, print_builtin);
 	if (!printfunc) goto error;
 	if (interpreter_addbuiltin(interp, errptr, "print", printfunc) == STATUS_ERROR) goto error;
 

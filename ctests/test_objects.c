@@ -64,18 +64,39 @@ void test_objects_error(void)
 	OBJECT_DECREF(testinterp, err);
 }
 
+struct Object *callback_arg1, *callback_arg2;
+int flipped = 0;
+
 // TODO: test actually running this thing to make sure that data is passed correctly
 struct Object *callback(struct Context *callctx, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	buttert2(0, "the callback ran unexpectedly");
-	return (struct Object*) 0xdeadbeef;
+	buttert(nargs == 2);
+	buttert(args[0] == (flipped ? callback_arg2 : callback_arg1));
+	buttert(args[1] == (flipped ? callback_arg1 : callback_arg2));
+	return (struct Object*) 0x123abc;
 }
 
 void test_objects_function(void)
 {
-	struct Object *func = functionobject_new(testinterp, NULL, callback, NULL);
-	buttert(functionobject_getcfunc(testinterp, func) == callback);
+	buttert((callback_arg1 = stringobject_newfromcharptr(testinterp, NULL, "asd1")));
+	buttert((callback_arg2 = stringobject_newfromcharptr(testinterp, NULL, "asd2")));
+
+	struct Object *func = functionobject_new(testinterp, NULL, callback);
+	buttert(functionobject_call(testinterp->builtinctx, NULL, func, callback_arg1, callback_arg2, NULL) == (struct Object*) 0x123abc);
+
+	struct Object *partial1 = functionobject_newpartial(testinterp, NULL, func, callback_arg1);
+	OBJECT_DECREF(testinterp, callback_arg1);   // partialfunc should hold a reference to this
 	OBJECT_DECREF(testinterp, func);
+	flipped = 0;
+	buttert(functionobject_call(testinterp->builtinctx, NULL, partial1, callback_arg2, NULL) == (struct Object*) 0x123abc);
+
+	struct Object *partial2 = functionobject_newpartial(testinterp, NULL, partial1, callback_arg2);
+	OBJECT_DECREF(testinterp, callback_arg2);
+	OBJECT_DECREF(testinterp, partial1);
+	flipped = 1;    // arg 2 was partialled last, so it will go first
+	buttert(functionobject_call(testinterp->builtinctx, NULL, partial2, NULL) == (struct Object*) 0x123abc);
+
+	OBJECT_DECREF(testinterp, partial2);
 }
 
 #define ODOTDOT 0xd6    // Ö

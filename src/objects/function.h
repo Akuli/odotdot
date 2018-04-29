@@ -35,7 +35,7 @@ int functionobject_createclass(struct Interpreter *interp, struct Object **errpt
 
 // RETURNS A NEW REFERENCE or NULL on error
 // if partialarg is not NULL, it's added as the first argument when the function is called
-struct Object *functionobject_new(struct Interpreter *interp, struct Object **errptr, functionobject_cfunc cfunc, struct Object *partialarg);
+struct Object *functionobject_new(struct Interpreter *interp, struct Object **errptr, functionobject_cfunc cfunc);
 
 // never fails
 // TODO: remove this, functionobject_{v,}call() are better because partialled arguments

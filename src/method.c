@@ -33,7 +33,7 @@ int method_add(struct Interpreter *interp, struct Object **errptr, struct Object
 		return STATUS_ERROR;
 	}
 
-	struct Object *func = functionobject_new(interp, errptr, cfunc, NULL);
+	struct Object *func = functionobject_new(interp, errptr, cfunc);
 	if (!func) {
 		free(uname->val);
 		free(uname);

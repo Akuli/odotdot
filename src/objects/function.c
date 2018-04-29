@@ -19,23 +19,24 @@
 
 struct FunctionData {
 	functionobject_cfunc cfunc;
-	struct Object *partialarg;
-	struct Object *extraref;
+	struct Object **partialargs;
+	size_t npartialargs;
 };
 
 static void function_foreachref(struct Object *func, void *cbdata, objectclassinfo_foreachrefcb cb)
 {
 	struct FunctionData *data = func->data;    // casts implicitly
-	if (data->partialarg)
-		cb(data->partialarg, cbdata);
-	if (data->extraref)
-		cb(data->extraref, cbdata);
+	for (size_t i=0; i < data->npartialargs; i++)
+		cb(data->partialargs[i], cbdata);
 }
 
 static void function_destructor(struct Object *func)
 {
-	// object_free_impl() takes care of partialarg using function_foreachref()
-	free(func->data);
+	// object_free_impl() takes care of partial args using function_foreachref()
+	struct FunctionData *data = func->data;
+	if (data->partialargs)
+		free(data->partialargs);
+	free(data);
 }
 
 int functionobject_createclass(struct Interpreter *interp, struct Object **errptr)
@@ -98,7 +99,7 @@ int functionobject_checktypes(struct Context *ctx, struct Object **errptr, struc
 	return STATUS_OK;
 }
 
-struct Object *functionobject_new(struct Interpreter *interp, struct Object **errptr, functionobject_cfunc cfunc, struct Object *partialarg)
+struct Object *functionobject_new(struct Interpreter *interp, struct Object **errptr, functionobject_cfunc cfunc)
 {
 	struct FunctionData *data = malloc(sizeof(struct FunctionData));
 	if (!data) {
@@ -106,15 +107,47 @@ struct Object *functionobject_new(struct Interpreter *interp, struct Object **er
 		return NULL;
 	}
 	data->cfunc = cfunc;
-	data->partialarg = partialarg;
-	if (partialarg)
-		OBJECT_INCREF(interp, partialarg);
-	data->extraref = NULL;
+	data->partialargs = NULL;
+	data->npartialargs = 0;
 
 	assert(interp->functionclass);
 	struct Object *obj = classobject_newinstance(interp, errptr, interp->functionclass, data);
 	if (!obj) {
 		free(data);
+		return NULL;
+	}
+	return obj;
+}
+
+struct Object *functionobject_newpartial(struct Interpreter *interp, struct Object **errptr, struct Object *func, struct Object *partialarg)
+{
+	assert(func->klass == interp->functionclass);    // TODO: better type check
+	struct FunctionData *data = func->data;     // casts implicitly
+
+	struct FunctionData *newdata = malloc(sizeof(struct FunctionData));
+	if (!newdata) {
+		errorobject_setnomem(interp, errptr);
+		return NULL;
+	}
+
+	newdata->cfunc = data->cfunc;
+	newdata->npartialargs = data->npartialargs + 1;
+	newdata->partialargs = malloc(sizeof(struct Object*) * newdata->npartialargs);
+	if (!newdata->partialargs) {
+		errorobject_setnomem(interp, errptr);
+		free(newdata);
+		return NULL;
+	}
+
+	newdata->partialargs[0] = partialarg;
+	memcpy(newdata->partialargs + 1, data->partialargs, sizeof(struct Object*) * data->npartialargs);
+	for (size_t i=0; i < newdata->npartialargs; i++)
+		OBJECT_INCREF(interp, newdata->partialargs[i]);
+
+	struct Object *obj = classobject_newinstance(interp, errptr, interp->functionclass, newdata);
+	if (!obj) {
+		free(newdata->partialargs);
+		free(newdata);
 		return NULL;
 	}
 	return obj;
@@ -155,35 +188,23 @@ struct Object *functionobject_vcall(struct Context *ctx, struct Object **errptr,
 	size_t thenargs;
 	struct FunctionData *data = func->data;     // casts implicitly
 
-	if (data->partialarg) {
-		// FIXME: this sucks
-		thenargs = nargs+1;
+	if (data->npartialargs > 0) {
+		// TODO: is there a more efficient way to do this?
+		thenargs = nargs + data->npartialargs;
 		theargs = malloc(sizeof(struct Object *) * thenargs);
 		if (!theargs) {
 			errorobject_setnomem(ctx->interp, errptr);
 			return NULL;
 		}
-		theargs[0] = data->partialarg;
-		memcpy(theargs+1, args, sizeof(struct Object *) * nargs);
+		memcpy(theargs, data->partialargs, sizeof(struct Object*) * data->npartialargs);
+		memcpy(theargs + data->npartialargs, args, sizeof(struct Object*) * nargs);
 	} else {
 		thenargs = nargs;
 		theargs = args;
 	}
 
 	struct Object *res = data->cfunc(ctx, errptr, theargs, thenargs);
-	if (data->partialarg)
+	if (data->npartialargs > 0)
 		free(theargs);
 	return res;
-}
-
-struct Object *functionobject_newpartial(struct Interpreter *interp, struct Object **errptr, struct Object *func, struct Object *partialarg)
-{
-	assert(func->klass == interp->functionclass);    // TODO: better type check
-	struct FunctionData *data = func->data;
-	assert(data->partialarg == NULL);       // FIXME
-
-	struct Object *partialled = functionobject_new(interp, errptr, data->cfunc, partialarg);
-	((struct FunctionData *) partialled->data)->extraref = func;
-	OBJECT_INCREF(interp, func);
-	return partialled;
 }
