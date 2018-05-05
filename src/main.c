@@ -180,17 +180,16 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	struct Object *setuperr;
-	int status = builtins_setup(interp, &setuperr);
+	int status = builtins_setup(interp);
 	if (status == STATUS_NOMEM) {
+		builtins_teardown(interp);
 		fprintf(stderr, "%s: not enough memory\n", argv[0]);
 		interpreter_free(interp);
 		return 1;
 	}
 	if (status == STATUS_ERROR) {
-		// FIXME: is builtinctx guaranteed to exist yet?? hopefully it is
-		print_error(interp->builtinctx, setuperr);
-		OBJECT_DECREF(interp, setuperr);
+		// an error message has already been printed
+		builtins_teardown(interp);
 		interpreter_free(interp);
 		return 1;
 	}

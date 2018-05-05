@@ -40,7 +40,7 @@ int method_add(struct Interpreter *interp, struct Object **errptr, struct Object
 		return STATUS_ERROR;
 	}
 
-	if (hashtable_set(((struct ObjectClassInfo *) klass->data)->methods, uname, unicodestring_hash(*uname), func, NULL) == STATUS_NOMEM) {
+	if (hashtable_set(((struct ClassObjectData *) klass->data)->methods, uname, unicodestring_hash(*uname), func, NULL) == STATUS_NOMEM) {
 		free(uname->val);
 		free(uname);
 		OBJECT_DECREF(interp, func);
@@ -53,17 +53,16 @@ int method_add(struct Interpreter *interp, struct Object **errptr, struct Object
 	return STATUS_OK;
 }
 
-// the base class is an ObjectClassInfo for some reason
-// that's why the recursive stuff needs to work with ObjectClassInfo
-static struct Object *get_the_method(struct ObjectClassInfo *classinfo, struct UnicodeString *uname, unsigned int unamehash)
-{
-	struct Object *res;
-	if (hashtable_get(classinfo->methods, uname, unamehash, (void **)(&res), NULL))
-		return res;
 
-	// inheritance: maybe this is defined in a base class?
-	if (classinfo->baseclass)
-		return get_the_method(classinfo->baseclass, uname, unamehash);
+// does NOT return a new reference
+static struct Object *get_the_method(struct Object *klass, struct UnicodeString *uname, unsigned int unamehash)
+{
+	struct ClassObjectData *data = klass->data;   // casts implicitly
+	struct Object *res;
+	do {
+		if (hashtable_get(data->methods, uname, unamehash, (void **)(&res), NULL))
+			return res;
+	} while ((data = data->baseclass->data));
 
 	// nope
 	return NULL;
@@ -76,11 +75,10 @@ struct Object *method_getwithustr(struct Interpreter *interp, struct Object **er
 		assert(0);
 		// FIXME: this thing needs a ctx
 		/*
-		char *classname = ((struct ObjectClassInfo*) obj->klass->data)->name;
+		char *classname = ((struct ClassObjectData*) obj->klass->data)->name;
 		errorobject_setwithfmt(ctx, errptr,
-			"%s objects don't have %s '%U' method",
+			"%s objects don't have a method named '%U'",
 			classname,
-			(uname.len >= 1 && unicode_iswovel(uname.val[0])) ? "an" : "a",
 			uname);
 		*/
 		return NULL;
@@ -155,7 +153,7 @@ static struct Object *to_maybe_debug_string(struct Context *ctx, struct Object *
 
 	// this doesn't use errorobject_typecheck() because this uses a custom error message string
 	// TODO: test this
-	if (!classobject_istypeof(stringclass, res)) {
+	if (!classobject_instanceof(res, stringclass)) {
 		// FIXME: is it possible to make this recurse infinitely by returning the object itself from to_{debug,}string?
 		errorobject_setwithfmt(ctx, errptr, "%s should return a String, but it returned %D", methname, res);
 		return NULL;

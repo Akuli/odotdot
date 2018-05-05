@@ -9,6 +9,7 @@
 #include "hashtable.h"
 #include "interpreter.h"
 #include "objectsystem.h"
+#include "objects/classobject.h"
 
 // run func(obj, data) for each object that interp references directly
 // may call with same obj multiple times because the same object may be referred to in many places
@@ -32,9 +33,9 @@ static void mark(struct Object *obj, void *junkdata)
 		return;
 	obj->gcflag = 1;
 
-	struct ObjectClassInfo *oci = obj->klass->data;
-	if (oci->foreachref)
-		oci->foreachref(obj, NULL, mark);
+	struct ClassObjectData *classdata = obj->klass->data;
+	if (classdata->foreachref)
+		classdata->foreachref(obj, NULL, mark);
 }
 
 

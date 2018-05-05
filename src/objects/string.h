@@ -6,9 +6,8 @@
 #include "../objectsystem.h"   // IWYU pragma: keep
 #include "../unicode.h"        // IWYU pragma: keep
 
-// this takes the Object classinfo instead of the interpreter and returns NULL for no mem
-// because this function is called before error objects like interp->nomemerr exists
-struct ObjectClassInfo *stringobject_createclass(struct ObjectClassInfo *objectclass);
+// RETURNS A NEW REFERENCE or NULL on no mem, see builtins_setup()
+struct Object *stringobject_createclass(struct Interpreter *interp, struct Object *objectclass);
 
 // should be called when other stuff is set up, see builtins_setup()
 // returns STATUS_OK or STATUS_ERROR

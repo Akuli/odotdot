@@ -7,11 +7,11 @@
 #include "../objectsystem.h"    // IWYU pragma: keep
 
 // returns NULL on no mem
-// doesn't take errptr because errors don't exist yet when this is called
-struct ObjectClassInfo *errorobject_createclass(struct ObjectClassInfo *objectclass);
+// no errptr because errors don't exist yet when this is called
+struct Object *errorobject_createclass(struct Interpreter *interp, struct Object *objectclass);
 
 // RETURNS A NEW REFERENCE or NULL on no mem
-struct Object *errorobject_createnomemerr(struct Interpreter *interp, struct ObjectClassInfo *errorclass, struct ObjectClassInfo *stringclass);
+struct Object *errorobject_createnomemerr(struct Interpreter *interp, struct Object *errorclass, struct Object *stringclass);
 
 // the ultimate convenience function
 // sets errptr to an error with a string created with stringobject_newfromfmt

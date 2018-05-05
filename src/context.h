@@ -1,7 +1,8 @@
 #ifndef CONTEXT_H
 #define CONTEXT_H
 
-#include "objectsystem.h"       // IWYU pragma: keep
+#include "objectsystem.h"  // IWYU pragma: keep
+#include "unicode.h"       // IWYU pragma: keep
 
 // Interpreter defined in interpreter.h but it needs to include this file
 // IWYU doesn't get this and there seems to be no way to pragma keep structs :(

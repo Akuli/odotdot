@@ -1,5 +1,6 @@
 #include "object.h"
 #include <stddef.h>
+#include "classobject.h"
 #include "function.h"
 #include "string.h"
 #include "../common.h"
@@ -8,23 +9,31 @@
 #include "../objectsystem.h"
 #include "../unicode.h"
 
-
-struct ObjectClassInfo *objectobject_createclass(void)
+static void object_foreachref(struct Object *obj, void *data, classobject_foreachrefcb cb)
 {
-	return objectclassinfo_new("Object", NULL, NULL, NULL);
+	if (obj->klass)
+		cb(obj->klass, data);
+	if (obj->attrs) {
+		struct HashTableIterator iter;
+		hashtable_iterbegin(obj->attrs, &iter);
+		while (hashtable_iternext(&iter))
+			cb(iter.value, data);
+	}
+}
+
+struct Object *objectobject_createclass(struct Interpreter *interp)
+{
+	return classobject_new_noerrptr(interp, "Object", NULL, object_foreachref, NULL);
 }
 
 
-#define BIG_ENOUGH 50
 static struct Object *to_string(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
 {
 	if (functionobject_checktypes(ctx, errptr, args, nargs, "Object", NULL) == STATUS_ERROR)
 		return NULL;
 
-	char *name = ((struct ObjectClassInfo*) args[0]->klass->data)->name;
-	// FIXME: unicode_iswovel is supposed to be used with unicodes, so this breaks with e.g. ä, ö
-	unicode_char first = name[0];    // needed to suppress compiler warnings
-	return stringobject_newfromfmt(ctx, errptr, "<%s %s at %p>", unicode_iswovel(first) ? "an" : "a", name, (void *) args[0]);
+	char *name = ((struct ClassObjectData*) args[0]->klass->data)->name;
+	return stringobject_newfromfmt(ctx, errptr, "<%s at %p>", name, (void *) args[0]);
 }
 
 static struct Object *to_debug_string(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)

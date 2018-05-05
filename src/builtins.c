@@ -42,105 +42,161 @@ static struct Object *print_builtin(struct Context *ctx, struct Object **errptr,
 	return stringobject_newfromcharptr(ctx->interp, errptr, "asd");
 }
 
-int builtins_setup(struct Interpreter *interp, struct Object **errptr)
+
+// TODO: functions, arrays, integers, print
+int builtins_setup(struct Interpreter *interp)
 {
-	int status = 123;   // a special-enough marker value
-	struct ObjectClassInfo *objectinfo = NULL, *errorinfo = NULL, *stringinfo = NULL;
-	struct Object *objectclass = NULL, *errorclass = NULL, *stringclass = NULL;
-	struct Object *printfunc = NULL;
+	interp->builtinctx = context_newglobal(interp);
+	if (!interp->builtinctx)
+		return STATUS_NOMEM;
 
-	if (!(objectinfo = objectobject_createclass())) goto nomem;
-	if (!(errorinfo = errorobject_createclass(objectinfo))) goto nomem;
-	if (!(stringinfo = stringobject_createclass(objectinfo))) goto nomem;
-	if (!(interp->nomemerr = errorobject_createnomemerr(interp, errorinfo, stringinfo))) goto nomem;
-	// now we can use errptr
+	struct Object *objectclass = objectobject_createclass(interp);
+	if (!objectclass)
+		return STATUS_NOMEM;
 
-	if (classobject_createclass(interp, errptr, objectinfo) == STATUS_ERROR) goto error;
-
-	if (!(objectclass = classobject_newfromclassinfo(interp, errptr, objectinfo))) goto error;
-	if (!(errorclass = classobject_newfromclassinfo(interp, errptr, errorinfo))) goto error;
-	if (!(stringclass = classobject_newfromclassinfo(interp, errptr, stringinfo))) goto error;
-
-	if (interpreter_addbuiltin(interp, errptr, "Object", objectclass) == STATUS_ERROR) goto error;
-	if (interpreter_addbuiltin(interp, errptr, "Error", errorclass) == STATUS_ERROR) goto error;
-	if (interpreter_addbuiltin(interp, errptr, "String", stringclass) == STATUS_ERROR) goto error;
-
-	// yes, this is the best way to do this i could think of
-	((struct Object *) interp->nomemerr->data)->klass = stringclass;
-	OBJECT_INCREF(interp, stringclass);
-	interp->nomemerr->klass = errorclass;
-	OBJECT_INCREF(interp, errorclass);
-
-	if (functionobject_createclass(interp, errptr) == STATUS_ERROR) goto error;
-	if (arrayobject_createclass(interp, errptr) == STATUS_ERROR) goto error;
-	if (integerobject_createclass(interp, errptr) == STATUS_ERROR) goto error;
-
-	if (objectobject_addmethods(interp, errptr) == STATUS_ERROR) goto error;
-	if (stringobject_addmethods(interp, errptr) == STATUS_ERROR) goto error;
-
-	printfunc = functionobject_new(interp, errptr, print_builtin);
-	if (!printfunc) goto error;
-	if (interpreter_addbuiltin(interp, errptr, "print", printfunc) == STATUS_ERROR) goto error;
-
-	// release refs from creating the objects, now the context holds references to these
-	OBJECT_DECREF(interp, objectclass);
-	OBJECT_DECREF(interp, errorclass);
-	OBJECT_DECREF(interp, stringclass);
-	OBJECT_DECREF(interp, printfunc);
-
-	return STATUS_OK;
-
-nomem:
-	status = STATUS_NOMEM;
-	// "fall through" to error
-
-error:
-	// FIXME: this might be very broken, it's hard to test this code
-	if (status == 123) {    // not set yet
-		assert(interp->nomemerr);
-		errorobject_setnomem(interp, errptr);
-		OBJECT_DECREF(interp, *errptr);  // the nomem error will be destroyed soon with another decref
-		status = STATUS_NOMEM;
+	interp->classclass = classobject_create_classclass(interp, objectclass);
+	if (!interp->classclass) {
+		OBJECT_DECREF(interp, objectclass);
+		return STATUS_NOMEM;
 	}
 
-	if (printfunc) OBJECT_DECREF(interp, printfunc);
-	if (interp->functionclass) OBJECT_DECREF(interp, interp->functionclass);
-	if (interp->nomemerr)	OBJECT_DECREF(interp, interp->nomemerr);
+	struct Object *stringclass = stringobject_createclass(interp, objectclass);
+	if (!stringclass) {
+		OBJECT_DECREF(interp, objectclass);
+		return STATUS_NOMEM;
+	}
 
-	// FIXME: when should these run??
-	if (stringclass) OBJECT_DECREF(interp, stringclass);
-	else if (stringinfo) objectclassinfo_free(interp, stringinfo);
-	if (errorclass) OBJECT_DECREF(interp, errorclass);
-	else if (errorinfo) objectclassinfo_free(interp, errorinfo);
-	if (objectclass) OBJECT_DECREF(interp, errorclass);
-	else if (objectinfo) objectclassinfo_free(interp, objectinfo);
+	struct Object *errorclass = errorobject_createclass(interp, objectclass);
+	if (!errorclass) {
+		OBJECT_DECREF(interp, stringclass);
+		OBJECT_DECREF(interp, objectclass);
+		return STATUS_NOMEM;
+	}
 
-	if (interp->classclass) OBJECT_DECREF(interp, interp->classclass);
+	interp->nomemerr = errorobject_createnomemerr(interp, errorclass, stringclass);
+	if (!interp->nomemerr) {
+		OBJECT_DECREF(interp, errorclass);
+		OBJECT_DECREF(interp, stringclass);
+		OBJECT_DECREF(interp, objectclass);
+		return STATUS_NOMEM;
+	}
 
-	assert(status == STATUS_ERROR || status == STATUS_NOMEM);
-	return status;
+	struct Object *err = NULL;
+	if (interpreter_addbuiltin(interp, &err, "Object", objectclass) == STATUS_ERROR ||
+		interpreter_addbuiltin(interp, &err, "String", stringclass) == STATUS_ERROR ||
+		interpreter_addbuiltin(interp, &err, "Error", errorclass) == STATUS_ERROR) {
+		// one of them failed
+		assert(err);
+		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
+		OBJECT_DECREF(interp, err);
+
+		OBJECT_DECREF(interp, errorclass);
+		OBJECT_DECREF(interp, stringclass);
+		OBJECT_DECREF(interp, objectclass);
+		return STATUS_ERROR;
+	}
+	assert(!err);
+
+	// now the interpreter's builtin mapping holds references to these
+	OBJECT_DECREF(interp, errorclass);
+	OBJECT_DECREF(interp, stringclass);
+	OBJECT_DECREF(interp, objectclass);
+
+	// create some fun reference cycles
+	// at this point, we know that everything will succeed
+	objectclass->klass = interp->classclass;
+	OBJECT_INCREF(interp, interp->classclass);
+	interp->classclass->klass = interp->classclass;
+	OBJECT_INCREF(interp, interp->classclass);
+
+	// now the hard stuff is done \o/ let's do some easier things
+
+	interp->functionclass = functionobject_createclass(interp, &err);
+	if (!interp->functionclass) {
+		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
+		OBJECT_DECREF(interp, err);
+		return STATUS_ERROR;
+	}
+
+	struct Object *print = functionobject_new(interp, &err, print_builtin);
+	if (!print) {
+		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
+		OBJECT_DECREF(interp, err);
+		return STATUS_ERROR;
+	}
+	if (interpreter_addbuiltin(interp, &err, "print", print) == STATUS_ERROR) {
+		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
+		OBJECT_DECREF(interp, err);
+		OBJECT_DECREF(interp, print);
+		return STATUS_ERROR;
+	}
+	OBJECT_DECREF(interp, print);
+
+	return STATUS_OK;
 }
 
 
-// TODO: is this too copy/pasta?
+/* reference diagram:
+
+    objectclass->klass        classclass->klass
+  ,--------------------.    ,-------------------.
+  |                    V    V                   |
+objectclass  <-----  classclass  ---------------'
+                     /|\ /|\ /|\
+                      |   |   |
+       ,--------------'   |   `-----------.
+       |                  |               |
+     other           stringclass  <--  errorclass
+     stuff
+
+the cycles must be deleted
+*/
+
 void builtins_teardown(struct Interpreter *interp)
 {
-	OBJECT_DECREF(interp, interp->nomemerr);
+	struct Object *objectclass = interpreter_getbuiltin_nomalloc(interp, "Object");
+
+	if (interp->functionclass) {
+		OBJECT_DECREF(interp, interp->functionclass);
+	}
+
+	if (interp->nomemerr) {
+		OBJECT_DECREF(interp, interp->nomemerr);
+		interp->nomemerr = NULL;
+	}
 
 	// TODO: how about all sub contexts? this assumes that there are none
 	context_free(interp->builtinctx);
+	interp->builtinctx = NULL;
 
-	OBJECT_DECREF(interp, interp->functionclass);
-	OBJECT_DECREF(interp, interp->classclass);
+	// delete the fun reference cycles
+	if (interp->classclass->klass) {
+		assert(objectclass);    // if this fails, builtins_setup() is very broken or someone deleted Object
+		assert(objectclass->klass == interp->classclass);
+		assert(interp->classclass->klass == interp->classclass);
 
-	/* this is a bit tricky because interp->classclass->klass == interp->classclass
-	OBJECT_DECREF(interp->classclass) doesn't work because OBJECT_DECREF also decrefs ->klass
-	this is one of the reasons why ->klass can be NULL and OBJECT_DECREF's destroyer will ignore it
+		// classobject_destructor() is not called automagically if ->klass == NULL
+		// TODO: how about foreachref???
+		objectclass->klass = NULL;
+		OBJECT_DECREF(interp, interp->classclass);
+		interp->classclass->klass = NULL;
+		classobject_destructor(interp->classclass);
+		OBJECT_DECREF(interp, interp->classclass);
 
-	TODO: implement gc nicely and use it instead
-	*/
-	struct ObjectClassInfo *info = interp->classclass->data;
-	objectclassinfo_free(interp, info);
-	interp->classclass->klass = NULL;
-	OBJECT_DECREF(interp, interp->classclass);
+		// classobject_create_classclass() increffed objectclass, but that didn't get
+		// decreffed because classclass->klass was set to NULL before decreffing
+		// classclass, and object_free_impl() didn't know anything about the reference
+		OBJECT_DECREF(interp, objectclass);
+
+		// note the interpreter_getbuiltin_nomalloc() above
+		classobject_destructor(objectclass);
+		OBJECT_DECREF(interp, objectclass);
+	} else {
+		assert(!objectclass);
+	}
+
+	if (interp->classclass) {
+		OBJECT_DECREF(interp, interp->classclass);
+		interp->classclass = NULL;
+	}
 }

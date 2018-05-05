@@ -14,7 +14,7 @@
 #include "../objectsystem.h"
 #include "../unicode.h"
 
-static void array_foreachref(struct Object *obj, void *data, objectclassinfo_foreachrefcb cb)
+static void array_foreachref(struct Object *obj, void *data, classobject_foreachrefcb cb)
 {
 	struct DynamicArray *dynarr = obj->data;
 	for (size_t i=0; i < dynarr->len; i++)

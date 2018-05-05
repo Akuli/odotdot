@@ -23,7 +23,7 @@ struct FunctionData {
 	size_t npartialargs;
 };
 
-static void function_foreachref(struct Object *func, void *cbdata, objectclassinfo_foreachrefcb cb)
+static void function_foreachref(struct Object *func, void *cbdata, classobject_foreachrefcb cb)
 {
 	struct FunctionData *data = func->data;    // casts implicitly
 	for (size_t i=0; i < data->npartialargs; i++)
@@ -39,19 +39,15 @@ static void function_destructor(struct Object *func)
 	free(data);
 }
 
-int functionobject_createclass(struct Interpreter *interp, struct Object **errptr)
+struct Object *functionobject_createclass(struct Interpreter *interp, struct Object **errptr)
 {
 	struct Object *objectclass = interpreter_getbuiltin(interp, errptr, "Object");
-	if (!objectclass)    // errptr is set already
-		return STATUS_ERROR;
+	if (!objectclass)
+		return NULL;
 
 	struct Object *klass = classobject_new(interp, errptr, "Function", objectclass, function_foreachref, function_destructor);
 	OBJECT_DECREF(interp, objectclass);
-	if (!klass)
-		return STATUS_ERROR;
-
-	interp->functionclass = klass;
-	return STATUS_OK;
+	return klass;    // can be NULL
 }
 
 int functionobject_checktypes(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs, ...)

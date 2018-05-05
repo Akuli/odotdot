@@ -9,6 +9,7 @@
 #include "hashtable.h"
 #include "objectsystem.h"
 #include "unicode.h"
+#include "objects/classobject.h"
 #include "objects/errors.h"
 
 static int compare_by_identity(void *a, void *b, void *junkdata) { return a==b; }
@@ -25,14 +26,8 @@ struct Interpreter *interpreter_new(char *argv0)
 		return NULL;
 	}
 
-	interp->builtinctx = context_newglobal(interp);
-	if (!(interp->builtinctx)) {
-		hashtable_free(interp->allobjects);
-		free(interp);
-		return NULL;
-	}
-
 	interp->argv0 = argv0;
+	interp->builtinctx = NULL;
 	interp->nomemerr = NULL;
 	interp->classclass = NULL;
 	interp->functionclass = NULL;
@@ -41,9 +36,6 @@ struct Interpreter *interpreter_new(char *argv0)
 
 void interpreter_free(struct Interpreter *interp)
 {
-	/* interp->builtinctx is freed in builtins_teardown() because it also frees
-	   stuff that are needed for freeing interp->builtinctx */
-
 	if (interp->allobjects->size != 0) {
 		fprintf(stderr, "%s: reference counting problem: %d unfreed objects\n", interp->argv0, (int) interp->allobjects->size);
 

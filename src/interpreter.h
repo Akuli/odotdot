@@ -7,7 +7,6 @@
 // stupid IWYU doesn't get this.....
 struct Context;
 struct Object;
-struct ObjectClassInfo;
 
 struct Interpreter {
 	// this is set to argv[0] from main(), useful for error messages
