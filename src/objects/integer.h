@@ -11,8 +11,8 @@
 #define INTEGER_MAXLEN 20
 
 
-// returns STATUS_OK or STATUS_ERROR
-int integerobject_createclass(struct Interpreter *interp, struct Object **errptr);
+// RETURNS A NEW REFERENCE or NULL on error
+struct Object *integerobject_createclass(struct Interpreter *interp, struct Object **errptr);
 
 // doesn't change ustr
 // RETURNS A NEW REFERENCE

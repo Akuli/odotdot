@@ -49,7 +49,7 @@ int method_add(struct Interpreter *interp, struct Object **errptr, struct Object
 	}
 
 	// don't decref func, now klass->data->methods holds the reference
-	// don't free uname or uname->val because uname is now used as a key in info->methods
+	// don't free uname or uname->val because uname is now used as a key in ->methods
 	return STATUS_OK;
 }
 

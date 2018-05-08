@@ -43,7 +43,6 @@ static struct Object *print_builtin(struct Context *ctx, struct Object **errptr,
 }
 
 
-// TODO: functions, arrays, integers, print
 int builtins_setup(struct Interpreter *interp)
 {
 	interp->builtinctx = context_newglobal(interp);
@@ -118,6 +117,12 @@ int builtins_setup(struct Interpreter *interp)
 		return STATUS_ERROR;
 	}
 
+	if (stringobject_addmethods(interp, &err) == STATUS_ERROR) {
+		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
+		OBJECT_DECREF(interp, err);
+		return STATUS_ERROR;
+	}
+
 	struct Object *print = functionobject_new(interp, &err, print_builtin);
 	if (!print) {
 		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
@@ -131,6 +136,34 @@ int builtins_setup(struct Interpreter *interp)
 		return STATUS_ERROR;
 	}
 	OBJECT_DECREF(interp, print);
+
+	struct Object *arrayclass = arrayobject_createclass(interp, &err);
+	if (!arrayclass) {
+		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
+		OBJECT_DECREF(interp, err);
+		return STATUS_ERROR;
+	}
+	if (interpreter_addbuiltin(interp, &err, "Array", arrayclass) == STATUS_ERROR) {
+		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
+		OBJECT_DECREF(interp, err);
+		OBJECT_DECREF(interp, arrayclass);
+		return STATUS_ERROR;
+	}
+	OBJECT_DECREF(interp, arrayclass);
+
+	struct Object *integerclass = integerobject_createclass(interp, &err);
+	if (!integerclass) {
+		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
+		OBJECT_DECREF(interp, err);
+		return STATUS_ERROR;
+	}
+	if (interpreter_addbuiltin(interp, &err, "Integer", integerclass) == STATUS_ERROR) {
+		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
+		OBJECT_DECREF(interp, err);
+		OBJECT_DECREF(interp, integerclass);
+		return STATUS_ERROR;
+	}
+	OBJECT_DECREF(interp, integerclass);
 
 	return STATUS_OK;
 }

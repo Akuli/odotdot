@@ -106,25 +106,22 @@ static struct Object *to_string(struct Context *ctx, struct Object **errptr, str
 	return res;
 }
 
-int arrayobject_createclass(struct Interpreter *interp, struct Object **errptr)
+struct Object *arrayobject_createclass(struct Interpreter *interp, struct Object **errptr)
 {
 	struct Object *objectclass = interpreter_getbuiltin(interp, errptr, "Object");
 	if (!objectclass)
-		return STATUS_ERROR;
+		return NULL;
 
 	struct Object *klass = classobject_new(interp, errptr, "Array", objectclass, array_foreachref, array_destructor);
 	OBJECT_DECREF(interp, objectclass);
 	if (!klass)
-		return STATUS_ERROR;
+		return NULL;
 
 	if (method_add(interp, errptr, klass, "to_string", to_string) == STATUS_ERROR) {
 		OBJECT_DECREF(interp, klass);
-		return STATUS_ERROR;
+		return NULL;
 	}
-
-	int res = interpreter_addbuiltin(interp, errptr, "Array", klass);
-	OBJECT_DECREF(interp, klass);
-	return res;
+	return klass;
 }
 
 // TODO: add something for creating DynamicArrays from existing item arrays efficiently

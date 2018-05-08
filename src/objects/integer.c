@@ -54,25 +54,22 @@ static struct Object *to_string(struct Context *ctx, struct Object **errptr, str
 	return stringobject_newfromcharptr(ctx->interp, errptr, res+i);
 }
 
-int integerobject_createclass(struct Interpreter *interp, struct Object **errptr)
+struct Object *integerobject_createclass(struct Interpreter *interp, struct Object **errptr)
 {
 	struct Object *objectclass = interpreter_getbuiltin(interp, errptr, "Object");
 	if (!objectclass)
-		return STATUS_ERROR;
+		return NULL;
 
 	struct Object *klass = classobject_new(interp, errptr, "Integer", objectclass, NULL, integer_destructor);
 	OBJECT_DECREF(interp, objectclass);
 	if (!klass)
-		return STATUS_ERROR;
+		return NULL;
 
 	if (method_add(interp, errptr, klass, "to_string", to_string) == STATUS_ERROR) {
 		OBJECT_DECREF(interp, klass);
-		return STATUS_ERROR;
+		return NULL;
 	}
-
-	int ret = interpreter_addbuiltin(interp, errptr, "Integer", klass);
-	OBJECT_DECREF(interp, klass);
-	return ret;
+	return klass;
 }
 
 // TODO: take a context and use errorobject_setwithfmt instead

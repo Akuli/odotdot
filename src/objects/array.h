@@ -7,8 +7,8 @@
 #include "../interpreter.h"    // IWYU pragma: keep
 #include "../objectsystem.h"    // IWYU pragma: keep
 
-// returns STATUS_OK or STATUS_ERROR
-int arrayobject_createclass(struct Interpreter *interp, struct Object **errptr);
+// RETURNS A NEW REFERENCE or NULL on error
+struct Object *arrayobject_createclass(struct Interpreter *interp, struct Object **errptr);
 
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *arrayobject_new(struct Interpreter *interp, struct Object **errptr, struct Object **elems, size_t nelems);

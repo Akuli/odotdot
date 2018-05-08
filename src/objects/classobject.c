@@ -7,13 +7,6 @@
 #include "../interpreter.h"
 #include "../objectsystem.h"
 
-static void decref_and_stuff(void *keyustr, void *valobj, void *interp)
-{
-	free(((struct UnicodeString *) keyustr)->val);
-	free(keyustr);
-	OBJECT_DECREF(interp, valobj);
-}
-
 static int compare_unicode_strings(void *a, void *b, void *userdata)
 {
 	assert(!userdata);
@@ -121,20 +114,24 @@ static void class_foreachref(struct Object *klass, void *cbdata, classobject_for
 }
 
 
-// FIXME: this is how i pass interp to classobject_destructor(), and it sucks
-struct Interpreter *shit;
+// keys must be freed, but values are automagically decreffed because class_foreachref
+static void free_key_ustr(void *key, void *valueobj, void *datanull)
+{
+	free(((struct UnicodeString *) key)->val);
+	free(key);
+}
+
 
 void classobject_destructor(struct Object *klass)
 {
 	struct ClassObjectData *data = klass->data;    // casts implicitly
-	// object_free_impl() takes care of baseclass because class_foreachref
-	hashtable_fclear(data->methods, decref_and_stuff, shit);
+	// object_free_impl() takes care of many things because class_foreachref
+	hashtable_fclear(data->methods, free_key_ustr, NULL);
 	hashtable_free(data->methods);
 	free(data);
 }
 
 struct Object *classobject_create_classclass(struct Interpreter *interp, struct Object *objectclass)
 {
-	shit = interp;
 	return classobject_new_noerrptr(interp, "Class", objectclass, class_foreachref, classobject_destructor);
 }
