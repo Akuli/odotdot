@@ -93,25 +93,18 @@ struct Object *method_getwithustr(struct Interpreter *interp, struct Object **er
 
 struct Object *method_get(struct Interpreter *interp, struct Object **errptr, struct Object *obj, char *name)
 {
-	// TODO: does uname need to be malloced?
-	struct UnicodeString *uname = malloc(sizeof(struct UnicodeString));
-	if (!uname) {
-		errorobject_setnomem(interp, errptr);
-		return NULL;
-	}
+	struct UnicodeString uname;
 
 	char errormsg[100];
-	int status = utf8_decode(name, strlen(name), uname, errormsg);
+	int status = utf8_decode(name, strlen(name), &uname, errormsg);
 	if (status != STATUS_OK) {
 		assert(status == STATUS_NOMEM);
-		free(uname);
 		errorobject_setnomem(interp, errptr);
 		return NULL;
 	}
 
-	struct Object *res = method_getwithustr(interp, errptr, obj, *uname);
-	free(uname->val);
-	free(uname);
+	struct Object *res = method_getwithustr(interp, errptr, obj, uname);
+	free(uname.val);
 	return res;
 }
 
