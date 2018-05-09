@@ -1,5 +1,3 @@
-// TODO: interp and errptr, uncomment everything
-
 #ifndef OBJECTS_ARRAY_H
 #define OBJECTS_ARRAY_H
 

@@ -70,7 +70,7 @@ static struct Object *get_the_method(struct Object *klass, struct UnicodeString 
 
 struct Object *method_getwithustr(struct Interpreter *interp, struct Object **errptr, struct Object *obj, struct UnicodeString uname)
 {
-	struct Object *nopartial = get_the_method(obj->klass->data, &uname, unicodestring_hash(uname));
+	struct Object *nopartial = get_the_method(obj->klass, &uname, unicodestring_hash(uname));
 	if (!nopartial) {
 		assert(0);
 		// FIXME: this thing needs a ctx
@@ -91,6 +91,7 @@ struct Object *method_getwithustr(struct Interpreter *interp, struct Object **er
 
 struct Object *method_get(struct Interpreter *interp, struct Object **errptr, struct Object *obj, char *name)
 {
+	// TODO: does uname need to be malloced?
 	struct UnicodeString *uname = malloc(sizeof(struct UnicodeString));
 	if (!uname) {
 		errorobject_setnomem(interp, errptr);

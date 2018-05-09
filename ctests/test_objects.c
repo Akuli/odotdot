@@ -113,12 +113,11 @@ void test_objects_string_tostring(void)
 {
 	struct Object *s = stringobject_newfromcharptr(testinterp, NULL, "Öö");
 	buttert(s);
-	// FIXME: the commented-out code segfaults
-/*	struct Object *ret = method_call(testinterp->builtinctx, NULL, s, "to_string", NULL);
+	struct Object *ret = method_call(testinterp->builtinctx, NULL, s, "to_string", NULL);
 	buttert(ret);
 	buttert(ret == s);
 	OBJECT_DECREF(testinterp, s);    // functionobject_call() returned a new reference
-*/	OBJECT_DECREF(testinterp, s);    // stringobject_newfromustr() returned a new reference
+	OBJECT_DECREF(testinterp, s);    // stringobject_newfromustr() returned a new reference
 }
 
 void test_objects_string_newfromfmt(void)

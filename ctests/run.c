@@ -68,9 +68,8 @@ int main(int argc, char **argv)
 	RUN_TEST(test_objects_error);
 	RUN_TEST(test_objects_function);
 	RUN_TEST(test_objects_string);
-	// FIXME: method calls segfault
-	/*RUN_TEST(test_objects_string_tostring);
-	RUN_TEST(test_objects_string_newfromfmt);*/
+	RUN_TEST(test_objects_string_tostring);
+	RUN_TEST(test_objects_string_newfromfmt);
 	RUN_TEST(test_objects_array);
 	RUN_TEST(test_objects_integer);
 
