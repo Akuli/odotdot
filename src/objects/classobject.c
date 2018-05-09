@@ -82,8 +82,8 @@ struct Object *classobject_newinstance(struct Interpreter *interp, struct Object
 		errorobject_setwithfmt(interp->builtinctx, errptr, "cannot create an instance of %D", klass);
 		return NULL;
 	}
-
 	struct Object *instance = object_new(interp, klass, data);
+
 	if (!instance) {
 		errorobject_setnomem(interp, errptr);
 		return NULL;

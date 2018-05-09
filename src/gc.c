@@ -33,6 +33,7 @@ static void mark(struct Object *obj, void *junkdata)
 		return;
 	obj->gcflag = 1;
 
+	// TODO: parent class foreachrefs should also be called, see object_free_impl
 	struct ClassObjectData *classdata = obj->klass->data;
 	if (classdata->foreachref)
 		classdata->foreachref(obj, NULL, mark);

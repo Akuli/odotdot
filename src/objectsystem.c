@@ -72,15 +72,19 @@ void object_free_impl(struct Interpreter *interp, struct Object *obj)
 
 	// obj->klass can be NULL, see builtins_teardown()
 	if (obj->klass) {
+		OBJECT_INCREF(interp, obj->klass);   // temporary, decreffed after destructor call
+
+		struct Object *curclass = obj->klass;
+		struct ClassObjectData *curclassdata;
+		do {
+			curclassdata = curclass->data;
+			if (curclassdata->foreachref)
+				curclassdata->foreachref(obj, interp, decref_the_ref);
+		} while ((curclass = curclassdata->baseclass));
+
 		struct ClassObjectData *classdata = obj->klass->data;
-
-		// TODO: document the order that these are called in
-		// it really makes a difference with e.g. Array
-		if (classdata->foreachref)
-			classdata->foreachref(obj, interp, decref_the_ref);
 		if (classdata->destructor)
-			classdata->destructor(obj);
-
+			classdata->destructor(obj);   // may need obj->klass
 		OBJECT_DECREF(interp, obj->klass);
 	}
 

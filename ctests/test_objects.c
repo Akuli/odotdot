@@ -21,8 +21,7 @@ void test_objects_simple(void)
 	struct Object *objectclass = interpreter_getbuiltin(testinterp, NULL, "Object");
 	buttert(objectclass);
 	struct Object *obj = classobject_newinstance(testinterp, NULL, objectclass, (void *)0xdeadbeef);
-	// FIXME: why does this work without the decref?
-	//OBJECT_DECREF(testinterp, objectclass);
+	OBJECT_DECREF(testinterp, objectclass);
 	buttert(obj);
 	buttert(obj->data == (void *)0xdeadbeef);
 	OBJECT_DECREF(testinterp, obj);
