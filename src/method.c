@@ -75,6 +75,7 @@ struct Object *method_getwithustr(struct Interpreter *interp, struct Object **er
 	if (!nopartial) {
 		assert(0);
 		// FIXME: this thing needs a ctx
+		// TODO: test this
 		/*
 		char *classname = ((struct ClassObjectData*) obj->klass->data)->name;
 		errorobject_setwithfmt(ctx, errptr,
