@@ -57,12 +57,13 @@ int method_add(struct Interpreter *interp, struct Object **errptr, struct Object
 // does NOT return a new reference
 static struct Object *get_the_method(struct Object *klass, struct UnicodeString *uname, unsigned int unamehash)
 {
-	struct ClassObjectData *data = klass->data;   // casts implicitly
 	struct Object *res;
+	struct ClassObjectData *data;
 	do {
+		data = klass->data;
 		if (hashtable_get(data->methods, uname, unamehash, (void **)(&res), NULL))
 			return res;
-	} while ((data = data->baseclass->data));
+	} while ((klass = data->baseclass));
 
 	// nope
 	return NULL;
