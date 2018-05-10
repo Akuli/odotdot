@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "ast.h"
 #include "common.h"
 #include "context.h"
 #include "interpreter.h"
@@ -165,6 +166,20 @@ int builtins_setup(struct Interpreter *interp)
 	}
 	OBJECT_DECREF(interp, integerclass);
 
+	interp->astnodeclass = astnode_createclass(interp, &err);
+	if (!interp->astnodeclass) {
+		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
+		OBJECT_DECREF(interp, err);
+		return STATUS_ERROR;
+	}
+
+	/*
+	printf("*** classes added by builtins_setup() ***\n");
+	struct Object *classes[] = { objectclass, interp->classclass, stringclass, errorclass, interp->functionclass, arrayclass, integerclass, interp->astnodeclass };
+	for (unsigned int i=0; i < sizeof(classes) / sizeof(classes[0]); i++)
+		printf("  %s = %p\n", ((struct ClassObjectData *) classes[i]->data)->name, (void *) classes[i]);
+	*/
+
 	return STATUS_OK;
 }
 
@@ -189,8 +204,14 @@ void builtins_teardown(struct Interpreter *interp)
 {
 	struct Object *objectclass = interpreter_getbuiltin_nomalloc(interp, "Object");
 
+	if (interp->astnodeclass) {
+		OBJECT_DECREF(interp, interp->astnodeclass);
+		interp->astnodeclass = NULL;
+	}
+
 	if (interp->functionclass) {
 		OBJECT_DECREF(interp, interp->functionclass);
+		//interp->functionclass = NULL;    // who needs this anyway?
 	}
 
 	if (interp->nomemerr) {

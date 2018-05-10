@@ -49,13 +49,6 @@ int read_file_to_huge_string(FILE *f, char **dest, size_t *destlen)
 }
 
 
-// function pointers can't be casted conveniently because c standards
-static void astnode_free_voidstar(void *node)
-{
-	astnode_free(node);    // casts the node to struct AstNode*
-}
-
-
 // TODO: print a stack trace and use stderr instead of stdout
 static void print_error(struct Context *ctx, struct Object *err)
 {
@@ -133,21 +126,26 @@ static int run_file(struct Context *ctx, char *path)
 		return 1;
 	}
 
+	int returnval = 0;
+
+	struct Object *err = NULL;
 	struct Token *curtok = tok1st;
 	while (curtok) {
-		struct AstNode *st = parse_statement(&curtok);
-		if (!st) {
-			// TODO: better error reporting... also fix ast.c
+		struct Object *stmtnode = ast_parse_statement(ctx->interp, &err, &curtok);
+		if (!stmtnode) {
+			// TODO: better error reporting :(
+			assert(err);
 			fprintf(stderr, "%s: something went wrong with parsing the content of '%s'\n", ctx->interp->argv0, path);
+			OBJECT_DECREF(ctx->interp, err);
 			token_freeall(tok1st);
-			return 1;
+			returnval = 1;
+			goto end;
 		}
-		dynamicarray_push(statements, st);
+		dynamicarray_push(statements, stmtnode);
 	}
 	token_freeall(tok1st);
 
 	// run!
-	struct Object *err = NULL;
 	for (size_t i=0; i < statements->len; i++) {
 		if (run_statement(ctx, &err, statements->values[i]) == STATUS_ERROR) {
 			if (err) {
@@ -156,13 +154,17 @@ static int run_file(struct Context *ctx, char *path)
 			} else {
 				fprintf(stderr, "%s: errptr wasn't set correctly\n", ctx->interp->argv0);
 			}
-			dynamicarray_freeall(statements, astnode_free_voidstar);
-			return 1;
+			returnval = 1;
+			goto end;
 		}
 	}
+	// "fall through" to end
 
-	dynamicarray_freeall(statements, astnode_free_voidstar);
-	return 0;
+end:
+	for (size_t i=0; i < statements->len; i++)
+		OBJECT_DECREF(ctx->interp, statements->values[i]);
+	dynamicarray_free(statements);
+	return returnval;
 }
 
 

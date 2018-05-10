@@ -2,14 +2,20 @@
 #define AST_H
 
 #include <stddef.h>
+#include "interpreter.h"    // IWYU pragma: keep
+#include "objectsystem.h"   // IWYU pragma: keep
+#include "tokenizer.h"      // IWYU pragma: keep
 #include "unicode.h"
-#include "tokenizer.h"   // IWYU pragma: keep
 
-struct AstNode {
+struct AstNodeData {
 	char kind;
 	size_t lineno;    // 0 for expressions
 	void *info;
 };
+
+// RETURNS A NEW REFERENCE or NULL on error
+struct Object *astnode_createclass(struct Interpreter *interp, struct Object **errptr);
+
 
 // expressions
 
@@ -17,46 +23,47 @@ struct AstNode {
 #define AstStrInfo UnicodeString    // lol
 #define AST_STR '"'
 
+// TODO: replace this with integer objects?
 struct AstIntInfo { char *valstr; };
 #define AST_INT '1'
 
 // array and block infos are the same for less copy/paste boilerplate
-// items are statements in the block or elements of the list
-struct AstArrayOrBlockInfo { struct AstNode **items; size_t nitems; };
+// itemnodes are statements in the block or elements of the list
+struct AstArrayOrBlockInfo { struct Object **itemnodes; size_t nitems; };
 #define AST_ARRAY '['
 #define AST_BLOCK '{'
 
+// TODO: replace this with UnicodeString directly, like AstStrInfo?
 struct AstGetVarInfo { struct UnicodeString varname; };
 #define AST_GETVAR 'x'
 
-// name is the name of the attribute or method
-struct AstGetAttrOrMethodInfo { struct AstNode *obj; struct UnicodeString name; };
+// obj is an ast node object
+// name is attribute or method name
+struct AstGetAttrOrMethodInfo { struct Object *objnode; struct UnicodeString name; };
 #define AST_GETATTR '.'
 #define AST_GETMETHOD ':'
 
 
 // statements
-struct AstCreateOrSetVarInfo { struct UnicodeString varname; struct AstNode *val; };
+
+struct AstCreateOrSetVarInfo { struct UnicodeString varname; struct Object *valnode; };
 #define AST_CREATEVAR 'v'
 #define AST_SETVAR '='
 
-struct AstSetAttrInfo { struct AstNode *obj; struct UnicodeString attr; struct AstNode *val; };
+struct AstSetAttrInfo { struct Object *objnode; struct UnicodeString attr; struct Object *valnode; };
 #define AST_SETATTR '*'    // many other characters are already used, this one isn't
 
+
 // expressions that can also be statements
-struct AstCallInfo { struct AstNode *func; struct AstNode **args; size_t nargs; };
+
+struct AstCallInfo { struct Object *funcnode; struct Object **argnodes; size_t nargs; };
 #define AST_CALL '('
 
 
-// free any AstNode pointer properly
-void astnode_free(struct AstNode *node);
-
-// make a recursive copy of an AstNode
-struct AstNode *astnode_copy(struct AstNode *node);
-
-// TODO: make parse_expression() static
-struct AstNode *parse_expression(struct Token **curtok);
-struct AstNode *parse_statement(struct Token **curtok);
+// TODO: make parse_expression() static?
+// these RETURN A NEW REFERENCE or NULL on error
+struct Object *ast_parse_expression(struct Interpreter *interp, struct Object **errptr, struct Token **curtok);
+struct Object *ast_parse_statement(struct Interpreter *interp, struct Object **errptr, struct Token **curtok);
 
 
 #endif    // AST_H

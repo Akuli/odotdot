@@ -46,14 +46,6 @@ int main(int argc, char **argv)
 	}
 	ntests = 0;
 
-	RUN_TEST(test_ast_node_structs_and_ast_copynode);
-	RUN_TEST(test_ast_strings);
-	RUN_TEST(test_ast_ints);
-	RUN_TEST(test_ast_arrays);
-	RUN_TEST(test_ast_getvars);
-	RUN_TEST(test_ast_attributes_and_methods);
-	RUN_TEST(test_ast_function_call_statement);
-
 	RUN_TEST(test_dynamiarray_new_push_pop_and_freeall);
 	RUN_TEST(test_dynamiarray_equals_and_free);
 
@@ -72,6 +64,14 @@ int main(int argc, char **argv)
 	RUN_TEST(test_objects_string_newfromfmt);
 	RUN_TEST(test_objects_array);
 	RUN_TEST(test_objects_integer);
+
+	RUN_TEST(test_ast_nodes_and_their_refcount_stuff);
+	RUN_TEST(test_ast_strings);
+	RUN_TEST(test_ast_ints);
+	RUN_TEST(test_ast_arrays);
+	RUN_TEST(test_ast_getvars);
+	RUN_TEST(test_ast_attributes_and_methods);
+	RUN_TEST(test_ast_function_call_statement);
 
 	builtins_teardown(testinterp);
 	interpreter_free(testinterp);

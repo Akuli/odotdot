@@ -1,6 +1,7 @@
 #include <src/ast.h>
 #include <src/tokenizer.h>
 #include <src/unicode.h>
+#include <src/objects/classobject.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,16 +9,20 @@
 #include "utils.h"
 
 
-static struct AstNode *newnode(char kind, void *info)
+static struct Object *newnode(char kind, void *info)
 {
-	struct AstNode *res = bmalloc(sizeof(struct AstNode));
-	res->kind = kind;
-	res->lineno = 123;
-	res->info = info;
-	return res;
+	struct AstNodeData *data = bmalloc(sizeof(struct AstNodeData));
+	data->kind = kind;
+	data->lineno = 123;
+	data->info = info;
+
+	buttert(testinterp->astnodeclass);
+	struct Object *node = classobject_newinstance(testinterp, NULL, testinterp->astnodeclass, data);
+	buttert(node);
+	return node;
 }
 
-static void create_string(struct AstStrInfo *target)
+static void setup_string(struct AstStrInfo *target)
 {
 	target->len = 2;
 	target->val = bmalloc(sizeof(unicode_char) * 2);
@@ -25,84 +30,71 @@ static void create_string(struct AstStrInfo *target)
 	target->val[1] = 'y';
 }
 
-static void create_string_bmalloc(struct AstStrInfo **target)
-{
-	*target = malloc(sizeof(struct AstStrInfo));
-	create_string(*target);
-}
-
 // not really random at all, that's why lol
 #define RANDOM_CHOICE_LOL(a, b) ( ((int) time(NULL)) % 2 == 0 ? (a) : (b) )
 
-void test_ast_node_structs_and_ast_copynode(void)
+void test_ast_nodes_and_their_refcount_stuff(void)
 {
-	struct AstStrInfo *strinfo;
-	create_string_bmalloc(&strinfo);
-	struct AstNode *strnode = newnode(AST_STR, strinfo);
+	struct AstStrInfo *strinfo = bmalloc(sizeof(struct AstStrInfo));
+	setup_string(strinfo);
+	struct Object *strnode = newnode(AST_STR, strinfo);
 
 	struct AstIntInfo *intinfo = bmalloc(sizeof(struct AstIntInfo));
 	intinfo->valstr = bmalloc(4);
 	strcpy(intinfo->valstr, "123");
-	struct AstNode *intnode = newnode(AST_INT, intinfo);
+	struct Object *intnode = newnode(AST_INT, intinfo);
 
-	// freeing the array frees intnode and strnode
+	// the array references intnode and strnode
 	struct AstArrayOrBlockInfo *arrinfo = bmalloc(sizeof(struct AstArrayOrBlockInfo));
 	arrinfo->nitems = 2;
-	arrinfo->items = bmalloc(sizeof(struct AstNode*) * 2);
-	arrinfo->items[0] = strnode;
-	arrinfo->items[1] = intnode;
-	struct AstNode *arrnode = newnode(AST_ARRAY, arrinfo);
+	arrinfo->itemnodes = bmalloc(sizeof(struct Object*) * 2);
+	arrinfo->itemnodes[0] = strnode;
+	arrinfo->itemnodes[1] = intnode;
+	struct Object *arrnode = newnode(AST_ARRAY, arrinfo);
 
-	// freeing this frees arrnode
+	// this references arrnode
 	struct AstArrayOrBlockInfo *blockinfo = bmalloc(sizeof(struct AstArrayOrBlockInfo));
-	blockinfo->items = bmalloc(sizeof(struct AstNode*) * 1);
-	blockinfo->items[0] = arrnode;   // lol, not really a statement
+	blockinfo->itemnodes = bmalloc(sizeof(struct Object*));
+	blockinfo->itemnodes[0] = arrnode;   // lol, not really a statement
 	blockinfo->nitems = 1;
-	struct AstNode *blocknode = newnode(AST_BLOCK, blockinfo);
+	struct Object *blocknode = newnode(AST_BLOCK, blockinfo);
 
 	struct AstGetVarInfo *getvarinfo = bmalloc(sizeof(struct AstGetVarInfo));
-	create_string(&(getvarinfo->varname));
-	struct AstNode *getvarnode = newnode(AST_GETVAR, getvarinfo);
+	setup_string(&(getvarinfo->varname));
+	struct Object *getvarnode = newnode(AST_GETVAR, getvarinfo);
 
-	// freeing this frees getvarnode
+	// this references getvarnode
 	struct AstGetAttrOrMethodInfo *gaminfo = bmalloc(sizeof(struct AstGetAttrOrMethodInfo));
-	gaminfo->obj = getvarnode;
-	create_string(&(gaminfo->name));
-	struct AstNode *gamnode = newnode(RANDOM_CHOICE_LOL(AST_GETATTR, AST_GETMETHOD), gaminfo);
+	gaminfo->objnode = getvarnode;
+	setup_string(&(gaminfo->name));
+	struct Object *gamnode = newnode(RANDOM_CHOICE_LOL(AST_GETATTR, AST_GETMETHOD), gaminfo);
 
-	// freeing this frees blocknode
+	// this references blocknode
 	struct AstCreateOrSetVarInfo *cosvinfo = bmalloc(sizeof(struct AstCreateOrSetVarInfo));
-	create_string(&(cosvinfo->varname));
-	cosvinfo->val = blocknode;
-	// choose AST_CREATEVAR or AST_SETVAR randomly-ish
-	struct AstNode *cosvnode = newnode(RANDOM_CHOICE_LOL(AST_CREATEVAR, AST_SETVAR), cosvinfo);
+	setup_string(&(cosvinfo->varname));
+	cosvinfo->valnode = blocknode;
+	struct Object *cosvnode = newnode(RANDOM_CHOICE_LOL(AST_CREATEVAR, AST_SETVAR), cosvinfo);
 
-	// freeing this frees gamnode and cosvnode
+	// this references gamnode and cosvnode
 	struct AstSetAttrInfo *setattrinfo = bmalloc(sizeof(struct AstSetAttrInfo));
-	setattrinfo->obj = gamnode;
-	create_string(&(setattrinfo->attr));
-	setattrinfo->val = cosvnode;
-	struct AstNode *setattrnode = newnode(AST_SETATTR, setattrinfo);
+	setattrinfo->objnode = gamnode;
+	setup_string(&(setattrinfo->attr));
+	setattrinfo->valnode = cosvnode;
+	struct Object *setattrnode = newnode(AST_SETATTR, setattrinfo);
 
-	// freeing this frees setattrnode
+	// this references setattrnode
 	struct AstCallInfo *callinfo = bmalloc(sizeof(struct AstCallInfo));
-	callinfo->func = setattrnode;
-	callinfo->args = bmalloc(123);   // anything free()able will do
+	callinfo->funcnode = setattrnode;
 	callinfo->nargs = 0;    // it's best to test special cases and corner cases :D
-	struct AstNode *callnode = newnode(AST_CALL, callinfo);
+	callinfo->argnodes = bmalloc(123);   // anything free()able will do
+	struct Object *callnode = newnode(AST_CALL, callinfo);
 
-	// this is very recursive, should test copying every kind of node that astnode_copy can do
-	struct AstNode *callnode2 = astnode_copy(callnode);
-	buttert(callnode2);
-
-	// these  should free every object exactly once, check with valgrind
-	astnode_free(callnode);
-	astnode_free(callnode2);
+	OBJECT_DECREF(testinterp, callnode);      // should free everything
 }
 
 
 // these assume ascii for simplicity
-static struct AstNode *parse_expression_string(char *s)
+static struct Object *parse_expression_string(char *s)
 {
 	struct UnicodeString hugestring;
 	hugestring.len = strlen(s);
@@ -116,14 +108,13 @@ static struct AstNode *parse_expression_string(char *s)
 	free(hugestring.val);
 
 	struct Token *tmp = tok1st;
-	struct AstNode *node = parse_expression(&tmp);   // changes the address that tmp points to
+	struct Object *node = ast_parse_expression(testinterp, NULL, &tmp);
 	buttert(!tmp);
 	token_freeall(tok1st);
 	buttert2(node, s);
 	return node;
 }
-// these assume ascii for simplicity
-static struct AstNode *parse_statement_string(char *s)
+static struct Object *parse_statement_string(char *s)
 {
 	struct UnicodeString hugestring;
 	hugestring.len = strlen(s);
@@ -137,107 +128,114 @@ static struct AstNode *parse_statement_string(char *s)
 	free(hugestring.val);
 
 	struct Token *tmp = tok1st;
-	struct AstNode *node = parse_statement(&tmp);   // changes the address that tmp points to
+	struct Object *node = ast_parse_statement(testinterp, NULL, &tmp);
 	token_freeall(tok1st);
 	buttert2(node, s);
 	return node;
 }
 
-static int stringinfo_equals_ascii_charp(struct UnicodeString *ustr, char *charp)
+// THIS USES ASCII
+static int ustr_equals_charp(struct UnicodeString ustr, char *charp)
 {
-	if(ustr->len != strlen(charp))
+	if(ustr.len != strlen(charp))
 		return 0;
-	for (size_t i=0; i < ustr->len; i++) {
-		if (ustr->val[i] != (unicode_char) charp[i])
+
+	for (size_t i=0; i < ustr.len; i++) {
+		if (ustr.val[i] != (unicode_char) charp[i])
 			return 0;
 	}
 	return 1;
 }
 
+
 void test_ast_strings(void)
 {
-	struct AstNode *node = parse_expression_string("\"hello\"");
-	buttert(node->kind == AST_STR);
-	struct AstStrInfo *info = node->info;
-	buttert(info->len == 5);
-	astnode_free(node);
+	struct Object *node = parse_expression_string("\"hello\"");
+	struct AstNodeData *data = node->data;
+	struct AstStrInfo *info = data->info;
+
+	buttert(data->kind == AST_STR);
+	buttert(ustr_equals_charp((*info), "hello"));
+	OBJECT_DECREF(testinterp, node);
 }
 
 void test_ast_ints(void)
 {
-	struct AstNode *node = parse_expression_string("-123");
-	buttert(node->kind == AST_INT);
-	struct AstIntInfo *info = node->info;
+	struct Object *node = parse_expression_string("-123");
+	struct AstNodeData *data = node->data;
+	struct AstIntInfo *info = data->info;
+
+	buttert(data->kind == AST_INT);
 	buttert(strcmp(info->valstr, "-123") == 0);
-	astnode_free(node);
+	OBJECT_DECREF(testinterp, node);
 }
 
 void test_ast_arrays(void)
 {
-	struct AstNode *node = parse_expression_string("[ \"a\" 123 ]");
-	buttert(node->kind == AST_ARRAY);
-	struct AstArrayOrBlockInfo *info = node->info;
+	struct Object *node = parse_expression_string("[ \"a\" 123 ]");
+	struct AstNodeData *data = node->data;
+	struct AstArrayOrBlockInfo *info = data->info;
+
+	buttert(data->kind == AST_ARRAY);
 	buttert(info->nitems == 2);
-	buttert(info->items[0]->kind == AST_STR);
-	buttert(info->items[1]->kind == AST_INT);
-	astnode_free(node);
+	buttert(((struct AstNodeData *) info->itemnodes[0]->data)->kind == AST_STR);
+	buttert(((struct AstNodeData *) info->itemnodes[1]->data)->kind == AST_INT);
+	OBJECT_DECREF(testinterp, node);
 }
 
 void test_ast_getvars(void)
 {
-	struct AstNode *node = parse_expression_string("abc");
-	buttert(node->kind == AST_GETVAR);
-	struct AstGetVarInfo *info = node->info;
-	buttert(stringinfo_equals_ascii_charp(&(info->varname), "abc"));
-	astnode_free(node);
+	struct Object *node = parse_expression_string("abc");
+	struct AstNodeData *data = node->data;
+	struct AstGetVarInfo *info = data->info;
+
+	buttert(data->kind == AST_GETVAR);
+	buttert(ustr_equals_charp(info->varname, "abc"));
+	OBJECT_DECREF(testinterp, node);
+}
+
+struct Object *check_attribute_or_method(struct Object *node, char kind, char *name)
+{
+	struct AstNodeData *data = node->data;
+	struct AstGetAttrOrMethodInfo *info = data->info;
+
+	buttert(data->kind == kind);
+	buttert(ustr_equals_charp(info->name, name));
+
+	// funny convenience weirdness
+	return info->objnode;
 }
 
 void test_ast_attributes_and_methods(void)
 {
-	struct AstNode *dotc = parse_expression_string("\"asd\".a::b.c");
-	buttert(dotc->kind == AST_GETATTR);
-	struct AstGetAttrOrMethodInfo *dotcinfo = dotc->info;
-	buttert(stringinfo_equals_ascii_charp(&(dotcinfo->name), "c"));
+	struct Object *dotc = parse_expression_string("\"asd\".a::b.c");
+	struct Object *dotb = check_attribute_or_method(dotc, AST_GETATTR, "c");
+	struct Object *dota = check_attribute_or_method(dotb, AST_GETMETHOD, "b");
+	struct Object *str = check_attribute_or_method(dota, AST_GETATTR, "a");
+	buttert(((struct AstNodeData *) str->data)->kind == AST_STR);
 
-	struct AstNode *dotb = dotcinfo->obj;
-	buttert(dotb->kind == AST_GETMETHOD);
-	struct AstGetAttrOrMethodInfo *dotbinfo = dotb->info;
-	buttert(stringinfo_equals_ascii_charp(&(dotbinfo->name), "b"));
+	OBJECT_DECREF(testinterp, dotc);
+}
 
-	struct AstNode *dota = dotbinfo->obj;
-	buttert(dota->kind == AST_GETATTR);
-	struct AstGetAttrOrMethodInfo *dotainfo = dota->info;
-	buttert(stringinfo_equals_ascii_charp(&(dotainfo->name), "a"));
-
-	struct AstNode *str = dotainfo->obj;
-	buttert(str->kind == AST_STR);
-	struct AstStrInfo *strinfo = str->info;
-	buttert(stringinfo_equals_ascii_charp(strinfo, "asd"));
-
-	astnode_free(dotc);
+static void check_getvar(struct Object *node, char *varname)
+{
+	struct AstNodeData *data = node->data;
+	buttert(data->kind == AST_GETVAR);
+	struct AstGetVarInfo *info = data->info;
+	buttert(ustr_equals_charp(info->varname, varname));
 }
 
 void test_ast_function_call_statement(void)
 {
-	struct AstNode *call = parse_statement_string("a b c;");
-	buttert(call->kind == AST_CALL);
-	struct AstCallInfo *callinfo = call->info;
+	struct Object *call = parse_statement_string("a b c;");
+	struct AstNodeData *calldata = call->data;
+	struct AstCallInfo *callinfo = calldata->info;
+	buttert(calldata->kind == AST_CALL);
 	buttert(callinfo->nargs == 2);
 
-	struct AstNode *a = callinfo->func;
-	buttert(a->kind == AST_GETVAR);
-	struct AstGetVarInfo *ainfo = a->info;
-	buttert(stringinfo_equals_ascii_charp(&(ainfo->varname), "a"));
+	check_getvar(callinfo->funcnode, "a");
+	check_getvar(callinfo->argnodes[0], "b");
+	check_getvar(callinfo->argnodes[1], "c");
 
-	struct AstNode *b = callinfo->args[0];
-	buttert(b->kind == AST_GETVAR);
-	struct AstGetVarInfo *binfo = b->info;
-	buttert(stringinfo_equals_ascii_charp(&(binfo->varname), "b"));
-
-	struct AstNode *c = callinfo->args[1];
-	buttert(c->kind == AST_GETVAR);
-	struct AstGetVarInfo *cinfo = c->info;
-	buttert(stringinfo_equals_ascii_charp(&(cinfo->varname), "c"));
-
-	astnode_free(call);
+	OBJECT_DECREF(testinterp, call);
 }

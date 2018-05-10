@@ -15,18 +15,20 @@
 #include "objects/string.h"
 
 // RETURNS A NEW REFERENCE
-static struct Object *run_expression(struct Context *ctx, struct Object **errptr, struct AstNode *expr)
+static struct Object *run_expression(struct Context *ctx, struct Object **errptr, struct Object *exprnode)
 {
-#define INFO_AS(X) ((struct X *)expr->info)
-	if (expr->kind == AST_GETVAR)
+	struct AstNodeData *nodedata = exprnode->data;
+
+#define INFO_AS(X) ((struct X *) nodedata->info)
+	if (nodedata->kind == AST_GETVAR)
 		return context_getvar(ctx, errptr, INFO_AS(AstGetVarInfo)->varname);
-	if (expr->kind == AST_STR)
-		return stringobject_newfromustr(ctx->interp, errptr, *((struct UnicodeString *)expr->info));
-	if (expr->kind == AST_INT)
+	if (nodedata->kind == AST_STR)
+		return stringobject_newfromustr(ctx->interp, errptr, *((struct UnicodeString *) nodedata->info));
+	if (nodedata->kind == AST_INT)
 		return integerobject_newfromcharptr(ctx->interp, errptr, INFO_AS(AstIntInfo)->valstr);
 
-	if (expr->kind == AST_GETMETHOD) {
-		struct Object *obj = run_expression(ctx, errptr, INFO_AS(AstGetAttrOrMethodInfo)->obj);
+	if (nodedata->kind == AST_GETMETHOD) {
+		struct Object *obj = run_expression(ctx, errptr, INFO_AS(AstGetAttrOrMethodInfo)->objnode);
 		if (!obj)
 			return NULL;
 
@@ -35,12 +37,12 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 		return res;
 	}
 
-	if (expr->kind == AST_CALL) {
-		struct Object *func = run_expression(ctx, errptr, INFO_AS(AstCallInfo)->func);
+	if (nodedata->kind == AST_CALL) {
+		struct Object *func = run_expression(ctx, errptr, INFO_AS(AstCallInfo)->funcnode);
 		if (!func)
 			return NULL;
 
-		// TODO: better type check
+		// TODO: better error reporting
 		assert(func->klass == ctx->interp->functionclass);
 
 		struct Object **args = malloc(sizeof(struct Object*) * INFO_AS(AstCallInfo)->nargs);
@@ -51,7 +53,7 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 		}
 
 		for (size_t i=0; i < INFO_AS(AstCallInfo)->nargs; i++) {
-			struct Object *arg = run_expression(ctx, errptr, INFO_AS(AstCallInfo)->args[i]);
+			struct Object *arg = run_expression(ctx, errptr, INFO_AS(AstCallInfo)->argnodes[i]);
 			if (!arg) {
 				for (size_t j=0; j<i; j++)
 					OBJECT_DECREF(ctx->interp, args[j]);
@@ -70,7 +72,7 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 		return res;
 	}
 
-	if (expr->kind == AST_ARRAY) {
+	if (nodedata->kind == AST_ARRAY) {
 		// this is handled specially because malloc(0) MAY return NULL
 		if (INFO_AS(AstArrayOrBlockInfo)->nitems == 0)
 			return arrayobject_newempty(ctx->interp, errptr);
@@ -83,7 +85,7 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 		}
 
 		for (size_t i=0; i < INFO_AS(AstArrayOrBlockInfo)->nitems; i++) {
-			elems[i] = run_expression(ctx, errptr, INFO_AS(AstArrayOrBlockInfo)->items[i]);
+			elems[i] = run_expression(ctx, errptr, INFO_AS(AstArrayOrBlockInfo)->itemnodes[i]);
 			if (!elems[i]) {
 				for (size_t j=0; j<i; j++)
 					OBJECT_DECREF(ctx->interp, elems[i]);
@@ -103,11 +105,13 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 	assert(0);
 }
 
-int run_statement(struct Context *ctx, struct Object **errptr, struct AstNode *stmt)
+int run_statement(struct Context *ctx, struct Object **errptr, struct Object *stmtnode)
 {
-#define INFO_AS(X) ((struct X *)stmt->info)
-	if (stmt->kind == AST_CALL) {
-		struct Object *ret = run_expression(ctx, errptr, stmt);
+	struct AstNodeData *nodedata = stmtnode->data;
+
+#define INFO_AS(X) ((struct X *) nodedata->info)
+	if (nodedata->kind == AST_CALL) {
+		struct Object *ret = run_expression(ctx, errptr, stmtnode);
 		if (!ret)
 			return STATUS_ERROR;
 
@@ -115,8 +119,8 @@ int run_statement(struct Context *ctx, struct Object **errptr, struct AstNode *s
 		return STATUS_OK;
 	}
 
-	if (stmt->kind == AST_CREATEVAR) {
-		struct Object *val = run_expression(ctx, errptr, INFO_AS(AstCreateOrSetVarInfo)->val);
+	if (nodedata->kind == AST_CREATEVAR) {
+		struct Object *val = run_expression(ctx, errptr, INFO_AS(AstCreateOrSetVarInfo)->valnode);
 		if (!val)
 			return STATUS_ERROR;
 

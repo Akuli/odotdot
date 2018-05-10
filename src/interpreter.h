@@ -25,8 +25,9 @@ struct Interpreter {
 	struct HashTable *allobjects;
 
 	// these are not exposed as built-in variables, so they can't be in builtinctx
-	struct Object *classclass;      // class of classes, this is not a copy-pasta
+	struct Object *classclass;      // class of classes, repeated class is not a copy-pasta
 	struct Object *functionclass;
+	struct Object *astnodeclass;
 };
 
 // returns NULL on no mem
