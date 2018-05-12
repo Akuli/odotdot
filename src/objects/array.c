@@ -7,23 +7,24 @@
 #include "function.h"
 #include "string.h"
 #include "../common.h"
-#include "../context.h"
-#include "../dynamicarray.h"
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"
 #include "../unicode.h"
 
-static void array_foreachref(struct Object *obj, void *data, classobject_foreachrefcb cb)
+static void array_foreachref(struct Object *arr, void *cbdata, classobject_foreachrefcb cb)
 {
-	struct DynamicArray *dynarr = obj->data;
-	for (size_t i=0; i < dynarr->len; i++)
-		cb(dynarr->values[i], data);
+	struct ArrayObjectData *data = arr->data;
+	for (size_t i=0; i < data->len; i++)
+		cb(data->elems[i], cbdata);
 }
 
 static void array_destructor(struct Object *arr)
 {
-	dynamicarray_free(arr->data);
+	// the elements have already been decreffed because array_foreachref
+	struct ArrayObjectData *data = arr->data;
+	free(data->elems);
+	free(data);
 }
 
 /* joins string objects together and adds [ ] around the whole thing
@@ -73,21 +74,21 @@ static struct Object *to_string(struct Context *ctx, struct Object **errptr, str
 	if (functionobject_checktypes(ctx, errptr, args, nargs, "Array", NULL) == STATUS_ERROR)
 		return NULL;
 
-	struct DynamicArray *dynarr = args[0]->data;
+	struct ArrayObjectData *data = args[0]->data;
 
 	// this is handeled specially because malloc(0) may return NULL
-	if (dynarr->len == 0)
+	if (data->len == 0)
 		return stringobject_newfromcharptr(ctx->interp, errptr, "[]");
 
-	struct Object **strings = malloc(sizeof(struct Object*) * dynarr->len);
+	struct Object **strings = malloc(sizeof(struct Object*) * data->len);
 	if (!strings) {
 		errorobject_setnomem(ctx->interp, errptr);
 		return NULL;
 	}
 
 	struct Object *stringclass = interpreter_getbuiltin(ctx->interp, errptr, "String");
-	for (size_t i = 0; i < dynarr->len; i++) {
-		struct Object *stringed = method_call_todebugstring(ctx, errptr, dynarr->values[i]);
+	for (size_t i = 0; i < data->len; i++) {
+		struct Object *stringed = method_call_todebugstring(ctx, errptr, data->elems[i]);
 		if (!stringed) {
 			for (size_t j=0; j<i; j++)
 				OBJECT_DECREF(ctx->interp, strings[i]);
@@ -99,8 +100,8 @@ static struct Object *to_string(struct Context *ctx, struct Object **errptr, str
 	}
 	OBJECT_DECREF(ctx->interp, stringclass);
 
-	struct Object *res = to_string_joiner(ctx->interp, errptr, strings, dynarr->len);
-	for (size_t i=0; i < dynarr->len; i++)
+	struct Object *res = to_string_joiner(ctx->interp, errptr, strings, data->len);
+	for (size_t i=0; i < data->len; i++)
 		OBJECT_DECREF(ctx->interp, strings[i]);
 	free(strings);
 	return res;
@@ -124,46 +125,96 @@ struct Object *arrayobject_createclass(struct Interpreter *interp, struct Object
 	return klass;
 }
 
-// TODO: add something for creating DynamicArrays from existing item arrays efficiently
-struct Object *arrayobject_newempty(struct Interpreter *interp, struct Object **errptr)
+struct Object *arrayobject_new(struct Interpreter *interp, struct Object **errptr, struct Object **elems, size_t nelems)
 {
-	struct DynamicArray *dynarr = dynamicarray_new();
-	if (!dynarr)
+	struct ArrayObjectData *data = malloc(sizeof(struct ArrayObjectData));
+	if (!data) {
+		errorobject_setnomem(interp, errptr);
 		return NULL;
+	}
+
+	data->len = nelems;
+	if (nelems <= 3)   // 3 feels good
+		data->nallocated = 3;
+	else
+		data->nallocated = nelems;
+
+	data->elems = malloc(data->nallocated * sizeof(struct Object*));
+	if (nelems > 0 && !(data->elems)) {   // malloc(0) MAY be NULL
+		errorobject_setnomem(interp, errptr);
+		free(data);
+		return NULL;
+	}
 
 	struct Object *klass = interpreter_getbuiltin(interp, errptr, "Array");
 	if (!klass) {
-		dynamicarray_free(dynarr);
+		free(data->elems);
+		free(data);
 		return NULL;
 	}
 
-	struct Object *arr = classobject_newinstance(interp, errptr, klass, dynarr);
+	struct Object *arr = classobject_newinstance(interp, errptr, klass, data);
 	OBJECT_DECREF(interp, klass);
 	if (!arr) {
-		dynamicarray_free(dynarr);
+		free(data->elems);
+		free(data);
 		return NULL;
 	}
+
+	// rest of this can't fail
+	// TODO: which is more efficient, memcpy and a loop or 1 loop and assignments?
+	memcpy(data->elems, elems, sizeof(struct Object *) * nelems);
+	for (size_t i=0; i < nelems; i++)
+		OBJECT_INCREF(interp, elems[i]);
+
 	return arr;
 }
 
-struct Object *arrayobject_new(struct Interpreter *interp, struct Object **errptr, struct Object **elems, size_t nelems)
+static int resize(struct Interpreter *interp, struct Object **errptr, struct ArrayObjectData *data)
 {
-	struct Object *arr = arrayobject_newempty(interp, errptr);
-	if (!arr)
-		return NULL;
+	// allocating more than this is not possible because realloc takes size_t
+#define NALLOCATED_MAX (SIZE_MAX / sizeof(struct Object*))
 
-	for (size_t i=0; i < nelems; i++) {
-		int status = dynamicarray_push(arr->data, elems[i]);
-		if (status != STATUS_OK) {
-			assert(status == STATUS_NOMEM);
-			for (size_t j=0; j<i; j++)
-				OBJECT_DECREF(interp, elems[i]);
-			OBJECT_DECREF(interp, arr);
-			errorobject_setnomem(interp, errptr);
-			return NULL;
-		}
-		OBJECT_INCREF(interp, elems[i]);
+	if (data->nallocated == NALLOCATED_MAX) {
+		// a very big array
+		// this is not the best possible error message but not too bad IMO
+		// nobody will actually have this happening anyway
+		errorobject_setnomem(interp, errptr);
+		return STATUS_ERROR;
 	}
 
-	return arr;
+	size_t newnallocated = data->nallocated > NALLOCATED_MAX/2 ? NALLOCATED_MAX : 2*data->nallocated;
+	void *ptr = realloc(data->elems, newnallocated * sizeof(struct Object*));
+	if (!ptr) {
+		errorobject_setnomem(interp, errptr);
+		return STATUS_ERROR;
+	}
+
+	data->elems = ptr;
+	data->nallocated = newnallocated;
+	return STATUS_OK;
+}
+
+int arrayobject_push(struct Interpreter *interp, struct Object **errptr, struct Object *arr, struct Object *obj)
+{
+	struct ArrayObjectData *data = arr->data;
+	if (data->len + 1 > data->nallocated) {
+		if (resize(interp, errptr, data) == STATUS_ERROR)
+			return STATUS_ERROR;
+	}
+
+	OBJECT_INCREF(interp, obj);
+	data->elems[data->len++] = obj;
+	return STATUS_OK;
+}
+
+struct Object *arrayobject_pop(struct Interpreter *interp, struct Object *arr)
+{
+	struct ArrayObjectData *data = arr->data;
+	if (data->len == 0)
+		return NULL;
+
+	struct Object *obj = data->elems[--data->len];
+	OBJECT_DECREF(interp, obj);
+	return obj;
 }

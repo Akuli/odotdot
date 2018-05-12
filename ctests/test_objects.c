@@ -1,4 +1,4 @@
-#include <src/dynamicarray.h>
+#include <src/common.h>
 #include <src/interpreter.h>
 #include <src/method.h>
 #include <src/objects/array.h>
@@ -151,33 +151,74 @@ void test_objects_string_newfromfmt(void)
 	OBJECT_DECREF(testinterp, res);
 }
 
-#define NOBJS 3
 void test_objects_array(void)
 {
 	struct Object *objs[] = {
 		stringobject_newfromcharptr(testinterp, NULL, "a"),
 		stringobject_newfromcharptr(testinterp, NULL, "b"),
 		stringobject_newfromcharptr(testinterp, NULL, "c") };
-	for (int i=0; i < NOBJS; i++)
+#define NOBJS (sizeof(objs) / sizeof(objs[0]))
+	for (size_t i=0; i < NOBJS; i++)
 		buttert(objs[i]);
 
-	struct Object *arr = arrayobject_new(testinterp, NULL, objs, NOBJS);
+	struct Object *arr = arrayobject_new(testinterp, NULL, objs, NOBJS - 1);
 	buttert(arr);
+	buttert(arrayobject_push(testinterp, NULL, arr, objs[NOBJS-1]) == STATUS_OK);
+
 	// now the array should hold references to each object
-	for (int i=0; i < NOBJS; i++)
+	for (size_t i=0; i < NOBJS; i++)
 		OBJECT_DECREF(testinterp, objs[i]);
 
-	struct DynamicArray *dynarray = arr->data;
-	buttert(dynarray->len == NOBJS);
-	for (int i=0; i < NOBJS; i++) {
-		buttert(dynarray->values[i] == objs[i]);
-		struct UnicodeString *ustr = ((struct Object *) dynarray->values[i])->data;
+	struct ArrayObjectData *data = arr->data;
+	buttert(data->len == NOBJS);
+	for (size_t i=0; i < NOBJS; i++) {
+#undef NOBJS
+		buttert(data->elems[i] == objs[i]);
+		struct UnicodeString *ustr = ((struct Object *) data->elems[i])->data;
 		buttert(ustr->len == 1);
-		buttert((int) ustr->val[0] == 'a' + i);
+		buttert(ustr->val[0] == 'a' + i);
 	}
 	OBJECT_DECREF(testinterp, arr);
 }
-#undef NOBJS
+
+#define HOW_MANY 1000
+static void check(struct ArrayObjectData *arrdata)
+{
+	buttert(arrdata);
+	buttert(arrdata->len == HOW_MANY);
+	for (size_t i=0; i < HOW_MANY; i++) {
+		buttert(arrdata->elems[i]->refcount == 2);
+		buttert(integerobject_tolonglong(arrdata->elems[i]) == (long long) (i + 10));
+	}
+}
+
+void test_objects_array_many_elems(void)
+{
+	struct Object *objs[HOW_MANY];
+	for (size_t i=0; i < HOW_MANY; i++) {
+		// TODO: add integerobject_fromlonglong or something
+		char buf[10];
+		sprintf(buf, "%d", (int) (i+10));
+		buttert((objs[i] = integerobject_newfromcharptr(testinterp, NULL, buf)));
+	}
+
+	struct Object *arr = arrayobject_new(testinterp, NULL, objs, HOW_MANY);
+	check(arr->data);
+
+	for (int i = HOW_MANY-1; i >= 0; i--) {
+		struct Object *obj = arrayobject_pop(testinterp, arr);
+		buttert(obj == objs[i]);
+	}
+
+	for (size_t i=0; i < HOW_MANY; i++)
+		buttert(arrayobject_push(testinterp, NULL, arr, objs[i]) == STATUS_OK);
+	check(arr->data);
+
+	OBJECT_DECREF(testinterp, arr);
+	for (size_t i=0; i < HOW_MANY; i++)
+		OBJECT_DECREF(testinterp, objs[i]);
+}
+#undef HOW_MANY
 
 void test_objects_integer(void)
 {

@@ -7,12 +7,12 @@
 #include "builtins.h"
 #include "common.h"
 #include "context.h"
-#include "dynamicarray.h"
 #include "interpreter.h"
 #include "objectsystem.h"
 #include "run.h"
 #include "tokenizer.h"
 #include "unicode.h"
+#include "objects/array.h"
 #include "objects/function.h"
 
 #define FILE_CHUNK_SIZE 4096
@@ -119,35 +119,42 @@ static int run_file(struct Context *ctx, char *path)
 	free(hugeunicode.val);
 
 	// parse
-	struct DynamicArray *statements = dynamicarray_new();
+	struct Object *err = NULL;
+	struct Object *statements = arrayobject_newempty(ctx->interp, &err);
 	if (!statements) {
-		fprintf(stderr, "%s: ran out of memory while parsing the content of '%s'\n", ctx->interp->argv0, path);
+		print_error(ctx, err);
+		OBJECT_DECREF(ctx->interp, err);
 		token_freeall(tok1st);
 		return 1;
 	}
 
 	int returnval = 0;
 
-	struct Object *err = NULL;
 	struct Token *curtok = tok1st;
 	while (curtok) {
 		struct Object *stmtnode = ast_parse_statement(ctx->interp, &err, &curtok);
 		if (!stmtnode) {
-			// TODO: better error reporting :(
-			assert(err);
-			fprintf(stderr, "%s: something went wrong with parsing the content of '%s'\n", ctx->interp->argv0, path);
+			print_error(ctx, err);
 			OBJECT_DECREF(ctx->interp, err);
 			token_freeall(tok1st);
 			returnval = 1;
 			goto end;
 		}
-		dynamicarray_push(statements, stmtnode);
+		int status = arrayobject_push(ctx->interp, &err, statements, stmtnode);
+		OBJECT_DECREF(ctx->interp, stmtnode);
+		if (status == STATUS_ERROR) {
+			print_error(ctx, err);
+			OBJECT_DECREF(ctx->interp, err);
+			token_freeall(tok1st);
+			returnval = 1;
+			goto end;
+		}
 	}
 	token_freeall(tok1st);
 
 	// run!
-	for (size_t i=0; i < statements->len; i++) {
-		if (run_statement(ctx, &err, statements->values[i]) == STATUS_ERROR) {
+	for (size_t i=0; i < ((struct ArrayObjectData *) statements->data)->len; i++) {
+		if (run_statement(ctx, &err, ((struct ArrayObjectData *) statements->data)->elems[i]) == STATUS_ERROR) {
 			if (err) {
 				print_error(ctx, err);
 				OBJECT_DECREF(ctx->interp, err);
@@ -161,9 +168,7 @@ static int run_file(struct Context *ctx, char *path)
 	// "fall through" to end
 
 end:
-	for (size_t i=0; i < statements->len; i++)
-		OBJECT_DECREF(ctx->interp, statements->values[i]);
-	dynamicarray_free(statements);
+	OBJECT_DECREF(ctx->interp, statements);
 	return returnval;
 }
 

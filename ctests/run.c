@@ -46,9 +46,6 @@ int main(int argc, char **argv)
 	}
 	ntests = 0;
 
-	RUN_TEST(test_dynamiarray_new_push_pop_and_freeall);
-	RUN_TEST(test_dynamiarray_equals_and_free);
-
 	RUN_TEST(test_hashtable_basic_stuff);
 	RUN_TEST(test_hashtable_many_values);
 	RUN_TEST(test_hashtable_iterating);
@@ -63,6 +60,7 @@ int main(int argc, char **argv)
 	RUN_TEST(test_objects_string_tostring);
 	RUN_TEST(test_objects_string_newfromfmt);
 	RUN_TEST(test_objects_array);
+	RUN_TEST(test_objects_array_many_elems);
 	RUN_TEST(test_objects_integer);
 
 	RUN_TEST(test_ast_nodes_and_their_refcount_stuff);
