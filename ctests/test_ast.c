@@ -2,6 +2,8 @@
 #include <src/tokenizer.h>
 #include <src/unicode.h>
 #include <src/objects/classobject.h>
+#include <src/objects/string.h>
+#include <src/objects/integer.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,7 +24,7 @@ static struct Object *newnode(char kind, void *info)
 	return node;
 }
 
-static void setup_string(struct AstStrInfo *target)
+static void setup_string(struct UnicodeString *target)
 {
 	target->len = 2;
 	target->val = bmalloc(sizeof(unicode_char) * 2);
@@ -35,13 +37,10 @@ static void setup_string(struct AstStrInfo *target)
 
 void test_ast_nodes_and_their_refcount_stuff(void)
 {
-	struct AstStrInfo *strinfo = bmalloc(sizeof(struct AstStrInfo));
-	setup_string(strinfo);
+	struct Object *strinfo = stringobject_newfromcharptr(testinterp, NULL, "asd");
 	struct Object *strnode = newnode(AST_STR, strinfo);
 
-	struct AstIntInfo *intinfo = bmalloc(sizeof(struct AstIntInfo));
-	intinfo->valstr = bmalloc(4);
-	strcpy(intinfo->valstr, "123");
+	struct Object *intinfo = integerobject_newfromcharptr(testinterp, NULL, "123");
 	struct Object *intnode = newnode(AST_INT, intinfo);
 
 	// the array references intnode and strnode
@@ -120,7 +119,7 @@ static struct Object *parse_statement_string(char *s)
 	hugestring.len = strlen(s);
 	hugestring.val = bmalloc(sizeof(unicode_char) * hugestring.len);
 	// can't use memcpy because types differ
-	for (size_t i=0; i < strlen(s); i++)
+	for (size_t i=0; i < hugestring.len; i++)
 		hugestring.val[i] = s[i];
 
 	struct Token *tok1st = token_ize(hugestring);
@@ -147,15 +146,20 @@ static int ustr_equals_charp(struct UnicodeString ustr, char *charp)
 	return 1;
 }
 
+// THIS USES ASCII
+static int stringobject_equals_charp(struct Object *strobj, char *charp)
+{
+	return ustr_equals_charp(*((struct UnicodeString *) strobj->data), charp);
+}
+
 
 void test_ast_strings(void)
 {
 	struct Object *node = parse_expression_string("\"hello\"");
 	struct AstNodeData *data = node->data;
-	struct AstStrInfo *info = data->info;
 
 	buttert(data->kind == AST_STR);
-	buttert(ustr_equals_charp((*info), "hello"));
+	buttert(stringobject_equals_charp(data->info, "hello"));
 	OBJECT_DECREF(testinterp, node);
 }
 
@@ -163,10 +167,9 @@ void test_ast_ints(void)
 {
 	struct Object *node = parse_expression_string("-123");
 	struct AstNodeData *data = node->data;
-	struct AstIntInfo *info = data->info;
 
 	buttert(data->kind == AST_INT);
-	buttert(strcmp(info->valstr, "-123") == 0);
+	buttert(integerobject_toint64(data->info) == -123);
 	OBJECT_DECREF(testinterp, node);
 }
 

@@ -12,6 +12,8 @@
 #include "tokenizer.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
+#include "objects/integer.h"
+#include "objects/string.h"
 
 static void astnode_foreachref(struct Object *node, void *cbdata, classobject_foreachrefcb cb)
 {
@@ -43,6 +45,8 @@ static void astnode_foreachref(struct Object *node, void *cbdata, classobject_fo
 		break;
 	case AST_INT:
 	case AST_STR:
+		cb(info_as(AstIntOrStrInfo), cbdata);
+		break;
 	case AST_GETVAR:
 		// do nothing
 		break;
@@ -57,40 +61,43 @@ static void astnode_destructor(struct Object *node)
 	struct AstNodeData *data = node->data;
 	switch (data->kind) {
 #define info_as(X) ((struct X *) data->info)
-	case AST_STR:
-		free(info_as(AstStrInfo)->val);
-		break;
-	case AST_INT:
-		free(info_as(AstIntInfo)->valstr);
-		break;
 	case AST_ARRAY:
 	case AST_BLOCK:
 		// foreachref has taken care of decreffing the items
 		free(info_as(AstArrayOrBlockInfo)->itemnodes);
+		free(data->info);
 		break;
 	case AST_GETVAR:
 		free(info_as(AstGetVarInfo)->varname.val);
+		free(data->info);
 		break;
 	case AST_GETATTR:
 	case AST_GETMETHOD:
 		free(info_as(AstGetAttrOrMethodInfo)->name.val);
+		free(data->info);
 		break;
 	case AST_CREATEVAR:
 	case AST_SETVAR:
 		free(info_as(AstCreateOrSetVarInfo)->varname.val);
+		free(data->info);
 		break;
 	case AST_SETATTR:
 		free(info_as(AstSetAttrInfo)->attr.val);
+		free(data->info);
 		break;
 	case AST_CALL:
 		free(info_as(AstCallInfo)->argnodes);
+		free(data->info);
+		break;
+	case AST_INT:
+	case AST_STR:
+		// do nothing
 		break;
 #undef info_as
 	default:
 		assert(0);  // unknown kind
 	}
 
-	free(data->info);
 	free(data);
 }
 
@@ -145,46 +152,32 @@ static int expression_coming_up(struct Token *curtok)
 }
 
 
-struct AstStrInfo *strinfo_from_idtoken(struct Token **curtok)
-{
-	assert(*curtok);
-	assert((*curtok)->kind == TOKEN_ID);
-	struct UnicodeString *res = unicodestring_copy((*curtok)->str);
-	*curtok = (*curtok)->next;
-	return res;   // may be NULL
-}
-
-
 // all parse_blahblah() functions RETURN A NEW REFERENCE or NULL on error
 
 
 static struct Object *parse_string(struct Interpreter *interp, struct Object **errptr, struct Token **curtok)
 {
+	// these should be checked by the caller
 	assert(*curtok);
 	assert((*curtok)->kind == TOKEN_STR);
 
-	// can't use strinfo_from_idtoken because " must be removed from both ends
-	struct AstStrInfo *info = malloc(sizeof(struct AstStrInfo));
+	// remove " from both ends
+	// TODO: do something more? e.g. \n, \t
+	struct UnicodeString ustr;
+	ustr.len = (*curtok)->str.len - 2;
+	ustr.val = (*curtok)->str.val + 1;
+
+	struct Object *info = stringobject_newfromustr(interp, errptr, ustr);
 	if (!info)
 		return NULL;
 
-	// remove " from both ends
-	// TODO: do something more? e.g. \n, \t
-	info->len = (*curtok)->str.len - 2;
-	info->val = malloc(sizeof(unicode_char) * info->len);
-	if (!(info->val)) {
-		free(info);
-		return NULL;
-	}
-	memcpy(info->val, (*curtok)->str.val+1, sizeof(unicode_char) * info->len);
-
-	*curtok = (*curtok)->next;
 	struct Object *res = new_expression(interp, errptr, AST_STR, info);
 	if (!res) {
-		free(info->val);
-		free(info);
+		OBJECT_DECREF(interp, info);
 		return NULL;
 	}
+
+	*curtok = (*curtok)->next;
 	return res;
 }
 
@@ -194,29 +187,17 @@ static struct Object *parse_int(struct Interpreter *interp, struct Object **errp
 	assert(*curtok);
 	assert((*curtok)->kind == TOKEN_INT);
 
-	struct AstIntInfo *info = malloc(sizeof(struct AstIntInfo));
+	struct Object *info = integerobject_newfromustr(interp, errptr, (*curtok)->str);
 	if (!info)
 		return NULL;
 
-	info->valstr = malloc((*curtok)->str.len+1);
-	if (!(info->valstr)) {
-		free(info);
-		return NULL;
-	}
-
-	// can't use memcpy because (*curtok)->str.val is unicode_char*
-	// TODO: should construct the integer object here??
-	for (size_t i=0; i < (*curtok)->str.len; i++)
-		info->valstr[i] = (char) ((*curtok)->str.val[i]);
-	info->valstr[(*curtok)->str.len] = 0;
-
-	*curtok = (*curtok)->next;
 	struct Object *res = new_expression(interp, errptr, AST_INT, info);
 	if(!res) {
-		free(info->valstr);
-		free(info);
+		OBJECT_DECREF(interp, info);
 		return NULL;
 	}
+
+	*curtok = (*curtok)->next;
 	return res;
 }
 

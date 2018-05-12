@@ -22,10 +22,11 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 #define INFO_AS(X) ((struct X *) nodedata->info)
 	if (nodedata->kind == AST_GETVAR)
 		return context_getvar(ctx, errptr, INFO_AS(AstGetVarInfo)->varname);
-	if (nodedata->kind == AST_STR)
-		return stringobject_newfromustr(ctx->interp, errptr, *((struct UnicodeString *) nodedata->info));
-	if (nodedata->kind == AST_INT)
-		return integerobject_newfromcharptr(ctx->interp, errptr, INFO_AS(AstIntInfo)->valstr);
+
+	if (nodedata->kind == AST_STR || nodedata->kind == AST_INT) {
+		OBJECT_INCREF(ctx->interp, (struct Object *) nodedata->info);
+		return nodedata->info;
+	}
 
 	if (nodedata->kind == AST_GETMETHOD) {
 		struct Object *obj = run_expression(ctx, errptr, INFO_AS(AstGetAttrOrMethodInfo)->objnode);

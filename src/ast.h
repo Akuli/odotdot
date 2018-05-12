@@ -19,13 +19,10 @@ struct Object *astnode_createclass(struct Interpreter *interp, struct Object **e
 
 // expressions
 
-// UnicodeString is very simple, see its definition
-#define AstStrInfo UnicodeString    // lol
-#define AST_STR '"'
-
-// TODO: replace this with integer objects?
-struct AstIntInfo { char *valstr; };
+// the info is a String or Integer object
+#define AstIntOrStrInfo Object    // lol
 #define AST_INT '1'
+#define AST_STR '"'
 
 // array and block infos are the same for less copy/paste boilerplate
 // itemnodes are statements in the block or elements of the list
@@ -33,7 +30,7 @@ struct AstArrayOrBlockInfo { struct Object **itemnodes; size_t nitems; };
 #define AST_ARRAY '['
 #define AST_BLOCK '{'
 
-// TODO: replace this with UnicodeString directly, like AstStrInfo?
+// TODO: replace this with UnicodeString, kinda like AstIntOrStringInfo?
 struct AstGetVarInfo { struct UnicodeString varname; };
 #define AST_GETVAR 'x'
 
