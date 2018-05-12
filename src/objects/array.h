@@ -20,18 +20,6 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **errpt
 // for convenience
 #define arrayobject_newempty(interp, errptr) arrayobject_new((interp), (errptr), NULL, 0)
 
-/*// this is lol
-#define i arrayobject_foreach_i
-#define data ((struct ArrayObjectData *) ((arr)->data))
-
-#define ARRAYOBJECT_BEGIN_FOREACH(arr, varname) \
-	for (size_t i = 0; i < data->len; i++) { \
-		struct Object *varname = data->elems[i];
-#define ARRAYOBJECT_END_FOREACH }
-
-#undef i
-#undef data*/
-
 // returns STATUS_OK or STATUS_ERROR
 // bad things happen if arr is not an array object
 int arrayobject_push(struct Interpreter *interp, struct Object **errptr, struct Object *arr, struct Object *elem);
