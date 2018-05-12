@@ -18,7 +18,7 @@ struct HashTableItem {
 // everything except size should be considered implementation details
 struct HashTable {
 	struct HashTableItem **buckets;
-	size_t nbuckets;
+	unsigned int nbuckets;   // hashes are uints, more than UINT_MAX buckets would be useless
 	size_t size;
 	hashtable_cmpfunc keycmp;
 };
@@ -43,7 +43,7 @@ struct HashTableIterator {
 
 	struct HashTable *ht;
 	int started;
-	size_t lastbucketno;
+	unsigned int lastbucketno;
 	struct HashTableItem *lastitem;
 };
 

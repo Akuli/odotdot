@@ -24,7 +24,34 @@ struct HashTable *hashtable_new(hashtable_cmpfunc keycmp)
 }
 
 
-static int make_bigger(struct HashTable *);   // forward declaration
+static int make_bigger(struct HashTable *ht)
+{
+	assert(ht->nbuckets != UINT_MAX);   // the caller should check this
+
+	unsigned int newnbuckets = (ht->nbuckets > UINT_MAX/3) ? UINT_MAX : ht->nbuckets*3;
+
+	struct HashTableItem **newbuckets = calloc(newnbuckets, sizeof(struct HashTableItem));
+	if (!newbuckets)
+		return STATUS_NOMEM;
+
+	for (size_t oldi = 0; oldi < ht->nbuckets; oldi++) {
+		struct HashTableItem *next;
+		for (struct HashTableItem *item = ht->buckets[oldi]; item; item=next) {
+			next = item->next;   // must be before changing item->next
+
+			// put the item to a new bucket, same code as in hashtable_set()
+			size_t newi = item->keyhash % newnbuckets;
+			item->next = newbuckets[newi];   // may be NULL
+			newbuckets[newi] = item;
+		}
+	}
+
+	free(ht->buckets);
+	ht->buckets = newbuckets;
+	ht->nbuckets = newnbuckets;
+	return STATUS_OK;
+}
+
 
 int hashtable_set(struct HashTable *ht, void *key, unsigned int keyhash, void *value, void *userdata)
 {
@@ -34,11 +61,13 @@ int hashtable_set(struct HashTable *ht, void *key, unsigned int keyhash, void *v
 	try commenting out this loadfactor and make_bigger thing and running misc/hashtable_speedtest.c
 	java's 3/4 seems to be a really good choice for this value, at least on my system
 	*/
-	float loadfactor = ((float) ht->size) / ht->nbuckets;
-	if (loadfactor > 0.75) {
-		int status = make_bigger(ht);
-		if (status != STATUS_OK)
-			return status;
+	if (ht->nbuckets != UINT_MAX) {
+		float loadfactor = ((float) ht->size) / ht->nbuckets;
+		if (loadfactor > 0.75) {
+			int status = make_bigger(ht);
+			if (status != STATUS_OK)
+				return status;
+		}
 	}
 
 	unsigned int i = keyhash % ht->nbuckets;
@@ -63,12 +92,10 @@ int hashtable_set(struct HashTable *ht, void *key, unsigned int keyhash, void *v
 	item->keyhash = keyhash;
 	item->key = key;
 	item->value = value;
-	item->next = NULL;
 
 	// it's easier to insert this item before the old item
 	// i learned this from k&r
-	if (ht->buckets[i])
-		item->next = ht->buckets[i];
+	item->next = ht->buckets[i];    // may be NULL
 	ht->buckets[i] = item;
 	ht->size++;
 	return STATUS_OK;
@@ -77,20 +104,17 @@ int hashtable_set(struct HashTable *ht, void *key, unsigned int keyhash, void *v
 
 int hashtable_get(struct HashTable *ht, void *key, unsigned int keyhash, void **res, void *userdata)
 {
-	struct HashTableItem *item = ht->buckets[keyhash % ht->nbuckets];
-	if (item) {
-		for ( ; item; item=item->next) {
-			int cmpres = ht->keycmp(item->key, key, userdata);
-			assert(cmpres <= 1);
-			if (cmpres < 0)   // error
-				return cmpres;
-			if (cmpres == 1) {   // the keys are equal
-				*res = item->value;
-				return 1;    // found
-			}
+	for (struct HashTableItem *item = ht->buckets[keyhash % ht->nbuckets]; item; item=item->next) {
+		int cmpres = ht->keycmp(item->key, key, userdata);
+		assert(cmpres <= 1);
+		if (cmpres < 0)   // error
+			return cmpres;
+		if (cmpres == 1) {   // the keys are equal
+			*res = item->value;
+			return 1;    // found
 		}
 	}
-	// empty bucket or nothing but hash collisions
+	// empty buckets or nothing but hash collisions
 	return 0;
 }
 
@@ -98,29 +122,28 @@ int hashtable_get(struct HashTable *ht, void *key, unsigned int keyhash, void **
 int hashtable_pop(struct HashTable *ht, void *key, unsigned int keyhash, void **res, void *userdata)
 {
 	unsigned int i = keyhash % ht->nbuckets;
-	if (ht->buckets[i]) {
-		struct HashTableItem *prev = NULL;
-		for (struct HashTableItem *item = ht->buckets[i]; item; item=item->next) {
-			int cmpres = ht->keycmp(item->key, key, userdata);
-			assert(cmpres <= 1);
-			if (cmpres < 0)   // error
-				return cmpres;
-			if (cmpres == 1) {
-				// found it
-				if (res)
-					*res = item->value;
+	struct HashTableItem *prev = NULL;
 
-				// if you modify this, keep in mind that item->next may be NULL
-				if (prev)    // skip this item
-					prev->next = item->next;
-				else       // this is the first item of the bucket
-					ht->buckets[i] = item->next;
-				free(item);
-				ht->size--;
-				return 1;
-			}
-			prev = item;
+	for (struct HashTableItem *item = ht->buckets[i]; item; item=item->next) {
+		int cmpres = ht->keycmp(item->key, key, userdata);
+		assert(cmpres <= 1);
+
+		if (cmpres < 0)   // error
+			return cmpres;
+		if (cmpres == 1) {
+			// found it
+			if (res)
+				*res = item->value;
+
+			if (prev)    // skip this item
+				prev->next = item->next;   // may be NULL
+			else       // this is the first item of the bucket
+				ht->buckets[i] = item->next;
+			free(item);
+			ht->size--;
+			return 1;
 		}
+		prev = item;
 	}
 	return 0;
 }
@@ -161,60 +184,14 @@ starthere:
 }
 
 
-static int make_bigger(struct HashTable *ht)
-{
-	size_t newnbuckets = ht->nbuckets*3;   // 50, 150, 450, ...
-	if (newnbuckets > UINT_MAX) {
-		// TODO: a better error message?
-		return STATUS_NOMEM;
-	}
-
-	struct HashTableItem **tmp = realloc(ht->buckets, newnbuckets * sizeof(struct HashTableItem));
-	if (!tmp)
-		return STATUS_NOMEM;
-	memset(tmp + ht->nbuckets, 0, (newnbuckets - ht->nbuckets)*sizeof(struct HashTableItem));
-	ht->buckets = tmp;
-
-	// all items that need to be moved go to the newly allocated space
-	// not another location in the old space
-	for (size_t oldi = 0; oldi < ht->nbuckets /* old bucket count */; oldi++) {
-		struct HashTableItem *prev = NULL;
-		struct HashTableItem *next;
-		for (struct HashTableItem *item = ht->buckets[oldi]; item; item=next) {
-			next = item->next;   // must be before changing item->next
-
-			size_t newi = item->keyhash % newnbuckets;
-			if (oldi != newi) {   // move it
-				assert(newi >= ht->nbuckets /* old bucket count */);
-				// skip the item in this bucket, same code as in hashtable_pop()
-				if (prev)
-					prev->next = item->next;
-				else
-					ht->buckets[oldi] = item->next;
-
-				// put the item to the new bucket, same code as in hashtable_set()
-				if (ht->buckets[newi])
-					item->next = ht->buckets[newi];
-				ht->buckets[newi] = item;
-			}
-			prev = item;
-		}
-	}
-
-	ht->nbuckets = newnbuckets;
-	return STATUS_OK;
-}
-
-
 void hashtable_fclear(struct HashTable *ht, void (*f)(void*, void*, void*), void *data)
 {
 	for (size_t i=0; i < ht->nbuckets; i++) {
-		struct HashTableItem *item = ht->buckets[i];
-		while (item) {
-			struct HashTableItem *tmp = item;
-			item = item->next;
-			f(tmp->key, tmp->value, data);
-			free(tmp);
+		struct HashTableItem *next;
+		for (struct HashTableItem *item = ht->buckets[i]; item; item=next) {
+			next = item->next;   // must be before destroying the item
+			f(item->key, item->value, data);
+			free(item);
 		}
 		ht->buckets[i] = NULL;
 	}

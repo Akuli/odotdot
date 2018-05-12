@@ -10,7 +10,7 @@ int intcmp(void *a, void *b, void *userdata)
 	return (*((int *)a)) == (*((int *)b));
 }
 
-unsigned long inthash(int i) {
+unsigned int inthash(int i) {
 	return i + 20;
 }
 
@@ -53,7 +53,7 @@ void freekeyval(void *key, void *val, void *data)
 void test_hashtable_many_values(void)
 {
 	int *keys[HOW_MANY];
-	int keyhashes[HOW_MANY];
+	unsigned int keyhashes[HOW_MANY];
 	char *values[HOW_MANY];
 
 	struct HashTable *ht = hashtable_new(intcmp);
