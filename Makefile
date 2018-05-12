@@ -2,6 +2,9 @@ CC ?= cc
 CFLAGS += -Wall -Wextra -Wpedantic -std=c99 -Wno-unused-parameter
 TESTARGS ?=
 
+# TODO: comment this out some day? this is for debugging with gdb and valgrind
+CFLAGS += -g
+
 SRC := $(filter-out src/main.c, $(wildcard src/*.c src/objects/*.c))
 OBJ := $(SRC:src/%.c=obj/%.o)
 CTESTS_SRC := $(wildcard ctests/*.c) $(wildcard ctests/*.h)
