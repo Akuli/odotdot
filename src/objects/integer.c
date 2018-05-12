@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "classobject.h"
+#include "errors.h"
 #include "function.h"
 #include "string.h"
 #include "../common.h"
@@ -74,13 +75,33 @@ struct Object *integerobject_createclass(struct Interpreter *interp, struct Obje
 	return klass;
 }
 
+struct Object *integerobject_newfromlonglong(struct Interpreter *interp, struct Object **errptr, long long val)
+{
+	assert(INTEGEROBJECT_MIN <= val && val <= INTEGEROBJECT_MAX);
+
+	long long *data = malloc(sizeof(long long));
+	if (!data)
+		return NULL;
+	*data = val;
+
+	struct Object *integerclass = interpreter_getbuiltin(interp, errptr, "Integer");
+	if (!integerclass) {
+		free(data);
+		return NULL;
+	}
+
+	struct Object *integer = classobject_newinstance(interp, errptr, integerclass, data);
+	OBJECT_DECREF(interp, integerclass);
+	if (!integer) {
+		free(data);
+		return NULL;
+	}
+	return integer;
+}
+
 // TODO: take a context and use errorobject_setwithfmt instead
 static struct Object *integer_from_digits(struct Interpreter *interp, struct Object **errptr, int isnegative, int *digits, int ndigits)
 {
-	struct Object *integerclass = interpreter_getbuiltin(interp, errptr, "Integer");
-	if (!integerclass)
-		return NULL;
-
 	assert(ndigits > 0);
 
 	// see to_string
@@ -98,18 +119,8 @@ static struct Object *integer_from_digits(struct Interpreter *interp, struct Obj
 	}
 #undef ABSMAX
 
-	long long *data = malloc(sizeof(long long));
-	if (!data)
-		return NULL;
-	*data = isnegative ? -((long long)(absval-1)) - 1 : (long long)absval;
-
-	struct Object *integer = classobject_newinstance(interp, errptr, integerclass, data);
-	OBJECT_DECREF(interp, integerclass);
-	if (!integer) {
-		free(data);
-		return NULL;
-	}
-	return integer;
+	long long val = isnegative ? -((long long)(absval-1)) - 1 : (long long)absval;
+	return integerobject_newfromlonglong(interp, errptr, val);
 }
 
 struct Object *integerobject_newfromustr(struct Interpreter *interp, struct Object **errptr, struct UnicodeString ustr)
@@ -139,26 +150,27 @@ struct Object *integerobject_newfromustr(struct Interpreter *interp, struct Obje
 	return integer_from_digits(interp, errptr, isnegative, digits, ustr.len);
 }
 
-// this is a lot like newfromustr, see above
 struct Object *integerobject_newfromcharptr(struct Interpreter *interp, struct Object **errptr, char *s)
 {
-	int isnegative=(s[0] == '-');
-	if (isnegative)
-		s++;
-
-	size_t ndigits = strlen(s);
-	while (ndigits > 1 && s[0] == '0') {
-		s++;
-		ndigits--;
+	// it would be easy to skip many zeros like this:   while (s[0] == '0') s++;
+	// but -000000000000000000000000000000001 must be turned into -1
+	// it would be possible to do this without another malloc, but performance-critical
+	// stuff should use newfromustr or newfromlonglong anyway
+	struct UnicodeString ustr;
+	ustr.len = strlen(s);
+	ustr.val = malloc(sizeof(unicode_char) * ustr.len);
+	if (!ustr.val) {
+		errorobject_setnomem(interp, errptr);
+		return NULL;
 	}
-	assert(1 <= ndigits && ndigits <= INTEGER_MAXLEN);
 
-	int digits[INTEGER_MAXLEN];
-	for (int i=0; i < (int)ndigits; i++) {
-		assert('0' <= s[i] && s[i] <= '9');
-		digits[i] = s[i] - '0';
-	}
-	return integer_from_digits(interp, errptr, isnegative, digits, ndigits);
+	// can't memcpy because types differ
+	for (size_t i=0; i < ustr.len; i++)
+		ustr.val[i] = s[i];
+
+	struct Object *res = integerobject_newfromustr(interp, errptr, ustr);
+	free(ustr.val);
+	return res;
 }
 
 long long integerobject_tolonglong(struct Object *integer)

@@ -22,7 +22,10 @@
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *integerobject_createclass(struct Interpreter *interp, struct Object **errptr);
 
-// doesn't change ustr
+// asserts that the value fits in a 64-bit int, long long can be more than 64 bits in c99
+// RETURNS A NEW REFERENCE or NULL on error
+struct Object *integerobject_newfromlonglong(struct Interpreter *interp, struct Object **errptr, long long val);
+
 // RETURNS A NEW REFERENCE
 struct Object *integerobject_newfromustr(struct Interpreter *interp, struct Object **errptr, struct UnicodeString ustr);
 

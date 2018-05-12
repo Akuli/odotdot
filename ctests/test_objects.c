@@ -196,12 +196,8 @@ static void check(struct ArrayObjectData *arrdata)
 void test_objects_array_many_elems(void)
 {
 	struct Object *objs[HOW_MANY];
-	for (size_t i=0; i < HOW_MANY; i++) {
-		// TODO: add integerobject_fromlonglong or something
-		char buf[10];
-		sprintf(buf, "%d", (int) (i+10));
-		buttert((objs[i] = integerobject_newfromcharptr(testinterp, NULL, buf)));
-	}
+	for (size_t i=0; i < HOW_MANY; i++)
+		buttert((objs[i] = integerobject_newfromlonglong(testinterp, NULL, i+10)));
 
 	struct Object *arr = arrayobject_new(testinterp, NULL, objs, HOW_MANY);
 	check(arr->data);
@@ -220,6 +216,8 @@ void test_objects_array_many_elems(void)
 		OBJECT_DECREF(testinterp, objs[i]);
 }
 #undef HOW_MANY
+
+#define LOTS_OF_ZEROS "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
 
 void test_objects_integer(void)
 {
@@ -265,9 +263,9 @@ void test_objects_integer(void)
 	OBJECT_DECREF(testinterp, zero2);
 
 	// biggest and smallest allowed values
-	// TODO: implement and test error handling for too big or small values
-	struct Object *big = integerobject_newfromcharptr(testinterp, NULL, "9223372036854775807");
-	struct Object *small = integerobject_newfromcharptr(testinterp, NULL, "-9223372036854775808");
+	// zeros must be stripped off
+	struct Object *big = integerobject_newfromcharptr(testinterp, NULL, LOTS_OF_ZEROS"9223372036854775807");
+	struct Object *small = integerobject_newfromcharptr(testinterp, NULL, "-"LOTS_OF_ZEROS"9223372036854775808");
 	buttert(integerobject_tolonglong(big) == INT64_MAX);
 	buttert(integerobject_tolonglong(small) == INT64_MIN);
 	OBJECT_DECREF(testinterp, big);
