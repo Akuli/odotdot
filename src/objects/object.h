@@ -5,6 +5,7 @@ other files have things like OBJECTS_STRING_H and stringobject_blahblah() */
 #ifndef OBJECTS_OBJECT_H
 #define OBJECTS_OBJECT_H
 
+#include "../interpreter.h"     // IWYU pragma: keep
 #include "../objectsystem.h"    // IWYU pragma: keep
 
 // only called from builtins_setup()

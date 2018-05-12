@@ -1,7 +1,6 @@
 #ifndef OBJECTS_INTEGER_H
 #define OBJECTS_INTEGER_H
 
-#include <stdint.h>
 #include "../interpreter.h"    // IWYU pragma: keep
 #include "../objectsystem.h"   // IWYU pragma: keep
 #include "../unicode.h"        // IWYU pragma: keep

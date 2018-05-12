@@ -9,7 +9,6 @@
 #include "hashtable.h"
 #include "objectsystem.h"
 #include "unicode.h"
-#include "objects/classobject.h"
 #include "objects/errors.h"
 
 static int compare_by_identity(void *a, void *b, void *junkdata) { return a==b; }

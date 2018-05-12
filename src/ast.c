@@ -6,10 +6,11 @@
 #include "ast.h"
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 #include "common.h"
-#include "unicode.h"
+#include "interpreter.h"
+#include "objectsystem.h"
 #include "tokenizer.h"
+#include "unicode.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
 #include "objects/integer.h"

@@ -4,10 +4,10 @@
 #include "function.h"
 #include "string.h"
 #include "../common.h"
+#include "../hashtable.h"
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"
-#include "../unicode.h"
 
 static void object_foreachref(struct Object *obj, void *data, classobject_foreachrefcb cb)
 {

@@ -2,7 +2,7 @@
 #define OBJECTS_CLASSOBJECT_H
 
 #include "../interpreter.h"         // IWYU pragma: keep
-#include "../objectsystem.h"
+#include "../objectsystem.h"        // IWYU pragma: keep
 
 typedef void (*classobject_foreachrefcb)(struct Object *ref, void *data);
 

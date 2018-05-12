@@ -1,4 +1,6 @@
 #include <src/ast.h>
+#include <src/interpreter.h>
+#include <src/objectsystem.h>
 #include <src/tokenizer.h>
 #include <src/unicode.h>
 #include <src/objects/classobject.h>

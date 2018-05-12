@@ -3,7 +3,6 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
 #include "common.h"
 #include "hashtable.h"
 #include "interpreter.h"

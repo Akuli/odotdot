@@ -1,11 +1,13 @@
 #include "classobject.h"
 #include <assert.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include "errors.h"
-#include "../common.h"
+#include "../hashtable.h"
 #include "../interpreter.h"
 #include "../objectsystem.h"
+#include "../unicode.h"
 
 static int compare_unicode_strings(void *a, void *b, void *userdata)
 {

@@ -1,5 +1,4 @@
 #include <src/dynamicarray.h>
-#include <src/hashtable.h>
 #include <src/interpreter.h>
 #include <src/method.h>
 #include <src/objects/array.h>

@@ -11,8 +11,6 @@
 #include "objects/array.h"
 #include "objects/errors.h"
 #include "objects/function.h"
-#include "objects/integer.h"
-#include "objects/string.h"
 
 // RETURNS A NEW REFERENCE
 static struct Object *run_expression(struct Context *ctx, struct Object **errptr, struct Object *exprnode)

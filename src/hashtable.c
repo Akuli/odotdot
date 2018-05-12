@@ -4,7 +4,6 @@
 #include <assert.h>
 #include <limits.h>
 #include <stdlib.h>
-#include <string.h>
 #include "common.h"
 
 struct HashTable *hashtable_new(hashtable_cmpfunc keycmp)
