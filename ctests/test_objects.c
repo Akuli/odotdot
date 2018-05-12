@@ -209,8 +209,8 @@ void test_objects_integer(void)
 	for (size_t i=0; i < sizeof(posints)/sizeof(posints[0]); i++) {
 		buttert(posints[i]);
 		buttert(negints[i]);
-		buttert(integerobject_toint64(posints[i]) == 123);
-		buttert(integerobject_toint64(negints[i]) == -123);
+		buttert(integerobject_tolonglong(posints[i]) == 123);
+		buttert(integerobject_tolonglong(negints[i]) == -123);
 		OBJECT_DECREF(testinterp, posints[i]);
 		OBJECT_DECREF(testinterp, negints[i]);
 	}
@@ -218,8 +218,8 @@ void test_objects_integer(void)
 	// "0" and "-0" should be treated equally
 	struct Object *zero1 = integerobject_newfromcharptr(testinterp, NULL, "0");
 	struct Object *zero2 = integerobject_newfromcharptr(testinterp, NULL, "-0");
-	buttert(integerobject_toint64(zero1) == 0);
-	buttert(integerobject_toint64(zero2) == 0);
+	buttert(integerobject_tolonglong(zero1) == 0);
+	buttert(integerobject_tolonglong(zero2) == 0);
 	OBJECT_DECREF(testinterp, zero1);
 	OBJECT_DECREF(testinterp, zero2);
 
@@ -227,8 +227,8 @@ void test_objects_integer(void)
 	// TODO: implement and test error handling for too big or small values
 	struct Object *big = integerobject_newfromcharptr(testinterp, NULL, "9223372036854775807");
 	struct Object *small = integerobject_newfromcharptr(testinterp, NULL, "-9223372036854775808");
-	buttert(integerobject_toint64(big) == INT64_MAX);
-	buttert(integerobject_toint64(small) == INT64_MIN);
+	buttert(integerobject_tolonglong(big) == INT64_MAX);
+	buttert(integerobject_tolonglong(small) == INT64_MIN);
 	OBJECT_DECREF(testinterp, big);
 	OBJECT_DECREF(testinterp, small);
 }

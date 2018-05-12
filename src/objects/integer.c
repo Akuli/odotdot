@@ -27,20 +27,22 @@ static struct Object *to_string(struct Context *ctx, struct Object **errptr, str
 	if (functionobject_checktypes(ctx, errptr, args, nargs, "Integer", NULL) == STATUS_ERROR)
 		return NULL;
 
-	int64_t val = *((int64_t *) args[0]->data);
+	long long val = *((long long *) args[0]->data);
 	if (val == 0)   // special case
 		return stringobject_newfromcharptr(ctx->interp, errptr, "0");
 
-	uint64_t absval;
+	assert(INTEGEROBJECT_MIN <= val && val <= INTEGEROBJECT_MAX);
+
+	unsigned long long absval;   // 1 more bit of magnitude than long long
 	if (val < 0) {
 		// '-' will be added to res later
-		// careful here... -INT64_MIN overflows, but -(INT64_MIN+1) doesn't
-		// uint64_t can hold anything
-		absval = (uint64_t)(-(val+1)) + 1;
+		// careful here... -INTEGEROBJECT_MIN overflows, but -(INTEGEROBJECT_MIN+1) doesn't
+		absval = ( (unsigned long long)(-(val+1)) ) + 1;
 	} else {
 		absval = val;
 	}
 
+	// res is filled in backwards because it's handy
 	char res[INTEGER_MAXLEN+1];
 	res[INTEGER_MAXLEN] = 0;
 	int i = INTEGER_MAXLEN;
@@ -81,14 +83,11 @@ static struct Object *integer_from_digits(struct Interpreter *interp, struct Obj
 
 	assert(ndigits > 0);
 
-	// uint64_t can handle these because it doesn't use one bit for the sign
-	uint64_t absval = 0;
+	// see to_string
+	unsigned long long absval = 0;
+#define ABSMAX (isnegative ? ( (unsigned long long)(-(INTEGEROBJECT_MIN+1)) ) + 1 : (unsigned long long)INTEGEROBJECT_MAX)
 
-	// careful here... -INT64_MIN doesn't fit in an int64_t, but -(INT64_MIN+1) fits
-	// everything fits into an uint64_t
-#define ABSMAX (isnegative ? (uint64_t)(-(INT64_MIN + 1)) + 1 : (uint64_t)INT64_MAX)
-
-	uint64_t multipleby = 1;
+	unsigned long long multipleby = 1;
 	for (int i=ndigits-1; i>=0; i--) {
 		// error condition:
 		//    absval + digits[i]*multipleby > ABSMAX
@@ -99,10 +98,10 @@ static struct Object *integer_from_digits(struct Interpreter *interp, struct Obj
 	}
 #undef ABSMAX
 
-	int64_t *data = malloc(sizeof(int64_t));
+	long long *data = malloc(sizeof(long long));
 	if (!data)
 		return NULL;
-	*data = isnegative ? -absval : absval;
+	*data = isnegative ? -((long long)(absval-1)) - 1 : (long long)absval;
 
 	struct Object *integer = classobject_newinstance(interp, errptr, integerclass, data);
 	OBJECT_DECREF(interp, integerclass);
@@ -123,7 +122,7 @@ struct Object *integerobject_newfromustr(struct Interpreter *interp, struct Obje
 	}
 
 	// remove leading zeros, but leave a single digit zero alone
-	// e.g. 0000000123 ==> 123, 00000000 ==> 0, 000001 ==> 1
+	// e.g. 0000000123 --> 123, 00000000 --> 0, 000001 --> 1
 	while (ustr.len > 1 && ustr.val[0] == '0') {
 		ustr.val++;
 		ustr.len--;
@@ -162,7 +161,7 @@ struct Object *integerobject_newfromcharptr(struct Interpreter *interp, struct O
 	return integer_from_digits(interp, errptr, isnegative, digits, ndigits);
 }
 
-int64_t integerobject_toint64(struct Object *integer)
+long long integerobject_tolonglong(struct Object *integer)
 {
-	return *((int64_t *) integer->data);
+	return *((long long *) integer->data);
 }

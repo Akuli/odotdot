@@ -6,11 +6,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#ifdef UINT32_MAX
-typedef uint32_t unicode_char;
-#else
+// the standard says that int32_t is optional, but this must exist
 typedef uint_least32_t unicode_char;
-#endif     // UINT64_MAX
 
 struct UnicodeString {
 	unicode_char *val;    // usually from malloc(), must be free()'d

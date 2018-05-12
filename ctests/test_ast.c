@@ -169,7 +169,7 @@ void test_ast_ints(void)
 	struct AstNodeData *data = node->data;
 
 	buttert(data->kind == AST_INT);
-	buttert(integerobject_toint64(data->info) == -123);
+	buttert(integerobject_tolonglong(data->info) == -123);
 	OBJECT_DECREF(testinterp, node);
 }
 
