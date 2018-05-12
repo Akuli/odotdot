@@ -1,5 +1,5 @@
 #include "array.h"
-#include <assert.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include "classobject.h"
@@ -7,6 +7,7 @@
 #include "function.h"
 #include "string.h"
 #include "../common.h"
+#include "../context.h"
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"
