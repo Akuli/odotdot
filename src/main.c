@@ -199,7 +199,6 @@ int main(int argc, char **argv)
 
 	// TODO: run stdlib/fake_builtins.ö and create a new subcontext for this file
 	int res = run_file(interp->builtinctx, argv[1]);
-	//gc_run(interp);
 	builtins_teardown(interp);
 	interpreter_free(interp);
 	return res;
