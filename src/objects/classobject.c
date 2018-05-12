@@ -22,8 +22,9 @@ static int compare_unicode_strings(void *a, void *b, void *userdata)
 	return 1;
 }
 
-struct Object *classobject_new_noerrptr(struct Interpreter *interp, char *name, struct Object *base, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb), void (*destructor)(struct Object *instance))
+struct Object *classobject_new_noerrptr(struct Interpreter *interp, char *name, struct Object *base, int instanceshaveattrs, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb), void (*destructor)(struct Object *instance))
 {
+	assert(instanceshaveattrs == 0 || instanceshaveattrs == 1);
 	struct ClassObjectData *data = malloc(sizeof(struct ClassObjectData));
 	if (!data)
 		return NULL;
@@ -39,6 +40,7 @@ struct Object *classobject_new_noerrptr(struct Interpreter *interp, char *name, 
 	data->baseclass = base;
 	if (base)
 		OBJECT_INCREF(interp, base);
+	data->instanceshaveattrs = instanceshaveattrs;
 	data->foreachref = foreachref;
 	data->destructor = destructor;
 
@@ -54,7 +56,7 @@ struct Object *classobject_new_noerrptr(struct Interpreter *interp, char *name, 
 	return klass;
 }
 
-struct Object *classobject_new(struct Interpreter *interp, struct Object **errptr, char *name, struct Object *base, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb), void (*destructor)(struct Object *instance))
+struct Object *classobject_new(struct Interpreter *interp, struct Object **errptr, char *name, struct Object *base, int instanceshaveattrs, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb), void (*destructor)(struct Object *instance))
 {
 	assert(interp->classclass);
 	assert(interp->nomemerr);
@@ -66,7 +68,7 @@ struct Object *classobject_new(struct Interpreter *interp, struct Object **errpt
 		return NULL;
 	}
 
-	struct Object *klass = classobject_new_noerrptr(interp, name, base, foreachref, destructor);
+	struct Object *klass = classobject_new_noerrptr(interp, name, base, instanceshaveattrs, foreachref, destructor);
 	if (!klass) {
 		errorobject_setnomem(interp, errptr);
 		return NULL;
@@ -133,5 +135,6 @@ void classobject_destructor(struct Object *klass)
 
 struct Object *classobject_create_classclass(struct Interpreter *interp, struct Object *objectclass)
 {
-	return classobject_new_noerrptr(interp, "Class", objectclass, class_foreachref, classobject_destructor);
+	// TODO: should the name of class objects be implemented as an attribute?
+	return classobject_new_noerrptr(interp, "Class", objectclass, 0, class_foreachref, classobject_destructor);
 }

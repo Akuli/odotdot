@@ -112,7 +112,7 @@ struct Object *arrayobject_createclass(struct Interpreter *interp, struct Object
 	if (!objectclass)
 		return NULL;
 
-	struct Object *klass = classobject_new(interp, errptr, "Array", objectclass, array_foreachref, array_destructor);
+	struct Object *klass = classobject_new(interp, errptr, "Array", objectclass, 0, array_foreachref, array_destructor);
 	OBJECT_DECREF(interp, objectclass);
 	if (!klass)
 		return NULL;

@@ -60,7 +60,7 @@ struct Object *integerobject_createclass(struct Interpreter *interp, struct Obje
 	if (!objectclass)
 		return NULL;
 
-	struct Object *klass = classobject_new(interp, errptr, "Integer", objectclass, NULL, integer_destructor);
+	struct Object *klass = classobject_new(interp, errptr, "Integer", objectclass, 0, NULL, integer_destructor);
 	OBJECT_DECREF(interp, objectclass);
 	if (!klass)
 		return NULL;

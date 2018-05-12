@@ -26,7 +26,7 @@ static void string_destructor(struct Object *str)
 
 struct Object *stringobject_createclass(struct Interpreter *interp, struct Object *objectclass)
 {
-	return classobject_new_noerrptr(interp, "String", objectclass, NULL, string_destructor);
+	return classobject_new_noerrptr(interp, "String", objectclass, 0, NULL, string_destructor);
 }
 
 static struct Object *to_string(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)

@@ -23,7 +23,7 @@ static void object_foreachref(struct Object *obj, void *data, classobject_foreac
 
 struct Object *objectobject_createclass(struct Interpreter *interp)
 {
-	return classobject_new_noerrptr(interp, "Object", NULL, object_foreachref, NULL);
+	return classobject_new_noerrptr(interp, "Object", NULL, 0, object_foreachref, NULL);
 }
 
 

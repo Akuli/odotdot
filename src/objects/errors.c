@@ -18,7 +18,9 @@ static void error_foreachref(struct Object *obj, void *data, classobject_foreach
 
 struct Object *errorobject_createclass(struct Interpreter *interp, struct Object *objectclass)
 {
-	return classobject_new_noerrptr(interp, "Error", objectclass, error_foreachref, NULL);
+	// Error objects can have any attributes
+	// TODO: use a message attribute instead of ->data?
+	return classobject_new_noerrptr(interp, "Error", objectclass, 1, error_foreachref, NULL);
 }
 
 struct Object *errorobject_createnomemerr(struct Interpreter *interp, struct Object *errorclass, struct Object *stringclass)

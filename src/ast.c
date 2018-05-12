@@ -107,7 +107,9 @@ struct Object *astnode_createclass(struct Interpreter *interp, struct Object **e
 	if (!objectclass)
 		return NULL;
 
-	struct Object *klass = classobject_new(interp, errptr, "AstNode", objectclass, astnode_foreachref, astnode_destructor);
+	// the 1 means that AstNode instances may have attributes
+	// TODO: add at least kind and lineno attributes to the nodes?
+	struct Object *klass = classobject_new(interp, errptr, "AstNode", objectclass, 1, astnode_foreachref, astnode_destructor);
 	OBJECT_DECREF(interp, objectclass);
 	return klass;   // may be NULL
 }

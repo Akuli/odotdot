@@ -45,7 +45,8 @@ struct Object *functionobject_createclass(struct Interpreter *interp, struct Obj
 	if (!objectclass)
 		return NULL;
 
-	struct Object *klass = classobject_new(interp, errptr, "Function", objectclass, function_foreachref, function_destructor);
+	// TODO: allow attaching arbitrary attributes to functions like in python?
+	struct Object *klass = classobject_new(interp, errptr, "Function", objectclass, 0, function_foreachref, function_destructor);
 	OBJECT_DECREF(interp, objectclass);
 	return klass;    // can be NULL
 }

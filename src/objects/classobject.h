@@ -19,6 +19,9 @@ struct ClassObjectData {
 	// keys are UnicodeStrings, values are Function objects (see objects/function.{c,h})
 	struct HashTable *methods;
 
+	// instances of e.g. String and Integer have no attributes
+	int instanceshaveattrs;   // 1 or 0
+
 	// calls cb(ref, data) for each ref object that this object refers to
 	// this is used for garbage collecting
 	// can be NULL
@@ -34,10 +37,10 @@ void classobject_destructor(struct Object *klass);
 
 // creates a new class
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *classobject_new(struct Interpreter *interp, struct Object **errptr, char *name, struct Object *base, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb), void (*destructor)(struct Object*));
+struct Object *classobject_new(struct Interpreter *interp, struct Object **errptr, char *name, struct Object *base, int instanceshaveattrs, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb), void (*destructor)(struct Object*));
 
 // RETURNS A NEW REFERENCE or NULL on no mem, for builtins_setup() only
-struct Object *classobject_new_noerrptr(struct Interpreter *interp, char *name, struct Object *base, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb), void (*destructor)(struct Object*));
+struct Object *classobject_new_noerrptr(struct Interpreter *interp, char *name, struct Object *base, int instanceshaveattrs, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb), void (*destructor)(struct Object*));
 
 // a nicer wrapper for object_new() that takes errptr and checks types
 // RETURNS A NEW REFERENCE or NULL on error

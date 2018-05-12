@@ -34,10 +34,16 @@ struct Object *object_new(struct Interpreter *interp, struct Object *klass, void
 	if(!obj)
 		return NULL;
 
-	obj->attrs = hashtable_new(compare_unicode_strings);
-	if (!obj->attrs) {
-		free(obj);
-		return NULL;
+	// if klass is NULL, DON'T create attributes
+	// see builtins_setup() for the classes that this happens to
+	if (klass && ((struct ClassObjectData *) klass->data)->instanceshaveattrs) {
+		obj->attrs = hashtable_new(compare_unicode_strings);
+		if (!obj->attrs) {
+			free(obj);
+			return NULL;
+		}
+	} else {
+		obj->attrs = NULL;
 	}
 
 	obj->klass = klass;
@@ -51,7 +57,8 @@ struct Object *object_new(struct Interpreter *interp, struct Object *klass, void
 	if (hashtable_set(interp->allobjects, obj, (unsigned int)((uintptr_t)obj), &dummy, NULL) == STATUS_NOMEM) {
 		if (klass)
 			OBJECT_DECREF(interp, klass);
-		hashtable_free(obj->attrs);
+		if (obj->attrs)
+			hashtable_free(obj->attrs);
 		free(obj);
 		return NULL;
 	}
@@ -91,7 +98,10 @@ void object_free_impl(struct Interpreter *interp, struct Object *obj)
 	void *dummyptr;
 	assert(hashtable_pop(interp->allobjects, obj, (unsigned int)((uintptr_t)obj), &dummyptr, NULL) == 1);
 
-	hashtable_clear(obj->attrs);   // TODO: decref the values or something?
-	hashtable_free(obj->attrs);
+	if (obj->attrs) {
+		// the attributes should have been decreffed already, see Object's foreachref
+		hashtable_clear(obj->attrs);
+		hashtable_free(obj->attrs);
+	}
 	free(obj);
 }
