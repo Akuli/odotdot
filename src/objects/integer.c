@@ -44,9 +44,9 @@ static struct Object *to_string(struct Context *ctx, struct Object **errptr, str
 	}
 
 	// res is filled in backwards because it's handy
-	char res[INTEGER_MAXLEN+1];
-	res[INTEGER_MAXLEN] = 0;
-	int i = INTEGER_MAXLEN;
+	char res[INTEGEROBJECT_MAXDIGITS+1];
+	res[INTEGEROBJECT_MAXDIGITS] = 0;
+	int i = INTEGEROBJECT_MAXDIGITS;
 	while( absval != 0) {
 		res[--i] = (char)(absval % 10) + '0';
 		absval /= 10;
@@ -80,8 +80,10 @@ struct Object *integerobject_newfromlonglong(struct Interpreter *interp, struct 
 	assert(INTEGEROBJECT_MIN <= val && val <= INTEGEROBJECT_MAX);
 
 	long long *data = malloc(sizeof(long long));
-	if (!data)
+	if (!data) {
+		errorobject_setnomem(interp, errptr);
 		return NULL;
+	}
 	*data = val;
 
 	struct Object *integerclass = interpreter_getbuiltin(interp, errptr, "Integer");
@@ -99,32 +101,10 @@ struct Object *integerobject_newfromlonglong(struct Interpreter *interp, struct 
 	return integer;
 }
 
-// TODO: take a context and use errorobject_setwithfmt instead
-static struct Object *integer_from_digits(struct Interpreter *interp, struct Object **errptr, int isnegative, int *digits, int ndigits)
-{
-	assert(ndigits > 0);
-
-	// see to_string
-	unsigned long long absval = 0;
-#define ABSMAX (isnegative ? ( (unsigned long long)(-(INTEGEROBJECT_MIN+1)) ) + 1 : (unsigned long long)INTEGEROBJECT_MAX)
-
-	unsigned long long multipleby = 1;
-	for (int i=ndigits-1; i>=0; i--) {
-		// error condition:
-		//    absval + digits[i]*multipleby > ABSMAX
-		//    absval > ABSMAX - digits[i]*multipleby
-		assert(absval <= ABSMAX - digits[i]*multipleby);
-		absval += digits[i]*multipleby;
-		multipleby *= 10;
-	}
-#undef ABSMAX
-
-	long long val = isnegative ? -((long long)(absval-1)) - 1 : (long long)absval;
-	return integerobject_newfromlonglong(interp, errptr, val);
-}
-
 struct Object *integerobject_newfromustr(struct Interpreter *interp, struct Object **errptr, struct UnicodeString ustr)
 {
+	struct UnicodeString origstr = ustr;
+
 	int isnegative=(ustr.val[0] == '-');
 	if (isnegative) {
 		// this relies on pass-by-value
@@ -140,14 +120,42 @@ struct Object *integerobject_newfromustr(struct Interpreter *interp, struct Obje
 	}
 
 	// TODO: better error handling
-	assert(1 <= ustr.len && ustr.len <= INTEGER_MAXLEN);
+	if (ustr.len == 0) {
+		// FIXME: stop using builtinctx?
+		errorobject_setwithfmt(interp->builtinctx, errptr, "'%U' is not an integer", origstr);
+		return NULL;
+	}
+	if (ustr.len > INTEGEROBJECT_MAXDIGITS)
+		goto mustBbetween;
 
-	int digits[INTEGER_MAXLEN];
+	int digits[INTEGEROBJECT_MAXDIGITS];
 	for (int i=0; i < (int)ustr.len; i++) {
-		assert('0' <= ustr.val[i] && ustr.val[i] <= '9');
+		if (ustr.val[i] < '0' || ustr.val[i] > '9') {
+			errorobject_setwithfmt(interp->builtinctx, errptr, "'%U' is not an integer", origstr);
+			return NULL;
+		}
 		digits[i] = ustr.val[i] - '0';
 	}
-	return integer_from_digits(interp, errptr, isnegative, digits, ustr.len);
+
+	// see to_string
+	unsigned long long absval = 0;
+#define ABSMAX (isnegative ? ( (unsigned long long)(-(INTEGEROBJECT_MIN+1)) ) + 1 : (unsigned long long)INTEGEROBJECT_MAX)
+
+	unsigned long long multipleby = 1;
+	for (int i = ustr.len-1; i>=0; i--) {
+		if (absval > ABSMAX - digits[i]*multipleby)
+			goto mustBbetween;
+		absval += digits[i]*multipleby;   // fitting was just checked
+		multipleby *= 10;
+	}
+#undef ABSMAX
+
+	long long val = isnegative ? -((long long)(absval-1)) - 1 : (long long)absval;
+	return integerobject_newfromlonglong(interp, errptr, val);
+
+mustBbetween:
+	errorobject_setwithfmt(interp->builtinctx, errptr, "integers must be between %s and %s, but '%U' is not", INTEGEROBJECT_MINSTR, INTEGEROBJECT_MAXSTR, origstr);
+	return NULL;
 }
 
 struct Object *integerobject_newfromcharptr(struct Interpreter *interp, struct Object **errptr, char *s)

@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "utils.h"
 
 
@@ -49,7 +50,6 @@ void test_objects_error(void)
 struct Object *callback_arg1, *callback_arg2;
 int flipped = 0;
 
-// TODO: test actually running this thing to make sure that data is passed correctly
 struct Object *callback(struct Context *callctx, struct Object **errptr, struct Object **args, size_t nargs)
 {
 	buttert(nargs == 2);
@@ -217,59 +217,5 @@ void test_objects_array_many_elems(void)
 }
 #undef HOW_MANY
 
-#define LOTS_OF_ZEROS "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-
-void test_objects_integer(void)
-{
-	struct UnicodeString u;
-	u.len = 5;
-	u.val = bmalloc(sizeof(unicode_char) * 5);
-	u.val[0] = '-';
-	u.val[1] = '0';     // leading zeros don't matter
-	u.val[2] = '1';
-	u.val[3] = '2';
-	u.val[4] = '3';
-
-	struct Object *negints[] = {
-		integerobject_newfromustr(testinterp, NULL, u),
-		integerobject_newfromcharptr(testinterp, NULL, "-0123") };
-
-	// skip the minus sign
-	u.len--;
-	u.val++;
-
-	struct Object *posints[] = {
-		integerobject_newfromustr(testinterp, NULL, u),
-		integerobject_newfromcharptr(testinterp, NULL, "0123") };
-	free(u.val - 1 /* undo the minus skip */);
-
-	buttert(sizeof(posints) == sizeof(negints));
-
-	for (size_t i=0; i < sizeof(posints)/sizeof(posints[0]); i++) {
-		buttert(posints[i]);
-		buttert(negints[i]);
-		buttert(integerobject_tolonglong(posints[i]) == 123);
-		buttert(integerobject_tolonglong(negints[i]) == -123);
-		OBJECT_DECREF(testinterp, posints[i]);
-		OBJECT_DECREF(testinterp, negints[i]);
-	}
-
-	// "0" and "-0" should be treated equally
-	struct Object *zero1 = integerobject_newfromcharptr(testinterp, NULL, "0");
-	struct Object *zero2 = integerobject_newfromcharptr(testinterp, NULL, "-0");
-	buttert(integerobject_tolonglong(zero1) == 0);
-	buttert(integerobject_tolonglong(zero2) == 0);
-	OBJECT_DECREF(testinterp, zero1);
-	OBJECT_DECREF(testinterp, zero2);
-
-	// biggest and smallest allowed values
-	// zeros must be stripped off
-	struct Object *big = integerobject_newfromcharptr(testinterp, NULL, LOTS_OF_ZEROS"9223372036854775807");
-	struct Object *small = integerobject_newfromcharptr(testinterp, NULL, "-"LOTS_OF_ZEROS"9223372036854775808");
-	buttert(integerobject_tolonglong(big) == INT64_MAX);
-	buttert(integerobject_tolonglong(small) == INT64_MIN);
-	OBJECT_DECREF(testinterp, big);
-	OBJECT_DECREF(testinterp, small);
-}
 
 // classobject isn't tested here because it's used a lot when setting up testinterp

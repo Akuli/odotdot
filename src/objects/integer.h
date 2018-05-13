@@ -14,9 +14,12 @@
 // careful here... INTEGEROBJECT_MAX+1 is undefined, but (-INTEGEROBJECT_MAX)-1 is ok
 #define INTEGEROBJECT_MIN ((-INTEGEROBJECT_MAX) - 1)
 
+// explanation:
+#define INTEGEROBJECT_MINSTR "-9223372036854775808"
+#define INTEGEROBJECT_MAXSTR  "9223372036854775807"
 
-// decimal representations of all 64-bit ints without leading zeros fit in 20 characters
-#define INTEGER_MAXLEN 20
+// INTEGEROBJECT_MINSTR, INTEGEROBJECT_MAXSTR and everythign between them fit in this many chars
+#define INTEGEROBJECT_MAXDIGITS 20
 
 
 // RETURNS A NEW REFERENCE or NULL on error

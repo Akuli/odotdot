@@ -20,6 +20,7 @@
 
 void *bmalloc(size_t size);
 
+#include <src/interpreter.h>
 extern struct Interpreter *testinterp;
 
 #endif   // TESTUTILS_H
