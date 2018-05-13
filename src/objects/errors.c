@@ -93,12 +93,6 @@ int errorobject_setwithfmt(struct Context *ctx, struct Object **errptr, char *fm
 
 int errorobject_typecheck(struct Context *ctx, struct Object **errptr, struct Object *klass, struct Object *obj)
 {
-	// make sure that klass is a class, but avoid infinite recursion
-	if (klass != ctx->interp->classclass) {
-		if (errorobject_typecheck(ctx, errptr, ctx->interp->classclass, klass) == STATUS_ERROR)
-			return STATUS_ERROR;
-	}
-
 	if (!classobject_instanceof(obj, klass)) {
 		char *name = ((struct ClassObjectData*) klass->data)->name;
 		errorobject_setwithfmt(ctx, errptr, "should be an instance of %s, not %D", name, obj);

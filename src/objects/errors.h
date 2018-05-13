@@ -31,6 +31,7 @@ never fails
 void errorobject_setnomem(struct Interpreter *interp, struct Object **errptr);
 
 // sets an error and returns STATUS_ERROR if obj is not an instance of klass
+// bad things happen if klass is not a class object
 // returns STATUS_OK on success
 int errorobject_typecheck(struct Context *ctx, struct Object **errptr, struct Object *klass, struct Object *obj);
 

@@ -1,6 +1,7 @@
 #include "object.h"
 #include <stddef.h>
 #include "classobject.h"
+#include "errors.h"
 #include "function.h"
 #include "string.h"
 #include "../common.h"
@@ -29,8 +30,12 @@ struct Object *objectobject_createclass(struct Interpreter *interp)
 
 static struct Object *to_string(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	if (functionobject_checktypes(ctx, errptr, args, nargs, "Object", NULL) == STATUS_ERROR)
+	// functionobject_checktypes may call to_string when creating an error message
+	// so we can't use it here, otherwise this may recurse
+	if (nargs != 1) {
+		errorobject_setwithfmt(ctx, errptr, "Object::to_string takes exactly 1 argument");
 		return NULL;
+	}
 
 	char *name = ((struct ClassObjectData*) args[0]->klass->data)->name;
 	return stringobject_newfromfmt(ctx, errptr, "<%s at %p>", name, (void *) args[0]);
@@ -38,8 +43,10 @@ static struct Object *to_string(struct Context *ctx, struct Object **errptr, str
 
 static struct Object *to_debug_string(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	if (functionobject_checktypes(ctx, errptr, args, nargs, "Object", NULL) == STATUS_ERROR)
+	if (nargs != 1) {
+		errorobject_setwithfmt(ctx, errptr, "Object::to_debug_string takes exactly 1 argument");
 		return NULL;
+	}
 	return method_call(ctx, errptr, args[0], "to_string", NULL);
 }
 

@@ -140,6 +140,7 @@ static int run_file(struct Context *ctx, char *path)
 			returnval = 1;
 			goto end;
 		}
+
 		int status = arrayobject_push(ctx->interp, &err, statements, stmtnode);
 		OBJECT_DECREF(ctx->interp, stmtnode);
 		if (status == STATUS_ERROR) {

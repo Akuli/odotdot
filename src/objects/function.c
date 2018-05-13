@@ -83,7 +83,6 @@ int functionobject_checktypes(struct Context *ctx, struct Object **errptr, struc
 		return STATUS_ERROR;
 	}
 
-	assert(nargs == expectnargs);
 	for (unsigned int i=0; i < nargs; i++) {
 		if (errorobject_typecheck(ctx, errptr, classes[i], args[i]) == STATUS_ERROR) {
 			for (unsigned int j=i; j < nargs; j++)
