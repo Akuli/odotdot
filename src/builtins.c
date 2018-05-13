@@ -109,14 +109,20 @@ int builtins_setup(struct Interpreter *interp)
 	interp->classclass->klass = interp->classclass;
 	OBJECT_INCREF(interp, interp->classclass);
 
-	// now the hard stuff is done \o/ let's do some easier things
-
 	interp->functionclass = functionobject_createclass(interp, &err);
 	if (!interp->functionclass) {
 		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
 		OBJECT_DECREF(interp, err);
 		return STATUS_ERROR;
 	}
+
+	if (objectobject_addmethods(interp, &err) == STATUS_ERROR) {
+		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
+		OBJECT_DECREF(interp, err);
+		return STATUS_ERROR;
+	}
+
+	// now the hard stuff is done \o/ let's do some easier things
 
 	if (stringobject_addmethods(interp, &err) == STATUS_ERROR) {
 		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
@@ -200,9 +206,22 @@ objectclass  <-----  classclass  ---------------'
 the cycles must be deleted
 */
 
+static void clear_object_method(void *ustrkey, void *objval, void *interpdata)
+{
+	free(((struct UnicodeString *) ustrkey)->val);
+	free(ustrkey);
+	OBJECT_DECREF((struct Interpreter*) interpdata, (struct Object*) objval);
+}
+
 void builtins_teardown(struct Interpreter *interp)
 {
 	struct Object *objectclass = interpreter_getbuiltin_nomalloc(interp, "Object");
+
+	if (objectclass) {
+		// objectobject_addmethods() adds methods that reference interp->functionclass
+		// but functionclass references objectclass
+		hashtable_fclear(((struct ClassObjectData *) objectclass->data)->methods, clear_object_method, interp);
+	}
 
 	if (interp->astnodeclass) {
 		OBJECT_DECREF(interp, interp->astnodeclass);
