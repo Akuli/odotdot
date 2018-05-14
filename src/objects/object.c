@@ -28,26 +28,26 @@ struct Object *objectobject_createclass(struct Interpreter *interp)
 }
 
 
-static struct Object *to_string(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
+static struct Object *to_string(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
 {
 	// functionobject_checktypes may call to_string when creating an error message
 	// so we can't use it here, otherwise this may recurse
 	if (nargs != 1) {
-		errorobject_setwithfmt(ctx, errptr, "Object::to_string takes exactly 1 argument");
+		errorobject_setwithfmt(interp, errptr, "Object::to_string takes exactly 1 argument");
 		return NULL;
 	}
 
 	char *name = ((struct ClassObjectData*) args[0]->klass->data)->name;
-	return stringobject_newfromfmt(ctx, errptr, "<%s at %p>", name, (void *) args[0]);
+	return stringobject_newfromfmt(interp, errptr, "<%s at %p>", name, (void *) args[0]);
 }
 
-static struct Object *to_debug_string(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
+static struct Object *to_debug_string(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
 {
 	if (nargs != 1) {
-		errorobject_setwithfmt(ctx, errptr, "Object::to_debug_string takes exactly 1 argument");
+		errorobject_setwithfmt(interp, errptr, "Object::to_debug_string takes exactly 1 argument");
 		return NULL;
 	}
-	return method_call(ctx, errptr, args[0], "to_string", NULL);
+	return method_call(interp, errptr, args[0], "to_string", NULL);
 }
 
 int objectobject_addmethods(struct Interpreter *interp, struct Object **errptr)

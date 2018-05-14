@@ -31,7 +31,7 @@ void test_objects_simple(void)
 void test_objects_error(void)
 {
 	struct Object *err = NULL;
-	errorobject_setwithfmt(testinterp->builtinctx, &err, "oh %s", "shit");
+	errorobject_setwithfmt(testinterp, &err, "oh %s", "shit");
 	buttert(err);
 	struct UnicodeString *msg = ((struct Object*) err->data)->data;
 	buttert(msg);
@@ -50,7 +50,7 @@ void test_objects_error(void)
 struct Object *callback_arg1, *callback_arg2;
 int flipped = 0;
 
-struct Object *callback(struct Context *callctx, struct Object **errptr, struct Object **args, size_t nargs)
+struct Object *callback(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
 {
 	buttert(nargs == 2);
 	buttert(args[0] == (flipped ? callback_arg2 : callback_arg1));
@@ -64,19 +64,19 @@ void test_objects_function(void)
 	buttert((callback_arg2 = stringobject_newfromcharptr(testinterp, NULL, "asd2")));
 
 	struct Object *func = functionobject_new(testinterp, NULL, callback);
-	buttert(functionobject_call(testinterp->builtinctx, NULL, func, callback_arg1, callback_arg2, NULL) == (struct Object*) 0x123abc);
+	buttert(functionobject_call(testinterp, NULL, func, callback_arg1, callback_arg2, NULL) == (struct Object*) 0x123abc);
 
 	struct Object *partial1 = functionobject_newpartial(testinterp, NULL, func, callback_arg1);
 	OBJECT_DECREF(testinterp, callback_arg1);   // partialfunc should hold a reference to this
 	OBJECT_DECREF(testinterp, func);
 	flipped = 0;
-	buttert(functionobject_call(testinterp->builtinctx, NULL, partial1, callback_arg2, NULL) == (struct Object*) 0x123abc);
+	buttert(functionobject_call(testinterp, NULL, partial1, callback_arg2, NULL) == (struct Object*) 0x123abc);
 
 	struct Object *partial2 = functionobject_newpartial(testinterp, NULL, partial1, callback_arg2);
 	OBJECT_DECREF(testinterp, callback_arg2);
 	OBJECT_DECREF(testinterp, partial1);
 	flipped = 1;    // arg 2 was partialled last, so it will go first
-	buttert(functionobject_call(testinterp->builtinctx, NULL, partial2, NULL) == (struct Object*) 0x123abc);
+	buttert(functionobject_call(testinterp, NULL, partial2, NULL) == (struct Object*) 0x123abc);
 
 	OBJECT_DECREF(testinterp, partial2);
 }
@@ -112,7 +112,7 @@ void test_objects_string_tostring(void)
 {
 	struct Object *s = stringobject_newfromcharptr(testinterp, NULL, "Öö");
 	buttert(s);
-	struct Object *ret = method_call(testinterp->builtinctx, NULL, s, "to_string", NULL);
+	struct Object *ret = method_call(testinterp, NULL, s, "to_string", NULL);
 	buttert(ret);
 	buttert(ret == s);
 	OBJECT_DECREF(testinterp, s);    // functionobject_call() returned a new reference
@@ -129,7 +129,7 @@ void test_objects_string_newfromfmt(void)
 	struct Object *c = stringobject_newfromcharptr(testinterp, NULL, "c");
 	buttert(c);
 
-	struct Object *res = stringobject_newfromfmt(testinterp->builtinctx, NULL, "-%s-%U-%S-%D-%%-", "a", b, c, c);
+	struct Object *res = stringobject_newfromfmt(testinterp, NULL, "-%s-%U-%S-%D-%%-", "a", b, c, c);
 	buttert(res);
 	OBJECT_DECREF(testinterp, c);
 

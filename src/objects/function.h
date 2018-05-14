@@ -2,7 +2,6 @@
 #define OBJECTS_FUNCTION_H
 
 #include <stddef.h>
-#include "../context.h"         // IWYU pragma: keep
 #include "../objectsystem.h"    // IWYU pragma: keep
 
 
@@ -12,7 +11,7 @@
       * usually not touch refcounts of args
       * not change the values of args
 */
-typedef struct Object* (*functionobject_cfunc)(struct Context *callctx, struct Object **errptr, struct Object **args, size_t nargs);
+typedef struct Object* (*functionobject_cfunc)(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs);
 
 /* for example, do this in the beginning of a functionobject_cfunc...
 
@@ -28,7 +27,7 @@ the types are looked up with interpreter_getbuiltin()
 the 3rd argument can be anything because all classes inherit from Object
 returns STATUS_OK or STATUS_ERROR
 */
-int functionobject_checktypes(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs, ...);
+int functionobject_checktypes(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs, ...);
 
 // builtins_setup() sets interp->functionclass to this thing's return value
 // RETURNS A NEW REFERENCE or NULL on error
@@ -44,11 +43,11 @@ functionobject_cfunc functionobject_getcfunc(struct Interpreter *interp, struct 
 
 // example: functionobject_call(ctx, errptr, func, a, b, c, NULL) calls func with arguments a, b, c
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *functionobject_call(struct Context *ctx, struct Object **errptr, struct Object *func, ...);
+struct Object *functionobject_call(struct Interpreter *interp, struct Object **errptr, struct Object *func, ...);
 
 // named kinda like vprintf
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *functionobject_vcall(struct Context *ctx, struct Object **errptr, struct Object *func, struct Object **args, size_t nargs);
+struct Object *functionobject_vcall(struct Interpreter *interp, struct Object **errptr, struct Object *func, struct Object **args, size_t nargs);
 
 // add a partial argument
 // RETURNS A NEW REFERENCE or NULL on error

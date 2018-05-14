@@ -51,7 +51,7 @@ struct Object *functionobject_createclass(struct Interpreter *interp, struct Obj
 	return klass;    // can be NULL
 }
 
-int functionobject_checktypes(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs, ...)
+int functionobject_checktypes(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs, ...)
 {
 	va_list ap;
 	va_start(ap, nargs);
@@ -63,13 +63,13 @@ int functionobject_checktypes(struct Context *ctx, struct Object **errptr, struc
 		if (!classname)
 			break;      // end of argument list, not an error
 
-		struct Object *klass = interpreter_getbuiltin(ctx->interp, errptr, classname);
+		struct Object *klass = interpreter_getbuiltin(interp, errptr, classname);
 		if (!klass) {
 			for (unsigned int i=0; i < expectnargs; i++)
-				OBJECT_DECREF(ctx->interp, classes[i]);
+				OBJECT_DECREF(interp, classes[i]);
 			return STATUS_ERROR;
 		}
-		assert(klass->klass == ctx->interp->classclass);
+		assert(klass->klass == interp->classclass);
 		classes[expectnargs] = klass;
 	}
 	va_end(ap);
@@ -77,19 +77,19 @@ int functionobject_checktypes(struct Context *ctx, struct Object **errptr, struc
 	// TODO: test these
 	// TODO: include the function name in the error?
 	if (nargs != expectnargs) {
-		errorobject_setwithfmt(ctx, errptr, "%s arguments", nargs > expectnargs ? "too many" : "not enough");
+		errorobject_setwithfmt(interp, errptr, "%s arguments", nargs > expectnargs ? "too many" : "not enough");
 		for (unsigned int i=0; i < expectnargs; i++)
-			OBJECT_DECREF(ctx->interp, classes[i]);
+			OBJECT_DECREF(interp, classes[i]);
 		return STATUS_ERROR;
 	}
 
 	for (unsigned int i=0; i < nargs; i++) {
-		if (errorobject_typecheck(ctx, errptr, classes[i], args[i]) == STATUS_ERROR) {
+		if (errorobject_typecheck(interp, errptr, classes[i], args[i]) == STATUS_ERROR) {
 			for (unsigned int j=i; j < nargs; j++)
-				OBJECT_DECREF(ctx->interp, classes[j]);
+				OBJECT_DECREF(interp, classes[j]);
 			return STATUS_ERROR;
 		}
-		OBJECT_DECREF(ctx->interp, classes[i]);
+		OBJECT_DECREF(interp, classes[i]);
 	}
 
 	return STATUS_OK;
@@ -157,9 +157,9 @@ functionobject_cfunc functionobject_getcfunc(struct Interpreter *interp, struct 
 	return ((struct FunctionData *) func->data)->cfunc;
 }
 
-struct Object *functionobject_call(struct Context *ctx, struct Object **errptr, struct Object *func, ...)
+struct Object *functionobject_call(struct Interpreter *interp, struct Object **errptr, struct Object *func, ...)
 {
-	assert(func->klass == ctx->interp->functionclass);    // TODO: better type check
+	assert(func->klass == interp->functionclass);    // TODO: better type check
 
 	struct Object *args[NARGS_MAX];
 	va_list ap;
@@ -174,12 +174,12 @@ struct Object *functionobject_call(struct Context *ctx, struct Object **errptr, 
 	}
 	va_end(ap);
 
-	return functionobject_vcall(ctx, errptr, func, args, nargs);
+	return functionobject_vcall(interp, errptr, func, args, nargs);
 }
 
-struct Object *functionobject_vcall(struct Context *ctx, struct Object **errptr, struct Object *func, struct Object **args, size_t nargs)
+struct Object *functionobject_vcall(struct Interpreter *interp, struct Object **errptr, struct Object *func, struct Object **args, size_t nargs)
 {
-	assert(func->klass == ctx->interp->functionclass);    // TODO: better type check
+	assert(func->klass == interp->functionclass);    // TODO: better type check
 	struct Object **theargs;
 	size_t thenargs;
 	struct FunctionData *data = func->data;     // casts implicitly
@@ -189,7 +189,7 @@ struct Object *functionobject_vcall(struct Context *ctx, struct Object **errptr,
 		thenargs = nargs + data->npartialargs;
 		theargs = malloc(sizeof(struct Object *) * thenargs);
 		if (!theargs) {
-			errorobject_setnomem(ctx->interp, errptr);
+			errorobject_setnomem(interp, errptr);
 			return NULL;
 		}
 		memcpy(theargs, data->partialargs, sizeof(struct Object*) * data->npartialargs);
@@ -199,7 +199,7 @@ struct Object *functionobject_vcall(struct Context *ctx, struct Object **errptr,
 		theargs = args;
 	}
 
-	struct Object *res = data->cfunc(ctx, errptr, theargs, thenargs);
+	struct Object *res = data->cfunc(interp, errptr, theargs, thenargs);
 	if (data->npartialargs > 0)
 		free(theargs);
 	return res;

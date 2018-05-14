@@ -65,37 +65,37 @@ void errorobject_setnomem(struct Interpreter *interp, struct Object **errptr)
 	*errptr = interp->nomemerr;
 }
 
-int errorobject_setwithfmt(struct Context *ctx, struct Object **errptr, char *fmt, ...)
+int errorobject_setwithfmt(struct Interpreter *interp, struct Object **errptr, char *fmt, ...)
 {
-	struct Object *errorclass = interpreter_getbuiltin(ctx->interp, errptr, "Error");
+	struct Object *errorclass = interpreter_getbuiltin(interp, errptr, "Error");
 	if (!errorclass)
 		return STATUS_ERROR;
 
 	va_list ap;
 	va_start(ap, fmt);
-	struct Object *msg = stringobject_newfromvfmt(ctx, errptr, fmt, ap);
+	struct Object *msg = stringobject_newfromvfmt(interp, errptr, fmt, ap);
 	va_end(ap);
 	if (!msg) {
-		OBJECT_DECREF(ctx->interp, errorclass);
+		OBJECT_DECREF(interp, errorclass);
 		return STATUS_ERROR;
 	}
 
-	struct Object *err = classobject_newinstance(ctx->interp, errptr, errorclass, msg);
-	OBJECT_DECREF(ctx->interp, errorclass);
+	struct Object *err = classobject_newinstance(interp, errptr, errorclass, msg);
+	OBJECT_DECREF(interp, errorclass);
 	// don't decref msg, instead let err hold a reference to it
 	if (!err) {
-		OBJECT_DECREF(ctx->interp, msg);
+		OBJECT_DECREF(interp, msg);
 		return STATUS_ERROR;
 	}
 	*errptr = err;
 	return STATUS_OK;
 }
 
-int errorobject_typecheck(struct Context *ctx, struct Object **errptr, struct Object *klass, struct Object *obj)
+int errorobject_typecheck(struct Interpreter *interp, struct Object **errptr, struct Object *klass, struct Object *obj)
 {
 	if (!classobject_instanceof(obj, klass)) {
 		char *name = ((struct ClassObjectData*) klass->data)->name;
-		errorobject_setwithfmt(ctx, errptr, "should be an instance of %s, not %D", name, obj);
+		errorobject_setwithfmt(interp, errptr, "should be an instance of %s, not %D", name, obj);
 		return STATUS_ERROR;
 	}
 	return STATUS_OK;

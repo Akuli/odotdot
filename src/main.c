@@ -50,26 +50,26 @@ int read_file_to_huge_string(FILE *f, char **dest, size_t *destlen)
 
 
 // TODO: print a stack trace and use stderr instead of stdout
-static void print_error(struct Context *ctx, struct Object *err)
+static void print_error(struct Interpreter *interp, struct Object *err)
 {
 	struct Object *err2 = NULL;
 
-	struct Object *printfunc = interpreter_getbuiltin(ctx->interp, &err2, "print");
+	struct Object *printfunc = interpreter_getbuiltin(interp, &err2, "print");
 	if (!printfunc) {
-		fprintf(stderr, "%s: printing an error failed\n", ctx->interp->argv0);
-		OBJECT_DECREF(ctx->interp, err2);
+		fprintf(stderr, "%s: printing an error failed\n", interp->argv0);
+		OBJECT_DECREF(interp, err2);
 		return;
 	}
 
 	printf("errör: ");
-	struct Object *printres = functionobject_call(ctx, &err2, printfunc, err->data, NULL);
-	OBJECT_DECREF(ctx->interp, printfunc);
+	struct Object *printres = functionobject_call(interp, &err2, printfunc, err->data, NULL);
+	OBJECT_DECREF(interp, printfunc);
 	if (!printres) {
-		fprintf(stderr, "%s: printing an error failed\n", ctx->interp->argv0);
-		OBJECT_DECREF(ctx->interp, err2);
+		fprintf(stderr, "%s: printing an error failed\n", interp->argv0);
+		OBJECT_DECREF(interp, err2);
 		return;
 	}
-	OBJECT_DECREF(ctx->interp, printres);
+	OBJECT_DECREF(interp, printres);
 }
 
 
@@ -122,7 +122,7 @@ static int run_file(struct Context *ctx, char *path)
 	struct Object *err = NULL;
 	struct Object *statements = arrayobject_newempty(ctx->interp, &err);
 	if (!statements) {
-		print_error(ctx, err);
+		print_error(ctx->interp, err);
 		OBJECT_DECREF(ctx->interp, err);
 		token_freeall(tok1st);
 		return 1;
@@ -134,7 +134,7 @@ static int run_file(struct Context *ctx, char *path)
 	while (curtok) {
 		struct Object *stmtnode = ast_parse_statement(ctx->interp, &err, &curtok);
 		if (!stmtnode) {
-			print_error(ctx, err);
+			print_error(ctx->interp, err);
 			OBJECT_DECREF(ctx->interp, err);
 			token_freeall(tok1st);
 			returnval = 1;
@@ -144,7 +144,7 @@ static int run_file(struct Context *ctx, char *path)
 		int status = arrayobject_push(ctx->interp, &err, statements, stmtnode);
 		OBJECT_DECREF(ctx->interp, stmtnode);
 		if (status == STATUS_ERROR) {
-			print_error(ctx, err);
+			print_error(ctx->interp, err);
 			OBJECT_DECREF(ctx->interp, err);
 			token_freeall(tok1st);
 			returnval = 1;
@@ -157,7 +157,7 @@ static int run_file(struct Context *ctx, char *path)
 	for (size_t i=0; i < ((struct ArrayObjectData *) statements->data)->len; i++) {
 		if (run_statement(ctx, &err, ((struct ArrayObjectData *) statements->data)->elems[i]) == STATUS_ERROR) {
 			if (err) {
-				print_error(ctx, err);
+				print_error(ctx->interp, err);
 				OBJECT_DECREF(ctx->interp, err);
 			} else {
 				fprintf(stderr, "%s: errptr wasn't set correctly\n", ctx->interp->argv0);

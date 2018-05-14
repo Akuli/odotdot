@@ -18,9 +18,9 @@
 #include "objects/string.h"
 
 
-static struct Object *print_builtin(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
+static struct Object *print_builtin(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	if (functionobject_checktypes(ctx, errptr, args, nargs, "String", NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, errptr, args, nargs, "String", NULL) == STATUS_ERROR)
 		return NULL;
 
 	char *utf8;
@@ -28,7 +28,7 @@ static struct Object *print_builtin(struct Context *ctx, struct Object **errptr,
 	char errormsg[100];
 	int status = utf8_encode(*((struct UnicodeString *) args[0]->data), &utf8, &utf8len, errormsg);
 	if (status == STATUS_NOMEM) {
-		errorobject_setnomem(ctx->interp, errptr);
+		errorobject_setnomem(interp, errptr);
 		return NULL;
 	}
 	assert(status == STATUS_OK);  // TODO: how about invalid unicode strings? make sure they don't exist when creating strings?
@@ -40,7 +40,7 @@ static struct Object *print_builtin(struct Context *ctx, struct Object **errptr,
 	putchar('\n');
 
 	// this must return a new reference on success
-	return stringobject_newfromcharptr(ctx->interp, errptr, "asd");
+	return stringobject_newfromcharptr(interp, errptr, "asd");
 }
 
 

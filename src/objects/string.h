@@ -45,10 +45,10 @@ these fixed limits are NOT CHECKED even with assert:
 	* stuff between format specifiers can be at most 200 characters long
 	* number of format specifiers + number of texts between them must be <= 20
 */
-struct Object *stringobject_newfromfmt(struct Context *ctx, struct Object **errptr, char *fmt, ...);
+struct Object *stringobject_newfromfmt(struct Interpreter *interp, struct Object **errptr, char *fmt, ...);
 
 // like newfromfmt, but vprintf style
-struct Object *stringobject_newfromvfmt(struct Context *ctx, struct Object **errptr, char *fmt, va_list ap);
+struct Object *stringobject_newfromvfmt(struct Interpreter *interp, struct Object **errptr, char *fmt, va_list ap);
 
 // the returned UnicodeString's val must NOT be free()'d
 struct UnicodeString *stringobject_getustr(struct Object *str);

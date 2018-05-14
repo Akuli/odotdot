@@ -63,7 +63,7 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 			args[i] = arg;
 		}
 
-		struct Object *res = functionobject_vcall(ctx, errptr, func, args, INFO_AS(AstCallInfo)->nargs);
+		struct Object *res = functionobject_vcall(ctx->interp, errptr, func, args, INFO_AS(AstCallInfo)->nargs);
 		for (size_t i=0; i < INFO_AS(AstCallInfo)->nargs; i++)
 			OBJECT_DECREF(ctx->interp, args[i]);
 		free(args);

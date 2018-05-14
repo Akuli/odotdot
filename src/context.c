@@ -89,7 +89,7 @@ int context_setvarwheredefined(struct Context *ctx, struct Object **errptr, stru
 			return context_setlocalvar(ctx, errptr, name, value);
 	} while ((ctx = ctx->parentctx));    // no luck, look up from parent context
 
-	errorobject_setwithfmt(ctx, errptr, "there's no '%U' variable", name);
+	errorobject_setwithfmt(ctx->interp, errptr, "there's no '%U' variable", name);
 	return STATUS_ERROR;
 }
 
@@ -110,7 +110,7 @@ struct Object *context_getvar(struct Context *ctx, struct Object **errptr, struc
 {
 	struct Object *res = context_getvar_nomalloc(ctx, name);   // returns a new reference
 	if (!res) {
-		errorobject_setwithfmt(ctx, errptr, "there's no '%U' variable", name);   // allocates mem
+		errorobject_setwithfmt(ctx->interp, errptr, "there's no '%U' variable", name);   // allocates mem
 		return NULL;
 	}
 	return res;

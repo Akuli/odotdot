@@ -66,7 +66,7 @@ struct Object *classobject_new(struct Interpreter *interp, struct Object **errpt
 	if (!classobject_instanceof(base->klass, interp->classclass)) {
 		// TODO: test this
 		// FIXME: don't use builtinctx, instead require passing in a context to this function
-		errorobject_setwithfmt(interp->builtinctx, errptr, "cannot inherit a new class from %D", base);
+		errorobject_setwithfmt(interp, errptr, "cannot inherit a new class from %D", base);
 		return NULL;
 	}
 
@@ -82,8 +82,7 @@ struct Object *classobject_newinstance(struct Interpreter *interp, struct Object
 {
 	if (!classobject_instanceof(klass->klass, interp->classclass)) {
 		// TODO: test this
-		// FIXME: don't use builtinctx, instead require passing in a context to this function
-		errorobject_setwithfmt(interp->builtinctx, errptr, "cannot create an instance of %D", klass);
+		errorobject_setwithfmt(interp, errptr, "cannot create an instance of %D", klass);
 		return NULL;
 	}
 	struct Object *instance = object_new(interp, klass, data);

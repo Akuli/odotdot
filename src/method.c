@@ -15,8 +15,7 @@
 
 int method_add(struct Interpreter *interp, struct Object **errptr, struct Object *klass, char *name, functionobject_cfunc cfunc)
 {
-	// TODO: this should take ctx and use errorobject_typecheck()
-	assert(klass->klass == interp->classclass);    // TODO: better type check
+	assert(klass->klass == interp->classclass);    // TODO: better type check?? or document this?
 
 	struct UnicodeString *uname = malloc(sizeof(struct UnicodeString));
 	if (!uname) {
@@ -74,7 +73,7 @@ struct Object *method_getwithustr(struct Interpreter *interp, struct Object **er
 	struct Object *nopartial = get_the_method(obj->klass, &uname, unicodestring_hash(uname));
 	if (!nopartial) {
 		assert(0);
-		// FIXME: this thing needs a ctx
+		// TODO: uncomment and update this
 		// TODO: test this
 		/*
 		char *classname = ((struct ClassObjectData*) obj->klass->data)->name;
@@ -110,9 +109,9 @@ struct Object *method_get(struct Interpreter *interp, struct Object **errptr, st
 
 
 #define NARGS_MAX 20   // same as in objects/function.c
-struct Object *method_call(struct Context *ctx, struct Object **errptr, struct Object *obj, char *methname, ...)
+struct Object *method_call(struct Interpreter *interp, struct Object **errptr, struct Object *obj, char *methname, ...)
 {
-	struct Object *method = method_get(ctx->interp, errptr, obj, methname);
+	struct Object *method = method_get(interp, errptr, obj, methname);
 	if (!method)
 		return NULL;
 
@@ -129,21 +128,21 @@ struct Object *method_call(struct Context *ctx, struct Object **errptr, struct O
 	}
 	va_end(ap);
 
-	struct Object *res = functionobject_vcall(ctx, errptr, method, args, nargs);
-	OBJECT_DECREF(ctx->interp, method);
+	struct Object *res = functionobject_vcall(interp, errptr, method, args, nargs);
+	OBJECT_DECREF(interp, method);
 	return res;
 }
 #undef NARGS_MAX
 
-static struct Object *to_maybe_debug_string(struct Context *ctx, struct Object **errptr, struct Object *obj, char *methname)
+static struct Object *to_maybe_debug_string(struct Interpreter *interp, struct Object **errptr, struct Object *obj, char *methname)
 {
-	struct Object *stringclass = interpreter_getbuiltin(ctx->interp, errptr, "String");
+	struct Object *stringclass = interpreter_getbuiltin(interp, errptr, "String");
 	if (!stringclass)
 		return NULL;
 
-	struct Object *res = method_call(ctx, errptr, obj, methname, NULL);
+	struct Object *res = method_call(interp, errptr, obj, methname, NULL);
 	if (!res) {
-		OBJECT_DECREF(ctx->interp, stringclass);
+		OBJECT_DECREF(interp, stringclass);
 		return NULL;
 	}
 
@@ -151,20 +150,19 @@ static struct Object *to_maybe_debug_string(struct Context *ctx, struct Object *
 	// TODO: test this
 	if (!classobject_instanceof(res, stringclass)) {
 		// FIXME: is it possible to make this recurse infinitely by returning the object itself from to_{debug,}string?
-		errorobject_setwithfmt(ctx, errptr, "%s should return a String, but it returned %D", methname, res);
+		errorobject_setwithfmt(interp, errptr, "%s should return a String, but it returned %D", methname, res);
 		return NULL;
 	}
-	OBJECT_DECREF(ctx->interp, stringclass);
-	assert(res->klass == stringclass);   // TODO: better error handling
+	OBJECT_DECREF(interp, stringclass);
 	return res;
 }
 
-struct Object *method_call_tostring(struct Context *ctx, struct Object **errptr, struct Object *obj)
+struct Object *method_call_tostring(struct Interpreter *interp, struct Object **errptr, struct Object *obj)
 {
-	return to_maybe_debug_string(ctx, errptr, obj, "to_string");
+	return to_maybe_debug_string(interp, errptr, obj, "to_string");
 }
 
-struct Object *method_call_todebugstring(struct Context *ctx, struct Object **errptr, struct Object *obj)
+struct Object *method_call_todebugstring(struct Interpreter *interp, struct Object **errptr, struct Object *obj)
 {
-	return to_maybe_debug_string(ctx, errptr, obj, "to_debug_string");
+	return to_maybe_debug_string(interp, errptr, obj, "to_debug_string");
 }

@@ -23,14 +23,14 @@ static void integer_destructor(struct Object *integer)
 	free(integer->data);
 }
 
-static struct Object *to_string(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
+static struct Object *to_string(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	if (functionobject_checktypes(ctx, errptr, args, nargs, "Integer", NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, errptr, args, nargs, "Integer", NULL) == STATUS_ERROR)
 		return NULL;
 
 	long long val = *((long long *) args[0]->data);
 	if (val == 0)   // special case
-		return stringobject_newfromcharptr(ctx->interp, errptr, "0");
+		return stringobject_newfromcharptr(interp, errptr, "0");
 
 	assert(INTEGEROBJECT_MIN <= val && val <= INTEGEROBJECT_MAX);
 
@@ -54,7 +54,7 @@ static struct Object *to_string(struct Context *ctx, struct Object **errptr, str
 	if (val < 0)
 		res[--i] = '-';
 
-	return stringobject_newfromcharptr(ctx->interp, errptr, res+i);
+	return stringobject_newfromcharptr(interp, errptr, res+i);
 }
 
 struct Object *integerobject_createclass(struct Interpreter *interp, struct Object **errptr)
@@ -121,8 +121,7 @@ struct Object *integerobject_newfromustr(struct Interpreter *interp, struct Obje
 
 	// TODO: better error handling
 	if (ustr.len == 0) {
-		// FIXME: stop using builtinctx?
-		errorobject_setwithfmt(interp->builtinctx, errptr, "'%U' is not an integer", origstr);
+		errorobject_setwithfmt(interp, errptr, "'%U' is not an integer", origstr);
 		return NULL;
 	}
 	if (ustr.len > INTEGEROBJECT_MAXDIGITS)
@@ -131,7 +130,7 @@ struct Object *integerobject_newfromustr(struct Interpreter *interp, struct Obje
 	int digits[INTEGEROBJECT_MAXDIGITS];
 	for (int i=0; i < (int)ustr.len; i++) {
 		if (ustr.val[i] < '0' || ustr.val[i] > '9') {
-			errorobject_setwithfmt(interp->builtinctx, errptr, "'%U' is not an integer", origstr);
+			errorobject_setwithfmt(interp, errptr, "'%U' is not an integer", origstr);
 			return NULL;
 		}
 		digits[i] = ustr.val[i] - '0';
@@ -154,7 +153,7 @@ struct Object *integerobject_newfromustr(struct Interpreter *interp, struct Obje
 	return integerobject_newfromlonglong(interp, errptr, val);
 
 mustBbetween:
-	errorobject_setwithfmt(interp->builtinctx, errptr, "integers must be between %s and %s, but '%U' is not", INTEGEROBJECT_MINSTR, INTEGEROBJECT_MAXSTR, origstr);
+	errorobject_setwithfmt(interp, errptr, "integers must be between %s and %s, but '%U' is not", INTEGEROBJECT_MINSTR, INTEGEROBJECT_MAXSTR, origstr);
 	return NULL;
 }
 

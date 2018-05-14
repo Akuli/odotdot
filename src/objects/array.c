@@ -70,40 +70,40 @@ static struct Object *to_string_joiner(struct Interpreter *interp, struct Object
 	return res;
 }
 
-static struct Object *to_string(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
+static struct Object *to_string(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	if (functionobject_checktypes(ctx, errptr, args, nargs, "Array", NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, errptr, args, nargs, "Array", NULL) == STATUS_ERROR)
 		return NULL;
 
 	struct ArrayObjectData *data = args[0]->data;
 
 	// this is handeled specially because malloc(0) may return NULL
 	if (data->len == 0)
-		return stringobject_newfromcharptr(ctx->interp, errptr, "[]");
+		return stringobject_newfromcharptr(interp, errptr, "[]");
 
 	struct Object **strings = malloc(sizeof(struct Object*) * data->len);
 	if (!strings) {
-		errorobject_setnomem(ctx->interp, errptr);
+		errorobject_setnomem(interp, errptr);
 		return NULL;
 	}
 
-	struct Object *stringclass = interpreter_getbuiltin(ctx->interp, errptr, "String");
+	struct Object *stringclass = interpreter_getbuiltin(interp, errptr, "String");
 	for (size_t i = 0; i < data->len; i++) {
-		struct Object *stringed = method_call_todebugstring(ctx, errptr, data->elems[i]);
+		struct Object *stringed = method_call_todebugstring(interp, errptr, data->elems[i]);
 		if (!stringed) {
 			for (size_t j=0; j<i; j++)
-				OBJECT_DECREF(ctx->interp, strings[i]);
+				OBJECT_DECREF(interp, strings[i]);
 			free(strings);
-			OBJECT_DECREF(ctx->interp, stringclass);
+			OBJECT_DECREF(interp, stringclass);
 			return NULL;
 		}
 		strings[i] = stringed;
 	}
-	OBJECT_DECREF(ctx->interp, stringclass);
+	OBJECT_DECREF(interp, stringclass);
 
-	struct Object *res = to_string_joiner(ctx->interp, errptr, strings, data->len);
+	struct Object *res = to_string_joiner(interp, errptr, strings, data->len);
 	for (size_t i=0; i < data->len; i++)
-		OBJECT_DECREF(ctx->interp, strings[i]);
+		OBJECT_DECREF(interp, strings[i]);
 	free(strings);
 	return res;
 }

@@ -29,18 +29,18 @@ struct Object *stringobject_createclass(struct Interpreter *interp, struct Objec
 	return classobject_new_noerrptr(interp, "String", objectclass, 0, NULL, string_destructor);
 }
 
-static struct Object *to_string(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
+static struct Object *to_string(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	if (functionobject_checktypes(ctx, errptr, args, nargs, "String", NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, errptr, args, nargs, "String", NULL) == STATUS_ERROR)
 		return NULL;
 
-	OBJECT_INCREF(ctx->interp, args[0]);   // we're returning a reference
+	OBJECT_INCREF(interp, args[0]);   // we're returning a reference
 	return args[0];
 }
 
-static struct Object *to_debug_string(struct Context *ctx, struct Object **errptr, struct Object **args, size_t nargs)
+static struct Object *to_debug_string(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	if (functionobject_checktypes(ctx, errptr, args, nargs, "String", NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, errptr, args, nargs, "String", NULL) == STATUS_ERROR)
 		return NULL;
 
 	struct UnicodeString noquotes = *((struct UnicodeString*) args[0]->data);
@@ -48,13 +48,13 @@ static struct Object *to_debug_string(struct Context *ctx, struct Object **errpt
 	yesquotes.len = noquotes.len + 2;
 	yesquotes.val = malloc(sizeof(unicode_char) * yesquotes.len);
 	if (!yesquotes.val) {
-		errorobject_setnomem(ctx->interp, errptr);
+		errorobject_setnomem(interp, errptr);
 		return NULL;
 	}
 	yesquotes.val[0] = yesquotes.val[yesquotes.len - 1] = '"';
 	memcpy(yesquotes.val + 1, noquotes.val, sizeof(unicode_char) * noquotes.len);
 
-	struct Object *res = stringobject_newfromustr(ctx->interp, errptr, yesquotes);
+	struct Object *res = stringobject_newfromustr(interp, errptr, yesquotes);
 	free(yesquotes.val);
 	return res;
 }
@@ -136,7 +136,7 @@ struct Object *stringobject_newfromcharptr(struct Interpreter *interp, struct Ob
 #define POINTER_MAXSTR 50            // should be big enough
 #define MAX_PARTS 20                 // feel free to make this bigger
 #define BETWEEN_SPECIFIERS_MAX 200   // makes really long error messages possible... not sure if that's good
-struct Object *stringobject_newfromvfmt(struct Context *ctx, struct Object **errptr, char *fmt, va_list ap)
+struct Object *stringobject_newfromvfmt(struct Interpreter *interp, struct Object **errptr, char *fmt, va_list ap)
 {
 	struct UnicodeString parts[MAX_PARTS];
 	int nparts = 0;
@@ -190,9 +190,9 @@ struct Object *stringobject_newfromvfmt(struct Context *ctx, struct Object **err
 
 				struct Object *strobj;
 				if (*(fmt-1) == 'D')
-					strobj = method_call_todebugstring(ctx, errptr, obj);
+					strobj = method_call_todebugstring(interp, errptr, obj);
 				else
-					strobj = method_call_tostring(ctx, errptr, obj);
+					strobj = method_call_tostring(interp, errptr, obj);
 				if (!strobj)
 					goto error;
 				*gonnadecrefptr++ = strobj;
@@ -240,7 +240,7 @@ struct Object *stringobject_newfromvfmt(struct Context *ctx, struct Object **err
 		ptr += parts[i].len;
 	}
 
-	struct Object *res = stringobject_newfromustr(ctx->interp, errptr, everything);
+	struct Object *res = stringobject_newfromustr(interp, errptr, everything);
 
 	free(everything.val);
 	for (int i=0; i < nparts; i++) {
@@ -248,12 +248,12 @@ struct Object *stringobject_newfromvfmt(struct Context *ctx, struct Object **err
 			free(parts[i].val);
 	}
 	for (int i=0; gonnadecref[i]; i++)
-		OBJECT_DECREF(ctx->interp, gonnadecref[i]);
+		OBJECT_DECREF(interp, gonnadecref[i]);
 
 	return res;
 
 nomem:
-	errorobject_setnomem(ctx->interp, errptr);
+	errorobject_setnomem(interp, errptr);
 	// "fall through" to error
 
 error:
@@ -262,16 +262,16 @@ error:
 			free(parts[i].val);
 	}
 	for (int i=0; gonnadecref[i]; i++)
-		OBJECT_DECREF(ctx->interp, gonnadecref[i]);
+		OBJECT_DECREF(interp, gonnadecref[i]);
 	return NULL;
 }
 
 
-struct Object *stringobject_newfromfmt(struct Context *ctx, struct Object **errptr, char *fmt, ...)
+struct Object *stringobject_newfromfmt(struct Interpreter *interp, struct Object **errptr, char *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
-	struct Object *res = stringobject_newfromvfmt(ctx, errptr, fmt, ap);
+	struct Object *res = stringobject_newfromvfmt(interp, errptr, fmt, ap);
 	va_end(ap);
 	return res;
 }
