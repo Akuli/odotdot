@@ -5,6 +5,7 @@
 
 #include <src/builtins.h>
 #include <src/common.h>
+#include <src/gc.h>
 #include <src/interpreter.h>
 
 typedef void (*testfunc)(void);
@@ -75,6 +76,7 @@ int main(int argc, char **argv)
 	RUN_TEST(test_ast_function_call_statement);
 
 	builtins_teardown(testinterp);
+	gc_run(testinterp);
 	interpreter_free(testinterp);
 
 	RUN_TEST(test_tokenizer_tokenize);

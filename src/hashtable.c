@@ -148,6 +148,24 @@ int hashtable_pop(struct HashTable *ht, void *key, unsigned int keyhash, void **
 }
 
 
+int hashtable_getone(struct HashTable *ht, void **key, void **val)
+{
+	if (ht->size == 0)
+		return 0;
+
+	for (unsigned int i=0; i < ht->nbuckets; i++){
+		if (ht->buckets[i]) {
+			if (key)
+				*key = ht->buckets[i]->key;
+			if (val)
+				*val = ht->buckets[i]->value;
+			return 1;
+		}
+	}
+	assert(0);
+}
+
+
 void hashtable_iterbegin(struct HashTable *ht, struct HashTableIterator *it)
 {
 	it->ht = ht;

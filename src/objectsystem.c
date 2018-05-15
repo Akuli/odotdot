@@ -70,23 +70,17 @@ static void decref_the_ref(struct Object *ref, void *interpdata)
 	OBJECT_DECREF(interpdata, ref);
 }
 
-void object_free_impl(struct Interpreter *interp, struct Object *obj)
+void object_free_impl(struct Interpreter *interp, struct Object *obj, int decref_refs)
 {
-	// these two asserts make sure that the sign of the refcount is shown in error messages
-	assert(obj->refcount >= 0);
-	assert(obj->refcount <= 0);
+	// the refcount is > 0 if this is called from gc, so don't assert anything about that
 
 	// obj->klass can be NULL, see builtins_teardown()
 	if (obj->klass) {
 		OBJECT_INCREF(interp, obj->klass);   // temporary, decreffed after destructor call
 
-		struct Object *curclass = obj->klass;
-		struct ClassObjectData *curclassdata;
-		do {
-			curclassdata = curclass->data;
-			if (curclassdata->foreachref)
-				curclassdata->foreachref(obj, interp, decref_the_ref);
-		} while ((curclass = curclassdata->baseclass));
+		void classobject_runforeachref(struct Object *obj, void *data, classobject_foreachrefcb cb);
+		if (decref_refs)
+			classobject_runforeachref(obj, (void*) interp, decref_the_ref);
 
 		struct ClassObjectData *classdata = obj->klass->data;
 		if (classdata->destructor)
@@ -94,11 +88,10 @@ void object_free_impl(struct Interpreter *interp, struct Object *obj)
 		OBJECT_DECREF(interp, obj->klass);
 	}
 
-	void *dummyptr;
-	assert(hashtable_pop(interp->allobjects, obj, (unsigned int)((uintptr_t)obj), &dummyptr, NULL) == 1);
+	assert(hashtable_pop(interp->allobjects, obj, (unsigned int)((uintptr_t)obj), NULL, NULL) == 1);
 
 	if (obj->attrs) {
-		// the attributes should have been decreffed already, see Object's foreachref
+		// the attributes should have been decreffed already if needed, see Object's foreachref
 		hashtable_clear(obj->attrs);
 		hashtable_free(obj->attrs);
 	}

@@ -34,14 +34,15 @@ struct Object *object_new(struct Interpreter *interp, struct Object *klass, void
 #define OBJECT_INCREF(interp, obj) do { ATOMIC_INCR(((struct Object *)(obj))->refcount); } while(0)
 #define OBJECT_DECREF(interp, obj) do { \
 	if (ATOMIC_DECR(((struct Object *)(obj))->refcount) <= 0) \
-		object_free_impl((interp), (obj)); \
+		object_free_impl((interp), (obj), 1); \
 } while (0)
 
 // like the name says, this is pretty much an implementation detail
 // calls obj->klass->destructor and frees memory allocated by obj
+// gc.c calls this with decref_refs=0 when everything is about to be freed
 // this removes obj from interp->allobjects
 // use OBJECT_DECREF instead of calling this
-void object_free_impl(struct Interpreter *interp, struct Object *obj);
+void object_free_impl(struct Interpreter *interp, struct Object *obj, int decref_refs);
 
 
 #endif   // OBJECTSYSTEM_H

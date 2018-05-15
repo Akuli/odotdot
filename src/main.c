@@ -7,6 +7,7 @@
 #include "builtins.h"
 #include "common.h"
 #include "context.h"
+#include "gc.h"
 #include "interpreter.h"
 #include "objectsystem.h"
 #include "run.h"
@@ -206,6 +207,7 @@ int main(int argc, char **argv)
 	// TODO: run stdlib/fake_builtins.ö and create a new subcontext for this file
 	int res = run_file(interp->builtinctx, argv[1]);
 	builtins_teardown(interp);
+	gc_run(interp);    // remove reference cycles
 	interpreter_free(interp);
 	return res;
 }

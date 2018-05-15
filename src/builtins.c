@@ -59,6 +59,10 @@ int builtins_setup(struct Interpreter *interp)
 		OBJECT_DECREF(interp, objectclass);
 		return STATUS_NOMEM;
 	}
+	objectclass->klass = interp->classclass;
+	OBJECT_INCREF(interp, interp->classclass);
+	interp->classclass->klass = interp->classclass;
+	OBJECT_INCREF(interp, interp->classclass);
 
 	struct Object *stringclass = stringobject_createclass(interp, objectclass);
 	if (!stringclass) {
@@ -101,13 +105,6 @@ int builtins_setup(struct Interpreter *interp)
 	OBJECT_DECREF(interp, errorclass);
 	OBJECT_DECREF(interp, stringclass);
 	OBJECT_DECREF(interp, objectclass);
-
-	// create some fun reference cycles
-	// at this point, we know that everything will succeed
-	objectclass->klass = interp->classclass;
-	OBJECT_INCREF(interp, interp->classclass);
-	interp->classclass->klass = interp->classclass;
-	OBJECT_INCREF(interp, interp->classclass);
 
 	interp->functionclass = functionobject_createclass(interp, &err);
 	if (!interp->functionclass) {
@@ -179,6 +176,7 @@ int builtins_setup(struct Interpreter *interp)
 		return STATUS_ERROR;
 	}
 
+	// be sure to update the classes list if you uncomment this stuff, it may have changed
 	/*
 	printf("*** classes added by builtins_setup() ***\n");
 	struct Object *classes[] = { objectclass, interp->classclass, stringclass, errorclass, interp->functionclass, arrayclass, integerclass, interp->astnodeclass };
@@ -190,39 +188,8 @@ int builtins_setup(struct Interpreter *interp)
 }
 
 
-/* reference diagram:
-
-    objectclass->klass        classclass->klass
-  ,--------------------.    ,-------------------.
-  |                    V    V                   |
-objectclass  <-----  classclass  ---------------'
-                     /|\ /|\ /|\
-                      |   |   |
-       ,--------------'   |   `-----------.
-       |                  |               |
-     other           stringclass  <--  errorclass
-     stuff
-
-the cycles must be deleted
-*/
-
-static void clear_object_method(void *ustrkey, void *objval, void *interpdata)
-{
-	free(((struct UnicodeString *) ustrkey)->val);
-	free(ustrkey);
-	OBJECT_DECREF((struct Interpreter*) interpdata, (struct Object*) objval);
-}
-
 void builtins_teardown(struct Interpreter *interp)
 {
-	struct Object *objectclass = interpreter_getbuiltin_nomalloc(interp, "Object");
-
-	if (objectclass) {
-		// objectobject_addmethods() adds methods that reference interp->functionclass
-		// but functionclass references objectclass
-		hashtable_fclear(((struct ClassObjectData *) objectclass->data)->methods, clear_object_method, interp);
-	}
-
 	if (interp->astnodeclass) {
 		OBJECT_DECREF(interp, interp->astnodeclass);
 		interp->astnodeclass = NULL;
@@ -230,7 +197,7 @@ void builtins_teardown(struct Interpreter *interp)
 
 	if (interp->functionclass) {
 		OBJECT_DECREF(interp, interp->functionclass);
-		//interp->functionclass = NULL;    // who needs this anyway?
+		interp->functionclass = NULL;    // who needs this anyway?
 	}
 
 	if (interp->nomemerr) {
@@ -238,38 +205,13 @@ void builtins_teardown(struct Interpreter *interp)
 		interp->nomemerr = NULL;
 	}
 
-	// TODO: how about all sub contexts? this assumes that there are none
-	context_free(interp->builtinctx);
-	interp->builtinctx = NULL;
-
-	// delete the fun reference cycles
-	if (interp->classclass->klass) {
-		assert(objectclass);    // if this fails, builtins_setup() is very broken or someone deleted Object
-		assert(objectclass->klass == interp->classclass);
-		assert(interp->classclass->klass == interp->classclass);
-
-		// classobject_destructor() is not called automagically if ->klass == NULL
-		// TODO: how about foreachref???
-		objectclass->klass = NULL;
-		OBJECT_DECREF(interp, interp->classclass);
-		interp->classclass->klass = NULL;
-		classobject_destructor(interp->classclass);
-		OBJECT_DECREF(interp, interp->classclass);
-
-		// classobject_create_classclass() increffed objectclass, but that didn't get
-		// decreffed because classclass->klass was set to NULL before decreffing
-		// classclass, and object_free_impl() didn't know anything about the reference
-		OBJECT_DECREF(interp, objectclass);
-
-		// note the interpreter_getbuiltin_nomalloc() above
-		classobject_destructor(objectclass);
-		OBJECT_DECREF(interp, objectclass);
-	} else {
-		assert(!objectclass);
-	}
-
 	if (interp->classclass) {
 		OBJECT_DECREF(interp, interp->classclass);
 		interp->classclass = NULL;
+	}
+
+	if (interp->builtinctx) {
+		context_free(interp->builtinctx);
+		interp->builtinctx = NULL;
 	}
 }

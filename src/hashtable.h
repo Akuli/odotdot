@@ -36,6 +36,12 @@ int hashtable_get(struct HashTable *ht, void *key, unsigned int keyhash, void **
 // returns 1 if the key was found, 0 if not and an error code from cmpfunc on failure
 int hashtable_pop(struct HashTable *ht, void *key, unsigned int keyhash, void **res, void *userdata);
 
+// set an arbitrary item from the hashtable to *key and *val
+// key and val can be NULL to ignore the key or value
+// returns 1 on success and 0 if ht is empty
+// TODO: test this!
+int hashtable_getone(struct HashTable *ht, void **key, void **val);
+
 // everything except key and value should be considered implementation details
 struct HashTableIterator {
 	void *key;

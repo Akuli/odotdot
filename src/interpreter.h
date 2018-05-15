@@ -18,8 +18,9 @@ struct Interpreter {
 	// set errptr to this when there's not enough mem
 	struct Object *nomemerr;
 
-	// keys are all objects, values are an implementation detail
-	// currently the values are pointers to a static dummy variable defined in interpreter.c
+	// keys are all objects
+	// values are pointers to a static dummy variable
+	// hashes are (unsigned int)((uintptr_t)obj)
 	// see also objectsystem.h
 	// this doesn't hold any references, object_free_impl() takes care of that
 	struct HashTable *allobjects;

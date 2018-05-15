@@ -103,6 +103,18 @@ int classobject_instanceof(struct Object *obj, struct Object *klass)
 	return 0;
 }
 
+void classobject_runforeachref(struct Object *obj, void *data, classobject_foreachrefcb cb)
+{
+	// this must not fail if obj->klass is NULL because builtins_setup() is lol
+	struct Object *klass = obj->klass;
+	while (klass) {
+		struct ClassObjectData *klassdata = klass->data;
+		if (klassdata->foreachref)
+			klassdata->foreachref(obj, data, cb);
+		klass = klassdata->baseclass;
+	}
+}
+
 
 static void class_foreachref(struct Object *klass, void *cbdata, classobject_foreachrefcb cb)
 {
@@ -125,7 +137,7 @@ static void free_key_ustr(void *key, void *valueobj, void *datanull)
 }
 
 
-void classobject_destructor(struct Object *klass)
+static void class_destructor(struct Object *klass)
 {
 	struct ClassObjectData *data = klass->data;    // casts implicitly
 	// object_free_impl() takes care of many things because class_foreachref
@@ -137,5 +149,5 @@ void classobject_destructor(struct Object *klass)
 struct Object *classobject_create_classclass(struct Interpreter *interp, struct Object *objectclass)
 {
 	// TODO: should the name of class objects be implemented as an attribute?
-	return classobject_new_noerrptr(interp, "Class", objectclass, 0, class_foreachref, classobject_destructor);
+	return classobject_new_noerrptr(interp, "Class", objectclass, 0, class_foreachref, class_destructor);
 }

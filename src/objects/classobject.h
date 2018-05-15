@@ -22,18 +22,16 @@ struct ClassObjectData {
 	// instances of e.g. String and Integer have no attributes
 	int instanceshaveattrs;   // 1 or 0
 
-	// calls cb(ref, data) for each ref object that this object refers to
+	// calls cb(ref, data) for each ref object that this object (obj) refers to
 	// this is used for garbage collecting
 	// can be NULL
+	// use classobject_runforeachref() when calling these, it handles corner cases
 	void (*foreachref)(struct Object *obj, void *data, classobject_foreachrefcb cb);
 
 	// called by object_free_impl (see OBJECT_DECREF)
 	// can be NULL
 	void (*destructor)(struct Object *obj);
 };
-
-// the destructor that classes use, exposed for builtins_teardown()
-void classobject_destructor(struct Object *klass);
 
 // creates a new class
 // RETURNS A NEW REFERENCE or NULL on error
@@ -50,6 +48,10 @@ struct Object *classobject_newinstance(struct Interpreter *interp, struct Object
 // never fails if klass is a classobject, bad things happen if it isn't
 // returns 1 or 0
 int classobject_instanceof(struct Object *obj, struct Object *klass);
+
+// use this instead of ((struct ClassobjectData *) obj->klass->data)->foreachref(obj, data, cb)
+// ->foreachref may be NULL, this handles that and inheritance
+void classobject_runforeachref(struct Object *obj, void *data, classobject_foreachrefcb cb);
 
 // used only in builtins_setup(), RETURNS A NEW REFERENCE or NULL on no mem
 struct Object *classobject_create_classclass(struct Interpreter *interp, struct Object *objectclass);

@@ -35,28 +35,6 @@ struct Interpreter *interpreter_new(char *argv0)
 
 void interpreter_free(struct Interpreter *interp)
 {
-	if (interp->allobjects->size != 0) {
-		fprintf(stderr, "%s: reference counting problem: %d unfreed objects\n", interp->argv0, (int) interp->allobjects->size);
-
-		// the objects are put here to make debugging easier
-		struct Object *problems[100] = { NULL };
-		int i = 0;
-
-		struct HashTableIterator iter;
-		hashtable_iterbegin(interp->allobjects, &iter);
-		while (hashtable_iternext(&iter)) {
-			struct Object *obj = iter.key;   // casts implicitly
-			fprintf(stderr, "   %p: class=%p, refcount=%d\n", iter.key, (void*) obj->klass, obj->refcount);
-			if (interp->allobjects->size < 100) {
-				problems[i++] = obj;
-			}
-		}
-		abort();
-
-		// silence warnings about an unused variable
-		(void) problems;
-	}
-
 	hashtable_free(interp->allobjects);   // fails if there are any objects left
 	free(interp);
 }
