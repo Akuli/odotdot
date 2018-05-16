@@ -6,6 +6,7 @@
 #include "objects/classobject.h"
 
 // this thing works by setting gcflag to what refcount SHOULD be and then checking it
+// Object.refcount and Object.gcflag are both ints
 
 static void mark_reference(struct Object *referred, void *junkdata)
 {
@@ -14,20 +15,18 @@ static void mark_reference(struct Object *referred, void *junkdata)
 
 void gc_run(struct Interpreter *interp)
 {
-	// Object.refcount and Object.gcflag are both ints
 
 	struct HashTableIterator iter;
-	hashtable_iterbegin(interp->allobjects, &iter);
-	while (hashtable_iternext(&iter))
+#define for_each_object hashtable_iterbegin(interp->allobjects, &iter); while (hashtable_iternext(&iter))   // lol
+
+	for_each_object
 		((struct Object *) iter.key)->gcflag = 0;
 
-	hashtable_iterbegin(interp->allobjects, &iter);
-	while (hashtable_iternext(&iter))
+	for_each_object
 		classobject_runforeachref((struct Object *) iter.key, NULL, mark_reference);
 
 	int problems = 0;
-	hashtable_iterbegin(interp->allobjects, &iter);
-	while (hashtable_iternext(&iter)) {
+	for_each_object {
 		struct Object *obj = iter.key;
 		if (obj->refcount != obj->gcflag) {
 			if (!problems) {
@@ -40,8 +39,13 @@ void gc_run(struct Interpreter *interp)
 		}
 	}
 
-	// wipe everything
+	// classes may be wiped before their instances
+	// object_free_impl() uses ->klass unless ->klass is NULL
+	for_each_object
+		((struct Object *) iter.key)->klass = NULL;    // for object_free_impl()
+
+	// wipe everything, can't use for_each_object because interp->allobjects is modified in the loop
 	struct Object *obj;
 	while (hashtable_getone(interp->allobjects, (void**)(&obj), NULL))
-		object_free_impl(interp, obj, 0);
+		object_free_impl(interp, obj);    // removes obj from interp->allobjects
 }

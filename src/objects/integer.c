@@ -63,7 +63,7 @@ struct Object *integerobject_createclass(struct Interpreter *interp, struct Obje
 	if (!objectclass)
 		return NULL;
 
-	struct Object *klass = classobject_new(interp, errptr, "Integer", objectclass, 0, NULL, integer_destructor);
+	struct Object *klass = classobject_new(interp, errptr, "Integer", objectclass, 0, NULL);
 	OBJECT_DECREF(interp, objectclass);
 	if (!klass)
 		return NULL;
@@ -92,7 +92,7 @@ struct Object *integerobject_newfromlonglong(struct Interpreter *interp, struct 
 		return NULL;
 	}
 
-	struct Object *integer = classobject_newinstance(interp, errptr, integerclass, data);
+	struct Object *integer = classobject_newinstance(interp, errptr, integerclass, data, integer_destructor);
 	OBJECT_DECREF(interp, integerclass);
 	if (!integer) {
 		free(data);

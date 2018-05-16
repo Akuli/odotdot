@@ -20,7 +20,15 @@ struct Object *errorobject_createclass(struct Interpreter *interp, struct Object
 {
 	// Error objects can have any attributes
 	// TODO: use a message attribute instead of ->data?
-	return classobject_new_noerrptr(interp, "Error", objectclass, 1, error_foreachref, NULL);
+	return classobject_new_noerrptr(interp, "Error", objectclass, 1, error_foreachref);
+}
+
+// TODO: stop copy/pasting this from string.c and actually fix things
+static void string_destructor(struct Object *str)
+{
+        struct UnicodeString *data = str->data;
+        free(data->val);
+        free(data);
 }
 
 struct Object *errorobject_createnomemerr(struct Interpreter *interp, struct Object *errorclass, struct Object *stringclass)
@@ -43,14 +51,14 @@ struct Object *errorobject_createnomemerr(struct Interpreter *interp, struct Obj
 	for (size_t i=0; i < ustr->len; i++)
 		ustr->val[i] = msg[i];
 
-	struct Object *str = object_new(interp, stringclass, ustr);
+	struct Object *str = object_new(interp, stringclass, ustr, string_destructor);
 	if (!str) {
 		free(ustr->val);
 		free(ustr);
 		return NULL;
 	}
 
-	struct Object *err = object_new(interp, errorclass, str);
+	struct Object *err = object_new(interp, errorclass, str, NULL);
 	if (!err) {
 		OBJECT_DECREF(interp, str);   // takes care of ustr and ustr->val
 		return NULL;
@@ -80,7 +88,7 @@ int errorobject_setwithfmt(struct Interpreter *interp, struct Object **errptr, c
 		return STATUS_ERROR;
 	}
 
-	struct Object *err = classobject_newinstance(interp, errptr, errorclass, msg);
+	struct Object *err = classobject_newinstance(interp, errptr, errorclass, msg, NULL);
 	OBJECT_DECREF(interp, errorclass);
 	// don't decref msg, instead let err hold a reference to it
 	if (!err) {

@@ -114,7 +114,7 @@ struct Object *arrayobject_createclass(struct Interpreter *interp, struct Object
 	if (!objectclass)
 		return NULL;
 
-	struct Object *klass = classobject_new(interp, errptr, "Array", objectclass, 0, array_foreachref, array_destructor);
+	struct Object *klass = classobject_new(interp, errptr, "Array", objectclass, 0, array_foreachref);
 	OBJECT_DECREF(interp, objectclass);
 	if (!klass)
 		return NULL;
@@ -154,7 +154,7 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **errpt
 		return NULL;
 	}
 
-	struct Object *arr = classobject_newinstance(interp, errptr, klass, data);
+	struct Object *arr = classobject_newinstance(interp, errptr, klass, data, array_destructor);
 	OBJECT_DECREF(interp, klass);
 	if (!arr) {
 		free(data->elems);

@@ -16,6 +16,10 @@ struct AstNodeData {
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *astnode_createclass(struct Interpreter *interp, struct Object **errptr);
 
+// for creating ast in things like tests
+struct Object *ast_new_statement(struct Interpreter *interp, struct Object **errptr, char kind, size_t lineno, void *info);
+#define ast_new_expression(interp, errptr, kind, info) ast_new_statement((interp), (errptr), (kind), 0, (info))
+
 
 // expressions
 

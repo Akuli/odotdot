@@ -15,15 +15,8 @@
 
 static struct Object *newnode(char kind, void *info)
 {
-	struct AstNodeData *data = bmalloc(sizeof(struct AstNodeData));
-	data->kind = kind;
-	data->lineno = 123;
-	data->info = info;
-
-	buttert(testinterp->astnodeclass);
-	struct Object *node = classobject_newinstance(testinterp, NULL, testinterp->astnodeclass, data);
-	buttert(node);
-	return node;
+	// TODO: get rid of this or add some assertions here?
+	return ast_new_statement(testinterp, NULL, kind, 123, info);
 }
 
 static void setup_string(struct UnicodeString *target)

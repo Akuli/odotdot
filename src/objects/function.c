@@ -46,7 +46,7 @@ struct Object *functionobject_createclass(struct Interpreter *interp, struct Obj
 		return NULL;
 
 	// TODO: allow attaching arbitrary attributes to functions like in python?
-	struct Object *klass = classobject_new(interp, errptr, "Function", objectclass, 0, function_foreachref, function_destructor);
+	struct Object *klass = classobject_new(interp, errptr, "Function", objectclass, 0, function_foreachref);
 	OBJECT_DECREF(interp, objectclass);
 	return klass;    // can be NULL
 }
@@ -107,7 +107,7 @@ struct Object *functionobject_new(struct Interpreter *interp, struct Object **er
 	data->npartialargs = 0;
 
 	assert(interp->functionclass);
-	struct Object *obj = classobject_newinstance(interp, errptr, interp->functionclass, data);
+	struct Object *obj = classobject_newinstance(interp, errptr, interp->functionclass, data, function_destructor);
 	if (!obj) {
 		free(data);
 		return NULL;
@@ -140,7 +140,7 @@ struct Object *functionobject_newpartial(struct Interpreter *interp, struct Obje
 	for (size_t i=0; i < newdata->npartialargs; i++)
 		OBJECT_INCREF(interp, newdata->partialargs[i]);
 
-	struct Object *obj = classobject_newinstance(interp, errptr, interp->functionclass, newdata);
+	struct Object *obj = classobject_newinstance(interp, errptr, interp->functionclass, newdata, function_destructor);
 	if (!obj) {
 		free(newdata->partialargs);
 		free(newdata);

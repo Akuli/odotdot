@@ -27,7 +27,7 @@ static int compare_unicode_strings(void *a, void *b, void *userdata)
 	return 1;
 }
 
-struct Object *object_new(struct Interpreter *interp, struct Object *klass, void *data)
+struct Object *object_new(struct Interpreter *interp, struct Object *klass, void *data, void (*destructor)(struct Object*))
 {
 	struct Object *obj = malloc(sizeof(struct Object));
 	if(!obj)
@@ -52,6 +52,7 @@ struct Object *object_new(struct Interpreter *interp, struct Object *klass, void
 	obj->data = data;
 	obj->refcount = 1;   // the returned reference
 	obj->gcflag = 0;
+	obj->destructor = destructor;
 
 	if (hashtable_set(interp->allobjects, obj, (unsigned int)((uintptr_t)obj), &dummy, NULL) == STATUS_NOMEM) {
 		if (klass)
@@ -70,23 +71,16 @@ static void decref_the_ref(struct Object *ref, void *interpdata)
 	OBJECT_DECREF(interpdata, ref);
 }
 
-void object_free_impl(struct Interpreter *interp, struct Object *obj, int decref_refs)
+void object_free_impl(struct Interpreter *interp, struct Object *obj)
 {
 	// the refcount is > 0 if this is called from gc, so don't assert anything about that
 
-	// obj->klass can be NULL, see builtins_teardown()
-	if (obj->klass) {
-		OBJECT_INCREF(interp, obj->klass);   // temporary, decreffed after destructor call
+	// obj->klass can be NULL, see builtins_setup() and gc_run()
+	if (obj->klass)
+		classobject_runforeachref(obj, (void*) interp, decref_the_ref);
 
-		void classobject_runforeachref(struct Object *obj, void *data, classobject_foreachrefcb cb);
-		if (decref_refs)
-			classobject_runforeachref(obj, (void*) interp, decref_the_ref);
-
-		struct ClassObjectData *classdata = obj->klass->data;
-		if (classdata->destructor)
-			classdata->destructor(obj);   // may need obj->klass
-		OBJECT_DECREF(interp, obj->klass);
-	}
+	if (obj->destructor)
+		obj->destructor(obj);
 
 	assert(hashtable_pop(interp->allobjects, obj, (unsigned int)((uintptr_t)obj), NULL, NULL) == 1);
 

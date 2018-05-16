@@ -26,7 +26,7 @@ static void string_destructor(struct Object *str)
 
 struct Object *stringobject_createclass(struct Interpreter *interp, struct Object *objectclass)
 {
-	return classobject_new_noerrptr(interp, "String", objectclass, 0, NULL, string_destructor);
+	return classobject_new_noerrptr(interp, "String", objectclass, 0, NULL);
 }
 
 static struct Object *to_string(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
@@ -91,7 +91,7 @@ struct Object *stringobject_newfromustr(struct Interpreter *interp, struct Objec
 		return NULL;
 	}
 
-	struct Object *str = classobject_newinstance(interp, errptr, stringclass, data);
+	struct Object *str = classobject_newinstance(interp, errptr, stringclass, data, string_destructor);
 	OBJECT_DECREF(interp, stringclass);
 	if (!str) {
 		free(data->val);
@@ -123,7 +123,7 @@ struct Object *stringobject_newfromcharptr(struct Interpreter *interp, struct Ob
 		return NULL;
 	}
 
-	struct Object *str = classobject_newinstance(interp, errptr, stringclass, data);
+	struct Object *str = classobject_newinstance(interp, errptr, stringclass, data, string_destructor);
 	OBJECT_DECREF(interp, stringclass);
 	if (!str) {
 		free(data->val);

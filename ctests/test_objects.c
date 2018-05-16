@@ -17,15 +17,25 @@
 #include "utils.h"
 
 
+int cleaner_ran = 0;
+void cleaner(struct Object *obj)
+{
+	buttert(obj->data == (void *)0xdeadbeef);
+	cleaner_ran++;
+}
+
 void test_objects_simple(void)
 {
+	buttert(cleaner_ran == 0);
 	struct Object *objectclass = interpreter_getbuiltin(testinterp, NULL, "Object");
 	buttert(objectclass);
-	struct Object *obj = classobject_newinstance(testinterp, NULL, objectclass, (void *)0xdeadbeef);
+	struct Object *obj = classobject_newinstance(testinterp, NULL, objectclass, (void *)0xdeadbeef, cleaner);
 	OBJECT_DECREF(testinterp, objectclass);
 	buttert(obj);
 	buttert(obj->data == (void *)0xdeadbeef);
+	buttert(cleaner_ran == 0);
 	OBJECT_DECREF(testinterp, obj);
+	buttert(cleaner_ran == 1);
 }
 
 void test_objects_error(void)

@@ -27,22 +27,18 @@ struct ClassObjectData {
 	// can be NULL
 	// use classobject_runforeachref() when calling these, it handles corner cases
 	void (*foreachref)(struct Object *obj, void *data, classobject_foreachrefcb cb);
-
-	// called by object_free_impl (see OBJECT_DECREF)
-	// can be NULL
-	void (*destructor)(struct Object *obj);
 };
 
 // creates a new class
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *classobject_new(struct Interpreter *interp, struct Object **errptr, char *name, struct Object *base, int instanceshaveattrs, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb), void (*destructor)(struct Object*));
+struct Object *classobject_new(struct Interpreter *interp, struct Object **errptr, char *name, struct Object *base, int instanceshaveattrs, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb));
 
 // RETURNS A NEW REFERENCE or NULL on no mem, for builtins_setup() only
-struct Object *classobject_new_noerrptr(struct Interpreter *interp, char *name, struct Object *base, int instanceshaveattrs, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb), void (*destructor)(struct Object*));
+struct Object *classobject_new_noerrptr(struct Interpreter *interp, char *name, struct Object *base, int instanceshaveattrs, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb));
 
 // a nicer wrapper for object_new() that takes errptr and checks types
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *classobject_newinstance(struct Interpreter *interp, struct Object **errptr, struct Object *klass, void *data);
+struct Object *classobject_newinstance(struct Interpreter *interp, struct Object **errptr, struct Object *klass, void *data, void (*destructor)(struct Object*));
 
 // like obj->klass == klass, but checks for inheritance
 // never fails if klass is a classobject, bad things happen if it isn't

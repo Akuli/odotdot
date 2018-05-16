@@ -110,14 +110,14 @@ struct Object *astnode_createclass(struct Interpreter *interp, struct Object **e
 
 	// the 1 means that AstNode instances may have attributes
 	// TODO: add at least kind and lineno attributes to the nodes?
-	struct Object *klass = classobject_new(interp, errptr, "AstNode", objectclass, 1, astnode_foreachref, astnode_destructor);
+	struct Object *klass = classobject_new(interp, errptr, "AstNode", objectclass, 1, astnode_foreachref);
 	OBJECT_DECREF(interp, objectclass);
 	return klass;   // may be NULL
 }
 
 
 // RETURNS A NEW REFERENCE or NULL on error
-static struct Object *new_statement(struct Interpreter *interp, struct Object **errptr, char kind, size_t lineno, void *info)
+struct Object *ast_new_statement(struct Interpreter *interp, struct Object **errptr, char kind, size_t lineno, void *info)
 {
 	struct AstNodeData *data = malloc(sizeof(struct AstNodeData));
 	if (!data) {
@@ -129,14 +129,13 @@ static struct Object *new_statement(struct Interpreter *interp, struct Object **
 	data->info = info;
 
 	assert(interp->astnodeclass);
-	struct Object *obj = classobject_newinstance(interp, errptr, interp->astnodeclass, data);
+	struct Object *obj = classobject_newinstance(interp, errptr, interp->astnodeclass, data, astnode_destructor);
 	if (!obj) {
 		free(data);
 		return NULL;
 	}
 	return obj;
 }
-#define new_expression(interp, errptr, kind, info) new_statement((interp), (errptr), (kind), 0, (info))
 
 
 // remember to change this if you add more expressions!
@@ -174,7 +173,7 @@ static struct Object *parse_string(struct Interpreter *interp, struct Object **e
 	if (!info)
 		return NULL;
 
-	struct Object *res = new_expression(interp, errptr, AST_STR, info);
+	struct Object *res = ast_new_expression(interp, errptr, AST_STR, info);
 	if (!res) {
 		OBJECT_DECREF(interp, info);
 		return NULL;
@@ -194,7 +193,7 @@ static struct Object *parse_int(struct Interpreter *interp, struct Object **errp
 	if (!info)
 		return NULL;
 
-	struct Object *res = new_expression(interp, errptr, AST_INT, info);
+	struct Object *res = ast_new_expression(interp, errptr, AST_INT, info);
 	if(!res) {
 		OBJECT_DECREF(interp, info);
 		return NULL;
@@ -220,7 +219,7 @@ static struct Object *parse_getvar(struct Interpreter *interp, struct Object **e
 		return NULL;
 	}
 
-	struct Object *res = new_expression(interp, errptr, AST_GETVAR, info);
+	struct Object *res = ast_new_expression(interp, errptr, AST_GETVAR, info);
 	if (!res) {
 		free(info->varname.val);
 		free(info);
@@ -278,7 +277,7 @@ static struct Object *parse_call(struct Interpreter *interp, struct Object **err
 	if (callinfo->nargs)       // 0 bytes of memory *MAY* be represented as NULL
 		assert(callinfo->argnodes);
 
-	struct Object *res = new_statement(interp, errptr, AST_CALL, lineno, callinfo);
+	struct Object *res = ast_new_statement(interp, errptr, AST_CALL, lineno, callinfo);
 	if (!res) {
 		for(size_t i=0; i < callinfo->nargs; i++)
 			OBJECT_DECREF(interp, callinfo->argnodes[i]);
@@ -365,7 +364,7 @@ static struct Object *parse_array(struct Interpreter *interp, struct Object **er
 	info->itemnodes = elems;
 	info->nitems = nelems;
 
-	struct Object *res = new_expression(interp, errptr, AST_ARRAY, info);
+	struct Object *res = ast_new_expression(interp, errptr, AST_ARRAY, info);
 	if (!res) {
 		free(info);
 		goto error;
@@ -439,7 +438,7 @@ struct Object *ast_parse_expression(struct Interpreter *interp, struct Object **
 		}
 		*curtok = (*curtok)->next;
 
-		struct Object *gam = new_expression(interp, errptr, astkind, gaminfo);
+		struct Object *gam = ast_new_expression(interp, errptr, astkind, gaminfo);
 		if(!gam) {
 			free(gaminfo->name.val);
 			free(gaminfo);
@@ -496,7 +495,7 @@ static struct Object *parse_var_statement(struct Interpreter *interp, struct Obj
 	info->varname = varname;
 	info->valnode = value;
 
-	struct Object *res = new_statement(interp, errptr, AST_CREATEVAR, lineno, info);
+	struct Object *res = ast_new_statement(interp, errptr, AST_CREATEVAR, lineno, info);
 	if (!res) {
 		// TODO: set no mem error
 		free(info);
