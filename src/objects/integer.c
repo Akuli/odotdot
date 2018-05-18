@@ -57,6 +57,16 @@ static struct Object *to_string(struct Interpreter *interp, struct Object **errp
 	return stringobject_newfromcharptr(interp, errptr, res+i);
 }
 
+static struct Object *get_hash_value(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
+{
+	if (functionobject_checktypes(interp, errptr, args, nargs, "Integer", NULL) == STATUS_ERROR)
+		return NULL;
+
+	// some_integer::get_hash_value returns some_integer
+	OBJECT_INCREF(interp, args[0]);
+	return args[0];
+}
+
 struct Object *integerobject_createclass(struct Interpreter *interp, struct Object **errptr)
 {
 	struct Object *objectclass = interpreter_getbuiltin(interp, errptr, "Object");
@@ -68,11 +78,13 @@ struct Object *integerobject_createclass(struct Interpreter *interp, struct Obje
 	if (!klass)
 		return NULL;
 
-	if (method_add(interp, errptr, klass, "to_string", to_string) == STATUS_ERROR) {
-		OBJECT_DECREF(interp, klass);
-		return NULL;
-	}
+	if (method_add(interp, errptr, klass, "to_string", to_string) == STATUS_ERROR) goto error;
+	if (method_add(interp, errptr, klass, "get_hash_value", get_hash_value) == STATUS_ERROR) goto error;
 	return klass;
+
+error:
+	OBJECT_DECREF(interp, klass);
+	return NULL;
 }
 
 struct Object *integerobject_newfromlonglong(struct Interpreter *interp, struct Object **errptr, long long val)
@@ -119,7 +131,6 @@ struct Object *integerobject_newfromustr(struct Interpreter *interp, struct Obje
 		ustr.len--;
 	}
 
-	// TODO: better error handling
 	if (ustr.len == 0) {
 		errorobject_setwithfmt(interp, errptr, "'%U' is not an integer", origstr);
 		return NULL;

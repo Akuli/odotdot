@@ -114,10 +114,11 @@ struct Object *classobject_newinstance(struct Interpreter *interp, struct Object
 
 int classobject_instanceof(struct Object *obj, struct Object *klass)
 {
+	struct Object *klass2 = obj->klass;
 	do {
-		if (obj->klass == klass)
+		if (klass2 == klass)
 			return 1;
-	} while ((klass = ((struct ClassObjectData*) klass->data)->baseclass));
+	} while ((klass2 = ((struct ClassObjectData*) klass2->data)->baseclass));
 	return 0;
 }
 

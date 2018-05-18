@@ -176,7 +176,6 @@ int builtins_setup(struct Interpreter *interp)
 		return STATUS_ERROR;
 	}
 
-	// be sure to update the classes list if you uncomment this stuff, it may have changed
 	/*
 	printf("*** classes added by builtins_setup() ***\n");
 	struct Object *classes[] = { objectclass, interp->classclass, stringclass, errorclass, interp->functionclass, arrayclass, integerclass, interp->astnodeclass };

@@ -24,9 +24,13 @@ struct Object *method_getwithustr(struct Interpreter *interp, struct Object **er
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *method_call(struct Interpreter *interp, struct Object **errptr, struct Object *obj, char *methname, ...);
 
-// these call to_string or to_debug_string and check the return type
-// RETURNS A NEW REFERENCE or NULL on error
+// these call "special" methods and check the return type
+// these RETURN A NEW REFERENCE or NULL on error
 struct Object *method_call_tostring(struct Interpreter *interp, struct Object **errptr, struct Object *obj);
 struct Object *method_call_todebugstring(struct Interpreter *interp, struct Object **errptr, struct Object *obj);
+
+// returns STATUS_OK or STATUS_ERROR
+// sets the hash value to *res on success, *res unchanged on error
+int method_call_gethashvalue(struct Interpreter *interp, struct Object **errptr, struct Object *obj, unsigned int *res);
 
 #endif    // METHOD_H

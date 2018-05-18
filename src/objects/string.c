@@ -10,6 +10,7 @@
 #include "classobject.h"
 #include "errors.h"
 #include "function.h"
+#include "integer.h"
 #include "../common.h"
 #include "../context.h"
 #include "../interpreter.h"
@@ -59,6 +60,15 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 	return res;
 }
 
+static struct Object *get_hash_value(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
+{
+	if (functionobject_checktypes(interp, errptr, args, nargs, "String", NULL) == STATUS_ERROR)
+		return NULL;
+
+	struct UnicodeString *ustr = args[0]->data;
+	return integerobject_newfromlonglong(interp, errptr, (long long) unicodestring_hash(*ustr));
+}
+
 int stringobject_addmethods(struct Interpreter *interp, struct Object **errptr)
 {
 	struct Object *stringclass = interpreter_getbuiltin(interp, errptr, "String");
@@ -67,6 +77,7 @@ int stringobject_addmethods(struct Interpreter *interp, struct Object **errptr)
 
 	if (method_add(interp, errptr, stringclass, "to_string", to_string) == STATUS_ERROR) goto error;
 	if (method_add(interp, errptr, stringclass, "to_debug_string", to_debug_string) == STATUS_ERROR) goto error;
+	if (method_add(interp, errptr, stringclass, "get_hash_value", get_hash_value) == STATUS_ERROR) goto error;
 
 	OBJECT_DECREF(interp, stringclass);
 	return STATUS_OK;
