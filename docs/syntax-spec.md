@@ -16,7 +16,7 @@ an expression that returns the value of the `print` variable.
 Here are examples of all supported kinds of expressions:
 
 - String literals: `""` and `"hello"` return `String` objects.
-- Integer literals: `123`, `-5` and `0` returns `Integer` objects.
+- Integer literals: `123`, `-5` and `0` return `Integer` objects.
 - Variable lookups: `print` and `magic_number` return values of variables.
 - Attribute lookups: `expr.attr` returns the `.attr` attribute of the object
   returned by the `expr` expression.
@@ -26,8 +26,8 @@ Here are examples of all supported kinds of expressions:
   The elements can be any expressions.
 - Function call expressions: `(function arg1 arg2 arg3)` calls the function
   with the given arguments and returns whatever the function returned. The
-  arguments can be any expressions, and you can have any number of arguments
-  you want.
+  function and the arguments can be any expressions, and you can have any
+  number of arguments you want.
 - Blocks: `{ statement1; statement2; }` returns a block object. You can have
   any number of [statements](#statements) inside the block you want. `{ }` is a
   code block that does nothing, and `{ expression }` without a `;` is
