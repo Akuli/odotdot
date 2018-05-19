@@ -4,12 +4,14 @@
 #include <stdio.h>       // this thing prints messages for debugging refcount problems
 #include <stdlib.h>
 #include <string.h>
+#include "attribute.h"
 #include "common.h"
-#include "context.h"
 #include "hashtable.h"
+#include "method.h"
 #include "objectsystem.h"
 #include "unicode.h"
 #include "objects/errors.h"
+#include "objects/string.h"
 
 static int compare_by_identity(void *a, void *b, void *junkdata) { return a==b; }
 
@@ -26,8 +28,7 @@ struct Interpreter *interpreter_new(char *argv0)
 	}
 
 	interp->argv0 = argv0;
-	interp->builtinctx = NULL;
-
+	interp->builtinscope =
 	interp->builtins.arrayclass =
 	interp->builtins.astnodeclass =
 	interp->builtins.classclass =
@@ -52,45 +53,40 @@ void interpreter_free(struct Interpreter *interp)
 
 int interpreter_addbuiltin(struct Interpreter *interp, struct Object **errptr, char *name, struct Object *val)
 {
-	struct UnicodeString uname;
-	char stupiderrormsg[100] = {0};
-	int status = utf8_decode(name, strlen(name), &uname, stupiderrormsg);
-	if (status == STATUS_NOMEM) {
-		errorobject_setnomem(interp, errptr);
+	struct Object *keystr = stringobject_newfromcharptr(interp, errptr, name);
+	if (!keystr)
+		return STATUS_ERROR;
+
+	struct Object *localvars = attribute_get(interp, errptr, interp->builtinscope, "local_vars");
+	if (!localvars) {
+		OBJECT_DECREF(interp, keystr);
 		return STATUS_ERROR;
 	}
-	assert(status == STATUS_OK && stupiderrormsg[0] == 0);  // must be valid utf8
 
-	int res = context_setlocalvar(interp->builtinctx, errptr, uname, val);
-	free(uname.val);
-	return res;
+	struct Object *ret = method_call(interp, errptr, localvars, "set", keystr, val, NULL);
+	OBJECT_DECREF(interp, keystr);
+	OBJECT_DECREF(interp, localvars);
+	if (ret) {
+		OBJECT_DECREF(interp, ret);
+		return STATUS_OK;
+	}
+	return STATUS_ERROR;
 }
 
 struct Object *interpreter_getbuiltin(struct Interpreter *interp, struct Object **errptr, char *name)
 {
-	struct UnicodeString uname;
-	char stupiderrormsg[100] = {0};
-	int status = utf8_decode(name, strlen(name), &uname, stupiderrormsg);
-	if (status == STATUS_NOMEM) {
-		errorobject_setnomem(interp, errptr);
+	struct Object *keystr = stringobject_newfromcharptr(interp, errptr, name);
+	if (!keystr)
+		return NULL;
+
+	struct Object *localvars = attribute_get(interp, errptr, interp->builtinscope, "local_vars");
+	if (!localvars) {
+		OBJECT_DECREF(interp, keystr);
 		return NULL;
 	}
-	assert(status == STATUS_OK && stupiderrormsg[0] == 0);  // must be valid utf8
 
-	struct Object *res = context_getvar(interp->builtinctx, errptr, uname);
-	free(uname.val);
-	return res;
-}
-
-struct Object *interpreter_getbuiltin_nomalloc(struct Interpreter *interp, char *name)
-{
-	size_t namelen = strlen(name);
-	assert(namelen < 50);
-
-	unicode_char unameval[50];
-	for (int i=0; i < (int)namelen; i++)
-		unameval[i] = name[i];
-	struct UnicodeString uname = { unameval, namelen };
-
-	return context_getvar_nomalloc(interp->builtinctx, uname);
+	struct Object *ret = method_call(interp, errptr, localvars, "get", keystr, NULL);
+	OBJECT_DECREF(interp, keystr);
+	OBJECT_DECREF(interp, localvars);
+	return ret;
 }

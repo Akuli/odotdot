@@ -3,99 +3,108 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include "ast.h"
+#include "attribute.h"
 #include "common.h"
-#include "context.h"
 #include "interpreter.h"
 #include "method.h"
 #include "objectsystem.h"
 #include "objects/array.h"
 #include "objects/errors.h"
 #include "objects/function.h"
+#include "objects/scope.h"
+#include "objects/string.h"
 
 // RETURNS A NEW REFERENCE
-static struct Object *run_expression(struct Context *ctx, struct Object **errptr, struct Object *exprnode)
+static struct Object *run_expression(struct Interpreter *interp, struct Object **errptr, struct Object *scope, struct Object *exprnode)
 {
 	struct AstNodeData *nodedata = exprnode->data;
 
 #define INFO_AS(X) ((struct X *) nodedata->info)
-	if (nodedata->kind == AST_GETVAR)
-		return context_getvar(ctx, errptr, INFO_AS(AstGetVarInfo)->varname);
+	if (nodedata->kind == AST_GETVAR) {
+		// TODO: optimize this :^/(
+		struct Object *name = stringobject_newfromustr(interp, errptr, INFO_AS(AstGetVarInfo)->varname);
+		if (!name)
+			return NULL;
+		struct Object *res = method_call(interp, errptr, scope, "get_var", name, NULL);
+		OBJECT_DECREF(interp, name);
+		return res;
+	}
 
 	if (nodedata->kind == AST_STR || nodedata->kind == AST_INT) {
-		OBJECT_INCREF(ctx->interp, (struct Object *) nodedata->info);
+		OBJECT_INCREF(interp, (struct Object *) nodedata->info);
 		return nodedata->info;
 	}
 
 	if (nodedata->kind == AST_GETMETHOD) {
-		struct Object *obj = run_expression(ctx, errptr, INFO_AS(AstGetAttrOrMethodInfo)->objnode);
+		struct Object *obj = run_expression(interp, errptr, scope, INFO_AS(AstGetAttrOrMethodInfo)->objnode);
 		if (!obj)
 			return NULL;
 
-		struct Object *res = method_getwithustr(ctx->interp, errptr, obj, INFO_AS(AstGetAttrOrMethodInfo)->name);
-		OBJECT_DECREF(ctx->interp, obj);
+		struct Object *res = method_getwithustr(interp, errptr, obj, INFO_AS(AstGetAttrOrMethodInfo)->name);
+		OBJECT_DECREF(interp, obj);
 		return res;
 	}
 
 	if (nodedata->kind == AST_CALL) {
-		struct Object *func = run_expression(ctx, errptr, INFO_AS(AstCallInfo)->funcnode);
+		struct Object *func = run_expression(interp, errptr, scope, INFO_AS(AstCallInfo)->funcnode);
 		if (!func)
 			return NULL;
 
 		// TODO: better error reporting
-		assert(func->klass == ctx->interp->builtins.functionclass);
+		assert(func->klass == interp->builtins.functionclass);
 
 		struct Object **args = malloc(sizeof(struct Object*) * INFO_AS(AstCallInfo)->nargs);
 		if (!args) {
-			OBJECT_DECREF(ctx->interp, func);
-			errorobject_setnomem(ctx->interp, errptr);
+			OBJECT_DECREF(interp, func);
+			errorobject_setnomem(interp, errptr);
 			return NULL;
 		}
 
 		for (size_t i=0; i < INFO_AS(AstCallInfo)->nargs; i++) {
-			struct Object *arg = run_expression(ctx, errptr, INFO_AS(AstCallInfo)->argnodes[i]);
+			struct Object *arg = run_expression(interp, errptr, scope, INFO_AS(AstCallInfo)->argnodes[i]);
 			if (!arg) {
 				for (size_t j=0; j<i; j++)
-					OBJECT_DECREF(ctx->interp, args[j]);
+					OBJECT_DECREF(interp, args[j]);
 				free(args);
-				OBJECT_DECREF(ctx->interp, func);
+				OBJECT_DECREF(interp, func);
 				return NULL;
 			}
 			args[i] = arg;
 		}
 
-		struct Object *res = functionobject_vcall(ctx->interp, errptr, func, args, INFO_AS(AstCallInfo)->nargs);
+		struct Object *res = functionobject_vcall(interp, errptr, func, args, INFO_AS(AstCallInfo)->nargs);
 		for (size_t i=0; i < INFO_AS(AstCallInfo)->nargs; i++)
-			OBJECT_DECREF(ctx->interp, args[i]);
+			OBJECT_DECREF(interp, args[i]);
 		free(args);
-		OBJECT_DECREF(ctx->interp, func);
+		OBJECT_DECREF(interp, func);
 		return res;
 	}
 
 	if (nodedata->kind == AST_ARRAY) {
 		// this is handled specially because malloc(0) MAY return NULL
 		if (INFO_AS(AstArrayOrBlockInfo)->nitems == 0)
-			return arrayobject_newempty(ctx->interp, errptr);
+			return arrayobject_newempty(interp, errptr);
 
-		// TODO: create a DynamicArray directly instead of a temporary shit
+		// TODO: should create an array with an initial size and push to it?
 		struct Object **elems = malloc(sizeof(struct Object *) * INFO_AS(AstArrayOrBlockInfo)->nitems);
 		if (!elems) {
-			errorobject_setnomem(ctx->interp, errptr);
+			errorobject_setnomem(interp, errptr);
 			return NULL;
 		}
 
 		for (size_t i=0; i < INFO_AS(AstArrayOrBlockInfo)->nitems; i++) {
-			elems[i] = run_expression(ctx, errptr, INFO_AS(AstArrayOrBlockInfo)->itemnodes[i]);
+			elems[i] = run_expression(interp, errptr, scope, INFO_AS(AstArrayOrBlockInfo)->itemnodes[i]);
 			if (!elems[i]) {
 				for (size_t j=0; j<i; j++)
-					OBJECT_DECREF(ctx->interp, elems[i]);
+					OBJECT_DECREF(interp, elems[i]);
 				free(elems);
 				return NULL;
 			}
 		}
 
-		struct Object *arr = arrayobject_new(ctx->interp, errptr, elems, INFO_AS(AstArrayOrBlockInfo)->nitems);
+		struct Object *arr = arrayobject_new(interp, errptr, elems, INFO_AS(AstArrayOrBlockInfo)->nitems);
 		for (size_t i=0; i < INFO_AS(AstArrayOrBlockInfo)->nitems; i++)
-			OBJECT_DECREF(ctx->interp, elems[i]);
+			OBJECT_DECREF(interp, elems[i]);
 		free(elems);
 		return arr;
 	}
@@ -104,28 +113,47 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 	assert(0);
 }
 
-int run_statement(struct Context *ctx, struct Object **errptr, struct Object *stmtnode)
+int run_statement(struct Interpreter *interp, struct Object **errptr, struct Object *scope, struct Object *stmtnode)
 {
 	struct AstNodeData *nodedata = stmtnode->data;
 
 #define INFO_AS(X) ((struct X *) nodedata->info)
 	if (nodedata->kind == AST_CALL) {
-		struct Object *ret = run_expression(ctx, errptr, stmtnode);
+		struct Object *ret = run_expression(interp, errptr, scope, stmtnode);
 		if (!ret)
 			return STATUS_ERROR;
 
-		OBJECT_DECREF(ctx->interp, ret);  // ignore the return value
+		OBJECT_DECREF(interp, ret);  // ignore the return value
 		return STATUS_OK;
 	}
 
 	if (nodedata->kind == AST_CREATEVAR) {
-		struct Object *val = run_expression(ctx, errptr, INFO_AS(AstCreateOrSetVarInfo)->valnode);
+		// TODO: optimize ://(///((((
+		struct Object *val = run_expression(interp, errptr, scope, INFO_AS(AstCreateOrSetVarInfo)->valnode);
 		if (!val)
 			return STATUS_ERROR;
 
-		int status = context_setlocalvar(ctx, errptr, INFO_AS(AstCreateOrSetVarInfo)->varname, val);
-		OBJECT_DECREF(ctx->interp, val);
-		return status;
+		struct Object *localvars = attribute_get(interp, errptr, scope, "local_vars");
+		if (!localvars) {
+			OBJECT_DECREF(interp, val);
+			return STATUS_ERROR;
+		}
+
+		struct Object *keystr = stringobject_newfromustr(interp, errptr, INFO_AS(AstCreateOrSetVarInfo)->varname);
+		if (!keystr) {
+			OBJECT_DECREF(interp, localvars);
+			OBJECT_DECREF(interp, val);
+		}
+
+		struct Object *ret = method_call(interp, errptr, localvars, "set", keystr, val, NULL);
+		OBJECT_DECREF(interp, keystr);
+		OBJECT_DECREF(interp, localvars);
+		OBJECT_DECREF(interp, val);
+		if (ret) {
+			OBJECT_DECREF(interp, ret);
+			return STATUS_OK;
+		}
+		return STATUS_ERROR;
 	}
 #undef INFO_AS
 

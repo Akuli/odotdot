@@ -5,10 +5,9 @@
 #include <string.h>
 #include "common.h"
 #include "interpreter.h"
+#include "hashtable.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
-#include "context.h"
-#include "hashtable.h"
 #include "objects/function.h"
 #include "objects/integer.h"
 #include "objectsystem.h"
@@ -128,25 +127,17 @@ struct Object *method_call(struct Interpreter *interp, struct Object **errptr, s
 
 static struct Object *to_maybe_debug_string(struct Interpreter *interp, struct Object **errptr, struct Object *obj, char *methname)
 {
-	struct Object *stringclass = interpreter_getbuiltin(interp, errptr, "String");
-	if (!stringclass)
-		return NULL;
-
 	struct Object *res = method_call(interp, errptr, obj, methname, NULL);
-	if (!res) {
-		OBJECT_DECREF(interp, stringclass);
+	if (!res)
 		return NULL;
-	}
 
 	// this doesn't use errorobject_typecheck() because this uses a custom error message string
-	if (!classobject_instanceof(res, stringclass)) {
+	if (!classobject_instanceof(res, interp->builtins.stringclass)) {
 		// FIXME: is it possible to make this recurse infinitely by returning the object itself from to_{debug,}string?
 		errorobject_setwithfmt(interp, errptr, "%s should return a String, but it returned %D", methname, res);
-		OBJECT_DECREF(interp, stringclass);
 		OBJECT_DECREF(interp, res);
 		return NULL;
 	}
-	OBJECT_DECREF(interp, stringclass);
 	return res;
 }
 

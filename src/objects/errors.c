@@ -6,7 +6,6 @@
 #include "classobject.h"
 #include "string.h"
 #include "../common.h"
-#include "../context.h"
 #include "../interpreter.h"
 #include "../objectsystem.h"
 #include "../unicode.h"

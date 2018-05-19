@@ -6,6 +6,23 @@
 #include "objects/errors.h"
 #include "objects/string.h"
 
+// TODO: this is too copy/pasta
+struct Object *attribute_getwithustr(struct Interpreter *interp, struct Object **errptr, struct Object *obj, struct UnicodeString attr)
+{
+	if (!obj->attrs) {
+		errorobject_setwithfmt(interp, errptr, "%D has no attributes", obj);
+		return NULL;
+	}
+
+	struct Object *s = stringobject_newfromustr(interp, errptr, attr);
+	if (!s)
+		return NULL;
+
+	struct Object *res = method_call(interp, errptr, obj->attrs, "get", s, NULL);
+	OBJECT_DECREF(interp, s);
+	return res;   // may be NULL
+}
+
 struct Object *attribute_get(struct Interpreter *interp, struct Object **errptr, struct Object *obj, char *attr)
 {
 	if (!obj->attrs) {

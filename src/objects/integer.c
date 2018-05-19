@@ -11,7 +11,6 @@
 #include "function.h"
 #include "string.h"
 #include "../common.h"
-#include "../context.h"
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"

@@ -12,7 +12,6 @@
 #include "function.h"
 #include "integer.h"
 #include "../common.h"
-#include "../context.h"
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"
@@ -106,6 +105,7 @@ struct Object *stringobject_newfromcharptr(struct Interpreter *interp, struct Ob
 		free(data);
 		return NULL;
 	}
+	str->hash = unicodestring_hash(*data);
 	return str;
 }
 

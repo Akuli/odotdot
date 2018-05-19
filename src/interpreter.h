@@ -17,6 +17,7 @@ struct InterpreterBuiltins {
 	struct Object *integerclass;
 	struct Object *mappingclass;
 	struct Object *objectclass;
+	struct Object *scopeclass;
 	struct Object *stringclass;
 
 	struct Object *nomemerr;
@@ -27,8 +28,9 @@ struct Interpreter {
 	// this is set to argv[0] from main(), useful for error messages
 	char *argv0;
 
+	// this is a Scope object
 	// some builtins are also available here (e.g. String), others (e.g. AstNode) are not
-	struct Context *builtinctx;
+	struct Object *builtinscope;
 
 	// keys are all objects
 	// values are pointers to a static dummy variable
@@ -56,16 +58,5 @@ int interpreter_addbuiltin(struct Interpreter *interp, struct Object **errptr, c
 // returns NULL and sets errptr on error
 // RETURNS A NEW REFERENCE
 struct Object *interpreter_getbuiltin(struct Interpreter *interp, struct Object **errptr, char *name);
-
-/*
-simple version of getbuiltin() that never calls malloc()
-useful in e.g. builtins_teardown()
-restrictions:
-	* strlen(name) must be < 50
-	* name must be ASCII only
-	* no errptr, instead returns NULL if the variable doesn't exist
-RETURNS A NEW REFERENCE
-*/
-struct Object *interpreter_getbuiltin_nomalloc(struct Interpreter *interp, char *name);
 
 #endif   // INTERPRETER_H

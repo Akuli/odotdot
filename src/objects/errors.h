@@ -2,7 +2,6 @@
 #ifndef OBJECTS_ERRORS_H
 #define OBJECTS_ERRORS_H
 
-#include "../context.h"         // IWYU pragma: keep
 #include "../interpreter.h"     // IWYU pragma: keep
 #include "../objectsystem.h"    // IWYU pragma: keep
 

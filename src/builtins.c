@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include "ast.h"
 #include "common.h"
-#include "context.h"
 #include "interpreter.h"
 #include "unicode.h"
 #include "objectsystem.h"
@@ -16,6 +15,7 @@
 #include "objects/integer.h"
 #include "objects/mapping.h"
 #include "objects/object.h"
+#include "objects/scope.h"
 #include "objects/string.h"
 
 
@@ -71,21 +71,49 @@ int builtins_setup(struct Interpreter *interp)
 	if (!(interp->builtins.arrayclass = arrayobject_createclass(interp, &err))) goto error;
 	if (!(interp->builtins.integerclass = integerobject_createclass(interp, &err))) goto error;
 	if (!(interp->builtins.astnodeclass = astnode_createclass(interp, &err))) goto error;
+	if (!(interp->builtins.scopeclass = scopeobject_createclass(interp, &err))) goto error;
 
-	if (!(interp->builtinctx = context_newglobal(interp))) return STATUS_NOMEM;
+	if (!(interp->builtinscope = scopeobject_newbuiltin(interp, &err))) goto error;
 
-	if (interpreter_addbuiltin(interp, &err, "Array", interp->builtins.arrayclass)) goto error;
-	if (interpreter_addbuiltin(interp, &err, "Error", interp->builtins.errorclass)) goto error;
-	if (interpreter_addbuiltin(interp, &err, "Integer", interp->builtins.integerclass)) goto error;
-	if (interpreter_addbuiltin(interp, &err, "Mapping", interp->builtins.mappingclass)) goto error;
-	if (interpreter_addbuiltin(interp, &err, "Object", interp->builtins.objectclass)) goto error;
-	if (interpreter_addbuiltin(interp, &err, "String", interp->builtins.stringclass)) goto error;
-	if (interpreter_addbuiltin(interp, &err, "print", interp->builtins.print)) goto error;
+	if (interpreter_addbuiltin(interp, &err, "Array", interp->builtins.arrayclass) == STATUS_ERROR) goto error;
+	if (interpreter_addbuiltin(interp, &err, "Error", interp->builtins.errorclass) == STATUS_ERROR) goto error;
+	if (interpreter_addbuiltin(interp, &err, "Integer", interp->builtins.integerclass) == STATUS_ERROR) goto error;
+	if (interpreter_addbuiltin(interp, &err, "Mapping", interp->builtins.mappingclass) == STATUS_ERROR) goto error;
+	if (interpreter_addbuiltin(interp, &err, "Object", interp->builtins.objectclass) == STATUS_ERROR) goto error;
+	if (interpreter_addbuiltin(interp, &err, "String", interp->builtins.stringclass) == STATUS_ERROR) goto error;
+	if (interpreter_addbuiltin(interp, &err, "print", interp->builtins.print) == STATUS_ERROR) goto error;
+
+#ifdef DEBUG_BUILTINS
+	printf("things created by builtins_setup():\n");
+#define debug(x) printf("  %s = %p\n", #x, (void *) interp->x);
+	debug(builtins.arrayclass);
+	debug(builtins.astnodeclass);
+	debug(builtins.classclass);
+	debug(builtins.errorclass);
+	debug(builtins.functionclass);
+	debug(builtins.integerclass);
+	debug(builtins.mappingclass);
+	debug(builtins.objectclass);
+	debug(builtins.scopeclass);
+	debug(builtins.stringclass);
+	debug(builtins.nomemerr);
+	debug(builtins.print);
+	debug(builtinscope);
+#undef debug
+#endif   // DEBUG_BUILTINS
 
 	return STATUS_OK;
 
 error:
 	fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
+	if (interp->builtins.print) {
+		struct Object *printerr;
+		struct Object *printres = functionobject_call(interp, &printerr, interp->builtins.print, (struct Object *) err->data, NULL);
+		if (printres)
+			OBJECT_DECREF(interp, printres);
+		else
+			OBJECT_DECREF(interp, printerr);
+	}
 	OBJECT_DECREF(interp, err);
 	return STATUS_ERROR;
 }
@@ -103,12 +131,13 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(mappingclass);
 	TEARDOWN(nomemerr);
 	TEARDOWN(objectclass);
-	TEARDOWN(stringclass);
 	TEARDOWN(print);
+	TEARDOWN(scopeclass);
+	TEARDOWN(stringclass);
 #undef TEARDOWN
 
-	if (interp->builtinctx) {
-		context_free(interp->builtinctx);
-		interp->builtinctx = NULL;
+	if (interp->builtinscope) {
+		OBJECT_DECREF(interp, interp->builtinscope);
+		interp->builtinscope = NULL;
 	}
 }

@@ -6,7 +6,6 @@
 #include "ast.h"
 #include "builtins.h"
 #include "common.h"
-#include "context.h"
 #include "gc.h"
 #include "interpreter.h"
 #include "objectsystem.h"
@@ -68,11 +67,11 @@ static void print_error(struct Interpreter *interp, struct Object *err)
 
 // prints errors to stderr
 // returns an exit code, e.g. 0 for success
-static int run_file(struct Context *ctx, char *path)
+static int run_file(struct Interpreter *interp, struct Object *scope, char *path)
 {
 	FILE *f = fopen(path, "rb");   // b because the content is decoded below... i think this is good
 	if (!f) {
-		fprintf(stderr, "%s: cannot open '%s'\n", ctx->interp->argv0, path);
+		fprintf(stderr, "%s: cannot open '%s'\n", interp->argv0, path);
 		return 1;
 	}
 
@@ -82,11 +81,11 @@ static int run_file(struct Context *ctx, char *path)
 	fclose(f);
 
 	if (status == STATUS_NOMEM) {
-		fprintf(stderr, "%s: ran out of memory while reading '%s'\n", ctx->interp->argv0, path);
+		fprintf(stderr, "%s: ran out of memory while reading '%s'\n", interp->argv0, path);
 		return 1;
 	}
 	if (status == 1) {
-		fprintf(stderr, "%s: reading '%s' failed\n", ctx->interp->argv0, path);
+		fprintf(stderr, "%s: reading '%s' failed\n", interp->argv0, path);
 		return 1;
 	}
 	assert(status == STATUS_OK);
@@ -98,11 +97,11 @@ static int run_file(struct Context *ctx, char *path)
 	free(hugestr);
 
 	if (status == 1) {
-		fprintf(stderr, "%s: the content of '%s' is not valid UTF-8: %s\n", ctx->interp->argv0, path, errormsg);
+		fprintf(stderr, "%s: the content of '%s' is not valid UTF-8: %s\n", interp->argv0, path, errormsg);
 		return 1;
 	}
 	if (status == STATUS_NOMEM) {
-		fprintf(stderr, "%s: ran out of memory while UTF8-decoding the content of '%s'\n", ctx->interp->argv0, path);
+		fprintf(stderr, "%s: ran out of memory while UTF8-decoding the content of '%s'\n", interp->argv0, path);
 		return 1;
 	}
 	assert(status == STATUS_OK);
@@ -113,10 +112,10 @@ static int run_file(struct Context *ctx, char *path)
 
 	// parse
 	struct Object *err = NULL;
-	struct Object *statements = arrayobject_newempty(ctx->interp, &err);
+	struct Object *statements = arrayobject_newempty(interp, &err);
 	if (!statements) {
-		print_error(ctx->interp, err);
-		OBJECT_DECREF(ctx->interp, err);
+		print_error(interp, err);
+		OBJECT_DECREF(interp, err);
 		token_freeall(tok1st);
 		return 1;
 	}
@@ -125,20 +124,20 @@ static int run_file(struct Context *ctx, char *path)
 
 	struct Token *curtok = tok1st;
 	while (curtok) {
-		struct Object *stmtnode = ast_parse_statement(ctx->interp, &err, &curtok);
+		struct Object *stmtnode = ast_parse_statement(interp, &err, &curtok);
 		if (!stmtnode) {
-			print_error(ctx->interp, err);
-			OBJECT_DECREF(ctx->interp, err);
+			print_error(interp, err);
+			OBJECT_DECREF(interp, err);
 			token_freeall(tok1st);
 			returnval = 1;
 			goto end;
 		}
 
-		int status = arrayobject_push(ctx->interp, &err, statements, stmtnode);
-		OBJECT_DECREF(ctx->interp, stmtnode);
+		int status = arrayobject_push(interp, &err, statements, stmtnode);
+		OBJECT_DECREF(interp, stmtnode);
 		if (status == STATUS_ERROR) {
-			print_error(ctx->interp, err);
-			OBJECT_DECREF(ctx->interp, err);
+			print_error(interp, err);
+			OBJECT_DECREF(interp, err);
 			token_freeall(tok1st);
 			returnval = 1;
 			goto end;
@@ -148,12 +147,12 @@ static int run_file(struct Context *ctx, char *path)
 
 	// run!
 	for (size_t i=0; i < ((struct ArrayObjectData *) statements->data)->len; i++) {
-		if (run_statement(ctx, &err, ((struct ArrayObjectData *) statements->data)->elems[i]) == STATUS_ERROR) {
+		if (run_statement(interp, &err, scope, ((struct ArrayObjectData *) statements->data)->elems[i]) == STATUS_ERROR) {
 			if (err) {
-				print_error(ctx->interp, err);
-				OBJECT_DECREF(ctx->interp, err);
+				print_error(interp, err);
+				OBJECT_DECREF(interp, err);
 			} else {
-				fprintf(stderr, "%s: errptr wasn't set correctly\n", ctx->interp->argv0);
+				fprintf(stderr, "%s: errptr wasn't set correctly\n", interp->argv0);
 			}
 			returnval = 1;
 			goto end;
@@ -162,7 +161,7 @@ static int run_file(struct Context *ctx, char *path)
 	// "fall through" to end
 
 end:
-	OBJECT_DECREF(ctx->interp, statements);
+	OBJECT_DECREF(interp, statements);
 	return returnval;
 }
 
@@ -196,8 +195,8 @@ int main(int argc, char **argv)
 	}
 	assert(status == STATUS_OK);
 
-	// TODO: run stdlib/fake_builtins.ö and create a new subcontext for this file
-	int res = run_file(interp->builtinctx, argv[1]);
+	// TODO: run stdlib/fake_builtins.ö and create a new subscope for this file
+	int res = run_file(interp, interp->builtinscope, argv[1]);
 	builtins_teardown(interp);
 	gc_run(interp);    // remove reference cycles
 	interpreter_free(interp);
