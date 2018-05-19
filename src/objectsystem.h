@@ -11,8 +11,8 @@ struct Object {
 	// see objects/classobject.h
 	struct Object *klass;
 
-	// keys are UnicodeStrings pointers, values are pointers to objects
-	struct HashTable *attrs;
+	// a Mapping object or NULL, keys are String objects
+	struct Object *attrs;
 
 	// NULL for objects created from the language, but constructor functions
 	// written in C can use this for anything
@@ -34,6 +34,7 @@ struct Object {
 
 // create a new object, add it to interp->allobjects and return it, returns NULL on no mem
 // if you think you want to call this, you probably want classobject_newinstance() instead
+// CANNOT BE USED with classes that want their instances to have attributes, use classobject_newinstance()
 // see above for descriptions of data and destructor
 // hashable is set to 1, and hash is set to a value based on (uintptr_t)returned_obj
 // RETURNS A NEW REFERENCE, i.e. refcount is set to 1

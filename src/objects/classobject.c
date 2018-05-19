@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "errors.h"
+#include "mapping.h"
 #include "../hashtable.h"
 #include "../interpreter.h"
 #include "../objectsystem.h"
@@ -104,11 +105,19 @@ struct Object *classobject_newinstance(struct Interpreter *interp, struct Object
 		return NULL;
 	}
 	struct Object *instance = object_new(interp, klass, data, destructor);
-
 	if (!instance) {
 		errorobject_setnomem(interp, errptr);
 		return NULL;
 	}
+
+	if (((struct ClassObjectData *) klass->data)->instanceshaveattrs) {
+		instance->attrs = mappingobject_newempty(interp, errptr);
+		if (!instance->attrs) {
+			OBJECT_INCREF(interp, instance);
+			return NULL;
+		}
+	}
+
 	return instance;
 }
 

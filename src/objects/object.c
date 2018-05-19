@@ -15,12 +15,8 @@ static void object_foreachref(struct Object *obj, void *data, classobject_foreac
 {
 	if (obj->klass)
 		cb(obj->klass, data);
-	if (obj->attrs) {
-		struct HashTableIterator iter;
-		hashtable_iterbegin(obj->attrs, &iter);
-		while (hashtable_iternext(&iter))
-			cb(iter.value, data);
-	}
+	if (obj->attrs)
+		cb(obj->attrs, data);
 }
 
 struct Object *objectobject_createclass(struct Interpreter *interp)
