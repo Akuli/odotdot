@@ -27,9 +27,20 @@ struct Interpreter *interpreter_new(char *argv0)
 
 	interp->argv0 = argv0;
 	interp->builtinctx = NULL;
-	interp->nomemerr = NULL;
-	interp->classclass = NULL;
-	interp->functionclass = NULL;
+
+	interp->builtins.arrayclass =
+	interp->builtins.astnodeclass =
+	interp->builtins.classclass =
+	interp->builtins.errorclass =
+	interp->builtins.functionclass =
+	interp->builtins.integerclass =
+	interp->builtins.mappingclass =
+	interp->builtins.objectclass =
+	interp->builtins.stringclass =
+	interp->builtins.nomemerr =
+	interp->builtins.print =
+	NULL;
+
 	return interp;
 }
 

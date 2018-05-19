@@ -10,13 +10,7 @@ int equals(struct Interpreter *interp, struct Object **errptr, struct Object *a,
 	if (a == b)
 		return 1;
 
-	struct Object *stringclass = interpreter_getbuiltin(interp, errptr, "String");
-	if (!stringclass)
-		return -1;
-	int arestrings = classobject_instanceof(a, stringclass) && classobject_instanceof(b, stringclass);
-	OBJECT_DECREF(interp, stringclass);
-
-	if (arestrings) {
+	if (classobject_instanceof(a, interp->builtins.stringclass) && classobject_instanceof(b, interp->builtins.stringclass)) {
 		struct UnicodeString *astr = a->data, *bstr = b->data;
 		if (astr->len != bstr->len)
 			return 0;
@@ -29,24 +23,12 @@ int equals(struct Interpreter *interp, struct Object **errptr, struct Object *a,
 		return 1;
 	}
 
-	struct Object *integerclass = interpreter_getbuiltin(interp, errptr, "Integer");
-	if (!integerclass)
-		return -1;
-	int areints = classobject_instanceof(a, integerclass) && classobject_instanceof(b, integerclass);
-	OBJECT_DECREF(interp, integerclass);
-
-	if (areints) {
+	if (classobject_instanceof(a, interp->builtins.integerclass) && classobject_instanceof(b, interp->builtins.integerclass)) {
 		long long *aval = a->data, *bval = b->data;
 		return (*aval == *bval);
 	}
 
-	struct Object *arrayclass = interpreter_getbuiltin(interp, errptr, "Array");
-	if (!arrayclass)
-		return -1;
-	int arearrays = classobject_instanceof(a, arrayclass) && classobject_instanceof(b, arrayclass);
-	OBJECT_DECREF(interp, arrayclass);
-
-	if (arearrays) {
+	if (classobject_instanceof(a, interp->builtins.arrayclass) && classobject_instanceof(b, interp->builtins.arrayclass)) {
 		struct ArrayObjectData *adata = a->data, *bdata = b->data;
 		if (adata->len != bdata->len)
 			return 0;

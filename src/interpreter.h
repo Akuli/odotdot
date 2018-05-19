@@ -8,15 +8,27 @@
 struct Context;
 struct Object;
 
+struct InterpreterBuiltins {
+	struct Object *arrayclass;
+	struct Object *astnodeclass;
+	struct Object *classclass;    // the class of class objects
+	struct Object *errorclass;
+	struct Object *functionclass;
+	struct Object *integerclass;
+	struct Object *mappingclass;
+	struct Object *objectclass;
+	struct Object *stringclass;
+
+	struct Object *nomemerr;
+	struct Object *print;
+};
+
 struct Interpreter {
 	// this is set to argv[0] from main(), useful for error messages
 	char *argv0;
 
-	// some builtins are created in C, stdlib/fake_builtins.ö does others
+	// some builtins are also available here (e.g. String), others (e.g. AstNode) are not
 	struct Context *builtinctx;
-
-	// set errptr to this when there's not enough mem
-	struct Object *nomemerr;
 
 	// keys are all objects
 	// values are pointers to a static dummy variable
@@ -25,10 +37,8 @@ struct Interpreter {
 	// this doesn't hold any references, object_free_impl() takes care of that
 	struct HashTable *allobjects;
 
-	// these are not exposed as built-in variables, so they can't be in builtinctx
-	struct Object *classclass;      // class of classes, repeated class is not a copy-pasta
-	struct Object *functionclass;
-	struct Object *astnodeclass;
+	// this holds references to built-in classes, functions and stuff
+	struct InterpreterBuiltins builtins;
 };
 
 // returns NULL on no mem

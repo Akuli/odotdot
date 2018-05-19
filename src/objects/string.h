@@ -7,7 +7,7 @@
 #include "../unicode.h"        // IWYU pragma: keep
 
 // RETURNS A NEW REFERENCE or NULL on no mem, see builtins_setup()
-struct Object *stringobject_createclass(struct Interpreter *interp, struct Object *objectclass);
+struct Object *stringobject_createclass(struct Interpreter *interp);
 
 // should be called when other stuff is set up, see builtins_setup()
 // returns STATUS_OK or STATUS_ERROR

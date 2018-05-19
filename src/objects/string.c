@@ -25,14 +25,14 @@ static void string_destructor(struct Object *str)
 	free(data);
 }
 
-struct Object *stringobject_createclass(struct Interpreter *interp, struct Object *objectclass)
+struct Object *stringobject_createclass(struct Interpreter *interp)
 {
-	return classobject_new_noerrptr(interp, "String", objectclass, 0, NULL);
+	return classobject_new_noerrptr(interp, "String", interp->builtins.objectclass, 0, NULL);
 }
 
 static struct Object *to_string(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	if (functionobject_checktypes(interp, errptr, args, nargs, "String", NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.stringclass, NULL) == STATUS_ERROR)
 		return NULL;
 
 	OBJECT_INCREF(interp, args[0]);   // we're returning a reference
@@ -41,7 +41,7 @@ static struct Object *to_string(struct Interpreter *interp, struct Object **errp
 
 static struct Object *to_debug_string(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	if (functionobject_checktypes(interp, errptr, args, nargs, "String", NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.stringclass, NULL) == STATUS_ERROR)
 		return NULL;
 
 	struct UnicodeString noquotes = *((struct UnicodeString*) args[0]->data);
@@ -62,19 +62,9 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 
 int stringobject_addmethods(struct Interpreter *interp, struct Object **errptr)
 {
-	struct Object *stringclass = interpreter_getbuiltin(interp, errptr, "String");
-	if (!stringclass)
-		return STATUS_ERROR;
-
-	if (method_add(interp, errptr, stringclass, "to_string", to_string) == STATUS_ERROR) goto error;
-	if (method_add(interp, errptr, stringclass, "to_debug_string", to_debug_string) == STATUS_ERROR) goto error;
-
-	OBJECT_DECREF(interp, stringclass);
+	if (method_add(interp, errptr, interp->builtins.stringclass, "to_string", to_string) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, errptr, interp->builtins.stringclass, "to_debug_string", to_debug_string) == STATUS_ERROR) return STATUS_ERROR;
 	return STATUS_OK;
-
-error:
-	OBJECT_DECREF(interp, stringclass);
-	return STATUS_ERROR;
 }
 
 struct Object *stringobject_newfromustr(struct Interpreter *interp, struct Object **errptr, struct UnicodeString ustr)
@@ -85,15 +75,7 @@ struct Object *stringobject_newfromustr(struct Interpreter *interp, struct Objec
 		return NULL;
 	}
 
-	struct Object *stringclass = interpreter_getbuiltin(interp, errptr, "String");
-	if (!stringclass) {
-		free(data->val);
-		free(data);
-		return NULL;
-	}
-
-	struct Object *str = classobject_newinstance(interp, errptr, stringclass, data, string_destructor);
-	OBJECT_DECREF(interp, stringclass);
+	struct Object *str = classobject_newinstance(interp, errptr, interp->builtins.stringclass, data, string_destructor);
 	if (!str) {
 		free(data->val);
 		free(data);
@@ -118,15 +100,7 @@ struct Object *stringobject_newfromcharptr(struct Interpreter *interp, struct Ob
 	}
 	assert(status == STATUS_OK);   // it shooouldn't return anything else than STATUS_{NONEM,OK} or 1
 
-	struct Object *stringclass = interpreter_getbuiltin(interp, errptr, "String");
-	if (!stringclass) {
-		free(data->val);
-		free(data);
-		return NULL;
-	}
-
-	struct Object *str = classobject_newinstance(interp, errptr, stringclass, data, string_destructor);
-	OBJECT_DECREF(interp, stringclass);
+	struct Object *str = classobject_newinstance(interp, errptr, interp->builtins.stringclass, data, string_destructor);
 	if (!str) {
 		free(data->val);
 		free(data);

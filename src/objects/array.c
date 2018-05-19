@@ -72,7 +72,7 @@ static struct Object *to_string_joiner(struct Interpreter *interp, struct Object
 
 static struct Object *to_string(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	if (functionobject_checktypes(interp, errptr, args, nargs, "Array", NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
 		return NULL;
 
 	struct ArrayObjectData *data = args[0]->data;
@@ -87,19 +87,16 @@ static struct Object *to_string(struct Interpreter *interp, struct Object **errp
 		return NULL;
 	}
 
-	struct Object *stringclass = interpreter_getbuiltin(interp, errptr, "String");
 	for (size_t i = 0; i < data->len; i++) {
 		struct Object *stringed = method_call_todebugstring(interp, errptr, data->elems[i]);
 		if (!stringed) {
 			for (size_t j=0; j<i; j++)
 				OBJECT_DECREF(interp, strings[i]);
 			free(strings);
-			OBJECT_DECREF(interp, stringclass);
 			return NULL;
 		}
 		strings[i] = stringed;
 	}
-	OBJECT_DECREF(interp, stringclass);
 
 	struct Object *res = to_string_joiner(interp, errptr, strings, data->len);
 	for (size_t i=0; i < data->len; i++)
@@ -110,12 +107,7 @@ static struct Object *to_string(struct Interpreter *interp, struct Object **errp
 
 struct Object *arrayobject_createclass(struct Interpreter *interp, struct Object **errptr)
 {
-	struct Object *objectclass = interpreter_getbuiltin(interp, errptr, "Object");
-	if (!objectclass)
-		return NULL;
-
-	struct Object *klass = classobject_new(interp, errptr, "Array", objectclass, 0, array_foreachref);
-	OBJECT_DECREF(interp, objectclass);
+	struct Object *klass = classobject_new(interp, errptr, "Array", interp->builtins.objectclass, 0, array_foreachref);
 	if (!klass)
 		return NULL;
 
@@ -148,15 +140,7 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **errpt
 		return NULL;
 	}
 
-	struct Object *klass = interpreter_getbuiltin(interp, errptr, "Array");
-	if (!klass) {
-		free(data->elems);
-		free(data);
-		return NULL;
-	}
-
-	struct Object *arr = classobject_newinstance(interp, errptr, klass, data, array_destructor);
-	OBJECT_DECREF(interp, klass);
+	struct Object *arr = classobject_newinstance(interp, errptr, interp->builtins.arrayclass, data, array_destructor);
 	if (!arr) {
 		free(data->elems);
 		free(data);

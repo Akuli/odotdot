@@ -41,14 +41,8 @@ static void function_destructor(struct Object *func)
 
 struct Object *functionobject_createclass(struct Interpreter *interp, struct Object **errptr)
 {
-	struct Object *objectclass = interpreter_getbuiltin(interp, errptr, "Object");
-	if (!objectclass)
-		return NULL;
-
 	// TODO: allow attaching arbitrary attributes to functions like in python?
-	struct Object *klass = classobject_new(interp, errptr, "Function", objectclass, 0, function_foreachref);
-	OBJECT_DECREF(interp, objectclass);
-	return klass;    // can be NULL
+	return classobject_new(interp, errptr, "Function", interp->builtins.objectclass, 0, function_foreachref);
 }
 
 int functionobject_checktypes(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs, ...)
@@ -59,17 +53,9 @@ int functionobject_checktypes(struct Interpreter *interp, struct Object **errptr
 	unsigned int expectnargs;   // expected number of arguments
 	struct Object *classes[NARGS_MAX];
 	for (expectnargs=0; expectnargs < NARGS_MAX; expectnargs++) {
-		char *classname = va_arg(ap, char*);
-		if (!classname)
+		struct Object *klass = va_arg(ap, struct Object *);
+		if (!klass)
 			break;      // end of argument list, not an error
-
-		struct Object *klass = interpreter_getbuiltin(interp, errptr, classname);
-		if (!klass) {
-			for (unsigned int i=0; i < expectnargs; i++)
-				OBJECT_DECREF(interp, classes[i]);
-			return STATUS_ERROR;
-		}
-		assert(klass->klass == interp->classclass);
 		classes[expectnargs] = klass;
 	}
 	va_end(ap);
@@ -84,12 +70,8 @@ int functionobject_checktypes(struct Interpreter *interp, struct Object **errptr
 	}
 
 	for (unsigned int i=0; i < nargs; i++) {
-		if (errorobject_typecheck(interp, errptr, classes[i], args[i]) == STATUS_ERROR) {
-			for (unsigned int j=i; j < nargs; j++)
-				OBJECT_DECREF(interp, classes[j]);
+		if (errorobject_typecheck(interp, errptr, classes[i], args[i]) == STATUS_ERROR)
 			return STATUS_ERROR;
-		}
-		OBJECT_DECREF(interp, classes[i]);
 	}
 
 	return STATUS_OK;
@@ -106,8 +88,7 @@ struct Object *functionobject_new(struct Interpreter *interp, struct Object **er
 	data->partialargs = NULL;
 	data->npartialargs = 0;
 
-	assert(interp->functionclass);
-	struct Object *obj = classobject_newinstance(interp, errptr, interp->functionclass, data, function_destructor);
+	struct Object *obj = classobject_newinstance(interp, errptr, interp->builtins.functionclass, data, function_destructor);
 	if (!obj) {
 		free(data);
 		return NULL;
@@ -117,7 +98,6 @@ struct Object *functionobject_new(struct Interpreter *interp, struct Object **er
 
 struct Object *functionobject_newpartial(struct Interpreter *interp, struct Object **errptr, struct Object *func, struct Object *partialarg)
 {
-	assert(func->klass == interp->functionclass);    // TODO: better type check
 	struct FunctionData *data = func->data;     // casts implicitly
 
 	struct FunctionData *newdata = malloc(sizeof(struct FunctionData));
@@ -140,7 +120,7 @@ struct Object *functionobject_newpartial(struct Interpreter *interp, struct Obje
 	for (size_t i=0; i < newdata->npartialargs; i++)
 		OBJECT_INCREF(interp, newdata->partialargs[i]);
 
-	struct Object *obj = classobject_newinstance(interp, errptr, interp->functionclass, newdata, function_destructor);
+	struct Object *obj = classobject_newinstance(interp, errptr, interp->builtins.functionclass, newdata, function_destructor);
 	if (!obj) {
 		free(newdata->partialargs);
 		free(newdata);
@@ -149,17 +129,9 @@ struct Object *functionobject_newpartial(struct Interpreter *interp, struct Obje
 	return obj;
 }
 
-functionobject_cfunc functionobject_getcfunc(struct Interpreter *interp, struct Object *func)
-{
-	// TODO: better type check using errptr
-	assert(func->klass == interp->functionclass);
-
-	return ((struct FunctionData *) func->data)->cfunc;
-}
-
 struct Object *functionobject_call(struct Interpreter *interp, struct Object **errptr, struct Object *func, ...)
 {
-	assert(func->klass == interp->functionclass);    // TODO: better type check
+	assert(func->klass == interp->builtins.functionclass);    // TODO: better type check
 
 	struct Object *args[NARGS_MAX];
 	va_list ap;
@@ -179,7 +151,6 @@ struct Object *functionobject_call(struct Interpreter *interp, struct Object **e
 
 struct Object *functionobject_vcall(struct Interpreter *interp, struct Object **errptr, struct Object *func, struct Object **args, size_t nargs)
 {
-	assert(func->klass == interp->functionclass);    // TODO: better type check
 	struct Object **theargs;
 	size_t thenargs;
 	struct FunctionData *data = func->data;     // casts implicitly

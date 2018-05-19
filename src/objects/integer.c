@@ -25,7 +25,7 @@ static void integer_destructor(struct Object *integer)
 
 static struct Object *to_string(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	if (functionobject_checktypes(interp, errptr, args, nargs, "Integer", NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.integerclass, NULL) == STATUS_ERROR)
 		return NULL;
 
 	long long val = *((long long *) args[0]->data);
@@ -59,12 +59,7 @@ static struct Object *to_string(struct Interpreter *interp, struct Object **errp
 
 struct Object *integerobject_createclass(struct Interpreter *interp, struct Object **errptr)
 {
-	struct Object *objectclass = interpreter_getbuiltin(interp, errptr, "Object");
-	if (!objectclass)
-		return NULL;
-
-	struct Object *klass = classobject_new(interp, errptr, "Integer", objectclass, 0, NULL);
-	OBJECT_DECREF(interp, objectclass);
+	struct Object *klass = classobject_new(interp, errptr, "Integer", interp->builtins.objectclass, 0, NULL);
 	if (!klass)
 		return NULL;
 
@@ -87,14 +82,7 @@ struct Object *integerobject_newfromlonglong(struct Interpreter *interp, struct 
 	}
 	*data = val;
 
-	struct Object *integerclass = interpreter_getbuiltin(interp, errptr, "Integer");
-	if (!integerclass) {
-		free(data);
-		return NULL;
-	}
-
-	struct Object *integer = classobject_newinstance(interp, errptr, integerclass, data, integer_destructor);
-	OBJECT_DECREF(interp, integerclass);
+	struct Object *integer = classobject_newinstance(interp, errptr, interp->builtins.integerclass, data, integer_destructor);
 	if (!integer) {
 		free(data);
 		return NULL;

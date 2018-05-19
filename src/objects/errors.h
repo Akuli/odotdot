@@ -8,10 +8,10 @@
 
 // returns NULL on no mem
 // no errptr because errors don't exist yet when this is called
-struct Object *errorobject_createclass(struct Interpreter *interp, struct Object *objectclass);
+struct Object *errorobject_createclass(struct Interpreter *interp);
 
 // RETURNS A NEW REFERENCE or NULL on no mem
-struct Object *errorobject_createnomemerr(struct Interpreter *interp, struct Object *errorclass, struct Object *stringclass);
+struct Object *errorobject_createnomemerr(struct Interpreter *interp);
 
 // the ultimate convenience function
 // sets errptr to an error with a string created with stringobject_newfromfmt

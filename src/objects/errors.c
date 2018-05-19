@@ -16,11 +16,11 @@ static void error_foreachref(struct Object *obj, void *data, classobject_foreach
 	cb((struct Object *) obj->data, data);
 }
 
-struct Object *errorobject_createclass(struct Interpreter *interp, struct Object *objectclass)
+struct Object *errorobject_createclass(struct Interpreter *interp)
 {
 	// Error objects can have any attributes
 	// TODO: use a message attribute instead of ->data?
-	return classobject_new_noerrptr(interp, "Error", objectclass, 1, error_foreachref);
+	return classobject_new_noerrptr(interp, "Error", interp->builtins.objectclass, 1, error_foreachref);
 }
 
 // TODO: stop copy/pasting this from string.c and actually fix things
@@ -31,7 +31,7 @@ static void string_destructor(struct Object *str)
         free(data);
 }
 
-struct Object *errorobject_createnomemerr(struct Interpreter *interp, struct Object *errorclass, struct Object *stringclass)
+struct Object *errorobject_createnomemerr(struct Interpreter *interp)
 {
 	// message string is created here because string constructors use interp->nomemerr and errptr
 	// string objects are simple, the data is just a UnicodeString pointer
@@ -51,14 +51,14 @@ struct Object *errorobject_createnomemerr(struct Interpreter *interp, struct Obj
 	for (size_t i=0; i < ustr->len; i++)
 		ustr->val[i] = msg[i];
 
-	struct Object *str = object_new(interp, stringclass, ustr, string_destructor);
+	struct Object *str = object_new(interp, interp->builtins.stringclass, ustr, string_destructor);
 	if (!str) {
 		free(ustr->val);
 		free(ustr);
 		return NULL;
 	}
 
-	struct Object *err = object_new(interp, errorclass, str, NULL);
+	struct Object *err = object_new(interp, interp->builtins.errorclass, str, NULL);
 	if (!err) {
 		OBJECT_DECREF(interp, str);   // takes care of ustr and ustr->val
 		return NULL;
@@ -69,27 +69,20 @@ struct Object *errorobject_createnomemerr(struct Interpreter *interp, struct Obj
 
 void errorobject_setnomem(struct Interpreter *interp, struct Object **errptr)
 {
-	OBJECT_INCREF(interp, interp->nomemerr);
-	*errptr = interp->nomemerr;
+	OBJECT_INCREF(interp, interp->builtins.nomemerr);
+	*errptr = interp->builtins.nomemerr;
 }
 
 int errorobject_setwithfmt(struct Interpreter *interp, struct Object **errptr, char *fmt, ...)
 {
-	struct Object *errorclass = interpreter_getbuiltin(interp, errptr, "Error");
-	if (!errorclass)
-		return STATUS_ERROR;
-
 	va_list ap;
 	va_start(ap, fmt);
 	struct Object *msg = stringobject_newfromvfmt(interp, errptr, fmt, ap);
 	va_end(ap);
-	if (!msg) {
-		OBJECT_DECREF(interp, errorclass);
+	if (!msg)
 		return STATUS_ERROR;
-	}
 
-	struct Object *err = classobject_newinstance(interp, errptr, errorclass, msg, NULL);
-	OBJECT_DECREF(interp, errorclass);
+	struct Object *err = classobject_newinstance(interp, errptr, interp->builtins.errorclass, msg, NULL);
 	// don't decref msg, instead let err hold a reference to it
 	if (!err) {
 		OBJECT_DECREF(interp, msg);

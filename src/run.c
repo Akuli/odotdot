@@ -42,7 +42,7 @@ static struct Object *run_expression(struct Context *ctx, struct Object **errptr
 			return NULL;
 
 		// TODO: better error reporting
-		assert(func->klass == ctx->interp->functionclass);
+		assert(func->klass == ctx->interp->builtins.functionclass);
 
 		struct Object **args = malloc(sizeof(struct Object*) * INFO_AS(AstCallInfo)->nargs);
 		if (!args) {

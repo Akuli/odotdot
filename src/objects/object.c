@@ -29,6 +29,7 @@ static struct Object *to_string(struct Interpreter *interp, struct Object **errp
 {
 	// functionobject_checktypes may call to_string when creating an error message
 	// so we can't use it here, otherwise this may recurse
+	// maybe it wouldn't recurse... but better safe than sorry
 	if (nargs != 1) {
 		errorobject_setwithfmt(interp, errptr, "Object::to_string takes exactly 1 argument");
 		return NULL;
@@ -49,17 +50,7 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 
 int objectobject_addmethods(struct Interpreter *interp, struct Object **errptr)
 {
-	struct Object *objectclass = interpreter_getbuiltin(interp, errptr, "Object");
-	if (!objectclass)
-		return STATUS_ERROR;
-
-	if (method_add(interp, errptr, objectclass, "to_string", to_string) == STATUS_ERROR) goto error;
-	if (method_add(interp, errptr, objectclass, "to_debug_string", to_debug_string) == STATUS_ERROR) goto error;
-
-	OBJECT_DECREF(interp, objectclass);
+	if (method_add(interp, errptr, interp->builtins.objectclass, "to_string", to_string) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, errptr, interp->builtins.objectclass, "to_debug_string", to_debug_string) == STATUS_ERROR) return STATUS_ERROR;
 	return STATUS_OK;
-
-error:
-	OBJECT_DECREF(interp, objectclass);
-	return STATUS_ERROR;
 }

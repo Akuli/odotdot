@@ -9,6 +9,7 @@
 
 // returns STATUS_OK or STATUS_ERROR
 // name must be valid UTF-8
+// bad things happen if klass is not a class object
 int method_add(struct Interpreter *interp, struct Object **errptr, struct Object *klass, char *name, functionobject_cfunc cfunc);
 
 // RETURNS A NEW REFERENCE or NULL on error

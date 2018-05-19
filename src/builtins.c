@@ -21,7 +21,7 @@
 
 static struct Object *print_builtin(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	if (functionobject_checktypes(interp, errptr, args, nargs, "String", NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.stringclass, NULL) == STATUS_ERROR)
 		return NULL;
 
 	char *utf8;
@@ -47,182 +47,64 @@ static struct Object *print_builtin(struct Interpreter *interp, struct Object **
 
 int builtins_setup(struct Interpreter *interp)
 {
-	interp->builtinctx = context_newglobal(interp);
-	if (!interp->builtinctx)
-		return STATUS_NOMEM;
+	if (!(interp->builtinctx = context_newglobal(interp))) return STATUS_NOMEM;
 
-	struct Object *objectclass = objectobject_createclass(interp);
-	if (!objectclass)
-		return STATUS_NOMEM;
+	if (!(interp->builtins.objectclass = objectobject_createclass(interp))) return STATUS_NOMEM;
+	if (!(interp->builtins.classclass = classobject_create_classclass(interp, interp->builtins.objectclass))) return STATUS_NOMEM;
 
-	interp->classclass = classobject_create_classclass(interp, objectclass);
-	if (!interp->classclass) {
-		OBJECT_DECREF(interp, objectclass);
-		return STATUS_NOMEM;
-	}
-	objectclass->klass = interp->classclass;
-	OBJECT_INCREF(interp, interp->classclass);
-	interp->classclass->klass = interp->classclass;
-	OBJECT_INCREF(interp, interp->classclass);
+	interp->builtins.objectclass->klass = interp->builtins.classclass;
+	OBJECT_INCREF(interp, interp->builtins.classclass);
+	interp->builtins.classclass->klass = interp->builtins.classclass;
+	OBJECT_INCREF(interp, interp->builtins.classclass);
 
-	struct Object *stringclass = stringobject_createclass(interp, objectclass);
-	if (!stringclass) {
-		OBJECT_DECREF(interp, objectclass);
-		return STATUS_NOMEM;
-	}
+	if (!(interp->builtins.stringclass = stringobject_createclass(interp))) return STATUS_NOMEM;
+	if (!(interp->builtins.errorclass = errorobject_createclass(interp))) return STATUS_NOMEM;
+	if (!(interp->builtins.nomemerr = errorobject_createnomemerr(interp))) return STATUS_NOMEM;
 
-	struct Object *errorclass = errorobject_createclass(interp, objectclass);
-	if (!errorclass) {
-		OBJECT_DECREF(interp, stringclass);
-		OBJECT_DECREF(interp, objectclass);
-		return STATUS_NOMEM;
-	}
+	struct Object *err;
+	if (!(interp->builtins.functionclass = functionobject_createclass(interp, &err))) goto error;
+	if (objectobject_addmethods(interp, &err) == STATUS_ERROR) goto error;
 
-	interp->nomemerr = errorobject_createnomemerr(interp, errorclass, stringclass);
-	if (!interp->nomemerr) {
-		OBJECT_DECREF(interp, errorclass);
-		OBJECT_DECREF(interp, stringclass);
-		OBJECT_DECREF(interp, objectclass);
-		return STATUS_NOMEM;
-	}
+	if (!(interp->builtins.mappingclass = mappingobject_createclass(interp, &err))) goto error;
+	if (stringobject_addmethods(interp, &err) == STATUS_ERROR) goto error;
 
-	struct Object *err = NULL;
-	if (interpreter_addbuiltin(interp, &err, "Object", objectclass) == STATUS_ERROR ||
-		interpreter_addbuiltin(interp, &err, "String", stringclass) == STATUS_ERROR ||
-		interpreter_addbuiltin(interp, &err, "Error", errorclass) == STATUS_ERROR) {
-		// one of them failed
-		assert(err);
-		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
-		OBJECT_DECREF(interp, err);
+	if (!(interp->builtins.print = functionobject_new(interp, &err, print_builtin))) goto error;
+	if (!(interp->builtins.arrayclass = arrayobject_createclass(interp, &err))) goto error;
+	if (!(interp->builtins.integerclass = integerobject_createclass(interp, &err))) goto error;
+	if (!(interp->builtins.astnodeclass = astnode_createclass(interp, &err))) goto error;
 
-		OBJECT_DECREF(interp, errorclass);
-		OBJECT_DECREF(interp, stringclass);
-		OBJECT_DECREF(interp, objectclass);
-		return STATUS_ERROR;
-	}
-	assert(!err);
-
-	// now the interpreter's builtin mapping holds references to these
-	OBJECT_DECREF(interp, errorclass);
-	OBJECT_DECREF(interp, stringclass);
-	OBJECT_DECREF(interp, objectclass);
-
-	interp->functionclass = functionobject_createclass(interp, &err);
-	if (!interp->functionclass) {
-		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
-		OBJECT_DECREF(interp, err);
-		return STATUS_ERROR;
-	}
-
-	if (objectobject_addmethods(interp, &err) == STATUS_ERROR) {
-		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
-		OBJECT_DECREF(interp, err);
-		return STATUS_ERROR;
-	}
-
-	// now the hard stuff is done \o/ let's do some easier things
-
-	struct Object *mappingclass = mappingobject_createclass(interp, &err);
-	if (!mappingclass) {
-		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
-		OBJECT_DECREF(interp, err);
-		return STATUS_ERROR;
-	}
-	if (interpreter_addbuiltin(interp, &err, "Mapping", mappingclass) == STATUS_ERROR) {
-		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
-		OBJECT_DECREF(interp, err);
-		OBJECT_DECREF(interp, mappingclass);
-		return STATUS_ERROR;
-	}
-	OBJECT_DECREF(interp, mappingclass);
-
-	if (stringobject_addmethods(interp, &err) == STATUS_ERROR) {
-		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
-		OBJECT_DECREF(interp, err);
-		return STATUS_ERROR;
-	}
-
-	struct Object *print = functionobject_new(interp, &err, print_builtin);
-	if (!print) {
-		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
-		OBJECT_DECREF(interp, err);
-		return STATUS_ERROR;
-	}
-	if (interpreter_addbuiltin(interp, &err, "print", print) == STATUS_ERROR) {
-		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
-		OBJECT_DECREF(interp, err);
-		OBJECT_DECREF(interp, print);
-		return STATUS_ERROR;
-	}
-	OBJECT_DECREF(interp, print);
-
-	struct Object *arrayclass = arrayobject_createclass(interp, &err);
-	if (!arrayclass) {
-		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
-		OBJECT_DECREF(interp, err);
-		return STATUS_ERROR;
-	}
-	if (interpreter_addbuiltin(interp, &err, "Array", arrayclass) == STATUS_ERROR) {
-		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
-		OBJECT_DECREF(interp, err);
-		OBJECT_DECREF(interp, arrayclass);
-		return STATUS_ERROR;
-	}
-	OBJECT_DECREF(interp, arrayclass);
-
-	struct Object *integerclass = integerobject_createclass(interp, &err);
-	if (!integerclass) {
-		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
-		OBJECT_DECREF(interp, err);
-		return STATUS_ERROR;
-	}
-	if (interpreter_addbuiltin(interp, &err, "Integer", integerclass) == STATUS_ERROR) {
-		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
-		OBJECT_DECREF(interp, err);
-		OBJECT_DECREF(interp, integerclass);
-		return STATUS_ERROR;
-	}
-	OBJECT_DECREF(interp, integerclass);
-
-	interp->astnodeclass = astnode_createclass(interp, &err);
-	if (!interp->astnodeclass) {
-		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
-		OBJECT_DECREF(interp, err);
-		return STATUS_ERROR;
-	}
-
-	/*
-	printf("*** classes added by builtins_setup() ***\n");
-	struct Object *classes[] = { objectclass, interp->classclass, stringclass, errorclass, mappingclass, interp->functionclass, arrayclass, integerclass, interp->astnodeclass };
-	for (unsigned int i=0; i < sizeof(classes) / sizeof(classes[0]); i++)
-		printf("  %s = %p\n", ((struct ClassObjectData *) classes[i]->data)->name, (void *) classes[i]);
-	*/
+	if (interpreter_addbuiltin(interp, &err, "Array", interp->builtins.arrayclass)) goto error;
+	if (interpreter_addbuiltin(interp, &err, "Error", interp->builtins.errorclass)) goto error;
+	if (interpreter_addbuiltin(interp, &err, "Integer", interp->builtins.integerclass)) goto error;
+	if (interpreter_addbuiltin(interp, &err, "Mapping", interp->builtins.mappingclass)) goto error;
+	if (interpreter_addbuiltin(interp, &err, "Object", interp->builtins.objectclass)) goto error;
+	if (interpreter_addbuiltin(interp, &err, "String", interp->builtins.stringclass)) goto error;
+	if (interpreter_addbuiltin(interp, &err, "print", interp->builtins.print)) goto error;
 
 	return STATUS_OK;
+
+error:
+	fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
+	OBJECT_DECREF(interp, err);
+	return STATUS_ERROR;
 }
 
 
 void builtins_teardown(struct Interpreter *interp)
 {
-	if (interp->astnodeclass) {
-		OBJECT_DECREF(interp, interp->astnodeclass);
-		interp->astnodeclass = NULL;
-	}
-
-	if (interp->functionclass) {
-		OBJECT_DECREF(interp, interp->functionclass);
-		interp->functionclass = NULL;    // who needs this anyway?
-	}
-
-	if (interp->nomemerr) {
-		OBJECT_DECREF(interp, interp->nomemerr);
-		interp->nomemerr = NULL;
-	}
-
-	if (interp->classclass) {
-		OBJECT_DECREF(interp, interp->classclass);
-		interp->classclass = NULL;
-	}
+#define TEARDOWN(x) if (interp->builtins.x) { OBJECT_DECREF(interp, interp->builtins.x); interp->builtins.x = NULL; }
+	TEARDOWN(astnodeclass);
+	TEARDOWN(functionclass);
+	TEARDOWN(nomemerr);
+	TEARDOWN(classclass);
+	TEARDOWN(arrayclass);
+	TEARDOWN(errorclass);
+	TEARDOWN(integerclass);
+	TEARDOWN(mappingclass);
+	TEARDOWN(objectclass);
+	TEARDOWN(stringclass);
+	TEARDOWN(print);
+#undef TEARDOWN
 
 	if (interp->builtinctx) {
 		context_free(interp->builtinctx);

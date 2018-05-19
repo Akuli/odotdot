@@ -55,16 +55,8 @@ static void print_error(struct Interpreter *interp, struct Object *err)
 {
 	struct Object *err2 = NULL;
 
-	struct Object *printfunc = interpreter_getbuiltin(interp, &err2, "print");
-	if (!printfunc) {
-		fprintf(stderr, "%s: printing an error failed\n", interp->argv0);
-		OBJECT_DECREF(interp, err2);
-		return;
-	}
-
 	printf("errör: ");
-	struct Object *printres = functionobject_call(interp, &err2, printfunc, err->data, NULL);
-	OBJECT_DECREF(interp, printfunc);
+	struct Object *printres = functionobject_call(interp, &err2, interp->builtins.print, (struct Object *) err->data, NULL);
 	if (!printres) {
 		fprintf(stderr, "%s: printing an error failed\n", interp->argv0);
 		OBJECT_DECREF(interp, err2);

@@ -28,10 +28,7 @@ void cleaner(struct Object *obj)
 void test_objects_simple(void)
 {
 	buttert(cleaner_ran == 0);
-	struct Object *objectclass = interpreter_getbuiltin(testinterp, NULL, "Object");
-	buttert(objectclass);
-	struct Object *obj = classobject_newinstance(testinterp, NULL, objectclass, (void *)0xdeadbeef, cleaner);
-	OBJECT_DECREF(testinterp, objectclass);
+	struct Object *obj = classobject_newinstance(testinterp, NULL, testinterp->builtins.objectclass, (void *)0xdeadbeef, cleaner);
 	buttert(obj);
 	buttert(obj->data == (void *)0xdeadbeef);
 	buttert(cleaner_ran == 0);
@@ -126,7 +123,7 @@ void test_objects_string_tostring(void)
 	struct Object *ret = method_call(testinterp, NULL, s, "to_string", NULL);
 	buttert(ret);
 	buttert(ret == s);
-	OBJECT_DECREF(testinterp, s);    // functionobject_call() returned a new reference
+	OBJECT_DECREF(testinterp, ret);
 	OBJECT_DECREF(testinterp, s);    // stringobject_newfromustr() returned a new reference
 }
 
@@ -384,19 +381,20 @@ void test_objects_hashes(void)
 {
 	struct Object *err;
 	errorobject_setwithfmt(testinterp, &err, "oh %s", "shit");
-	struct Object *objectclass = interpreter_getbuiltin(testinterp, NULL, "Object");
+
+	OBJECT_INCREF(testinterp, testinterp->builtins.stringclass);
+	OBJECT_INCREF(testinterp, testinterp->builtins.print);
 	struct HashTest tests[] = {
-		{ interpreter_getbuiltin(testinterp, NULL, "String") /* a class */, 1 },
+		{ testinterp->builtins.stringclass, 1 },
 		{ err, 1 },
-		{ interpreter_getbuiltin(testinterp, NULL, "print"), 1 },
+		{ testinterp->builtins.print, 1 },
 		{ integerobject_newfromlonglong(testinterp, NULL, -123LL), 1 },
-		{ classobject_newinstance(testinterp, NULL, objectclass, NULL, NULL), 1 },
+		{ classobject_newinstance(testinterp, NULL, testinterp->builtins.objectclass, NULL, NULL), 1 },
 		{ stringobject_newfromcharptr(testinterp, NULL, "asd"), 1 },
 		{ arrayobject_newempty(testinterp, NULL), 0 },
 		{ mappingobject_newempty(testinterp, NULL), 0 }
 	};
 	err = NULL;
-	OBJECT_DECREF(testinterp, objectclass);
 
 	for (unsigned int i=0; i < sizeof(tests) / sizeof(tests[0]); i++) {
 		struct HashTest test = tests[i];

@@ -104,15 +104,9 @@ static void astnode_destructor(struct Object *node)
 
 struct Object *astnode_createclass(struct Interpreter *interp, struct Object **errptr)
 {
-	struct Object *objectclass = interpreter_getbuiltin(interp, errptr, "Object");
-	if (!objectclass)
-		return NULL;
-
 	// the 1 means that AstNode instances may have attributes
 	// TODO: add at least kind and lineno attributes to the nodes?
-	struct Object *klass = classobject_new(interp, errptr, "AstNode", objectclass, 1, astnode_foreachref);
-	OBJECT_DECREF(interp, objectclass);
-	return klass;   // may be NULL
+	return classobject_new(interp, errptr, "AstNode", interp->builtins.objectclass, 1, astnode_foreachref);
 }
 
 
@@ -128,8 +122,7 @@ struct Object *ast_new_statement(struct Interpreter *interp, struct Object **err
 	data->lineno = lineno;
 	data->info = info;
 
-	assert(interp->astnodeclass);
-	struct Object *obj = classobject_newinstance(interp, errptr, interp->astnodeclass, data, astnode_destructor);
+	struct Object *obj = classobject_newinstance(interp, errptr, interp->builtins.astnodeclass, data, astnode_destructor);
 	if (!obj) {
 		free(data);
 		return NULL;

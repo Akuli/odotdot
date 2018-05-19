@@ -16,8 +16,6 @@
 
 int method_add(struct Interpreter *interp, struct Object **errptr, struct Object *klass, char *name, functionobject_cfunc cfunc)
 {
-	assert(klass->klass == interp->classclass);    // TODO: better type check?? or document this?
-
 	struct UnicodeString *uname = malloc(sizeof(struct UnicodeString));
 	if (!uname) {
 		errorobject_setnomem(interp, errptr);

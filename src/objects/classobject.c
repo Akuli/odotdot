@@ -66,7 +66,7 @@ struct Object *classobject_new_noerrptr(struct Interpreter *interp, char *name, 
 	data->foreachref = foreachref;
 
 	// interp->classclass can be NULL, see builtins_setup()
-	struct Object *klass = object_new(interp, interp->classclass, data, class_destructor);
+	struct Object *klass = object_new(interp, interp->builtins.classclass, data, class_destructor);
 	if (!klass) {
 		OBJECT_DECREF(interp, base);
 		hashtable_free(data->methods);
@@ -79,10 +79,10 @@ struct Object *classobject_new_noerrptr(struct Interpreter *interp, char *name, 
 
 struct Object *classobject_new(struct Interpreter *interp, struct Object **errptr, char *name, struct Object *base, int instanceshaveattrs, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb))
 {
-	assert(interp->classclass);
-	assert(interp->nomemerr);
+	assert(interp->builtins.classclass);
+	assert(interp->builtins.nomemerr);
 
-	if (!classobject_instanceof(base->klass, interp->classclass)) {
+	if (!classobject_instanceof(base->klass, interp->builtins.classclass)) {
 		// TODO: test this
 		// FIXME: don't use builtinctx, instead require passing in a context to this function
 		errorobject_setwithfmt(interp, errptr, "cannot inherit a new class from %D", base);
@@ -99,7 +99,7 @@ struct Object *classobject_new(struct Interpreter *interp, struct Object **errpt
 
 struct Object *classobject_newinstance(struct Interpreter *interp, struct Object **errptr, struct Object *klass, void *data, void (*destructor)(struct Object*))
 {
-	if (!classobject_instanceof(klass->klass, interp->classclass)) {
+	if (!classobject_instanceof(klass, interp->builtins.classclass)) {
 		// TODO: test this
 		errorobject_setwithfmt(interp, errptr, "cannot create an instance of %D", klass);
 		return NULL;

@@ -31,14 +31,9 @@ static void mapping_destructor(struct Object *map)
 
 struct Object *mappingobject_newempty(struct Interpreter *interp, struct Object **errptr)
 {
-	struct Object *mappingclass = interpreter_getbuiltin(interp, errptr, "Mapping");
-	if (!mappingclass)
-		return NULL;
-
 	struct MappingObjectData *data = malloc(sizeof(struct MappingObjectData));
 	if (!data) {
 		errorobject_setnomem(interp, errptr);
-		OBJECT_DECREF(interp, mappingclass);
 		return NULL;
 	}
 
@@ -48,12 +43,10 @@ struct Object *mappingobject_newempty(struct Interpreter *interp, struct Object 
 	if (!(data->buckets)) {
 		errorobject_setnomem(interp, errptr);
 		free(data);
-		OBJECT_DECREF(interp, mappingclass);
 		return NULL;
 	}
 
-	struct Object *map = classobject_newinstance(interp, errptr, mappingclass, data, mapping_destructor);
-	OBJECT_DECREF(interp, mappingclass);
+	struct Object *map = classobject_newinstance(interp, errptr, interp->builtins.mappingclass, data, mapping_destructor);
 	if (!map) {
 		free(data->buckets);
 		free(data);
@@ -96,7 +89,7 @@ static int make_bigger(struct Interpreter *interp, struct Object **errptr, struc
 
 static struct Object *set(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	if (functionobject_checktypes(interp, errptr, args, nargs, "Mapping", "Object", "Object", NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.mappingclass, interp->builtins.objectclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *map = args[0];
 	struct Object *key = args[1];
@@ -163,7 +156,7 @@ static struct Object *set(struct Interpreter *interp, struct Object **errptr, st
 
 static struct Object *get(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	if (functionobject_checktypes(interp, errptr, args, nargs, "Mapping", "Object", NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.mappingclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *map = args[0];
 	struct Object *key = args[1];
@@ -192,7 +185,7 @@ static struct Object *get(struct Interpreter *interp, struct Object **errptr, st
 
 static struct Object *get_and_delete(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	if (functionobject_checktypes(interp, errptr, args, nargs, "Mapping", "Object", NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.mappingclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *map = args[0];
 	struct Object *key = args[1];
@@ -291,12 +284,7 @@ static void foreachref(struct Object *map, void *cbdata, classobject_foreachrefc
 
 struct Object *mappingobject_createclass(struct Interpreter *interp, struct Object **errptr)
 {
-	struct Object *objectclass = interpreter_getbuiltin(interp, errptr, "Object");
-	if (!objectclass)
-		return NULL;
-
-	struct Object *klass = classobject_new(interp, errptr, "Mapping", objectclass, 0, foreachref);
-	OBJECT_DECREF(interp, objectclass);
+	struct Object *klass = classobject_new(interp, errptr, "Mapping", interp->builtins.objectclass, 0, foreachref);
 	if (!klass)
 		return NULL;
 
