@@ -6,6 +6,7 @@
 #include <src/objects/errors.h>
 #include <src/objects/function.h>
 #include <src/objects/integer.h>
+#include <src/objects/mapping.h>
 #include <src/objects/string.h>
 #include <src/objectsystem.h>
 #include <src/unicode.h>
@@ -227,6 +228,153 @@ void test_objects_array_many_elems(void)
 }
 #undef HOW_MANY
 
+void test_objects_mapping(void)
+{
+#define S(x) stringobject_newfromcharptr(testinterp, NULL, (x))
+	struct Object* keys[] = { S("a"), S("b"), S("c") };
+	struct Object* vals[] = { S("x"), S("y"), S("z") };
+#undef S
+#define FINAL_SIZE (sizeof(keys) / sizeof(keys[0]))
+
+	for (unsigned int i=0; i < FINAL_SIZE; i++) {
+		buttert(keys[i]);
+		buttert(vals[i]);
+	}
+
+	struct Object *map = mappingobject_newempty(testinterp, NULL);
+	buttert(map);
+	buttert(((struct MappingObjectData *) map->data)->size == 0);
+
+	// adding non-hashable keys must fail, but non-hashable values are ok
+	struct Object *yeshash = stringobject_newfromcharptr(testinterp, NULL, "lol asd wut wat");
+	struct Object *nohash = arrayobject_newempty(testinterp, NULL);
+	struct Object *err = NULL;
+	struct Object *ret;
+
+	buttert(!method_call(testinterp, &err, map, "set", nohash, yeshash, NULL));
+	buttert(err);
+	OBJECT_DECREF(testinterp, err);
+	err = NULL;
+
+	buttert((ret = method_call(testinterp, &err, map, "set", yeshash, nohash, NULL)));
+	buttert(!err);
+	OBJECT_DECREF(testinterp, ret);
+	OBJECT_DECREF(testinterp, yeshash);
+	OBJECT_DECREF(testinterp, nohash);
+
+	for (unsigned int i=0; i < FINAL_SIZE; i++) {
+		// test trying to get a missing item
+		buttert(!method_call(testinterp, &err, map, "get", keys[i], NULL));
+		buttert(err);
+		OBJECT_DECREF(testinterp, err);
+
+		ret = method_call(testinterp, NULL, map, "set", keys[i], vals[i], NULL);
+		buttert(ret);
+		OBJECT_DECREF(testinterp, ret);
+
+		// must work the same
+		ret = method_call(testinterp, NULL, map, "set", keys[i], vals[i], NULL);
+		buttert(ret);
+		OBJECT_DECREF(testinterp, ret);
+	}
+
+	// it's ok to not delete everything from the mapping
+	ret = method_call(testinterp, NULL, map, "get_and_delete", keys[0], NULL);
+	buttert(ret == vals[0]);
+	OBJECT_DECREF(testinterp, ret);
+
+	ret = method_call(testinterp, NULL, map, "delete", keys[1], NULL);
+	buttert(ret);
+	buttert(ret != vals[1]);   // TODO: check that it's null when null is implemented
+	OBJECT_DECREF(testinterp, ret);
+
+	OBJECT_DECREF(testinterp, map);
+	for (unsigned int i=0; i < FINAL_SIZE; i++) {
+		OBJECT_DECREF(testinterp, keys[i]);
+		OBJECT_DECREF(testinterp, vals[i]);
+	}
+#undef FINAL_SIZE
+}
+
+#define HUGE 1234
+void test_objects_mapping_huge(void)
+{
+	struct Object *keys[HUGE];
+	struct Object *vals[HUGE];
+	for (int i=0; i < HUGE; i++) {
+		buttert((keys[i] = integerobject_newfromlonglong(testinterp, NULL, i)));
+		buttert((vals[i] = integerobject_newfromlonglong(testinterp, NULL, -i)));
+	}
+
+	struct Object *map = mappingobject_newempty(testinterp, NULL);
+	buttert(map);
+
+	int counter = 3;
+	while (counter--) {    // repeat 3 times
+		struct Object *ret;
+		for (int i=0; i < HUGE; i++) {
+			ret = method_call(testinterp, NULL, map, "set", keys[i], vals[i], NULL);
+			buttert(ret);
+			OBJECT_DECREF(testinterp, ret);
+
+			// do it again :D this should do nothing
+			ret = method_call(testinterp, NULL, map, "set", keys[i], vals[i], NULL);
+			buttert(ret);
+			OBJECT_DECREF(testinterp, ret);
+		}
+		buttert(((struct MappingObjectData *) map->data)->size == HUGE);
+
+		for (int i=0; i < HUGE; i++) {
+			ret = method_call(testinterp, NULL, map, "delete", keys[i], NULL);
+			buttert(ret);
+			OBJECT_DECREF(testinterp, ret);
+		}
+		buttert(((struct MappingObjectData *) map->data)->size == 0);
+	}
+
+	OBJECT_DECREF(testinterp, map);
+	for (size_t i=0; i < HUGE; i++)
+	{
+		OBJECT_DECREF(testinterp, keys[i]);
+		OBJECT_DECREF(testinterp, vals[i]);
+	}
+}
+#undef HUGE
+
+void test_objects_mapping_iter(void)
+{
+#define I(x) integerobject_newfromlonglong(testinterp, NULL, (x))
+	struct Object* keys[] = { I(0), I(1), I(2) };
+	struct Object* vals[] = { I(100), I(101), I(102) };
+#undef I
+#define FINAL_SIZE (sizeof(keys) / sizeof(keys[0]))
+	int found[FINAL_SIZE] = {0};
+
+	struct Object *map = mappingobject_newempty(testinterp, NULL);
+	buttert(map);
+	for (unsigned int i=0; i < FINAL_SIZE; i++){
+		struct Object *ret = method_call(testinterp, NULL, map, "set", keys[i], vals[i], NULL);
+		OBJECT_DECREF(testinterp, keys[i]);
+		OBJECT_DECREF(testinterp, vals[i]);
+		OBJECT_DECREF(testinterp, ret);
+	}
+
+	struct MappingObjectIter iter;
+	mappingobject_iterbegin(&iter, map);
+	while (mappingobject_iternext(&iter)) {
+		int k = integerobject_tolonglong(iter.key), v = integerobject_tolonglong(iter.value);
+		buttert(k + 100 == v);
+		buttert(!found[k]);
+		found[k] = 1;
+	}
+
+	for (unsigned int i=0; i < FINAL_SIZE; i++)
+		buttert(found[i]);
+
+	OBJECT_DECREF(testinterp, map);
+}
+
+
 struct HashTest {
 	struct Object *obj;
 	int shouldBhashable;
@@ -244,7 +392,8 @@ void test_objects_hashes(void)
 		{ integerobject_newfromlonglong(testinterp, NULL, -123LL), 1 },
 		{ classobject_newinstance(testinterp, NULL, objectclass, NULL, NULL), 1 },
 		{ stringobject_newfromcharptr(testinterp, NULL, "asd"), 1 },
-		{ arrayobject_newempty(testinterp, NULL), 0 }
+		{ arrayobject_newempty(testinterp, NULL), 0 },
+		{ mappingobject_newempty(testinterp, NULL), 0 }
 	};
 	err = NULL;
 	OBJECT_DECREF(testinterp, objectclass);

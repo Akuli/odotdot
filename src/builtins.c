@@ -14,6 +14,7 @@
 #include "objects/errors.h"
 #include "objects/function.h"
 #include "objects/integer.h"
+#include "objects/mapping.h"
 #include "objects/object.h"
 #include "objects/string.h"
 
@@ -121,6 +122,20 @@ int builtins_setup(struct Interpreter *interp)
 
 	// now the hard stuff is done \o/ let's do some easier things
 
+	struct Object *mappingclass = mappingobject_createclass(interp, &err);
+	if (!mappingclass) {
+		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
+		OBJECT_DECREF(interp, err);
+		return STATUS_ERROR;
+	}
+	if (interpreter_addbuiltin(interp, &err, "Mapping", mappingclass) == STATUS_ERROR) {
+		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
+		OBJECT_DECREF(interp, err);
+		OBJECT_DECREF(interp, mappingclass);
+		return STATUS_ERROR;
+	}
+	OBJECT_DECREF(interp, mappingclass);
+
 	if (stringobject_addmethods(interp, &err) == STATUS_ERROR) {
 		fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
 		OBJECT_DECREF(interp, err);
@@ -178,7 +193,7 @@ int builtins_setup(struct Interpreter *interp)
 
 	/*
 	printf("*** classes added by builtins_setup() ***\n");
-	struct Object *classes[] = { objectclass, interp->classclass, stringclass, errorclass, interp->functionclass, arrayclass, integerclass, interp->astnodeclass };
+	struct Object *classes[] = { objectclass, interp->classclass, stringclass, errorclass, mappingclass, interp->functionclass, arrayclass, integerclass, interp->astnodeclass };
 	for (unsigned int i=0; i < sizeof(classes) / sizeof(classes[0]); i++)
 		printf("  %s = %p\n", ((struct ClassObjectData *) classes[i]->data)->name, (void *) classes[i]);
 	*/

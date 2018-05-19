@@ -62,6 +62,9 @@ int main(int argc, char **argv)
 	RUN_TEST(test_objects_string_newfromfmt);
 	RUN_TEST(test_objects_array);
 	RUN_TEST(test_objects_array_many_elems);
+	RUN_TEST(test_objects_mapping);
+	RUN_TEST(test_objects_mapping_huge);
+	RUN_TEST(test_objects_mapping_iter);
 	RUN_TEST(test_objects_hashes);
 
 	RUN_TEST(test_integer_basic_stuff);
