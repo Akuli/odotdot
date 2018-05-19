@@ -1,5 +1,8 @@
 #include "equals.h"
 #include <assert.h>
+#include "objects/array.h"
+#include "objects/classobject.h"
+#include "objects/string.h"
 
 
 int equals(struct Interpreter *interp, struct Object **errptr, struct Object *a, struct Object *b)
@@ -47,7 +50,7 @@ int equals(struct Interpreter *interp, struct Object **errptr, struct Object *a,
 		struct ArrayObjectData *adata = a->data, *bdata = b->data;
 		if (adata->len != bdata->len)
 			return 0;
-		for (int i=0; i < adata->len; i++) {
+		for (size_t i=0; i < adata->len; i++) {
 			int res = equals(interp, errptr, adata->elems[i], bdata->elems[i]);
 			if (res == -1)
 				return -1;
