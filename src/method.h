@@ -29,8 +29,4 @@ struct Object *method_call(struct Interpreter *interp, struct Object **errptr, s
 struct Object *method_call_tostring(struct Interpreter *interp, struct Object **errptr, struct Object *obj);
 struct Object *method_call_todebugstring(struct Interpreter *interp, struct Object **errptr, struct Object *obj);
 
-// returns STATUS_OK or STATUS_ERROR
-// sets the hash value to *res on success, *res unchanged on error
-int method_call_gethashvalue(struct Interpreter *interp, struct Object **errptr, struct Object *obj, unsigned int *res);
-
 #endif    // METHOD_H

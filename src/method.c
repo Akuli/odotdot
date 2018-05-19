@@ -162,28 +162,3 @@ struct Object *method_call_todebugstring(struct Interpreter *interp, struct Obje
 	return to_maybe_debug_string(interp, errptr, obj, "to_debug_string");
 }
 
-// TODO: test this with different objects and their get_hash_value implementations
-int method_call_gethashvalue(struct Interpreter *interp, struct Object **errptr, struct Object *obj, unsigned int *res)
-{
-	struct Object *integerclass = interpreter_getbuiltin(interp, errptr, "Integer");
-	if (!integerclass)
-		return STATUS_ERROR;
-
-	struct Object *resobj = method_call(interp, errptr, obj, "get_hash_value", NULL);
-	if (!resobj) {
-		OBJECT_DECREF(interp, integerclass);
-		return STATUS_ERROR;
-	}
-
-	if (!classobject_instanceof(resobj, integerclass)) {
-		errorobject_setwithfmt(interp, errptr, "get_hash_value should return an Integer, but it returned %D", res);
-		OBJECT_DECREF(interp, integerclass);
-		OBJECT_DECREF(interp, resobj);
-		return STATUS_ERROR;
-	}
-	OBJECT_DECREF(interp, integerclass);
-
-	*res = (unsigned int) integerobject_tolonglong(resobj);
-	OBJECT_DECREF(interp, resobj);
-	return STATUS_OK;
-}
