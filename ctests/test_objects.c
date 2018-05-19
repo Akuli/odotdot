@@ -229,7 +229,7 @@ void test_objects_array_many_elems(void)
 
 struct HashTest {
 	struct Object *obj;
-	int hashable;
+	int shouldBhashable;
 };
 
 void test_objects_hashes(void)
@@ -252,51 +252,16 @@ void test_objects_hashes(void)
 	for (unsigned int i=0; i < sizeof(tests) / sizeof(tests[0]); i++) {
 		struct HashTest test = tests[i];
 		buttert(test.obj);
-		buttert(test.hashable == !!test.hashable);
+		buttert(test.shouldBhashable == !!test.shouldBhashable);
+		if (test.shouldBhashable) {
+			buttert(test.obj->hashable == 1);
 
-		// wrong number of arguments must be handled nicely
-		// TODO: test first argument of wrong type and not enough arguments somehow?
-		buttert(!method_call(testinterp, &err, test.obj, "get_hash_value", tests[0].obj, NULL));
-		buttert(err);
-		// FIXME: this hurts my eyes
-		struct UnicodeString *msg = ((struct Object *) err->data)->data;
-		buttert(msg);
-		buttert(msg->len == 18);
-		buttert(msg->val[0] == 't');
-		buttert(msg->val[1] == 'o');
-		buttert(msg->val[2] == 'o');
-		buttert(msg->val[3] == ' ');
-		buttert(msg->val[4] == 'm');
-		buttert(msg->val[5] == 'a');
-		buttert(msg->val[6] == 'n');
-		buttert(msg->val[7] == 'y');
-		buttert(msg->val[8] == ' ');
-		buttert(msg->val[9] == 'a');
-		buttert(msg->val[10] == 'r');
-		buttert(msg->val[11] == 'g');
-		buttert(msg->val[12] == 'u');
-		buttert(msg->val[13] == 'm');
-		buttert(msg->val[14] == 'e');
-		buttert(msg->val[15] == 'n');
-		buttert(msg->val[16] == 't');
-		buttert(msg->val[17] == 's');
-		OBJECT_DECREF(testinterp, err);
-		err = NULL;
-
-		unsigned int h = 123456;
-		if (test.hashable) {
-			buttert(method_call_gethashvalue(testinterp, NULL, test.obj, &h) == STATUS_OK);
-			buttert(h != 123456);   // if you are very very unlucky, this may fail when things actually work
+			// just to make sure that the hash is accessed and valgrind complains if it's not set
+			// if you're really unlucky, this fails when things actually work
+			buttert(test.obj->hash != 123456);
 		} else {
-			buttert(method_call_gethashvalue(testinterp, &err, test.obj, &h) == STATUS_ERROR);
-			buttert(err);
-			buttert(h == 123456);
-
-			struct Object *errorclass = interpreter_getbuiltin(testinterp, NULL, "Error");
-			buttert(classobject_instanceof(err, errorclass));
-			OBJECT_DECREF(testinterp, errorclass);
-
-			OBJECT_DECREF(testinterp, err);
+			buttert(test.obj->hashable == 0);
+			// don't access test.obj.hash here
 		}
 
 		OBJECT_DECREF(testinterp, test.obj);

@@ -50,6 +50,8 @@ struct Object *object_new(struct Interpreter *interp, struct Object *klass, void
 		OBJECT_INCREF(interp, klass);
 
 	obj->data = data;
+	obj->hashable = 1;
+	obj->hash = (unsigned int)((uintptr_t)obj);   // by default, hash by identity
 	obj->refcount = 1;   // the returned reference
 	obj->gcflag = 0;
 	obj->destructor = destructor;

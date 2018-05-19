@@ -28,16 +28,6 @@ static void array_destructor(struct Object *arr)
 	free(data);
 }
 
-static struct Object *get_hash_value(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
-{
-	if (functionobject_checktypes(interp, errptr, args, nargs, "Object", NULL) == STATUS_ERROR)
-		return NULL;
-
-	// TODO: more noob-friendly error message?
-	errorobject_setwithfmt(interp, errptr, "Arrays are not hashable");
-	return NULL;
-}
-
 /* joins string objects together and adds [ ] around the whole thing
 to_string was becoming huge, had to break into two functions
 TODO: how about putting the array inside itself? python does this:
@@ -130,7 +120,6 @@ struct Object *arrayobject_createclass(struct Interpreter *interp, struct Object
 		return NULL;
 
 	if (method_add(interp, errptr, klass, "to_string", to_string) == STATUS_ERROR) goto error;
-	if (method_add(interp, errptr, klass, "get_hash_value", get_hash_value) == STATUS_ERROR) goto error;
 	return klass;
 
 error:
@@ -180,6 +169,7 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **errpt
 	for (size_t i=0; i < nelems; i++)
 		OBJECT_INCREF(interp, elems[i]);
 
+	arr->hashable = 0;
 	return arr;
 }
 

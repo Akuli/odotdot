@@ -51,16 +51,6 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 	return method_call(interp, errptr, args[0], "to_string", NULL);
 }
 
-static struct Object *get_hash_value(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
-{
-	if (functionobject_checktypes(interp, errptr, args, nargs, "Object", NULL) == STATUS_ERROR)
-		return NULL;
-
-	long long value = (unsigned int)((uintptr_t) args[0]);
-	// TODO: add more randomness?
-	return integerobject_newfromlonglong(interp, errptr, value);
-}
-
 int objectobject_addmethods(struct Interpreter *interp, struct Object **errptr)
 {
 	struct Object *objectclass = interpreter_getbuiltin(interp, errptr, "Object");
@@ -69,7 +59,6 @@ int objectobject_addmethods(struct Interpreter *interp, struct Object **errptr)
 
 	if (method_add(interp, errptr, objectclass, "to_string", to_string) == STATUS_ERROR) goto error;
 	if (method_add(interp, errptr, objectclass, "to_debug_string", to_debug_string) == STATUS_ERROR) goto error;
-	if (method_add(interp, errptr, objectclass, "get_hash_value", get_hash_value) == STATUS_ERROR) goto error;
 
 	OBJECT_DECREF(interp, objectclass);
 	return STATUS_OK;

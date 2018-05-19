@@ -21,6 +21,10 @@ struct Object {
 	// a function that cleans up obj->data, can be NULL
 	void (*destructor)(struct Object *obj);
 
+	// if hashable is 1, this object can be used as a key in Mappings
+	int hashable;    // 1 or 0
+	int hash;
+
 	// use with atomicincrdecr.h functions only
 	int refcount;
 
@@ -31,7 +35,8 @@ struct Object {
 // create a new object, add it to interp->allobjects and return it, returns NULL on no mem
 // if you think you want to call this, you probably want classobject_newinstance() instead
 // see above for descriptions of data and destructor
-// RETURNS A NEW REFERENCE
+// hashable is set to 1, and hash is set to a value based on (uintptr_t)returned_obj
+// RETURNS A NEW REFERENCE, i.e. refcount is set to 1
 struct Object *object_new(struct Interpreter *interp, struct Object *klass, void *data, void (*destructor)(struct Object*));
 
 // quite self-explanatory, these never fail

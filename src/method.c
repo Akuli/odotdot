@@ -73,16 +73,9 @@ struct Object *method_getwithustr(struct Interpreter *interp, struct Object **er
 {
 	struct Object *nopartial = get_the_method(obj->klass, &uname, unicodestring_hash(uname));
 	if (!nopartial) {
-		assert(0);
-		// TODO: uncomment and update this
 		// TODO: test this
-		/*
 		char *classname = ((struct ClassObjectData*) obj->klass->data)->name;
-		errorobject_setwithfmt(ctx, errptr,
-			"%s objects don't have a method named '%U'",
-			classname,
-			uname);
-		*/
+		errorobject_setwithfmt(interp, errptr, "%s objects don't have a method named '%U'", classname, uname);
 		return NULL;
 	}
 
