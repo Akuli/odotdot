@@ -47,8 +47,6 @@ static struct Object *print_builtin(struct Interpreter *interp, struct Object **
 
 int builtins_setup(struct Interpreter *interp)
 {
-	if (!(interp->builtinctx = context_newglobal(interp))) return STATUS_NOMEM;
-
 	if (!(interp->builtins.objectclass = objectobject_createclass(interp))) return STATUS_NOMEM;
 	if (!(interp->builtins.classclass = classobject_create_classclass(interp, interp->builtins.objectclass))) return STATUS_NOMEM;
 
@@ -61,6 +59,7 @@ int builtins_setup(struct Interpreter *interp)
 	if (!(interp->builtins.errorclass = errorobject_createclass(interp))) return STATUS_NOMEM;
 	if (!(interp->builtins.nomemerr = errorobject_createnomemerr(interp))) return STATUS_NOMEM;
 
+	// now errptr stuff works
 	struct Object *err;
 	if (!(interp->builtins.functionclass = functionobject_createclass(interp, &err))) goto error;
 	if (objectobject_addmethods(interp, &err) == STATUS_ERROR) goto error;
@@ -72,6 +71,8 @@ int builtins_setup(struct Interpreter *interp)
 	if (!(interp->builtins.arrayclass = arrayobject_createclass(interp, &err))) goto error;
 	if (!(interp->builtins.integerclass = integerobject_createclass(interp, &err))) goto error;
 	if (!(interp->builtins.astnodeclass = astnode_createclass(interp, &err))) goto error;
+
+	if (!(interp->builtinctx = context_newglobal(interp))) return STATUS_NOMEM;
 
 	if (interpreter_addbuiltin(interp, &err, "Array", interp->builtins.arrayclass)) goto error;
 	if (interpreter_addbuiltin(interp, &err, "Error", interp->builtins.errorclass)) goto error;
@@ -93,14 +94,14 @@ error:
 void builtins_teardown(struct Interpreter *interp)
 {
 #define TEARDOWN(x) if (interp->builtins.x) { OBJECT_DECREF(interp, interp->builtins.x); interp->builtins.x = NULL; }
-	TEARDOWN(astnodeclass);
-	TEARDOWN(functionclass);
-	TEARDOWN(nomemerr);
-	TEARDOWN(classclass);
 	TEARDOWN(arrayclass);
+	TEARDOWN(astnodeclass);
+	TEARDOWN(classclass);
 	TEARDOWN(errorclass);
+	TEARDOWN(functionclass);
 	TEARDOWN(integerclass);
 	TEARDOWN(mappingclass);
+	TEARDOWN(nomemerr);
 	TEARDOWN(objectclass);
 	TEARDOWN(stringclass);
 	TEARDOWN(print);
