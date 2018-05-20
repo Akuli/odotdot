@@ -47,16 +47,16 @@ var while = (array_func {
     var condition = (arguments::get 0);
     var body = (arguments::get 1);
 
-    var context = (body.definition_context::create_subcontext);
+    var scope = (body.definition_scope::create_subscope);
     var run_stuff = {
-        if (condition::run_with_return context) {
-            body::run context;
+        if (condition::run_with_return scope) {
+            body::run scope;
 
             # FIXME: this recursing is no good :/( infinite loops don't work
-            run_stuff::run;
+            run_stuff::run run_stuff.definition_scope;
         };
     };
-    run_stuff::run;
+    run_stuff::run run_stuff.definition_scope;
 });
 
 var func = (array_func {
@@ -67,14 +67,14 @@ var func = (array_func {
     var body = (arguments::get -1);
 
     return (array_func {
-        var context = (body.definition_context::create_subcontext);
+        var scope = (body.definition_scope::create_subscope);
 
         # set arguments as local variables
         # now the arguments variable is local to this inner array_func (lol)
         (zip argument_names arguments)::foreach "pair" {
-            context.local_vars::set (pair::get 0) (pair::get 1);
+            scope.local_vars::set (pair::get 0) (pair::get 1);
         };
-        return (body::run_with_return context);
+        return (body::run_with_return scope);
     });
 });
 
@@ -144,9 +144,9 @@ var class = (array_func {
     };
     var body = (arguments::get -1);
 
-    var context = ({ }.definition_context.parent_context::create_subcontext);
-    body::run context;
-    return (new (get_class String) baseclass context.local_vars);
+    var scope = ({ }.definition_scope.parent_scope::create_subscope);
+    body::run scope;
+    return (new (get_class String) baseclass scope.local_vars);
 });
 
 var meth = (partial func "this");
