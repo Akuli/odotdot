@@ -36,12 +36,16 @@ static struct Object *run_expression(struct Interpreter *interp, struct Object *
 		return nodedata->info;
 	}
 
-	if (nodedata->kind == AST_GETMETHOD) {
+	if (nodedata->kind == AST_GETMETHOD || nodedata->kind == AST_GETATTR) {
 		struct Object *obj = run_expression(interp, errptr, scope, INFO_AS(AstGetAttrOrMethodInfo)->objnode);
 		if (!obj)
 			return NULL;
 
-		struct Object *res = method_getwithustr(interp, errptr, obj, INFO_AS(AstGetAttrOrMethodInfo)->name);
+		struct Object *res;
+		if (nodedata->kind == AST_GETMETHOD)
+			res = method_getwithustr(interp, errptr, obj, INFO_AS(AstGetAttrOrMethodInfo)->name);
+		else
+			res = attribute_getwithustr(interp, errptr, obj, INFO_AS(AstGetAttrOrMethodInfo)->name);
 		OBJECT_DECREF(interp, obj);
 		return res;
 	}
