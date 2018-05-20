@@ -62,7 +62,7 @@ class Öbject:
         except KeyError:
             raise Errör("no attribute named '%s'" % name)
 
-        # TODO: support methods that want a context?
+        # TODO: support methods that want a scope?
         return new_function(functools.partial(python_func, self))
 
     # just for convenience
@@ -102,10 +102,10 @@ object_info = ClassInfo(None, {})
 function_info = ClassInfo(object_info, {})
 
 
-def new_function(python_func, wants_context=False):
-    def call(context, *args):
-        if wants_context:
-            return python_func(context, *args)
+def new_function(python_func, wants_scope=False):
+    def call(scope, *args):
+        if wants_scope:
+            return python_func(scope, *args)
         return python_func(*args)
 
     this = Öbject(function_info)
@@ -222,11 +222,11 @@ def _create_array_info():
         assert is_instance_of(varname, string_info)
         assert is_instance_of(loop_body, block_info)
 
-        context = (loop_body.attributes['definition_context']
-                   .call_method('create_subcontext'))
+        scope = (loop_body.attributes['definition_scope']
+                   .call_method('create_subscope'))
         for element in this.python_list:
-            context.attributes['local_vars'].python_dict[varname] = element
-            loop_body.call_method('run', context)
+            scope.attributes['local_vars'].python_dict[varname] = element
+            loop_body.call_method('run', scope)
 
         return null
 
@@ -327,7 +327,7 @@ def _create_mapping_info():
 mapping_info = _create_mapping_info()
 
 
-def new_block(interpreter, definition_context, ast_statements):
+def new_block(interpreter, definition_scope, ast_statements):
     assert ast_statements is not iter(ast_statements), (
         "ast_statements cannot be an iterator because it may need to be "
         "looped over several times")
@@ -335,36 +335,36 @@ def new_block(interpreter, definition_context, ast_statements):
     this = Öbject(block_info)
     this._interp = interpreter
     this._statements = ast_statements
-    this.attributes['definition_context'] = definition_context
+    this.attributes['definition_scope'] = definition_scope
     return this
 
 
 def _create_block_info():
-    def run(this, context=null):
-        if context is null:
-            context = (this.attributes['definition_context']
-                       .call_method('create_subcontext'))
+    def run(this, scope=null):
+        if scope is null:
+            scope = (this.attributes['definition_scope']
+                       .call_method('create_subscope'))
         for statement in this._statements:
-            this._interp.execute(statement, context)
+            this._interp.execute(statement, scope)
         return null
 
-    def run_with_return(this, context=null):
-        if context is null:
-            context = (this.attributes['definition_context']
-                       .call_method('create_subcontext'))
-        assert context is not null
+    def run_with_return(this, scope=null):
+        if scope is null:
+            scope = (this.attributes['definition_scope']
+                       .call_method('create_subscope'))
+        assert scope is not null
 
         try:
-            this.call_method('run', context)
+            this.call_method('run', scope)
         except ReturnAValue as e:
             # make sure that the return statement was in the running
-            # context or a subcontext of the running context
-            return_context = e.return_context
-            while return_context is not null:
-                if return_context is context:
+            # scope or a subscope of the running scope
+            return_scope = e.return_scope
+            while return_scope is not null:
+                if return_scope is scope:
                     # yes, this run_with_return() is supposed to return now
                     return e.value
-                return_context = return_context.attributes['parent_context']
+                return_scope = return_scope.attributes['parent_scope']
 
             # some other run_with_return() call should return, not this
             raise e
@@ -401,7 +401,7 @@ class_objects = DefaultDictLikeThingy(_wrap_class_info)
 def _setup_class_object(this, baseclass, methods):
     if baseclass is null:
         baseclass = class_objects[object_info]
-    assert not methods, "sorry, the context stuff isn't implemented yet"
+    assert not methods, "sorry, the scope stuff isn't implemented yet"
     the_methods = {key.python_string: value.python_func
                    for key, value in methods.python_dict.items()}
 
@@ -433,19 +433,19 @@ def new(class_object, *setup_args):
 # practicality beats purity
 class ReturnAValue(Exception):
 
-    def __init__(self, value, context):
+    def __init__(self, value, scope):
         super().__init__(value)
         self.value = value
-        self.return_context = context
+        self.return_scope = scope
 
 
-def return_(context, value=null):
-    raise ReturnAValue(value, context)
+def return_(scope, value=null):
+    raise ReturnAValue(value, scope)
 
 
 # like apply in python 2
-def call(context, func, arg_list):
-    return func.call(context, *arg_list.python_list)
+def call(scope, func, arg_list):
+    return func.call(scope, *arg_list.python_list)
 
 
 # setup is added after creating the only two instances
@@ -465,11 +465,11 @@ def if_(condition, body):
 # create a function that takes an array of arguments
 def array_func(func_body):
     def the_func(*args):
-        run_context = (func_body.attributes['definition_context']
-                       .call_method('create_subcontext'))
-        (run_context.attributes['local_vars']
+        run_scope = (func_body.attributes['definition_scope']
+                       .call_method('create_subscope'))
+        (run_scope.attributes['local_vars']
          .python_dict[new_string('arguments')]) = new_array(args)
-        return func_body.call_method('run_with_return', run_context)
+        return func_body.call_method('run_with_return', run_scope)
 
     return new_function(the_func)
 
@@ -492,15 +492,15 @@ def getattr_(obj, name):
     return obj.attributes.get(name.python_string)
 
 
-def add_real_builtins(context):
-    var_dict = context.attributes['local_vars'].python_dict
+def add_real_builtins(scope):
+    var_dict = scope.attributes['local_vars'].python_dict
     var_dict[new_string('null')] = null
     var_dict[new_string('true')] = true
     var_dict[new_string('false')] = false
-    var_dict[new_string('return')] = new_function(return_, wants_context=True)
+    var_dict[new_string('return')] = new_function(return_, wants_scope=True)
     var_dict[new_string('if')] = new_function(if_)
     var_dict[new_string('print')] = new_function(print_)
-    var_dict[new_string('call')] = new_function(call, wants_context=True)
+    var_dict[new_string('call')] = new_function(call, wants_scope=True)
     var_dict[new_string('setattr')] = new_function(setattr_)
     var_dict[new_string('getattr')] = new_function(getattr_)
     var_dict[new_string('array_func')] = new_function(array_func)
