@@ -5,6 +5,7 @@
 #include <string.h>
 #include "classobject.h"
 #include "errors.h"
+#include "mapping.h"
 #include "../common.h"
 #include "../interpreter.h"
 #include "../objectsystem.h"
@@ -42,6 +43,12 @@ struct Object *functionobject_createclass(struct Interpreter *interp, struct Obj
 {
 	// TODO: allow attaching arbitrary attributes to functions like in python?
 	return classobject_new(interp, errptr, "Function", interp->builtins.objectclass, 0, function_foreachref);
+}
+
+int functionobject_addmethods(struct Interpreter *interp, struct Object **errptr)
+{
+	// TODO: partialling, map?
+	return STATUS_OK;
 }
 
 int functionobject_checktypes(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs, ...)

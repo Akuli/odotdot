@@ -9,6 +9,9 @@
 // no errptr because errors don't exist yet when this is called
 struct Object *errorobject_createclass(struct Interpreter *interp);
 
+// returns STATUS_OK or STATUS_ERROR
+int errorobject_addmethods(struct Interpreter *interp, struct Object **errptr);
+
 // RETURNS A NEW REFERENCE or NULL on no mem
 struct Object *errorobject_createnomemerr(struct Interpreter *interp);
 

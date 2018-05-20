@@ -91,17 +91,12 @@ static int make_bigger(struct Interpreter *interp, struct Object **errptr, struc
 	return STATUS_OK;
 }
 
-static struct Object *set(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
-{
-	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.mappingclass, interp->builtins.objectclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
-		return NULL;
-	struct Object *map = args[0];
-	struct Object *key = args[1];
-	struct Object *val = args[2];
 
+int mappingobject_set(struct Interpreter *interp, struct Object **errptr, struct Object *map, struct Object *key, struct Object *val)
+{
 	if (!(key->hashable)) {
 		errorobject_setwithfmt(interp, errptr, "%D is not hashable, so it can't be used as a Mapping key", key);
-		return NULL;
+		return STATUS_ERROR;
 	}
 
 	struct MappingObjectData *data = map->data;
@@ -109,15 +104,13 @@ static struct Object *set(struct Interpreter *interp, struct Object **errptr, st
 	for (struct MappingObjectItem *olditem = data->buckets[i]; olditem; olditem=olditem->next) {
 		int eqres = equals(interp, errptr, olditem->key, key);
 		if (eqres == -1)
-			return NULL;
+			return STATUS_ERROR;
 		if (eqres == 1) {
 			// the key is already in the mapping, update the value
 			OBJECT_DECREF(interp, olditem->value);
 			olditem->value = val;
 			OBJECT_INCREF(interp, val);
-
-			// must return a new reference (lol)
-			return stringobject_newfromcharptr(interp, errptr, "asd");
+			return STATUS_OK;
 		}
 		assert(eqres == 0);
 	}
@@ -134,7 +127,7 @@ static struct Object *set(struct Interpreter *interp, struct Object **errptr, st
 		float loadfactor = ((float) data->size) / data->nbuckets;
 		if (loadfactor > 0.75) {
 			if (make_bigger(interp, errptr, data) == STATUS_ERROR)
-				return NULL;
+				return STATUS_ERROR;
 			i = key->hash % data->nbuckets;
 		}
 	}
@@ -142,7 +135,7 @@ static struct Object *set(struct Interpreter *interp, struct Object **errptr, st
 	struct MappingObjectItem *item = malloc(sizeof(struct MappingObjectItem));
 	if (!item) {
 		errorobject_setnomem(interp, errptr);
-		return NULL;
+		return STATUS_ERROR;
 	}
 	item->key = key;
 	OBJECT_INCREF(interp, key);
@@ -154,18 +147,24 @@ static struct Object *set(struct Interpreter *interp, struct Object **errptr, st
 	item->next = data->buckets[i];    // may be NULL
 	data->buckets[i] = item;
 	data->size++;
+	return STATUS_OK;
+}
 
-	// must return a new reference (lol)
+static struct Object *set(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
+{
+	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.mappingclass, interp->builtins.objectclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+		return NULL;
+	if (mappingobject_set(interp, errptr, args[0], args[1], args[2]) == STATUS_ERROR)
+		return NULL;
+
+	// must return a new reference
+	// TODO: we need a nulll ::((((((
 	return stringobject_newfromcharptr(interp, errptr, "asd");
 }
 
-static struct Object *get(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
-{
-	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.mappingclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
-		return NULL;
-	struct Object *map = args[0];
-	struct Object *key = args[1];
 
+struct Object *mappingobject_get(struct Interpreter *interp, struct Object **errptr, struct Object *map, struct Object *key)
+{
 	if (!(key->hashable)) {
 		errorobject_setwithfmt(interp, errptr, "%D is not hashable, so it can't be used as a Mapping key", key);
 		return NULL;
@@ -183,10 +182,24 @@ static struct Object *get(struct Interpreter *interp, struct Object **errptr, st
 		assert(eqres == 0);
 	}
 
-	// empty buckets or nothing but hash collisions
-	errorobject_setwithfmt(interp, errptr, "cannot find key %D", key);
+	// returns NULL without setting errptr... be careful with this
 	return NULL;
 }
+
+static struct Object *get(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
+{
+	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.mappingclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+		return NULL;
+	struct Object *map = args[0];
+	struct Object *key = args[1];
+
+	assert(!*errptr);
+	struct Object *res = mappingobject_get(interp, errptr, map, key);
+	if (!res && !*errptr)
+		errorobject_setwithfmt(interp, errptr, "cannot find key %D", key);
+	return res;
+}
+
 
 static struct Object *get_and_delete(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
 {
@@ -289,17 +302,14 @@ static void foreachref(struct Object *map, void *cbdata, classobject_foreachrefc
 
 struct Object *mappingobject_createclass(struct Interpreter *interp, struct Object **errptr)
 {
-	struct Object *klass = classobject_new(interp, errptr, "Mapping", interp->builtins.objectclass, 0, foreachref);
-	if (!klass)
-		return NULL;
+	return classobject_new(interp, errptr, "Mapping", interp->builtins.objectclass, 0, foreachref);
+}
 
-	if (method_add(interp, errptr, klass, "set", set) == STATUS_ERROR) goto error;
-	if (method_add(interp, errptr, klass, "get", get) == STATUS_ERROR) goto error;
-	if (method_add(interp, errptr, klass, "delete", delete) == STATUS_ERROR) goto error;
-	if (method_add(interp, errptr, klass, "get_and_delete", get_and_delete) == STATUS_ERROR) goto error;
-	return klass;
-
-error:
-	OBJECT_DECREF(interp, klass);
-	return NULL;
+int mappingobject_addmethods(struct Interpreter *interp, struct Object **errptr)
+{
+	if (method_add(interp, errptr, interp->builtins.mappingclass, "set", set) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, errptr, interp->builtins.mappingclass, "get", get) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, errptr, interp->builtins.mappingclass, "delete", delete) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, errptr, interp->builtins.mappingclass, "get_and_delete", get_and_delete) == STATUS_ERROR) return STATUS_ERROR;
+	return STATUS_OK;
 }

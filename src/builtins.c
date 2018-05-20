@@ -46,6 +46,13 @@ static struct Object *print_builtin(struct Interpreter *interp, struct Object **
 }
 
 
+static int create_method_mapping(struct Interpreter *interp, struct Object **errptr, struct Object *klass)
+{
+	struct ClassObjectData *data = klass->data;
+	assert(!data->methods);
+	return (data->methods = mappingobject_newempty(interp, errptr)) ? STATUS_OK : STATUS_ERROR;
+}
+
 int builtins_setup(struct Interpreter *interp)
 {
 	if (!(interp->builtins.objectclass = objectobject_createclass(interp))) return STATUS_NOMEM;
@@ -61,12 +68,23 @@ int builtins_setup(struct Interpreter *interp)
 	if (!(interp->builtins.nomemerr = errorobject_createnomemerr(interp))) return STATUS_NOMEM;
 
 	// now errptr stuff works
+	// but note that error printing must NOT use any methods because methods don't actually exist yet
 	struct Object *err;
 	if (!(interp->builtins.functionclass = functionobject_createclass(interp, &err))) goto error;
-	if (objectobject_addmethods(interp, &err) == STATUS_ERROR) goto error;
-
 	if (!(interp->builtins.mappingclass = mappingobject_createclass(interp, &err))) goto error;
+
+	// these classes must exist before methods exist, so they are handled specially
+	// TODO: classclass
+	if (create_method_mapping(interp, &err, interp->builtins.objectclass) == STATUS_ERROR) goto error;
+	if (create_method_mapping(interp, &err, interp->builtins.stringclass) == STATUS_ERROR) goto error;
+	if (create_method_mapping(interp, &err, interp->builtins.errorclass) == STATUS_ERROR) goto error;
+	if (create_method_mapping(interp, &err, interp->builtins.mappingclass) == STATUS_ERROR) goto error;
+	if (create_method_mapping(interp, &err, interp->builtins.functionclass) == STATUS_ERROR) goto error;
+	if (objectobject_addmethods(interp, &err) == STATUS_ERROR) goto error;
 	if (stringobject_addmethods(interp, &err) == STATUS_ERROR) goto error;
+	if (errorobject_addmethods(interp, &err) == STATUS_ERROR) goto error;
+	if (mappingobject_addmethods(interp, &err) == STATUS_ERROR) goto error;
+	if (functionobject_addmethods(interp, &err) == STATUS_ERROR) goto error;
 
 	if (!(interp->builtins.print = functionobject_new(interp, &err, print_builtin))) goto error;
 	if (!(interp->builtins.arrayclass = arrayobject_createclass(interp, &err))) goto error;

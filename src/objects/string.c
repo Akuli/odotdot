@@ -61,6 +61,7 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 
 int stringobject_addmethods(struct Interpreter *interp, struct Object **errptr)
 {
+	// TODO: create many more string methods
 	if (method_add(interp, errptr, interp->builtins.stringclass, "to_string", to_string) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, errptr, interp->builtins.stringclass, "to_debug_string", to_debug_string) == STATUS_ERROR) return STATUS_ERROR;
 	return STATUS_OK;

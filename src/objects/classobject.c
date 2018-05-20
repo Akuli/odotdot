@@ -10,37 +10,10 @@
 #include "../objectsystem.h"
 #include "../unicode.h"
 
-// keys must be freed, but values are automagically decreffed because class_foreachref
-static void free_key_ustr(void *key, void *valueobj, void *datanull)
-{
-	free(((struct UnicodeString *) key)->val);
-	free(key);
-}
-
-
 static void class_destructor(struct Object *klass)
 {
-	struct ClassObjectData *data = klass->data;
-	// object_free_impl() takes care of many things because class_foreachref
-	hashtable_fclear(data->methods, free_key_ustr, NULL);
-	hashtable_free(data->methods);
-	free(data);
-}
-
-
-static int compare_unicode_strings(void *a, void *b, void *userdata)
-{
-	assert(!userdata);
-	struct UnicodeString *astr=a, *bstr=b;
-	if (astr->len != bstr->len)
-		return 0;
-
-	// memcmp is not reliable :( https://stackoverflow.com/a/11995514
-	for (size_t i=0; i < astr->len; i++) {
-		if (astr->val[i] != bstr->val[i])
-			return 0;
-	}
-	return 1;
+	// class_foreachref takes care of most other things
+	free(klass->data);
 }
 
 
@@ -51,17 +24,12 @@ struct Object *classobject_new_noerrptr(struct Interpreter *interp, char *name, 
 	if (!data)
 		return NULL;
 
-	data->methods = hashtable_new(compare_unicode_strings);
-	if (!data->methods) {
-		free(data);
-		return NULL;
-	}
-
 	strncpy(data->name, name, 10);
 	data->name[9] = 0;
 	data->baseclass = base;
 	if (base)
 		OBJECT_INCREF(interp, base);
+	data->methods = NULL;
 	data->instanceshaveattrs = instanceshaveattrs;
 	data->foreachref = foreachref;
 
@@ -69,7 +37,6 @@ struct Object *classobject_new_noerrptr(struct Interpreter *interp, char *name, 
 	struct Object *klass = object_new(interp, interp->builtins.classclass, data, class_destructor);
 	if (!klass) {
 		OBJECT_DECREF(interp, base);
-		hashtable_free(data->methods);
 		free(data);
 		return NULL;
 	}
@@ -94,6 +61,16 @@ struct Object *classobject_new(struct Interpreter *interp, struct Object **errpt
 		errorobject_setnomem(interp, errptr);
 		return NULL;
 	}
+
+	if (interp->builtins.mappingclass) {
+		struct ClassObjectData *data = klass->data;
+		data->methods = mappingobject_newempty(interp, errptr);
+		if (!(data->methods)) {
+			OBJECT_DECREF(interp, klass);
+			return NULL;
+		}
+	}
+
 	return klass;
 }
 
@@ -149,11 +126,8 @@ static void class_foreachref(struct Object *klass, void *cbdata, classobject_for
 	struct ClassObjectData *data = klass->data;
 	if (data->baseclass)
 		cb(data->baseclass, cbdata);
-
-	struct HashTableIterator methoditer;
-	hashtable_iterbegin(data->methods, &methoditer);
-	while (hashtable_iternext(&methoditer))
-		cb(methoditer.value, cbdata);
+	if (data->methods)
+		cb(data->methods, cbdata);
 }
 
 

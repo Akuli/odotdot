@@ -29,9 +29,11 @@ returns STATUS_OK or STATUS_ERROR
 */
 int functionobject_checktypes(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs, ...);
 
-// builtins_setup() sets interp->functionclass to this thing's return value
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *functionobject_createclass(struct Interpreter *interp, struct Object **errptr);
+
+// returns STATUS_OK or STATUS_ERROR
+int functionobject_addmethods(struct Interpreter *interp, struct Object **errptr);
 
 // RETURNS A NEW REFERENCE or NULL on error
 // if partialarg is not NULL, it's added as the first argument when the function is called

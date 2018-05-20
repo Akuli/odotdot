@@ -10,91 +10,75 @@
 #include "objects/errors.h"
 #include "objects/function.h"
 #include "objects/integer.h"
+#include "objects/mapping.h"
+#include "objects/string.h"
 #include "objectsystem.h"
 #include "unicode.h"
 
 int method_add(struct Interpreter *interp, struct Object **errptr, struct Object *klass, char *name, functionobject_cfunc cfunc)
 {
-	struct UnicodeString *uname = malloc(sizeof(struct UnicodeString));
-	if (!uname) {
-		errorobject_setnomem(interp, errptr);
+	struct Object *nameobj = stringobject_newfromcharptr(interp, errptr, name);
+	if (!nameobj)
 		return STATUS_ERROR;
-	}
-
-	char errormsg[100];
-	int status = utf8_decode(name, strlen(name), uname, errormsg);
-	if (status != STATUS_OK) {
-		assert(status == STATUS_NOMEM);
-		free(uname);
-		errorobject_setnomem(interp, errptr);
-		return STATUS_ERROR;
-	}
 
 	struct Object *func = functionobject_new(interp, errptr, cfunc);
 	if (!func) {
-		free(uname->val);
-		free(uname);
+		OBJECT_DECREF(interp, nameobj);
 		return STATUS_ERROR;
 	}
 
-	if (hashtable_set(((struct ClassObjectData *) klass->data)->methods, uname, unicodestring_hash(*uname), func, NULL) == STATUS_NOMEM) {
-		free(uname->val);
-		free(uname);
-		OBJECT_DECREF(interp, func);
-		errorobject_setnomem(interp, errptr);
-		return STATUS_ERROR;
-	}
+	struct Object *methodmap = ((struct ClassObjectData *) klass->data)->methods;
+	assert(methodmap);
 
-	// don't decref func, now klass->data->methods holds the reference
-	// don't free uname or uname->val because uname is now used as a key in ->methods
-	return STATUS_OK;
+	int setres = mappingobject_set(interp, errptr, methodmap, nameobj, func);
+	OBJECT_DECREF(interp, nameobj);
+	OBJECT_DECREF(interp, func);
+	return setres;
 }
 
 
 // does NOT return a new reference
-static struct Object *get_the_method(struct Object *klass, struct UnicodeString *uname, unsigned int unamehash)
+static struct Object *get_the_method(struct Interpreter *interp, struct Object **errptr, struct Object *obj, struct Object *nameobj)
 {
-	struct Object *res;
-	struct ClassObjectData *data;
+	struct Object *klass = obj->klass;
+	struct ClassObjectData *klassdata;
 	do {
-		data = klass->data;
-		if (hashtable_get(data->methods, uname, unamehash, (void **)(&res), NULL))
+		klassdata = klass->data;
+		struct Object *nopartial = mappingobject_get(interp, errptr, klassdata->methods, nameobj);
+		if (nopartial) {
+			// now we have a function that takes self as the first argument, let's partial it
+			struct Object *res = functionobject_newpartial(interp, errptr, nopartial, obj);
+			OBJECT_DECREF(interp, nopartial);
 			return res;
-	} while ((klass = data->baseclass));
+		}
+		if (!nopartial && *errptr)
+			return NULL;    // error
+		// key not found, keep trying
+	} while ((klass = klassdata->baseclass));
 
-	// nope
+	errorobject_setwithfmt(interp, errptr, "%s objects don't have a method named '%S'", ((struct ClassObjectData *) obj->klass->data)->name, nameobj);
 	return NULL;
 }
 
 struct Object *method_getwithustr(struct Interpreter *interp, struct Object **errptr, struct Object *obj, struct UnicodeString uname)
 {
-	struct Object *nopartial = get_the_method(obj->klass, &uname, unicodestring_hash(uname));
-	if (!nopartial) {
-		// TODO: test this
-		char *classname = ((struct ClassObjectData*) obj->klass->data)->name;
-		errorobject_setwithfmt(interp, errptr, "%s objects don't have a method named '%U'", classname, uname);
+	struct Object *nameobj = stringobject_newfromustr(interp, errptr, uname);
+	if (!nameobj)
 		return NULL;
-	}
 
-	// now we have a function that takes self as the first argument, let's partial it
-	// no need to decref nopartial because get_the_method() doesn't incref
-	return functionobject_newpartial(interp, errptr, nopartial, obj);
+	struct Object *res = get_the_method(interp, errptr, obj, nameobj);
+	OBJECT_DECREF(interp, nameobj);
+	return res;
 }
 
 struct Object *method_get(struct Interpreter *interp, struct Object **errptr, struct Object *obj, char *name)
 {
-	struct UnicodeString uname;
-
-	char errormsg[100];
-	int status = utf8_decode(name, strlen(name), &uname, errormsg);
-	if (status != STATUS_OK) {
-		assert(status == STATUS_NOMEM);
-		errorobject_setnomem(interp, errptr);
+	struct Object *nameobj = stringobject_newfromcharptr(interp, errptr, name);
+	if (!nameobj)
 		return NULL;
-	}
 
-	struct Object *res = method_getwithustr(interp, errptr, obj, uname);
-	free(uname.val);
+	struct Object *res = get_the_method(interp, errptr, obj, nameobj);
+	OBJECT_DECREF(interp, nameobj);
 	return res;
 }
 

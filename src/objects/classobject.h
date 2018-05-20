@@ -16,8 +16,8 @@ struct ClassObjectData {
 	// are being created
 	struct Object *baseclass;
 
-	// keys are UnicodeStrings, values are Function objects (see objects/function.{c,h})
-	struct HashTable *methods;
+	// a Mapping, or NULL if the class was created before Mappings existed
+	struct Object *methods;
 
 	// instances of e.g. String and Integer have no attributes
 	int instanceshaveattrs;   // 1 or 0

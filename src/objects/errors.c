@@ -1,9 +1,11 @@
 #include "errors.h"
+#include <assert.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include "classobject.h"
+#include "mapping.h"
 #include "string.h"
 #include "../common.h"
 #include "../interpreter.h"
@@ -20,6 +22,12 @@ struct Object *errorobject_createclass(struct Interpreter *interp)
 	// Error objects can have any attributes
 	// TODO: use a message attribute instead of ->data?
 	return classobject_new_noerrptr(interp, "Error", interp->builtins.objectclass, 1, error_foreachref);
+}
+
+int errorobject_addmethods(struct Interpreter *interp, struct Object **errptr)
+{
+	// TODO: do we need any methodss
+	return STATUS_OK;
 }
 
 // TODO: stop copy/pasting this from string.c and actually fix things
