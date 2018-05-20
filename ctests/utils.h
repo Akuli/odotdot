@@ -23,4 +23,7 @@ void *bmalloc(size_t size);
 #include <src/interpreter.h>
 extern struct Interpreter *testinterp;
 
+#include <src/objectsystem.h>
+extern struct Object *testerr;
+
 #endif   // TESTUTILS_H

@@ -18,7 +18,7 @@
 static struct Object *newnode(char kind, void *info)
 {
 	// TODO: get rid of this or add some assertions here?
-	return ast_new_statement(testinterp, NULL, kind, 123, info);
+	return ast_new_statement(testinterp, &testerr, kind, 123, info);
 }
 
 static void setup_string(struct UnicodeString *target)
@@ -34,17 +34,17 @@ static void setup_string(struct UnicodeString *target)
 
 void test_ast_nodes_and_their_refcount_stuff(void)
 {
-	struct Object *strinfo = stringobject_newfromcharptr(testinterp, NULL, "asd");
+	struct Object *strinfo = stringobject_newfromcharptr(testinterp, &testerr, "asd");
 	struct Object *strnode = newnode(AST_STR, strinfo);
 
-	struct Object *intinfo = integerobject_newfromcharptr(testinterp, NULL, "123");
+	struct Object *intinfo = integerobject_newfromcharptr(testinterp, &testerr, "123");
 	struct Object *intnode = newnode(AST_INT, intinfo);
 
 	// the array references intnode and strnode
-	struct AstArrayOrBlockInfo *arrinfo = arrayobject_newempty(testinterp, NULL);
+	struct AstArrayOrBlockInfo *arrinfo = arrayobject_newempty(testinterp, &testerr);
 	buttert(arrinfo);
-	buttert(arrayobject_push(testinterp, NULL, arrinfo, strnode) == STATUS_OK);
-	buttert(arrayobject_push(testinterp, NULL, arrinfo, intnode) == STATUS_OK);
+	buttert(arrayobject_push(testinterp, &testerr, arrinfo, strnode) == STATUS_OK);
+	buttert(arrayobject_push(testinterp, &testerr, arrinfo, intnode) == STATUS_OK);
 	OBJECT_DECREF(testinterp, strnode);
 	OBJECT_DECREF(testinterp, intnode);
 	struct Object *arrnode = newnode(RANDOM_CHOICE_LOL(AST_ARRAY, AST_BLOCK), arrinfo);
@@ -98,7 +98,7 @@ static struct Object *parse_expression_string(char *s)
 	free(hugestring.val);
 
 	struct Token *tmp = tok1st;
-	struct Object *node = ast_parse_expression(testinterp, NULL, &tmp);
+	struct Object *node = ast_parse_expression(testinterp, &testerr, &tmp);
 	buttert(!tmp);
 	token_freeall(tok1st);
 	buttert2(node, s);
@@ -118,7 +118,7 @@ static struct Object *parse_statement_string(char *s)
 	free(hugestring.val);
 
 	struct Token *tmp = tok1st;
-	struct Object *node = ast_parse_statement(testinterp, NULL, &tmp);
+	struct Object *node = ast_parse_statement(testinterp, &testerr, &tmp);
 	token_freeall(tok1st);
 	buttert2(node, s);
 	return node;

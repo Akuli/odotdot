@@ -11,7 +11,11 @@
 typedef void (*testfunc)(void);
 int verbose;
 int ntests;
-struct Interpreter *testinterp;   // externed in utils.h
+
+
+// these are externed in utils.h
+struct Interpreter *testinterp;
+struct Object *testerr;
 
 static void run_test(char *name, testfunc func)
 {
@@ -32,7 +36,7 @@ static void run_test(char *name, testfunc func)
 	}
 	ntests++;
 }
-#define RUN_TEST(func) do { void func(void); run_test(#func, func); } while(0)
+#define RUN_TEST(func) do { void func(void); run_test(#func, func); buttert(!testerr); } while(0)
 
 
 int main(int argc, char **argv)
@@ -46,6 +50,8 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	ntests = 0;
+
+	testerr = NULL;
 
 	RUN_TEST(test_hashtable_basic_stuff);
 	RUN_TEST(test_hashtable_many_values);

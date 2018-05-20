@@ -34,18 +34,18 @@ void test_integer_basic_stuff(void)
 	u.val[4] = '3';
 
 	struct Object *negints[] = {
-		integerobject_newfromustr(testinterp, NULL, u),
-		integerobject_newfromcharptr(testinterp, NULL, "-0123"),
-		integerobject_newfromcharptr(testinterp, NULL, "-"MANY_ZEROS"123") };
+		integerobject_newfromustr(testinterp, &testerr, u),
+		integerobject_newfromcharptr(testinterp, &testerr, "-0123"),
+		integerobject_newfromcharptr(testinterp, &testerr, "-"MANY_ZEROS"123") };
 
 	// skip the minus sign
 	u.len--;
 	u.val++;
 
 	struct Object *posints[] = {
-		integerobject_newfromustr(testinterp, NULL, u),
-		integerobject_newfromcharptr(testinterp, NULL, "0123"),
-		integerobject_newfromcharptr(testinterp, NULL, MANY_ZEROS"123"), };
+		integerobject_newfromustr(testinterp, &testerr, u),
+		integerobject_newfromcharptr(testinterp, &testerr, "0123"),
+		integerobject_newfromcharptr(testinterp, &testerr, MANY_ZEROS"123"), };
 	free(u.val - 1 /* undo the minus skip */);
 
 	buttert(sizeof(posints) == sizeof(negints));
@@ -60,8 +60,8 @@ void test_integer_basic_stuff(void)
 	}
 
 	// "0" and "-0" should be treated equally
-	struct Object *zero1 = integerobject_newfromcharptr(testinterp, NULL, "0");
-	struct Object *zero2 = integerobject_newfromcharptr(testinterp, NULL, "-0");
+	struct Object *zero1 = integerobject_newfromcharptr(testinterp, &testerr, "0");
+	struct Object *zero2 = integerobject_newfromcharptr(testinterp, &testerr, "-0");
 	buttert(integerobject_tolonglong(zero1) == 0);
 	buttert(integerobject_tolonglong(zero2) == 0);
 	OBJECT_DECREF(testinterp, zero1);
@@ -84,8 +84,8 @@ static void check_error(struct Object *err, char *msg)
 
 void test_integer_huge_tiny(void)
 {
-	struct Object *tiny = integerobject_newfromcharptr(testinterp, NULL, "-9223372036854775808");
-	struct Object *huge = integerobject_newfromcharptr(testinterp, NULL, "9223372036854775807");
+	struct Object *tiny = integerobject_newfromcharptr(testinterp, &testerr, "-9223372036854775808");
+	struct Object *huge = integerobject_newfromcharptr(testinterp, &testerr, "9223372036854775807");
 	buttert(integerobject_tolonglong(tiny) == INTEGEROBJECT_MIN);
 	buttert(integerobject_tolonglong(huge) == INTEGEROBJECT_MAX);
 	OBJECT_DECREF(testinterp, tiny);
