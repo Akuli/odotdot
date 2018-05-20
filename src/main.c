@@ -146,8 +146,8 @@ static int run_file(struct Interpreter *interp, struct Object *scope, char *path
 	token_freeall(tok1st);
 
 	// run!
-	for (size_t i=0; i < ((struct ArrayObjectData *) statements->data)->len; i++) {
-		if (run_statement(interp, &err, scope, ((struct ArrayObjectData *) statements->data)->elems[i]) == STATUS_ERROR) {
+	for (size_t i=0; i < ARRAYOBJECT_LEN(statements); i++) {
+		if (run_statement(interp, &err, scope, ARRAYOBJECT_GET(statements, i)) == STATUS_ERROR) {
 			if (err) {
 				print_error(interp, err);
 				OBJECT_DECREF(interp, err);

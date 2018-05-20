@@ -9,6 +9,7 @@
 #include "unicode.h"
 #include "objectsystem.h"
 #include "objects/array.h"
+#include "objects/block.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
 #include "objects/function.h"
@@ -72,6 +73,7 @@ int builtins_setup(struct Interpreter *interp)
 	if (!(interp->builtins.integerclass = integerobject_createclass(interp, &err))) goto error;
 	if (!(interp->builtins.astnodeclass = astnode_createclass(interp, &err))) goto error;
 	if (!(interp->builtins.scopeclass = scopeobject_createclass(interp, &err))) goto error;
+	if (!(interp->builtins.blockclass = blockobject_createclass(interp, &err))) goto error;
 
 	if (!(interp->builtinscope = scopeobject_newbuiltin(interp, &err))) goto error;
 
@@ -83,11 +85,12 @@ int builtins_setup(struct Interpreter *interp)
 	if (interpreter_addbuiltin(interp, &err, "String", interp->builtins.stringclass) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, &err, "print", interp->builtins.print) == STATUS_ERROR) goto error;
 
-#ifdef DEBUG_BUILTINS
+#ifdef DEBUG_BUILTINS       // compile like this:   $ CFLAGS=-DDEBUG_BUILTINS make clean all
 	printf("things created by builtins_setup():\n");
-#define debug(x) printf("  %s = %p\n", #x, (void *) interp->x);
+#define debug(x) printf("  interp->%s = %p\n", #x, (void *) interp->x);
 	debug(builtins.arrayclass);
 	debug(builtins.astnodeclass);
+	debug(builtins.blockclass);
 	debug(builtins.classclass);
 	debug(builtins.errorclass);
 	debug(builtins.functionclass);
@@ -124,6 +127,7 @@ void builtins_teardown(struct Interpreter *interp)
 #define TEARDOWN(x) if (interp->builtins.x) { OBJECT_DECREF(interp, interp->builtins.x); interp->builtins.x = NULL; }
 	TEARDOWN(arrayclass);
 	TEARDOWN(astnodeclass);
+	TEARDOWN(blockclass);
 	TEARDOWN(classclass);
 	TEARDOWN(errorclass);
 	TEARDOWN(functionclass);

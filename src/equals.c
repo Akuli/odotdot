@@ -7,7 +7,7 @@
 
 int equals(struct Interpreter *interp, struct Object **errptr, struct Object *a, struct Object *b)
 {
-	if (a == b)
+	if (a == b)      // the SAME object, == compares pointers
 		return 1;
 
 	if (classobject_instanceof(a, interp->builtins.stringclass) && classobject_instanceof(b, interp->builtins.stringclass)) {
@@ -29,11 +29,10 @@ int equals(struct Interpreter *interp, struct Object **errptr, struct Object *a,
 	}
 
 	if (classobject_instanceof(a, interp->builtins.arrayclass) && classobject_instanceof(b, interp->builtins.arrayclass)) {
-		struct ArrayObjectData *adata = a->data, *bdata = b->data;
-		if (adata->len != bdata->len)
+		if (ARRAYOBJECT_LEN(a) != ARRAYOBJECT_LEN(b))
 			return 0;
-		for (size_t i=0; i < adata->len; i++) {
-			int res = equals(interp, errptr, adata->elems[i], bdata->elems[i]);
+		for (size_t i=0; i < ARRAYOBJECT_LEN(a); i++) {
+			int res = equals(interp, errptr, ARRAYOBJECT_GET(a, i), ARRAYOBJECT_GET(b, i));
 			if (res == -1)
 				return -1;
 			if (res == 0)

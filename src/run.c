@@ -9,6 +9,7 @@
 #include "method.h"
 #include "objectsystem.h"
 #include "objects/array.h"
+#include "objects/block.h"
 #include "objects/errors.h"
 #include "objects/function.h"
 #include "objects/scope.h"
@@ -81,33 +82,28 @@ static struct Object *run_expression(struct Interpreter *interp, struct Object *
 	}
 
 	if (nodedata->kind == AST_ARRAY) {
-		// this is handled specially because malloc(0) MAY return NULL
-		if (INFO_AS(AstArrayOrBlockInfo)->nitems == 0)
-			return arrayobject_newempty(interp, errptr);
-
-		// TODO: should create an array with an initial size and push to it?
-		struct Object **elems = malloc(sizeof(struct Object *) * INFO_AS(AstArrayOrBlockInfo)->nitems);
-		if (!elems) {
-			errorobject_setnomem(interp, errptr);
+		struct Object *result = arrayobject_newempty(interp, errptr);
+		if (!result)
 			return NULL;
-		}
 
-		for (size_t i=0; i < INFO_AS(AstArrayOrBlockInfo)->nitems; i++) {
-			elems[i] = run_expression(interp, errptr, scope, INFO_AS(AstArrayOrBlockInfo)->itemnodes[i]);
-			if (!elems[i]) {
-				for (size_t j=0; j<i; j++)
-					OBJECT_DECREF(interp, elems[i]);
-				free(elems);
+		for (size_t i=0; i < ARRAYOBJECT_LEN(INFO_AS(AstArrayOrBlockInfo)); i++) {
+			struct Object *elem = run_expression(interp, errptr, scope, ARRAYOBJECT_GET(INFO_AS(AstArrayOrBlockInfo), i));
+			if (!elem) {
+				OBJECT_DECREF(interp, result);
+				return NULL;
+			}
+			int pushret = arrayobject_push(interp, errptr, result, elem);
+			OBJECT_DECREF(interp, elem);
+			if (pushret == STATUS_ERROR) {
+				OBJECT_DECREF(interp, result);
 				return NULL;
 			}
 		}
-
-		struct Object *arr = arrayobject_new(interp, errptr, elems, INFO_AS(AstArrayOrBlockInfo)->nitems);
-		for (size_t i=0; i < INFO_AS(AstArrayOrBlockInfo)->nitems; i++)
-			OBJECT_DECREF(interp, elems[i]);
-		free(elems);
-		return arr;
+		return result;
 	}
+
+	if (nodedata->kind == AST_BLOCK)
+		return blockobject_new(interp, errptr, scope, INFO_AS(AstArrayOrBlockInfo));
 #undef INFO_AS
 
 	assert(0);

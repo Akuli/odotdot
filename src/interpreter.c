@@ -31,6 +31,7 @@ struct Interpreter *interpreter_new(char *argv0)
 	interp->builtinscope =
 	interp->builtins.arrayclass =
 	interp->builtins.astnodeclass =
+	interp->builtins.blockclass =
 	interp->builtins.classclass =
 	interp->builtins.errorclass =
 	interp->builtins.functionclass =

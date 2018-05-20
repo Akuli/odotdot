@@ -11,6 +11,7 @@ struct Object;
 struct InterpreterBuiltins {
 	struct Object *arrayclass;
 	struct Object *astnodeclass;
+	struct Object *blockclass;
 	struct Object *classclass;    // the class of class objects
 	struct Object *errorclass;
 	struct Object *functionclass;

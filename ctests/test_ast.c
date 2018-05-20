@@ -1,8 +1,10 @@
 #include <src/ast.h>
+#include <src/common.h>
 #include <src/interpreter.h>
 #include <src/objectsystem.h>
 #include <src/tokenizer.h>
 #include <src/unicode.h>
+#include <src/objects/array.h>
 #include <src/objects/classobject.h>
 #include <src/objects/string.h>
 #include <src/objects/integer.h>
@@ -39,19 +41,13 @@ void test_ast_nodes_and_their_refcount_stuff(void)
 	struct Object *intnode = newnode(AST_INT, intinfo);
 
 	// the array references intnode and strnode
-	struct AstArrayOrBlockInfo *arrinfo = bmalloc(sizeof(struct AstArrayOrBlockInfo));
-	arrinfo->nitems = 2;
-	arrinfo->itemnodes = bmalloc(sizeof(struct Object*) * 2);
-	arrinfo->itemnodes[0] = strnode;
-	arrinfo->itemnodes[1] = intnode;
-	struct Object *arrnode = newnode(AST_ARRAY, arrinfo);
-
-	// this references arrnode
-	struct AstArrayOrBlockInfo *blockinfo = bmalloc(sizeof(struct AstArrayOrBlockInfo));
-	blockinfo->itemnodes = bmalloc(sizeof(struct Object*));
-	blockinfo->itemnodes[0] = arrnode;   // lol, not really a statement
-	blockinfo->nitems = 1;
-	struct Object *blocknode = newnode(AST_BLOCK, blockinfo);
+	struct AstArrayOrBlockInfo *arrinfo = arrayobject_newempty(testinterp, NULL);
+	buttert(arrinfo);
+	buttert(arrayobject_push(testinterp, NULL, arrinfo, strnode) == STATUS_OK);
+	buttert(arrayobject_push(testinterp, NULL, arrinfo, intnode) == STATUS_OK);
+	OBJECT_DECREF(testinterp, strnode);
+	OBJECT_DECREF(testinterp, intnode);
+	struct Object *arrnode = newnode(RANDOM_CHOICE_LOL(AST_ARRAY, AST_BLOCK), arrinfo);
 
 	struct AstGetVarInfo *getvarinfo = bmalloc(sizeof(struct AstGetVarInfo));
 	setup_string(&(getvarinfo->varname));
@@ -63,10 +59,10 @@ void test_ast_nodes_and_their_refcount_stuff(void)
 	setup_string(&(gaminfo->name));
 	struct Object *gamnode = newnode(RANDOM_CHOICE_LOL(AST_GETATTR, AST_GETMETHOD), gaminfo);
 
-	// this references blocknode
+	// this references arrnode
 	struct AstCreateOrSetVarInfo *cosvinfo = bmalloc(sizeof(struct AstCreateOrSetVarInfo));
 	setup_string(&(cosvinfo->varname));
-	cosvinfo->valnode = blocknode;
+	cosvinfo->valnode = arrnode;
 	struct Object *cosvnode = newnode(RANDOM_CHOICE_LOL(AST_CREATEVAR, AST_SETVAR), cosvinfo);
 
 	// this references gamnode and cosvnode
@@ -175,9 +171,9 @@ void test_ast_arrays(void)
 	struct AstArrayOrBlockInfo *info = data->info;
 
 	buttert(data->kind == AST_ARRAY);
-	buttert(info->nitems == 2);
-	buttert(((struct AstNodeData *) info->itemnodes[0]->data)->kind == AST_STR);
-	buttert(((struct AstNodeData *) info->itemnodes[1]->data)->kind == AST_INT);
+	buttert(ARRAYOBJECT_LEN(info) == 2);
+	buttert(((struct AstNodeData *) ARRAYOBJECT_GET(info, 0)->data)->kind == AST_STR);
+	buttert(((struct AstNodeData *) ARRAYOBJECT_GET(info, 1)->data)->kind == AST_INT);
 	OBJECT_DECREF(testinterp, node);
 }
 

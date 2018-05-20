@@ -11,6 +11,7 @@
 #include "objectsystem.h"
 #include "tokenizer.h"
 #include "unicode.h"
+#include "objects/array.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
 #include "objects/integer.h"
@@ -24,8 +25,7 @@ static void astnode_foreachref(struct Object *node, void *cbdata, classobject_fo
 #define info_as(X) ((struct X *) data->info)
 	case AST_ARRAY:
 	case AST_BLOCK:
-		for (i = 0; i < info_as(AstArrayOrBlockInfo)->nitems; i++)
-			cb(info_as(AstArrayOrBlockInfo)->itemnodes[i], cbdata);
+		cb(info_as(AstArrayOrBlockInfo), cbdata);
 		break;
 	case AST_GETATTR:
 	case AST_GETMETHOD:
@@ -62,12 +62,6 @@ static void astnode_destructor(struct Object *node)
 	struct AstNodeData *data = node->data;
 	switch (data->kind) {
 #define info_as(X) ((struct X *) data->info)
-	case AST_ARRAY:
-	case AST_BLOCK:
-		// foreachref has taken care of decreffing the items
-		free(info_as(AstArrayOrBlockInfo)->itemnodes);
-		free(data->info);
-		break;
 	case AST_GETVAR:
 		free(info_as(AstGetVarInfo)->varname.val);
 		free(data->info);
@@ -92,6 +86,8 @@ static void astnode_destructor(struct Object *node)
 		break;
 	case AST_INT:
 	case AST_STR:
+	case AST_ARRAY:
+	case AST_BLOCK:
 		// do nothing
 		break;
 #undef info_as
@@ -316,60 +312,74 @@ static struct Object *parse_array(struct Interpreter *interp, struct Object **er
 	*curtok = (*curtok)->next;
 	assert(*curtok);    // TODO: report error "unexpected end of file"
 
-	// i thought about looping over the elements twice and then doing just one
-	// malloc, but parsing the list items means many mallocs so this is probably
-	// faster
-	size_t nelems = 0;
-	size_t nallocated = 0;
-	struct Object **elems = NULL;
+	struct Object *elements = arrayobject_newempty(interp, errptr);
+	if (!elements)
+		return NULL;
 
 	while ((*curtok) && !((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == ']')) {
 		struct Object *elem = ast_parse_expression(interp, errptr, curtok);
-		if(!elem)
-			goto error;
-
-		if (nelems+1 > nallocated) {
-			size_t newnallocated = nallocated + 64;   // TODO: is 64 the best possible size?
-			void *ptr = realloc(elems, sizeof(struct Object *) * newnallocated);
-			if (!ptr) {
-				// TODO: set no mem error
-				goto error;
-			}
-			elems = ptr;
-			nallocated = newnallocated;
+		if(!elem) {
+			OBJECT_DECREF(interp, elements);
+			return NULL;
 		}
-		elems[nelems] = elem;
-		nelems++;
+		int pushret = arrayobject_push(interp, errptr, elements, elem );
+		OBJECT_DECREF(interp, elem);
+		if (pushret == STATUS_ERROR) {
+			OBJECT_DECREF(interp, elements);
+			return NULL;
+		}
 	}
 
 	assert(*curtok);   // TODO: report error "unexpected end of file"
 	assert((*curtok)->str.len == 1 && (*curtok)->str.val[0] == ']');
 	*curtok = (*curtok)->next;   // skip ']'
 
-	// this can't fail because it doesn't actually allocate more, it frees allocated mem
-	elems = realloc(elems, sizeof(struct Object *) * nelems);
-	assert(elems);
-	nallocated = nelems;
-
-	struct AstArrayOrBlockInfo *info = malloc(sizeof(struct AstArrayOrBlockInfo));
-	if (!info)
-		goto error;
-	info->itemnodes = elems;
-	info->nitems = nelems;
-
-	struct Object *res = ast_new_expression(interp, errptr, AST_ARRAY, info);
+	struct Object *res = ast_new_expression(interp, errptr, AST_ARRAY, elements);
 	if (!res) {
-		free(info);
-		goto error;
+		OBJECT_DECREF(interp, elements);
+		return NULL;
 	}
 	return res;
+}
 
-error:
-	for (size_t i=0; i < nelems; i++)
-		OBJECT_DECREF(interp, elems[i]);
-	if (elems)
-		free(elems);
-	return NULL;
+struct Object *parse_block(struct Interpreter *interp, struct Object **errptr, struct Token **curtok)
+{
+	assert(*curtok);
+	assert((*curtok)->kind == TOKEN_OP);
+	assert((*curtok)->str.len == 1);
+	assert((*curtok)->str.val[0] == '{');
+	*curtok = (*curtok)->next;
+	assert(*curtok);    // TODO: report error "unexpected end of file"
+
+	struct Object *statements = arrayobject_newempty(interp, errptr);
+	if (!statements)
+		return NULL;
+
+	// TODO: { expr } should be same as { return expr; }
+	while ((*curtok) && !((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == '}')) {
+		struct Object *stmt = ast_parse_statement(interp, errptr, curtok);
+		if (!stmt) {
+			OBJECT_DECREF(interp, statements);
+			return NULL;
+		}
+		int pushret = arrayobject_push(interp, errptr, statements, stmt);
+		OBJECT_DECREF(interp, stmt);
+		if (pushret == STATUS_ERROR) {
+			OBJECT_DECREF(interp, statements);
+			return NULL;
+		}
+	}
+
+	assert(*curtok);   // TODO: report error "unexpected end of file"
+	assert((*curtok)->str.len == 1 && (*curtok)->str.val[0] == '}');
+	*curtok = (*curtok)->next;   // skip ']'
+
+	struct Object *res = ast_new_expression(interp, errptr, AST_BLOCK, statements);
+	if (!res) {
+		OBJECT_DECREF(interp, statements);
+		return NULL;
+	}
+	return res;
 }
 
 
@@ -392,6 +402,10 @@ struct Object *ast_parse_expression(struct Interpreter *interp, struct Object **
 				res = parse_array(interp, errptr, curtok);
 				break;
 			}
+			if ((*curtok)->str.val[0] == '{') {
+				res = parse_block(interp, errptr, curtok);
+				break;
+			}
 			if ((*curtok)->str.val[0] == '(') {
 				res = parse_call_expression(interp, errptr, curtok);
 				break;
@@ -401,7 +415,7 @@ struct Object *ast_parse_expression(struct Interpreter *interp, struct Object **
 		// TODO: report error "expected this, that or those, got '%s'"
 		assert(0);
 	}
-	if (!res)       // no mem
+	if (!res)
 		return NULL;
 
 	// attributes and methods

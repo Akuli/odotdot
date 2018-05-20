@@ -28,9 +28,8 @@ struct Object *ast_new_statement(struct Interpreter *interp, struct Object **err
 #define AST_INT '1'
 #define AST_STR '"'
 
-// array and block infos are the same for less copy/paste boilerplate
-// itemnodes are statements in the block or elements of the list
-struct AstArrayOrBlockInfo { struct Object **itemnodes; size_t nitems; };
+// array and block infos are Array objects of ast nodes
+#define AstArrayOrBlockInfo Object
 #define AST_ARRAY '['
 #define AST_BLOCK '{'
 

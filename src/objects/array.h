@@ -20,6 +20,12 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **errpt
 // for convenience
 #define arrayobject_newempty(interp, errptr) arrayobject_new((interp), (errptr), NULL, 0)
 
+// bad things happen if arr is not an array object or i < ARRAYOBJECT_LEN(arr)
+// otherwise these never fail
+// note that ARRAYOBJECT_GET does NOT return a new reference!
+#define ARRAYOBJECT_GET(arr, i) (((struct ArrayObjectData *) (arr)->data)->elems[(i)])
+#define ARRAYOBJECT_LEN(arr)    (((struct ArrayObjectData *) (arr)->data)->len)
+
 // returns STATUS_OK or STATUS_ERROR
 // bad things happen if arr is not an array object
 int arrayobject_push(struct Interpreter *interp, struct Object **errptr, struct Object *arr, struct Object *elem);

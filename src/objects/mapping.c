@@ -22,8 +22,12 @@ static void mapping_destructor(struct Object *map)
 {
 	struct MappingObjectData *data = map->data;
 	for (size_t i=0; i < data->nbuckets; i++) {
-		if (data->buckets[i])
-			free(data->buckets[i]);
+		struct MappingObjectItem *item = data->buckets[i];
+		while (item) {
+			void *gonnafree = item;
+			item = item->next;   // must be before the free
+			free(gonnafree);
+		}
 	}
 	free(data->buckets);
 	free(data);
@@ -131,6 +135,7 @@ static struct Object *set(struct Interpreter *interp, struct Object **errptr, st
 		if (loadfactor > 0.75) {
 			if (make_bigger(interp, errptr, data) == STATUS_ERROR)
 				return NULL;
+			i = key->hash % data->nbuckets;
 		}
 	}
 
