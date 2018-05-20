@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "arrayfunc.h"
 #include "ast.h"
 #include "common.h"
 #include "interpreter.h"
@@ -45,7 +46,6 @@ static struct Object *print_builtin(struct Interpreter *interp, struct Object **
 	return stringobject_newfromcharptr(interp, errptr, "asd");
 }
 
-
 static int create_method_mapping(struct Interpreter *interp, struct Object **errptr, struct Object *klass)
 {
 	struct ClassObjectData *data = klass->data;
@@ -87,6 +87,7 @@ int builtins_setup(struct Interpreter *interp)
 	if (functionobject_addmethods(interp, &err) == STATUS_ERROR) goto error;
 
 	if (!(interp->builtins.print = functionobject_new(interp, &err, print_builtin))) goto error;
+	if (!(interp->builtins.array_func = arrayfunc_create(interp, &err))) goto error;
 	if (!(interp->builtins.arrayclass = arrayobject_createclass(interp, &err))) goto error;
 	if (!(interp->builtins.integerclass = integerobject_createclass(interp, &err))) goto error;
 	if (!(interp->builtins.astnodeclass = astnode_createclass(interp, &err))) goto error;
@@ -101,6 +102,7 @@ int builtins_setup(struct Interpreter *interp)
 	if (interpreter_addbuiltin(interp, &err, "Mapping", interp->builtins.mappingclass) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, &err, "Object", interp->builtins.objectclass) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, &err, "String", interp->builtins.stringclass) == STATUS_ERROR) goto error;
+	if (interpreter_addbuiltin(interp, &err, "array_func", interp->builtins.array_func) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, &err, "print", interp->builtins.print) == STATUS_ERROR) goto error;
 
 #ifdef DEBUG_BUILTINS       // compile like this:   $ CFLAGS=-DDEBUG_BUILTINS make clean all
@@ -117,8 +119,11 @@ int builtins_setup(struct Interpreter *interp)
 	debug(builtins.objectclass);
 	debug(builtins.scopeclass);
 	debug(builtins.stringclass);
+
+	debug(builtins.array_func);
 	debug(builtins.nomemerr);
 	debug(builtins.print);
+
 	debug(builtinscope);
 #undef debug
 #endif   // DEBUG_BUILTINS
@@ -151,11 +156,13 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(functionclass);
 	TEARDOWN(integerclass);
 	TEARDOWN(mappingclass);
-	TEARDOWN(nomemerr);
 	TEARDOWN(objectclass);
-	TEARDOWN(print);
 	TEARDOWN(scopeclass);
 	TEARDOWN(stringclass);
+
+	TEARDOWN(array_func);
+	TEARDOWN(nomemerr);
+	TEARDOWN(print);
 #undef TEARDOWN
 
 	if (interp->builtinscope) {

@@ -8,6 +8,7 @@
 #include "mapping.h"
 #include "../common.h"
 #include "../interpreter.h"
+#include "../method.h"
 #include "../objectsystem.h"
 
 /* see below for how this is used
@@ -41,13 +42,69 @@ static void function_destructor(struct Object *func)
 
 struct Object *functionobject_createclass(struct Interpreter *interp, struct Object **errptr)
 {
-	// TODO: allow attaching arbitrary attributes to functions like in python?
 	return classobject_new(interp, errptr, "Function", interp->builtins.objectclass, 0, function_foreachref);
+}
+
+static struct Object *partial(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
+{
+	// check the first argument, rest are the args that are being partialled
+	// there can be 0 or more partialled args (0 partialled args allowed for consistency)
+	if (functionobject_checktypes(interp, errptr, args, (nargs>1 ? 1 : nargs), interp->builtins.functionclass, NULL) == STATUS_ERROR)
+		return NULL;
+	struct Object *func = args[0];
+	struct Object **partialargs = args + 1;
+	size_t npartialargs = nargs - 1;
+
+	// shortcut: no partial args to add
+	if (nargs == 1) {
+		OBJECT_INCREF(interp, func);
+		return func;
+	}
+
+	struct FunctionData *data = func->data;     // casts implicitly
+	struct FunctionData *newdata = malloc(sizeof(struct FunctionData));
+	if (!newdata) {
+		errorobject_setnomem(interp, errptr);
+		return NULL;
+	}
+
+	newdata->cfunc = data->cfunc;
+	newdata->npartialargs = data->npartialargs + npartialargs;
+	newdata->partialargs = malloc(sizeof(struct Object*) * newdata->npartialargs);
+	if (!newdata->partialargs) {
+		errorobject_setnomem(interp, errptr);
+		free(newdata);
+		return NULL;
+	}
+
+	memcpy(newdata->partialargs, partialargs, sizeof(struct Object*) * npartialargs);
+	memcpy(newdata->partialargs + npartialargs, data->partialargs, sizeof(struct Object*) * data->npartialargs);
+	for (size_t i=0; i < newdata->npartialargs; i++)
+		OBJECT_INCREF(interp, newdata->partialargs[i]);
+
+	struct Object *obj = classobject_newinstance(interp, errptr, interp->builtins.functionclass, newdata, function_destructor);
+	if (!obj) {
+		for (size_t i=0; i < newdata->npartialargs; i++)
+			OBJECT_DECREF(interp, newdata->partialargs[i]);
+		free(newdata->partialargs);
+		free(newdata);
+		return NULL;
+	}
+	return obj;
+}
+
+// methods are partialled functions, but the partial method can't be used when looking up methods
+// that would be infinite recursion
+struct Object *functionobject_newpartial(struct Interpreter *interp, struct Object **errptr, struct Object *func, struct Object *partialarg)
+{
+	struct Object *args[] = { func, partialarg };
+	return partial(interp, errptr, args, 2);
 }
 
 int functionobject_addmethods(struct Interpreter *interp, struct Object **errptr)
 {
-	// TODO: partialling, map?
+	// TODO: map, to_string
+	if (method_add(interp, errptr, interp->builtins.functionclass, "partial", partial) == STATUS_ERROR) return STATUS_ERROR;
 	return STATUS_OK;
 }
 
@@ -97,39 +154,6 @@ struct Object *functionobject_new(struct Interpreter *interp, struct Object **er
 	struct Object *obj = classobject_newinstance(interp, errptr, interp->builtins.functionclass, data, function_destructor);
 	if (!obj) {
 		free(data);
-		return NULL;
-	}
-	return obj;
-}
-
-struct Object *functionobject_newpartial(struct Interpreter *interp, struct Object **errptr, struct Object *func, struct Object *partialarg)
-{
-	struct FunctionData *data = func->data;     // casts implicitly
-
-	struct FunctionData *newdata = malloc(sizeof(struct FunctionData));
-	if (!newdata) {
-		errorobject_setnomem(interp, errptr);
-		return NULL;
-	}
-
-	newdata->cfunc = data->cfunc;
-	newdata->npartialargs = data->npartialargs + 1;
-	newdata->partialargs = malloc(sizeof(struct Object*) * newdata->npartialargs);
-	if (!newdata->partialargs) {
-		errorobject_setnomem(interp, errptr);
-		free(newdata);
-		return NULL;
-	}
-
-	newdata->partialargs[0] = partialarg;
-	memcpy(newdata->partialargs + 1, data->partialargs, sizeof(struct Object*) * data->npartialargs);
-	for (size_t i=0; i < newdata->npartialargs; i++)
-		OBJECT_INCREF(interp, newdata->partialargs[i]);
-
-	struct Object *obj = classobject_newinstance(interp, errptr, interp->builtins.functionclass, newdata, function_destructor);
-	if (!obj) {
-		free(newdata->partialargs);
-		free(newdata);
 		return NULL;
 	}
 	return obj;

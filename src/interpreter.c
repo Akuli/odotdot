@@ -36,6 +36,8 @@ struct Interpreter *interpreter_new(char *argv0)
 	interp->builtins.mappingclass =
 	interp->builtins.objectclass =
 	interp->builtins.stringclass =
+
+	interp->builtins.array_func =
 	interp->builtins.nomemerr =
 	interp->builtins.print =
 	NULL;

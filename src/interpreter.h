@@ -21,6 +21,7 @@ struct InterpreterBuiltins {
 	struct Object *scopeclass;
 	struct Object *stringclass;
 
+	struct Object *array_func;
 	struct Object *nomemerr;
 	struct Object *print;
 };
