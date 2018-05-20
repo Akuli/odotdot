@@ -1,7 +1,8 @@
 #include "gc.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "hashtable.h"
+#include "allobjects.h"
 #include "objectsystem.h"
 #include "objects/classobject.h"
 
@@ -16,18 +17,18 @@ static void mark_reference(struct Object *referred, void *junkdata)
 void gc_run(struct Interpreter *interp)
 {
 
-	struct HashTableIterator iter;
-#define for_each_object hashtable_iterbegin(interp->allobjects, &iter); while (hashtable_iternext(&iter))   // lol
+	struct AllObjectsIter iter;
+#define for_each_object iter = allobjects_iterbegin(interp->allobjects); while (allobjects_iternext(&iter))   // lol
 
 	for_each_object
-		((struct Object *) iter.key)->gcflag = 0;
+		((struct Object *) iter.obj)->gcflag = 0;
 
 	for_each_object
-		classobject_runforeachref((struct Object *) iter.key, NULL, mark_reference);
+		classobject_runforeachref((struct Object *) iter.obj, NULL, mark_reference);
 
 	int problems = 0;
 	for_each_object {
-		struct Object *obj = iter.key;
+		struct Object *obj = iter.obj;
 		if (obj->refcount != obj->gcflag) {
 			if (!problems) {
 				fprintf(stderr, "%s: reference counting problems\n", interp->argv0);
@@ -42,10 +43,11 @@ void gc_run(struct Interpreter *interp)
 	// classes may be wiped before their instances
 	// object_free_impl() uses ->klass unless ->klass is NULL
 	for_each_object
-		((struct Object *) iter.key)->klass = NULL;    // for object_free_impl()
+		((struct Object *) iter.obj)->klass = NULL;
 
 	// wipe everything, can't use for_each_object because interp->allobjects is modified in the loop
-	struct Object *obj;
-	while (hashtable_getone(interp->allobjects, (void**)(&obj), NULL))
-		object_free_impl(interp, obj);    // removes obj from interp->allobjects
+	for_each_object
+		object_free_impl(interp, iter.obj, false);    // doesn't modify interp->allobjects because false
+
+#undef for_each_object
 }

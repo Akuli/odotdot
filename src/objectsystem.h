@@ -1,7 +1,7 @@
 #ifndef OBJECTSYSTEM_H
 #define OBJECTSYSTEM_H
 
-#include "hashtable.h"     // IWYU pragma: keep
+#include <stdbool.h>
 #include "interpreter.h"   // IWYU pragma: keep
 #include "atomicincrdecr.h"
 
@@ -44,14 +44,14 @@ struct Object *object_new(struct Interpreter *interp, struct Object *klass, void
 #define OBJECT_INCREF(interp, obj) do { ATOMIC_INCR(((struct Object *)(obj))->refcount); } while(0)
 #define OBJECT_DECREF(interp, obj) do { \
 	if (ATOMIC_DECR(((struct Object *)(obj))->refcount) <= 0) \
-		object_free_impl((interp), (obj)); \
+		object_free_impl((interp), (obj), true); \
 } while (0)
 
 // like the name says, this is pretty much an implementation detail
 // use OBJECT_DECREF instead of calling this
-// calls obj->destructor and frees memory allocated by obj, removes obj from interp->allobjects
+// calls obj->destructor and frees memory allocated by obj, optionally removes obj from interp->allobjects
 // you may need to modify gc_run() if you modify this
-void object_free_impl(struct Interpreter *interp, struct Object *obj);
+void object_free_impl(struct Interpreter *interp, struct Object *obj, bool removefromallobjects);
 
 
 #endif   // OBJECTSYSTEM_H

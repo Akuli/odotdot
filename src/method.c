@@ -5,7 +5,6 @@
 #include <string.h>
 #include "common.h"
 #include "interpreter.h"
-#include "hashtable.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
 #include "objects/function.h"

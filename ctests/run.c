@@ -53,10 +53,6 @@ int main(int argc, char **argv)
 
 	testerr = NULL;
 
-	RUN_TEST(test_hashtable_basic_stuff);
-	RUN_TEST(test_hashtable_many_values);
-	RUN_TEST(test_hashtable_iterating);
-
 	buttert(testinterp = interpreter_new("testargv0"));
 	buttert(builtins_setup(testinterp) == STATUS_OK);
 

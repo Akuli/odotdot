@@ -5,7 +5,6 @@
 #include <string.h>
 #include "errors.h"
 #include "mapping.h"
-#include "../hashtable.h"
 #include "../interpreter.h"
 #include "../objectsystem.h"
 #include "../unicode.h"

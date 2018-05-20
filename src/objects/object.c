@@ -6,7 +6,6 @@
 #include "integer.h"
 #include "string.h"
 #include "../common.h"
-#include "../hashtable.h"
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"

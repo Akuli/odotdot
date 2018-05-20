@@ -1,17 +1,14 @@
 #include "objectsystem.h"
 #include <assert.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include "common.h"
-#include "hashtable.h"
 #include "interpreter.h"
 #include "unicode.h"
 #include "objects/classobject.h"
 #include "objects/mapping.h"
-
-// the values of interp->allobjects are &dummy
-static int dummy = 123;
 
 struct Object *object_new(struct Interpreter *interp, struct Object *klass, void *data, void (*destructor)(struct Object*))
 {
@@ -31,7 +28,7 @@ struct Object *object_new(struct Interpreter *interp, struct Object *klass, void
 	obj->gcflag = 0;
 	obj->destructor = destructor;
 
-	if (hashtable_set(interp->allobjects, obj, (unsigned int)((uintptr_t)obj), &dummy, NULL) == STATUS_NOMEM) {
+	if (!allobjects_add(&(interp->allobjects), obj)) {
 		if (klass)
 			OBJECT_DECREF(interp, klass);
 		free(obj);
@@ -46,7 +43,7 @@ static void decref_the_ref(struct Object *ref, void *interpdata)
 	OBJECT_DECREF(interpdata, ref);
 }
 
-void object_free_impl(struct Interpreter *interp, struct Object *obj)
+void object_free_impl(struct Interpreter *interp, struct Object *obj, bool deletefromallobjects)
 {
 	// the refcount is > 0 if this is called from gc, so don't assert anything about that
 
@@ -58,6 +55,7 @@ void object_free_impl(struct Interpreter *interp, struct Object *obj)
 	if (obj->destructor)
 		obj->destructor(obj);
 
-	assert(hashtable_pop(interp->allobjects, obj, (unsigned int)((uintptr_t)obj), NULL, NULL) == 1);
+	if (deletefromallobjects)
+		assert(allobjects_remove(&(interp->allobjects), obj));
 	free(obj);
 }

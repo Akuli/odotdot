@@ -1,7 +1,7 @@
 #ifndef INTERPRETER_H
 #define INTERPRETER_H
  
-#include "hashtable.h"    // IWYU pragma: keep
+#include "allobjects.h"
 
 // these are defined in other files that need to include this file
 // stupid IWYU doesn't get this.....
@@ -33,12 +33,7 @@ struct Interpreter {
 	// some builtins are also available here (e.g. String), others (e.g. AstNode) are not
 	struct Object *builtinscope;
 
-	// keys are all objects
-	// values are pointers to a static dummy variable
-	// hashes are (unsigned int)((uintptr_t)obj)
-	// see also objectsystem.h
-	// this doesn't hold any references, object_free_impl() takes care of that
-	struct HashTable *allobjects;
+	struct AllObjects allobjects;
 
 	// this holds references to built-in classes, functions and stuff
 	struct InterpreterBuiltins builtins;

@@ -1,19 +1,16 @@
 #include "interpreter.h"
 #include <assert.h>
 #include <stddef.h>
-#include <stdio.h>       // this thing prints messages for debugging refcount problems
 #include <stdlib.h>
 #include <string.h>
+#include "allobjects.h"
 #include "attribute.h"
 #include "common.h"
-#include "hashtable.h"
 #include "method.h"
 #include "objectsystem.h"
 #include "unicode.h"
 #include "objects/errors.h"
 #include "objects/string.h"
-
-static int compare_by_identity(void *a, void *b, void *junkdata) { return a==b; }
 
 struct Interpreter *interpreter_new(char *argv0)
 {
@@ -21,13 +18,13 @@ struct Interpreter *interpreter_new(char *argv0)
 	if (!interp)
 		return NULL;
 
-	interp->allobjects = hashtable_new(compare_by_identity);
-	if (!(interp->allobjects)) {
+	if (!allobjects_init(&(interp->allobjects))) {
 		free(interp);
 		return NULL;
 	}
 
 	interp->argv0 = argv0;
+
 	interp->builtinscope =
 	interp->builtins.arrayclass =
 	interp->builtins.astnodeclass =
@@ -48,7 +45,7 @@ struct Interpreter *interpreter_new(char *argv0)
 
 void interpreter_free(struct Interpreter *interp)
 {
-	hashtable_free(interp->allobjects);   // fails if there are any objects left
+	allobjects_free(interp->allobjects);
 	free(interp);
 }
 
