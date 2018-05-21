@@ -12,24 +12,34 @@
 // this is partialled to a block of code to create array_funcs
 static struct Object *runner(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
 {
-	// FIXME: asserts
 	struct Object *parentscope = attribute_get(interp, errptr, args[0], "definition_scope");
-	assert(parentscope);   // FIXME
+	if (!parentscope)
+		return NULL;
 
 	struct Object *scope = scopeobject_newsub(interp, errptr, parentscope);
 	OBJECT_DECREF(interp, parentscope);
-	assert(scope);   // FIXME
+	if (!scope)
+		return NULL;
 
 	struct Object *localvars = attribute_get(interp, errptr, scope, "local_vars");
-	assert(localvars);
-	struct Object *s = stringobject_newfromcharptr(interp, errptr, "arguments");
-	assert(s);
-	struct Object *a = arrayobject_new(interp, errptr, args+1, nargs-1);
-	assert(a);
-	assert(mappingobject_set(interp, errptr, localvars, s, a) == STATUS_OK);
-	OBJECT_DECREF(interp, s);
-	OBJECT_DECREF(interp, a);
+	struct Object *string = stringobject_newfromcharptr(interp, errptr, "arguments");
+	struct Object *array = arrayobject_new(interp, errptr, args+1, nargs-1);
+	if (!(localvars && string && array)) {
+		if (localvars) OBJECT_DECREF(interp, localvars);
+		if (string) OBJECT_DECREF(interp, string);
+		if (array) OBJECT_DECREF(interp, array);
+		OBJECT_DECREF(interp, scope);
+		return NULL;
+	}
+
+	int status = mappingobject_set(interp, errptr, localvars, string, array);
 	OBJECT_DECREF(interp, localvars);
+	OBJECT_DECREF(interp, string);
+	OBJECT_DECREF(interp, array);
+	if (status == STATUS_ERROR) {
+		OBJECT_DECREF(interp, scope);
+		return NULL;
+	}
 
 	struct Object *res = method_call(interp, errptr, args[0], "run", scope, NULL);
 	OBJECT_DECREF(interp, scope);
