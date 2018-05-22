@@ -3,6 +3,101 @@
 This list contains things that are horribly broken, things that annoy me and
 things that I would like to do some day. It's a mess.
 
+## Language design changes
+- attributes should not be just items of a mapping
+    - problems with current setup:
+        - some objects are special because they have no attributes
+        - it's possible to add arbitrary attributes to any object that has
+          attributes, so a typo could cause code not working (like in python)
+        - it's not possible to implement something for customizing setting and
+          getting attributes (python's `@property`)
+        - built-in things would produce weird error messages if attributes were
+          deleted unexpectedly
+        - compare to python: it's *possible* but very confusing and bad style
+          to add attributes outside `__init__`, shouldn't be possible in the
+          first place IMO
+            - there is `__slots__`, but nobody uses it
+    - attributes should be represented as setter,getter pairs of the class, and
+      all instances of the class should have the same attributes
+- keyword arguments?
+    - there are many many more important things to be done before these... but
+      these might be useful
+    - `var` is a keyword because `var a=123;` looks much better than
+      `var "a" 123;`, but with keyword arguments, `var a=123;` could be
+      implemented as calling a `var` function with a keyword argument
+        - ambiguous? `a = 123;` still wouldn't be a function call
+    - now there's no nice way to pass named options to functions
+        - python solution: keyword arguments
+
+            ```python
+            def show_text(text, foreground='black', background='white'):
+                ...
+
+            # black text on white
+            show_text('asd')
+
+            # red text on blue
+            show_text('asd', foreground='red', background='blue')
+            ```
+
+            nice and simple
+
+        - javascript solution: passing a mapping object
+
+            ```js
+            function showText(text, options) {
+                options = options || {};
+                options.foreground = options.foreground || 'black';
+                options.background = options.background || 'white';
+                ...
+            }
+
+            # black text on white
+            showText('asd');
+
+            # red text on blue
+            showText('asd', { foreground: 'red', background: 'blue' });
+            ```
+
+            kinda boilerplaty
+
+        - ö solution: passing a mapping object (looks really stupid)
+
+            ```
+            func "show_text" "options?" {
+                ...something ugly...
+            };
+
+            # black text on white
+            show_text "asd";
+
+            # red text on blue
+            show_text "asd" (new Mapping [ ["foreground" "red"] ["background" "blue"] ]);
+            ```
+
+            many many things featured here are not implemented yet... sorry
+
+            calling the function is really ugly!
+
+            another alternative, this one looks like java (ewww):
+
+            ```
+            var options = (new ShowTextOptions);
+            options.foreground = "red";
+            options.background = "blue";
+            show_text "asd" options;
+            ```
+
+            this one is simple to use, but has its quirks and is harder to
+            implement, otherwise nice:
+
+            ```
+            show_text { foreground = "red"; background = "blue"; };
+            ```
+
+            TODO: write more about problems with this approach
+
+
 ## main.c
 - should evaluate `stdlib/builtins.ö` on startup, then `argv[1]` in a subscope
     - `stdlib/builtins.ö` doesn't exist yet, it should be created
