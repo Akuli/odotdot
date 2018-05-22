@@ -5,6 +5,7 @@
 #include "classobject.h"
 #include "errors.h"
 #include "function.h"
+#include "integer.h"
 #include "string.h"
 #include "../common.h"
 #include "../interpreter.h"
@@ -104,12 +105,98 @@ static struct Object *to_string(struct Interpreter *interp, struct Object **errp
 	return res;
 }
 
+static int validate_index(struct Interpreter *interp, struct Object **errptr, struct Object *arr, long long i)
+{
+	if (i < 0) {
+		errorobject_setwithfmt(interp, errptr, "%L is not a valid array index", i);
+		return STATUS_ERROR;
+	}
+	if ((unsigned long long) i >= ARRAYOBJECT_LEN(arr)) {
+		errorobject_setwithfmt(interp, errptr, "%L is not a valid index for an array of length %L", i, ARRAYOBJECT_LEN(arr));
+		return STATUS_ERROR;
+	}
+	return STATUS_OK;
+}
+
+static struct Object *get(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
+{
+	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.arrayclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
+		return NULL;
+	struct Object *arr = args[0];
+	struct Object *index = args[1];
+
+	long long i = integerobject_tolonglong(index);
+	if (validate_index(interp, errptr, arr, i) == STATUS_ERROR)
+		return NULL;
+
+	struct Object *res = ARRAYOBJECT_GET(arr, i);
+	OBJECT_INCREF(interp, res);
+	return res;
+}
+
+static struct Object *set(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
+{
+	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.arrayclass, interp->builtins.integerclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+		return NULL;
+	struct Object *arr = args[0];
+	struct Object *index = args[1];
+	struct Object *obj = args[2];
+
+	long long i = integerobject_tolonglong(index);
+	if (validate_index(interp, errptr, arr, i) == STATUS_ERROR)
+		return NULL;
+
+	struct ArrayObjectData *data = arr->data;
+	OBJECT_DECREF(interp, data->elems[i]);
+	data->elems[i] = obj;
+	OBJECT_INCREF(interp, obj);
+
+	// must return a new reference (lol)
+	return stringobject_newfromcharptr(interp, errptr, "this thing really should be null :((((");
+}
+
+static struct Object *push(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
+{
+	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.arrayclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+		return NULL;
+	struct Object *arr = args[0];
+	struct Object *obj = args[1];
+
+	if (arrayobject_push(interp, errptr, arr, obj) == STATUS_ERROR)
+		return NULL;
+	return stringobject_newfromcharptr(interp, errptr, "this thing really should be null :((((");
+}
+
+static struct Object *pop(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
+{
+	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
+		return NULL;
+
+	struct Object *res = arrayobject_pop(interp, args[0]);
+	if (!res)
+		errorobject_setwithfmt(interp, errptr, "cannot pop from an empty array");
+	return res;
+}
+
+// TODO: should this be an attribute?
+static struct Object *get_length(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
+{
+	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
+		return NULL;
+	return integerobject_newfromlonglong(interp, errptr, ARRAYOBJECT_LEN(args[0]));
+}
+
 struct Object *arrayobject_createclass(struct Interpreter *interp, struct Object **errptr)
 {
 	struct Object *klass = classobject_new(interp, errptr, "Array", interp->builtins.objectclass, 0, array_foreachref);
 	if (!klass)
 		return NULL;
 
+	if (method_add(interp, errptr, klass, "set", set) == STATUS_ERROR) goto error;
+	if (method_add(interp, errptr, klass, "get", get) == STATUS_ERROR) goto error;
+	if (method_add(interp, errptr, klass, "push", push) == STATUS_ERROR) goto error;
+	if (method_add(interp, errptr, klass, "pop", pop) == STATUS_ERROR) goto error;
+	if (method_add(interp, errptr, klass, "get_length", get_length) == STATUS_ERROR) goto error;
 	if (method_add(interp, errptr, klass, "to_string", to_string) == STATUS_ERROR) goto error;
 	return klass;
 
@@ -200,7 +287,6 @@ struct Object *arrayobject_pop(struct Interpreter *interp, struct Object *arr)
 	if (data->len == 0)
 		return NULL;
 
-	struct Object *obj = data->elems[--data->len];
-	OBJECT_DECREF(interp, obj);
-	return obj;
+	// don't touch refcounts, we remove a reference from the data but we also return a reference
+	return data->elems[--data->len];
 }

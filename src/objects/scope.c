@@ -1,4 +1,5 @@
 #include "scope.h"
+#include <assert.h>
 #include "../attribute.h"
 #include "../common.h"
 #include "../method.h"
@@ -8,6 +9,45 @@
 #include "function.h"
 #include "mapping.h"
 #include "string.h"
+
+struct Object *scopeobject_newsub(struct Interpreter *interp, struct Object **errptr, struct Object *parentscope)
+{
+	assert(interp);
+	assert(errptr);
+	assert(interp->builtins.scopeclass);
+	struct Object *scope = classobject_newinstance(interp, errptr, interp->builtins.scopeclass, NULL, NULL);
+	if (!scope)
+		return NULL;
+
+	struct Object *localvars = mappingobject_newempty(interp, errptr);
+	if (!localvars) {
+		OBJECT_DECREF(interp, scope);
+		return NULL;
+	}
+
+	if (attribute_set(interp, errptr, scope, "parent_scope", parentscope) == STATUS_ERROR) goto error;
+	if (attribute_set(interp, errptr, scope, "local_vars", localvars) == STATUS_ERROR) goto error;
+	OBJECT_DECREF(interp, localvars);
+	return scope;
+
+error:
+	OBJECT_DECREF(interp, localvars);
+	OBJECT_DECREF(interp, scope);
+	return NULL;
+}
+
+struct Object *scopeobject_newbuiltin(struct Interpreter *interp, struct Object **errptr)
+{
+	// TODO: we really need a null object.....
+	struct Object *shouldBnull = stringobject_newfromcharptr(interp, errptr, "asd shit");
+	if (!shouldBnull)
+		return NULL;
+
+	struct Object *res = scopeobject_newsub(interp, errptr, shouldBnull);
+	OBJECT_DECREF(interp, shouldBnull);
+	return res;
+}
+
 
 static struct Object *set_var(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
 {
@@ -85,6 +125,13 @@ static struct Object *get_var(struct Interpreter *interp, struct Object **errptr
 	return res;
 }
 
+struct Object *create_subscope(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
+{
+	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.scopeclass, NULL) == STATUS_ERROR)
+		return NULL;
+	return scopeobject_newsub(interp, errptr, args[0]);
+}
+
 struct Object *scopeobject_createclass(struct Interpreter *interp, struct Object **errptr)
 {
 	struct Object *klass = classobject_new(interp, errptr, "Scope", interp->builtins.objectclass, 1, NULL);
@@ -93,49 +140,10 @@ struct Object *scopeobject_createclass(struct Interpreter *interp, struct Object
 
 	if (method_add(interp, errptr, klass, "set_var", set_var) == STATUS_ERROR) goto error;
 	if (method_add(interp, errptr, klass, "get_var", get_var) == STATUS_ERROR) goto error;
+	if (method_add(interp, errptr, klass, "create_subscope", create_subscope) == STATUS_ERROR) goto error;
 	return klass;
 
 error:
 	OBJECT_DECREF(interp, klass);
 	return NULL;
-}
-
-#include <assert.h>
-#include <stdio.h>
-struct Object *scopeobject_newsub(struct Interpreter *interp, struct Object **errptr, struct Object *parentscope)
-{
-	assert(interp);
-	assert(errptr);
-	assert(interp->builtins.scopeclass);
-	struct Object *scope = classobject_newinstance(interp, errptr, interp->builtins.scopeclass, NULL, NULL);
-	if (!scope)
-		return NULL;
-
-	struct Object *localvars = mappingobject_newempty(interp, errptr);
-	if (!localvars) {
-		OBJECT_DECREF(interp, scope);
-		return NULL;
-	}
-
-	if (attribute_set(interp, errptr, scope, "parent_scope", parentscope) == STATUS_ERROR) goto error;
-	if (attribute_set(interp, errptr, scope, "local_vars", localvars) == STATUS_ERROR) goto error;
-	OBJECT_DECREF(interp, localvars);
-	return scope;
-
-error:
-	OBJECT_DECREF(interp, localvars);
-	OBJECT_DECREF(interp, scope);
-	return NULL;
-}
-
-struct Object *scopeobject_newbuiltin(struct Interpreter *interp, struct Object **errptr)
-{
-	// TODO: we really need a null object.....
-	struct Object *shouldBnull = stringobject_newfromcharptr(interp, errptr, "asd shit");
-	if (!shouldBnull)
-		return NULL;
-
-	struct Object *res = scopeobject_newsub(interp, errptr, shouldBnull);
-	OBJECT_DECREF(interp, shouldBnull);
-	return res;
 }

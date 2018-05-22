@@ -35,6 +35,7 @@ fmt must be valid UTF-8, and it can contain any of these format specifiers:
 	%S         struct Object *        to_string will be called
 	%D         struct Object *        to_debug_string will be called
 	%p         void *                 prints the pointer in the output, e.g. 0x1b6baa0
+	%L         long long
 	%%         nothing                a % in the output
 
 	[*] remember to add a cast if needed, no implicit conversion here

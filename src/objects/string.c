@@ -178,6 +178,23 @@ struct Object *stringobject_newfromvfmt(struct Interpreter *interp, struct Objec
 				skipfreeval[nparts] = 1;
 			}
 
+			else if (*(fmt-1) == 'L') {   // long long
+				long long val = va_arg(ap, long long);
+
+				// TODO: don't copy/paste from above, move the stringifying code here instead?
+				struct Object *intobj = integerobject_newfromlonglong(interp, errptr, val);
+				if (!intobj)
+					goto error;
+				struct Object *strobj = method_call_tostring(interp, errptr, intobj);
+				OBJECT_DECREF(interp, intobj);
+				if (!strobj)
+					goto error;
+				*gonnadecrefptr++ = strobj;
+
+				parts[nparts] = *((struct UnicodeString *) strobj->data);
+				skipfreeval[nparts] = 1;
+			}
+
 			else if (*(fmt-1) == '%') {   // literal %
 				parts[nparts].len = 1;
 				parts[nparts].val = malloc(sizeof(unicode_char));

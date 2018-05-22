@@ -213,6 +213,8 @@ void test_objects_array_many_elems(void)
 	for (int i = HOW_MANY-1; i >= 0; i--) {
 		struct Object *obj = arrayobject_pop(testinterp, arr);
 		buttert(obj == objs[i]);
+		OBJECT_DECREF(testinterp, obj);
+		buttert(obj->refcount == 1);
 	}
 
 	for (size_t i=0; i < HOW_MANY; i++)
