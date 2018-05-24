@@ -13,6 +13,9 @@ things that I would like to do some day. It's a mess.
           evaluating `b * c` first in math and many other programming languages
             - real mathematicians (tm) write `a + bc` to avoid this problem,
               needing parentheses would be ö's solution
+- error handling so that tests can be written in ö
+    - `throw "asd";` and ``{ ... } `catch` { ... };`` would be good enough for
+      now
 - attributes should not be just items of a mapping
     - problems with current setup:
         - some objects are special because they have no attributes
