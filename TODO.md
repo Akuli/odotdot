@@ -4,6 +4,15 @@ This list contains things that are horribly broken, things that annoy me and
 things that I would like to do some day. It's a mess.
 
 ## Language design changes
+- infixes: ``(a `f` b)`` is equivalent to ``(f a b)``, ``a `f` b;`` is
+  equivalent to ``f a b;``
+    - later operators could be implemented as syntactic sugar for infixes, e.g.
+      ``a + b`` might be ``a `(import "<stdlib>/operators").add` b``
+    - `a + b*c` would be invalid syntax, would need to be written `(a + (b*c))`
+        - good because people won't be confused by `a + b * c`, which means
+          evaluating `b * c` first in math and many other programming languages
+            - real mathematicians (tm) write `a + bc` to avoid this problem,
+              needing parentheses would be ö's solution
 - attributes should not be just items of a mapping
     - problems with current setup:
         - some objects are special because they have no attributes
@@ -116,6 +125,7 @@ things that I would like to do some day. It's a mess.
 - `<stdbool.h>` should be used instead of `STATUS_OK` and `STATUS_ERROR`
 
 ## unicode.c and unicode.h
+- delete some unused and stupid macros from the end of unicode.h
 - delete UnicodeString?
     - string objects are quite capable anyway
     - now errors.h creates a string object without a `stringobject_newblabla()`
