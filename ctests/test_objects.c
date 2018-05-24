@@ -28,7 +28,7 @@ void cleaner(struct Object *obj)
 void test_objects_simple(void)
 {
 	buttert(cleaner_ran == 0);
-	struct Object *obj = classobject_newinstance(testinterp, &testerr, testinterp->builtins.objectclass, (void *)0xdeadbeef, cleaner);
+	struct Object *obj = classobject_newinstance(testinterp, testinterp->builtins.objectclass, (void *)0xdeadbeef, cleaner);
 	buttert(obj);
 	buttert(obj->data == (void *)0xdeadbeef);
 	buttert(cleaner_ran == 0);
@@ -38,10 +38,9 @@ void test_objects_simple(void)
 
 void test_objects_error(void)
 {
-	struct Object *err = NULL;
-	errorobject_setwithfmt(testinterp, &err, "oh %s", "shit");
-	buttert(err);
-	struct UnicodeString *msg = ((struct Object*) err->data)->data;
+	errorobject_setwithfmt(testinterp, "oh %s", "shit");
+	buttert(testinterp->err);
+	struct UnicodeString *msg = ((struct Object*) testinterp->err->data)->data;
 	buttert(msg);
 	buttert(msg->len = 7);
 	buttert(
@@ -52,13 +51,14 @@ void test_objects_error(void)
 		msg->val[4] == 'h' &&
 		msg->val[5] == 'i' &&
 		msg->val[6] == 't');
-	OBJECT_DECREF(testinterp, err);
+	OBJECT_DECREF(testinterp, testinterp->err);
+	testinterp->err = NULL;
 }
 
 struct Object *callback_arg1, *callback_arg2;
 int flipped = 0;
 
-struct Object *callback(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
+struct Object *callback(struct Interpreter *interp, struct Object **args, size_t nargs)
 {
 	buttert(nargs == 2);
 	buttert(args[0] == (flipped ? callback_arg2 : callback_arg1));
@@ -68,23 +68,23 @@ struct Object *callback(struct Interpreter *interp, struct Object **errptr, stru
 
 void test_objects_function(void)
 {
-	buttert((callback_arg1 = stringobject_newfromcharptr(testinterp, &testerr, "asd1")));
-	buttert((callback_arg2 = stringobject_newfromcharptr(testinterp, &testerr, "asd2")));
+	buttert((callback_arg1 = stringobject_newfromcharptr(testinterp, "asd1")));
+	buttert((callback_arg2 = stringobject_newfromcharptr(testinterp, "asd2")));
 
-	struct Object *func = functionobject_new(testinterp, &testerr, callback);
-	buttert(functionobject_call(testinterp, &testerr, func, callback_arg1, callback_arg2, NULL) == (struct Object*) 0x123abc);
+	struct Object *func = functionobject_new(testinterp, callback);
+	buttert(functionobject_call(testinterp, func, callback_arg1, callback_arg2, NULL) == (struct Object*) 0x123abc);
 
-	struct Object *partial1 = functionobject_newpartial(testinterp, &testerr, func, callback_arg1);
+	struct Object *partial1 = functionobject_newpartial(testinterp, func, callback_arg1);
 	OBJECT_DECREF(testinterp, callback_arg1);   // partialfunc should hold a reference to this
 	OBJECT_DECREF(testinterp, func);
 	flipped = 0;
-	buttert(functionobject_call(testinterp, &testerr, partial1, callback_arg2, NULL) == (struct Object*) 0x123abc);
+	buttert(functionobject_call(testinterp, partial1, callback_arg2, NULL) == (struct Object*) 0x123abc);
 
-	struct Object *partial2 = functionobject_newpartial(testinterp, &testerr, partial1, callback_arg2);
+	struct Object *partial2 = functionobject_newpartial(testinterp, partial1, callback_arg2);
 	OBJECT_DECREF(testinterp, callback_arg2);
 	OBJECT_DECREF(testinterp, partial1);
 	flipped = 1;    // arg 2 was partialled last, so it will go first
-	buttert(functionobject_call(testinterp, &testerr, partial2, NULL) == (struct Object*) 0x123abc);
+	buttert(functionobject_call(testinterp, partial2, NULL) == (struct Object*) 0x123abc);
 
 	OBJECT_DECREF(testinterp, partial2);
 }
@@ -101,8 +101,8 @@ void test_objects_string(void)
 	u.val[1] = odotdot;
 
 	struct Object *strs[] = {
-		stringobject_newfromcharptr(testinterp, &testerr, "Öö"),
-		stringobject_newfromustr(testinterp, &testerr, u) };
+		stringobject_newfromcharptr(testinterp, "Öö"),
+		stringobject_newfromustr(testinterp, u) };
 	free(u.val);    // must not break anything, newfromustr should copy
 
 	for (size_t i=0; i < sizeof(strs)/sizeof(strs[0]); i++) {
@@ -118,9 +118,9 @@ void test_objects_string(void)
 
 void test_objects_string_tostring(void)
 {
-	struct Object *s = stringobject_newfromcharptr(testinterp, &testerr, "Öö");
+	struct Object *s = stringobject_newfromcharptr(testinterp, "Öö");
 	buttert(s);
-	struct Object *ret = method_call(testinterp, &testerr, s, "to_string", NULL);
+	struct Object *ret = method_call(testinterp, s, "to_string", NULL);
 	buttert(ret);
 	buttert(ret == s);
 	OBJECT_DECREF(testinterp, ret);
@@ -134,10 +134,10 @@ void test_objects_string_newfromfmt(void)
 	b.len = 1;
 	b.val = &bval;
 
-	struct Object *c = stringobject_newfromcharptr(testinterp, &testerr, "c");
+	struct Object *c = stringobject_newfromcharptr(testinterp, "c");
 	buttert(c);
 
-	struct Object *res = stringobject_newfromfmt(testinterp, &testerr, "-%s-%U-%S-%D-%%-", "a", b, c, c);
+	struct Object *res = stringobject_newfromfmt(testinterp, "-%s-%U-%S-%D-%%-", "a", b, c, c);
 	buttert(res);
 	OBJECT_DECREF(testinterp, c);
 
@@ -163,16 +163,16 @@ void test_objects_string_newfromfmt(void)
 void test_objects_array(void)
 {
 	struct Object *objs[] = {
-		stringobject_newfromcharptr(testinterp, &testerr, "a"),
-		stringobject_newfromcharptr(testinterp, &testerr, "b"),
-		stringobject_newfromcharptr(testinterp, &testerr, "c") };
+		stringobject_newfromcharptr(testinterp, "a"),
+		stringobject_newfromcharptr(testinterp, "b"),
+		stringobject_newfromcharptr(testinterp, "c") };
 #define NOBJS (sizeof(objs) / sizeof(objs[0]))
 	for (size_t i=0; i < NOBJS; i++)
 		buttert(objs[i]);
 
-	struct Object *arr = arrayobject_new(testinterp, &testerr, objs, NOBJS - 1);
+	struct Object *arr = arrayobject_new(testinterp, objs, NOBJS - 1);
 	buttert(arr);
-	buttert(arrayobject_push(testinterp, &testerr, arr, objs[NOBJS-1]) == STATUS_OK);
+	buttert(arrayobject_push(testinterp, arr, objs[NOBJS-1]) == STATUS_OK);
 
 	// now the array should hold references to each object
 	for (size_t i=0; i < NOBJS; i++)
@@ -205,9 +205,9 @@ void test_objects_array_many_elems(void)
 {
 	struct Object *objs[HOW_MANY];
 	for (size_t i=0; i < HOW_MANY; i++)
-		buttert((objs[i] = integerobject_newfromlonglong(testinterp, &testerr, i+10)));
+		buttert((objs[i] = integerobject_newfromlonglong(testinterp, i+10)));
 
-	struct Object *arr = arrayobject_new(testinterp, &testerr, objs, HOW_MANY);
+	struct Object *arr = arrayobject_new(testinterp, objs, HOW_MANY);
 	check(arr->data);
 
 	for (int i = HOW_MANY-1; i >= 0; i--) {
@@ -218,7 +218,7 @@ void test_objects_array_many_elems(void)
 	}
 
 	for (size_t i=0; i < HOW_MANY; i++)
-		buttert(arrayobject_push(testinterp, &testerr, arr, objs[i]) == STATUS_OK);
+		buttert(arrayobject_push(testinterp, arr, objs[i]) == STATUS_OK);
 	check(arr->data);
 
 	OBJECT_DECREF(testinterp, arr);
@@ -229,7 +229,7 @@ void test_objects_array_many_elems(void)
 
 void test_objects_mapping(void)
 {
-#define S(x) stringobject_newfromcharptr(testinterp, &testerr, (x))
+#define S(x) stringobject_newfromcharptr(testinterp, (x))
 	struct Object* keys[] = { S("a"), S("b"), S("c") };
 	struct Object* vals[] = { S("x"), S("y"), S("z") };
 #undef S
@@ -240,50 +240,49 @@ void test_objects_mapping(void)
 		buttert(vals[i]);
 	}
 
-	struct Object *map = mappingobject_newempty(testinterp, &testerr);
+	struct Object *map = mappingobject_newempty(testinterp);
 	buttert(map);
 	buttert(((struct MappingObjectData *) map->data)->size == 0);
 
 	// adding non-hashable keys must fail, but non-hashable values are ok
-	struct Object *yeshash = stringobject_newfromcharptr(testinterp, &testerr, "lol asd wut wat");
-	struct Object *nohash = arrayobject_newempty(testinterp, &testerr);
-	struct Object *err = NULL;
+	struct Object *yeshash = stringobject_newfromcharptr(testinterp, "lol asd wut wat");
+	struct Object *nohash = arrayobject_newempty(testinterp);
 	struct Object *ret;
 
-	buttert(!method_call(testinterp, &err, map, "set", nohash, yeshash, NULL));
-	buttert(err);
-	OBJECT_DECREF(testinterp, err);
-	err = NULL;
+	buttert(!method_call(testinterp, map, "set", nohash, yeshash, NULL));
+	buttert(testinterp->err);
+	OBJECT_DECREF(testinterp, testinterp->err);
+	testinterp->err = NULL;
 
-	buttert((ret = method_call(testinterp, &err, map, "set", yeshash, nohash, NULL)));
-	buttert(!err);
+	buttert((ret = method_call(testinterp, map, "set", yeshash, nohash, NULL)));
+	buttert(!(testinterp->err));
 	OBJECT_DECREF(testinterp, ret);
 	OBJECT_DECREF(testinterp, yeshash);
 	OBJECT_DECREF(testinterp, nohash);
 
 	for (unsigned int i=0; i < FINAL_SIZE; i++) {
 		// test trying to get a missing item
-		buttert(!method_call(testinterp, &err, map, "get", keys[i], NULL));
-		buttert(err);
-		OBJECT_DECREF(testinterp, err);
-		err = NULL;
+		buttert(!method_call(testinterp, map, "get", keys[i], NULL));
+		buttert(testinterp->err);
+		OBJECT_DECREF(testinterp, testinterp->err);
+		testinterp->err = NULL;
 
-		ret = method_call(testinterp, &testerr, map, "set", keys[i], vals[i], NULL);
+		ret = method_call(testinterp, map, "set", keys[i], vals[i], NULL);
 		buttert(ret);
 		OBJECT_DECREF(testinterp, ret);
 
 		// must work the same
-		ret = method_call(testinterp, &testerr, map, "set", keys[i], vals[i], NULL);
+		ret = method_call(testinterp, map, "set", keys[i], vals[i], NULL);
 		buttert(ret);
 		OBJECT_DECREF(testinterp, ret);
 	}
 
 	// it's ok to not delete everything from the mapping
-	ret = method_call(testinterp, &testerr, map, "get_and_delete", keys[0], NULL);
+	ret = method_call(testinterp, map, "get_and_delete", keys[0], NULL);
 	buttert(ret == vals[0]);
 	OBJECT_DECREF(testinterp, ret);
 
-	ret = method_call(testinterp, &testerr, map, "delete", keys[1], NULL);
+	ret = method_call(testinterp, map, "delete", keys[1], NULL);
 	buttert(ret);
 	buttert(ret != vals[1]);   // TODO: check that it's null when null is implemented
 	OBJECT_DECREF(testinterp, ret);
@@ -302,30 +301,30 @@ void test_objects_mapping_huge(void)
 	struct Object *keys[HUGE];
 	struct Object *vals[HUGE];
 	for (int i=0; i < HUGE; i++) {
-		buttert((keys[i] = integerobject_newfromlonglong(testinterp, &testerr, i)));
-		buttert((vals[i] = integerobject_newfromlonglong(testinterp, &testerr, -i)));
+		buttert((keys[i] = integerobject_newfromlonglong(testinterp, i)));
+		buttert((vals[i] = integerobject_newfromlonglong(testinterp, -i)));
 	}
 
-	struct Object *map = mappingobject_newempty(testinterp, &testerr);
+	struct Object *map = mappingobject_newempty(testinterp);
 	buttert(map);
 
 	int counter = 3;
 	while (counter--) {    // repeat 3 times
 		struct Object *ret;
 		for (int i=0; i < HUGE; i++) {
-			ret = method_call(testinterp, &testerr, map, "set", keys[i], vals[i], NULL);
+			ret = method_call(testinterp, map, "set", keys[i], vals[i], NULL);
 			buttert(ret);
 			OBJECT_DECREF(testinterp, ret);
 
 			// do it again :D this should do nothing
-			ret = method_call(testinterp, &testerr, map, "set", keys[i], vals[i], NULL);
+			ret = method_call(testinterp, map, "set", keys[i], vals[i], NULL);
 			buttert(ret);
 			OBJECT_DECREF(testinterp, ret);
 		}
 		buttert(((struct MappingObjectData *) map->data)->size == HUGE);
 
 		for (int i=0; i < HUGE; i++) {
-			ret = method_call(testinterp, &testerr, map, "delete", keys[i], NULL);
+			ret = method_call(testinterp, map, "delete", keys[i], NULL);
 			buttert(ret);
 			OBJECT_DECREF(testinterp, ret);
 		}
@@ -343,17 +342,17 @@ void test_objects_mapping_huge(void)
 
 void test_objects_mapping_iter(void)
 {
-#define I(x) integerobject_newfromlonglong(testinterp, &testerr, (x))
+#define I(x) integerobject_newfromlonglong(testinterp, (x))
 	struct Object* keys[] = { I(0), I(1), I(2) };
 	struct Object* vals[] = { I(100), I(101), I(102) };
 #undef I
 #define FINAL_SIZE (sizeof(keys) / sizeof(keys[0]))
 	int found[FINAL_SIZE] = {0};
 
-	struct Object *map = mappingobject_newempty(testinterp, &testerr);
+	struct Object *map = mappingobject_newempty(testinterp);
 	buttert(map);
 	for (unsigned int i=0; i < FINAL_SIZE; i++){
-		struct Object *ret = method_call(testinterp, &testerr, map, "set", keys[i], vals[i], NULL);
+		struct Object *ret = method_call(testinterp, map, "set", keys[i], vals[i], NULL);
 		OBJECT_DECREF(testinterp, keys[i]);
 		OBJECT_DECREF(testinterp, vals[i]);
 		OBJECT_DECREF(testinterp, ret);
@@ -382,22 +381,22 @@ struct HashTest {
 
 void test_objects_hashes(void)
 {
-	struct Object *err;
-	errorobject_setwithfmt(testinterp, &err, "oh %s", "shit");
+	errorobject_setwithfmt(testinterp, "oh %s", "shit");
 
 	OBJECT_INCREF(testinterp, testinterp->builtins.stringclass);
 	OBJECT_INCREF(testinterp, testinterp->builtins.print);
 	struct HashTest tests[] = {
 		{ testinterp->builtins.stringclass, 1 },
-		{ err, 1 },
+		{ testinterp->err, 1 },
 		{ testinterp->builtins.print, 1 },
-		{ integerobject_newfromlonglong(testinterp, &testerr, -123LL), 1 },
-		{ classobject_newinstance(testinterp, &testerr, testinterp->builtins.objectclass, NULL, NULL), 1 },
-		{ stringobject_newfromcharptr(testinterp, &testerr, "asd"), 1 },
-		{ arrayobject_newempty(testinterp, &testerr), 0 },
-		{ mappingobject_newempty(testinterp, &testerr), 0 }
+		{ integerobject_newfromlonglong(testinterp, -123LL), 1 },
+		{ classobject_newinstance(testinterp, testinterp->builtins.objectclass, NULL, NULL), 1 },
+		{ stringobject_newfromcharptr(testinterp, "asd"), 1 },
+		{ arrayobject_newempty(testinterp), 0 },
+		{ mappingobject_newempty(testinterp), 0 }
 	};
-	err = NULL;
+	// no need to decref, the reference to testinterp->err is "moved" to tests
+	testinterp->err = NULL;
 
 	for (unsigned int i=0; i < sizeof(tests) / sizeof(tests[0]); i++) {
 		struct HashTest test = tests[i];

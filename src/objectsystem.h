@@ -32,15 +32,14 @@ struct Object {
 	int gcflag;
 };
 
+// THIS IS LOWLEVEL, see classobject_newinstance()
 // create a new object, add it to interp->allobjects and return it, returns NULL on no mem
-// if you think you want to call this, you probably want classobject_newinstance() instead
-// CANNOT BE USED with classes that want their instances to have attributes, use classobject_newinstance()
+// CANNOT BE USED with classes that want their instances to have attributes
 // see above for descriptions of data and destructor
-// hashable is set to 1, and hash is set to a value based on (uintptr_t)returned_obj
 // RETURNS A NEW REFERENCE, i.e. refcount is set to 1
-struct Object *object_new(struct Interpreter *interp, struct Object *klass, void *data, void (*destructor)(struct Object*));
+struct Object *object_new_noerr(struct Interpreter *interp, struct Object *klass, void *data, void (*destructor)(struct Object*));
 
-// quite self-explanatory, these never fail
+// these never fail
 #define OBJECT_INCREF(interp, obj) do { ATOMIC_INCR(((struct Object *)(obj))->refcount); } while(0)
 #define OBJECT_DECREF(interp, obj) do { \
 	if (ATOMIC_DECR(((struct Object *)(obj))->refcount) <= 0) \

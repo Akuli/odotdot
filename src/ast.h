@@ -14,11 +14,11 @@ struct AstNodeData {
 };
 
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *astnode_createclass(struct Interpreter *interp, struct Object **errptr);
+struct Object *astnode_createclass(struct Interpreter *interp);
 
 // for creating ast in things like tests
-struct Object *ast_new_statement(struct Interpreter *interp, struct Object **errptr, char kind, size_t lineno, void *info);
-#define ast_new_expression(interp, errptr, kind, info) ast_new_statement((interp), (errptr), (kind), 0, (info))
+struct Object *ast_new_statement(struct Interpreter *interp, char kind, size_t lineno, void *info);
+#define ast_new_expression(interp, kind, info) ast_new_statement((interp), (kind), 0, (info))
 
 
 // expressions
@@ -62,8 +62,8 @@ struct AstCallInfo { struct Object *funcnode; struct Object **argnodes; size_t n
 
 // TODO: make parse_expression() static?
 // these RETURN A NEW REFERENCE or NULL on error
-struct Object *ast_parse_expression(struct Interpreter *interp, struct Object **errptr, struct Token **curtok);
-struct Object *ast_parse_statement(struct Interpreter *interp, struct Object **errptr, struct Token **curtok);
+struct Object *ast_parse_expression(struct Interpreter *interp, struct Token **curtok);
+struct Object *ast_parse_statement(struct Interpreter *interp, struct Token **curtok);
 
 
 #endif    // AST_H

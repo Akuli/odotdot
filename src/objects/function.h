@@ -7,15 +7,15 @@
 
 /* should
       * RETURN A NEW REFERENCE on success
-      * set errptr and return NULL on error
+      * set an error (see objects/errors.h) and return NULL on failure
       * usually not touch refcounts of args
       * not change the values of args
 */
-typedef struct Object* (*functionobject_cfunc)(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs);
+typedef struct Object* (*functionobject_cfunc)(struct Interpreter *interp, struct Object **args, size_t nargs);
 
 /* for example, do this in the beginning of a functionobject_cfunc...
 
-	if (function_checktypes(interp, errptr, args, nargs, interp->builtins.stringclass, interp->builtins.integerclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+	if (function_checktypes(interp, args, nargs, interp->builtins.stringclass, interp->builtins.integerclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
 		return NULL;
 
 ...to make sure that:
@@ -27,32 +27,32 @@ the 3rd argument can be anything because all classes inherit from Object
 bad things happen if the ... arguments are not class objects or NULL
 returns STATUS_OK or STATUS_ERROR
 */
-int functionobject_checktypes(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs, ...);
+int functionobject_checktypes(struct Interpreter *interp, struct Object **args, size_t nargs, ...);
 
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *functionobject_createclass(struct Interpreter *interp, struct Object **errptr);
+struct Object *functionobject_createclass(struct Interpreter *interp);
 
 // returns STATUS_OK or STATUS_ERROR
-int functionobject_addmethods(struct Interpreter *interp, struct Object **errptr);
+int functionobject_addmethods(struct Interpreter *interp);
 
 // RETURNS A NEW REFERENCE or NULL on error
 // if partialarg is not NULL, it's added as the first argument when the function is called
-struct Object *functionobject_new(struct Interpreter *interp, struct Object **errptr, functionobject_cfunc cfunc);
+struct Object *functionobject_new(struct Interpreter *interp, functionobject_cfunc cfunc);
 
-// example: functionobject_call(ctx, errptr, func, a, b, c, NULL) calls func with arguments a, b, c
+// example: functionobject_call(ctx, func, a, b, c, NULL) calls func with arguments a, b, c
 // bad things happen if func is not a function object
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *functionobject_call(struct Interpreter *interp, struct Object **errptr, struct Object *func, ...);
+struct Object *functionobject_call(struct Interpreter *interp, struct Object *func, ...);
 
 // named kinda like vprintf
 // bad things happen if func is not a function object
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *functionobject_vcall(struct Interpreter *interp, struct Object **errptr, struct Object *func, struct Object **args, size_t nargs);
+struct Object *functionobject_vcall(struct Interpreter *interp, struct Object *func, struct Object **args, size_t nargs);
 
 // add a partial argument
 // bad things happen if func is not a function object
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *functionobject_newpartial(struct Interpreter *interp, struct Object **errptr, struct Object *func, struct Object *partialarg);
+struct Object *functionobject_newpartial(struct Interpreter *interp, struct Object *func, struct Object *partialarg);
 
 
 #endif   // OBJECTS_FUNCTION_H

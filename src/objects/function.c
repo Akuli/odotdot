@@ -40,16 +40,16 @@ static void function_destructor(struct Object *func)
 	free(data);
 }
 
-struct Object *functionobject_createclass(struct Interpreter *interp, struct Object **errptr)
+struct Object *functionobject_createclass(struct Interpreter *interp)
 {
-	return classobject_new(interp, errptr, "Function", interp->builtins.objectclass, 0, function_foreachref);
+	return classobject_new(interp, "Function", interp->builtins.objectclass, 0, function_foreachref);
 }
 
-static struct Object *partial(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
+static struct Object *partial(struct Interpreter *interp, struct Object **args, size_t nargs)
 {
 	// check the first argument, rest are the args that are being partialled
 	// there can be 0 or more partialled args (0 partialled args allowed for consistency)
-	if (functionobject_checktypes(interp, errptr, args, (nargs>1 ? 1 : nargs), interp->builtins.functionclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, args, (nargs>1 ? 1 : nargs), interp->builtins.functionclass, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *func = args[0];
 	struct Object **partialargs = args + 1;
@@ -64,7 +64,7 @@ static struct Object *partial(struct Interpreter *interp, struct Object **errptr
 	struct FunctionData *data = func->data;     // casts implicitly
 	struct FunctionData *newdata = malloc(sizeof(struct FunctionData));
 	if (!newdata) {
-		errorobject_setnomem(interp, errptr);
+		errorobject_setnomem(interp);
 		return NULL;
 	}
 
@@ -72,7 +72,7 @@ static struct Object *partial(struct Interpreter *interp, struct Object **errptr
 	newdata->npartialargs = data->npartialargs + npartialargs;
 	newdata->partialargs = malloc(sizeof(struct Object*) * newdata->npartialargs);
 	if (!newdata->partialargs) {
-		errorobject_setnomem(interp, errptr);
+		errorobject_setnomem(interp);
 		free(newdata);
 		return NULL;
 	}
@@ -82,7 +82,7 @@ static struct Object *partial(struct Interpreter *interp, struct Object **errptr
 	for (size_t i=0; i < newdata->npartialargs; i++)
 		OBJECT_INCREF(interp, newdata->partialargs[i]);
 
-	struct Object *obj = classobject_newinstance(interp, errptr, interp->builtins.functionclass, newdata, function_destructor);
+	struct Object *obj = classobject_newinstance(interp, interp->builtins.functionclass, newdata, function_destructor);
 	if (!obj) {
 		for (size_t i=0; i < newdata->npartialargs; i++)
 			OBJECT_DECREF(interp, newdata->partialargs[i]);
@@ -95,20 +95,20 @@ static struct Object *partial(struct Interpreter *interp, struct Object **errptr
 
 // methods are partialled functions, but the partial method can't be used when looking up methods
 // that would be infinite recursion
-struct Object *functionobject_newpartial(struct Interpreter *interp, struct Object **errptr, struct Object *func, struct Object *partialarg)
+struct Object *functionobject_newpartial(struct Interpreter *interp, struct Object *func, struct Object *partialarg)
 {
 	struct Object *args[] = { func, partialarg };
-	return partial(interp, errptr, args, 2);
+	return partial(interp, args, 2);
 }
 
-int functionobject_addmethods(struct Interpreter *interp, struct Object **errptr)
+int functionobject_addmethods(struct Interpreter *interp)
 {
 	// TODO: map, to_string
-	if (method_add(interp, errptr, interp->builtins.functionclass, "partial", partial) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.functionclass, "partial", partial) == STATUS_ERROR) return STATUS_ERROR;
 	return STATUS_OK;
 }
 
-int functionobject_checktypes(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs, ...)
+int functionobject_checktypes(struct Interpreter *interp, struct Object **args, size_t nargs, ...)
 {
 	va_list ap;
 	va_start(ap, nargs);
@@ -126,32 +126,32 @@ int functionobject_checktypes(struct Interpreter *interp, struct Object **errptr
 	// TODO: test these
 	// TODO: include the function name in the error?
 	if (nargs != expectnargs) {
-		errorobject_setwithfmt(interp, errptr, "%s arguments", nargs > expectnargs ? "too many" : "not enough");
+		errorobject_setwithfmt(interp, "%s arguments", nargs > expectnargs ? "too many" : "not enough");
 		for (unsigned int i=0; i < expectnargs; i++)
 			OBJECT_DECREF(interp, classes[i]);
 		return STATUS_ERROR;
 	}
 
 	for (unsigned int i=0; i < nargs; i++) {
-		if (errorobject_typecheck(interp, errptr, classes[i], args[i]) == STATUS_ERROR)
+		if (errorobject_typecheck(interp, classes[i], args[i]) == STATUS_ERROR)
 			return STATUS_ERROR;
 	}
 
 	return STATUS_OK;
 }
 
-struct Object *functionobject_new(struct Interpreter *interp, struct Object **errptr, functionobject_cfunc cfunc)
+struct Object *functionobject_new(struct Interpreter *interp, functionobject_cfunc cfunc)
 {
 	struct FunctionData *data = malloc(sizeof(struct FunctionData));
 	if (!data) {
-		errorobject_setnomem(interp, errptr);
+		errorobject_setnomem(interp);
 		return NULL;
 	}
 	data->cfunc = cfunc;
 	data->partialargs = NULL;
 	data->npartialargs = 0;
 
-	struct Object *obj = classobject_newinstance(interp, errptr, interp->builtins.functionclass, data, function_destructor);
+	struct Object *obj = classobject_newinstance(interp, interp->builtins.functionclass, data, function_destructor);
 	if (!obj) {
 		free(data);
 		return NULL;
@@ -159,7 +159,7 @@ struct Object *functionobject_new(struct Interpreter *interp, struct Object **er
 	return obj;
 }
 
-struct Object *functionobject_call(struct Interpreter *interp, struct Object **errptr, struct Object *func, ...)
+struct Object *functionobject_call(struct Interpreter *interp, struct Object *func, ...)
 {
 	assert(func->klass == interp->builtins.functionclass);    // TODO: better type check
 
@@ -176,10 +176,10 @@ struct Object *functionobject_call(struct Interpreter *interp, struct Object **e
 	}
 	va_end(ap);
 
-	return functionobject_vcall(interp, errptr, func, args, nargs);
+	return functionobject_vcall(interp, func, args, nargs);
 }
 
-struct Object *functionobject_vcall(struct Interpreter *interp, struct Object **errptr, struct Object *func, struct Object **args, size_t nargs)
+struct Object *functionobject_vcall(struct Interpreter *interp, struct Object *func, struct Object **args, size_t nargs)
 {
 	struct Object **theargs;
 	size_t thenargs;
@@ -190,7 +190,7 @@ struct Object *functionobject_vcall(struct Interpreter *interp, struct Object **
 		thenargs = nargs + data->npartialargs;
 		theargs = malloc(sizeof(struct Object *) * thenargs);
 		if (!theargs) {
-			errorobject_setnomem(interp, errptr);
+			errorobject_setnomem(interp);
 			return NULL;
 		}
 		memcpy(theargs, data->partialargs, sizeof(struct Object*) * data->npartialargs);
@@ -200,7 +200,7 @@ struct Object *functionobject_vcall(struct Interpreter *interp, struct Object **
 		theargs = args;
 	}
 
-	struct Object *res = data->cfunc(interp, errptr, theargs, thenargs);
+	struct Object *res = data->cfunc(interp, theargs, thenargs);
 	if (data->npartialargs > 0)
 		free(theargs);
 	return res;

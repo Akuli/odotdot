@@ -5,7 +5,7 @@
 #include "objects/string.h"
 
 
-int equals(struct Interpreter *interp, struct Object **errptr, struct Object *a, struct Object *b)
+int equals(struct Interpreter *interp, struct Object *a, struct Object *b)
 {
 	if (a == b)      // the SAME object, == compares pointers
 		return 1;
@@ -32,7 +32,7 @@ int equals(struct Interpreter *interp, struct Object **errptr, struct Object *a,
 		if (ARRAYOBJECT_LEN(a) != ARRAYOBJECT_LEN(b))
 			return 0;
 		for (size_t i=0; i < ARRAYOBJECT_LEN(a); i++) {
-			int res = equals(interp, errptr, ARRAYOBJECT_GET(a, i), ARRAYOBJECT_GET(b, i));
+			int res = equals(interp, ARRAYOBJECT_GET(a, i), ARRAYOBJECT_GET(b, i));
 			if (res == -1)
 				return -1;
 			if (res == 0)

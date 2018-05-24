@@ -13,9 +13,8 @@ int verbose;
 int ntests;
 
 
-// these are externed in utils.h
+// this is externed in utils.h
 struct Interpreter *testinterp;
-struct Object *testerr;
 
 static void run_test(char *name, testfunc func)
 {
@@ -36,7 +35,7 @@ static void run_test(char *name, testfunc func)
 	}
 	ntests++;
 }
-#define RUN_TEST(func) do { void func(void); run_test(#func, func); buttert(!testerr); } while(0)
+#define RUN_TEST(func) do { void func(void); run_test(#func, func); buttert(!(testinterp->err)); } while(0)
 
 
 int main(int argc, char **argv)
@@ -50,8 +49,6 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	ntests = 0;
-
-	testerr = NULL;
 
 	buttert(testinterp = interpreter_new("testargv0"));
 	buttert(builtins_setup(testinterp) == STATUS_OK);
@@ -81,15 +78,15 @@ int main(int argc, char **argv)
 	RUN_TEST(test_ast_attributes_and_methods);
 	RUN_TEST(test_ast_function_call_statement);
 
-	builtins_teardown(testinterp);
-	gc_run(testinterp);
-	interpreter_free(testinterp);
-
 	RUN_TEST(test_tokenizer_tokenize);
 
 	void unicode_test_setup(void); unicode_test_setup();
 	RUN_TEST(test_utf8_encode);
 	RUN_TEST(test_utf8_decode);
+
+	builtins_teardown(testinterp);
+	gc_run(testinterp);
+	interpreter_free(testinterp);
 
 	if (verbose)
 		printf("\n---------- all %d tests passed ----------\n", ntests);

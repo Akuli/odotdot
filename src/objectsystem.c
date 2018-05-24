@@ -10,7 +10,7 @@
 #include "objects/classobject.h"
 #include "objects/mapping.h"
 
-struct Object *object_new(struct Interpreter *interp, struct Object *klass, void *data, void (*destructor)(struct Object*))
+struct Object *object_new_noerr(struct Interpreter *interp, struct Object *klass, void *data, void (*destructor)(struct Object*))
 {
 	struct Object *obj = malloc(sizeof(struct Object));
 	if(!obj)

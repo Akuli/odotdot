@@ -34,18 +34,18 @@ void test_integer_basic_stuff(void)
 	u.val[4] = '3';
 
 	struct Object *negints[] = {
-		integerobject_newfromustr(testinterp, &testerr, u),
-		integerobject_newfromcharptr(testinterp, &testerr, "-0123"),
-		integerobject_newfromcharptr(testinterp, &testerr, "-"MANY_ZEROS"123") };
+		integerobject_newfromustr(testinterp, u),
+		integerobject_newfromcharptr(testinterp, "-0123"),
+		integerobject_newfromcharptr(testinterp, "-"MANY_ZEROS"123") };
 
 	// skip the minus sign
 	u.len--;
 	u.val++;
 
 	struct Object *posints[] = {
-		integerobject_newfromustr(testinterp, &testerr, u),
-		integerobject_newfromcharptr(testinterp, &testerr, "0123"),
-		integerobject_newfromcharptr(testinterp, &testerr, MANY_ZEROS"123"), };
+		integerobject_newfromustr(testinterp, u),
+		integerobject_newfromcharptr(testinterp, "0123"),
+		integerobject_newfromcharptr(testinterp, MANY_ZEROS"123"), };
 	free(u.val - 1 /* undo the minus skip */);
 
 	buttert(sizeof(posints) == sizeof(negints));
@@ -60,19 +60,19 @@ void test_integer_basic_stuff(void)
 	}
 
 	// "0" and "-0" should be treated equally
-	struct Object *zero1 = integerobject_newfromcharptr(testinterp, &testerr, "0");
-	struct Object *zero2 = integerobject_newfromcharptr(testinterp, &testerr, "-0");
+	struct Object *zero1 = integerobject_newfromcharptr(testinterp, "0");
+	struct Object *zero2 = integerobject_newfromcharptr(testinterp, "-0");
 	buttert(integerobject_tolonglong(zero1) == 0);
 	buttert(integerobject_tolonglong(zero2) == 0);
 	OBJECT_DECREF(testinterp, zero1);
 	OBJECT_DECREF(testinterp, zero2);
 }
 
-static void check_error(struct Object *err, char *msg)
+static void check_error(char *msg)
 {
 	// FIXME: utf8_encode() and utf8_decode() suck
-	buttert(err);
-	struct UnicodeString *errustr = ((struct Object*) err->data)->data;
+	buttert(testinterp->err);
+	struct UnicodeString *errustr = ((struct Object*) testinterp->err->data)->data;
 	char *errstr;
 	size_t errstrlen;
 	buttert(utf8_encode(*errustr, &errstr, &errstrlen, NULL) == STATUS_OK);
@@ -80,22 +80,22 @@ static void check_error(struct Object *err, char *msg)
 	errstr[errstrlen] =0;
 	buttert2(strcmp(errstr, msg) == 0, errstr);
 	free(errstr);
+	OBJECT_DECREF(testinterp, testinterp->err);
+	testinterp->err = NULL;
 }
 
 void test_integer_huge_tiny(void)
 {
-	struct Object *tiny = integerobject_newfromcharptr(testinterp, &testerr, "-9223372036854775808");
-	struct Object *huge = integerobject_newfromcharptr(testinterp, &testerr, "9223372036854775807");
+	struct Object *tiny = integerobject_newfromcharptr(testinterp, "-9223372036854775808");
+	struct Object *huge = integerobject_newfromcharptr(testinterp, "9223372036854775807");
 	buttert(integerobject_tolonglong(tiny) == INTEGEROBJECT_MIN);
 	buttert(integerobject_tolonglong(huge) == INTEGEROBJECT_MAX);
 	OBJECT_DECREF(testinterp, tiny);
 	OBJECT_DECREF(testinterp, huge);
 
-	struct Object *err;
 #define CHECK(x) \
-		buttert(integerobject_newfromcharptr(testinterp, &err, x) == NULL); \
-		check_error(err, "integers must be between -9223372036854775808 and 9223372036854775807, but '"x"' is not"); \
-		OBJECT_DECREF(testinterp, err);
+		buttert(integerobject_newfromcharptr(testinterp, x) == NULL); \
+		check_error("integers must be between -9223372036854775808 and 9223372036854775807, but '"x"' is not");
 	CHECK(ONE_TOO_BIG);
 	CHECK(ONE_TOO_SMALL);
 #undef CHECK
@@ -103,11 +103,9 @@ void test_integer_huge_tiny(void)
 
 void test_integer_errors(void)
 {
-	struct Object *err;
 #define CHECK(x) \
-		buttert(integerobject_newfromcharptr(testinterp, &err, x) == NULL); \
-		check_error(err, "'"x"' is not an integer"); \
-		OBJECT_DECREF(testinterp, err);
+		buttert(integerobject_newfromcharptr(testinterp, x) == NULL); \
+		check_error("'"x"' is not an integer");
 	CHECK("1+2");
 	CHECK("0000-123");
 	CHECK("0-123");

@@ -12,13 +12,13 @@ struct ArrayObjectData {
 };
 
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *arrayobject_createclass(struct Interpreter *interp, struct Object **errptr);
+struct Object *arrayobject_createclass(struct Interpreter *interp);
 
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *arrayobject_new(struct Interpreter *interp, struct Object **errptr, struct Object **elems, size_t nelems);
+struct Object *arrayobject_new(struct Interpreter *interp, struct Object **elems, size_t nelems);
 
 // for convenience
-#define arrayobject_newempty(interp, errptr) arrayobject_new((interp), (errptr), NULL, 0)
+#define arrayobject_newempty(interp) arrayobject_new((interp), NULL, 0)
 
 // bad things happen if arr is not an array object or i < ARRAYOBJECT_LEN(arr)
 // otherwise these never fail
@@ -28,7 +28,7 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **errpt
 
 // returns STATUS_OK or STATUS_ERROR
 // bad things happen if arr is not an array object
-int arrayobject_push(struct Interpreter *interp, struct Object **errptr, struct Object *arr, struct Object *elem);
+int arrayobject_push(struct Interpreter *interp, struct Object *arr, struct Object *elem);
 
 // RETURNS A NEW REFERENCE, or NULL if the array is empty
 // never fails if arr is an array object, bad things happen if it isn't

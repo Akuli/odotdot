@@ -98,27 +98,27 @@ static void astnode_destructor(struct Object *node)
 	free(data);
 }
 
-struct Object *astnode_createclass(struct Interpreter *interp, struct Object **errptr)
+struct Object *astnode_createclass(struct Interpreter *interp)
 {
 	// the 1 means that AstNode instances may have attributes
 	// TODO: add at least kind and lineno attributes to the nodes?
-	return classobject_new(interp, errptr, "AstNode", interp->builtins.objectclass, 1, astnode_foreachref);
+	return classobject_new(interp, "AstNode", interp->builtins.objectclass, 1, astnode_foreachref);
 }
 
 
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *ast_new_statement(struct Interpreter *interp, struct Object **errptr, char kind, size_t lineno, void *info)
+struct Object *ast_new_statement(struct Interpreter *interp, char kind, size_t lineno, void *info)
 {
 	struct AstNodeData *data = malloc(sizeof(struct AstNodeData));
 	if (!data) {
-		errorobject_setnomem(interp, errptr);
+		errorobject_setnomem(interp);
 		return NULL;
 	}
 	data->kind = kind;
 	data->lineno = lineno;
 	data->info = info;
 
-	struct Object *obj = classobject_newinstance(interp, errptr, interp->builtins.astnodeclass, data, astnode_destructor);
+	struct Object *obj = classobject_newinstance(interp, interp->builtins.astnodeclass, data, astnode_destructor);
 	if (!obj) {
 		free(data);
 		return NULL;
@@ -146,7 +146,7 @@ static int expression_coming_up(struct Token *curtok)
 // all parse_blahblah() functions RETURN A NEW REFERENCE or NULL on error
 
 
-static struct Object *parse_string(struct Interpreter *interp, struct Object **errptr, struct Token **curtok)
+static struct Object *parse_string(struct Interpreter *interp, struct Token **curtok)
 {
 	// these should be checked by the caller
 	assert(*curtok);
@@ -158,11 +158,11 @@ static struct Object *parse_string(struct Interpreter *interp, struct Object **e
 	ustr.len = (*curtok)->str.len - 2;
 	ustr.val = (*curtok)->str.val + 1;
 
-	struct Object *info = stringobject_newfromustr(interp, errptr, ustr);
+	struct Object *info = stringobject_newfromustr(interp, ustr);
 	if (!info)
 		return NULL;
 
-	struct Object *res = ast_new_expression(interp, errptr, AST_STR, info);
+	struct Object *res = ast_new_expression(interp, AST_STR, info);
 	if (!res) {
 		OBJECT_DECREF(interp, info);
 		return NULL;
@@ -173,16 +173,16 @@ static struct Object *parse_string(struct Interpreter *interp, struct Object **e
 }
 
 
-static struct Object *parse_int(struct Interpreter *interp, struct Object **errptr, struct Token **curtok)
+static struct Object *parse_int(struct Interpreter *interp, struct Token **curtok)
 {
 	assert(*curtok);
 	assert((*curtok)->kind == TOKEN_INT);
 
-	struct Object *info = integerobject_newfromustr(interp, errptr, (*curtok)->str);
+	struct Object *info = integerobject_newfromustr(interp, (*curtok)->str);
 	if (!info)
 		return NULL;
 
-	struct Object *res = ast_new_expression(interp, errptr, AST_INT, info);
+	struct Object *res = ast_new_expression(interp, AST_INT, info);
 	if(!res) {
 		OBJECT_DECREF(interp, info);
 		return NULL;
@@ -194,7 +194,7 @@ static struct Object *parse_int(struct Interpreter *interp, struct Object **errp
 
 
 // RETURNS A NEW REFERENCE or NULL on error
-static struct Object *parse_getvar(struct Interpreter *interp, struct Object **errptr, struct Token **curtok)
+static struct Object *parse_getvar(struct Interpreter *interp, struct Token **curtok)
 {
 	assert(*curtok);
 	assert((*curtok)->kind == TOKEN_ID);
@@ -208,7 +208,7 @@ static struct Object *parse_getvar(struct Interpreter *interp, struct Object **e
 		return NULL;
 	}
 
-	struct Object *res = ast_new_expression(interp, errptr, AST_GETVAR, info);
+	struct Object *res = ast_new_expression(interp, AST_GETVAR, info);
 	if (!res) {
 		free(info->varname.val);
 		free(info);
@@ -225,7 +225,7 @@ static struct Object *parse_getvar(struct Interpreter *interp, struct Object **e
 
 // this takes the function as an already-parsed argument
 // this way parse_statement() knows when this should be called
-static struct Object *parse_call(struct Interpreter *interp, struct Object **errptr, struct Token **curtok, struct Object *funcnode)
+static struct Object *parse_call(struct Interpreter *interp, struct Token **curtok, struct Object *funcnode)
 {
 	size_t lineno = (*curtok)->lineno;
 
@@ -244,7 +244,7 @@ static struct Object *parse_call(struct Interpreter *interp, struct Object **err
 	OBJECT_INCREF(interp, funcnode);
 
 	for (callinfo->nargs = 0; expression_coming_up(*curtok) && callinfo->nargs < MAX_ARGS; callinfo->nargs++) {
-		struct Object *arg = ast_parse_expression(interp, errptr, curtok);
+		struct Object *arg = ast_parse_expression(interp, curtok);
 		if(!arg) {
 			for(size_t i=0; i < callinfo->nargs; i++)
 				OBJECT_DECREF(interp, callinfo->argnodes[i]);
@@ -266,7 +266,7 @@ static struct Object *parse_call(struct Interpreter *interp, struct Object **err
 	if (callinfo->nargs)       // 0 bytes of memory *MAY* be represented as NULL
 		assert(callinfo->argnodes);
 
-	struct Object *res = ast_new_statement(interp, errptr, AST_CALL, lineno, callinfo);
+	struct Object *res = ast_new_statement(interp, AST_CALL, lineno, callinfo);
 	if (!res) {
 		for(size_t i=0; i < callinfo->nargs; i++)
 			OBJECT_DECREF(interp, callinfo->argnodes[i]);
@@ -280,17 +280,17 @@ static struct Object *parse_call(struct Interpreter *interp, struct Object **err
 #undef MAX_ARGS
 
 
-static struct Object *parse_call_expression(struct Interpreter *interp, struct Object **errptr, struct Token **curtok)
+static struct Object *parse_call_expression(struct Interpreter *interp, struct Token **curtok)
 {
 	// this SHOULD be checked by parse_expression()
 	assert((*curtok)->str.len == 1 && (*curtok)->str.val[0] == '(');
 	*curtok = (*curtok)->next;
 
-	struct Object *func = ast_parse_expression(interp, errptr, curtok);
+	struct Object *func = ast_parse_expression(interp, curtok);
 	if (!func)
 		return NULL;
 
-	struct Object *res = parse_call(interp, errptr, curtok, func);
+	struct Object *res = parse_call(interp, curtok, func);
 	OBJECT_DECREF(interp, func);
 	if (!res)
 		return NULL;
@@ -303,7 +303,7 @@ static struct Object *parse_call_expression(struct Interpreter *interp, struct O
 }
 
 
-static struct Object *parse_array(struct Interpreter *interp, struct Object **errptr, struct Token **curtok)
+static struct Object *parse_array(struct Interpreter *interp, struct Token **curtok)
 {
 	assert(*curtok);
 	assert((*curtok)->kind == TOKEN_OP);
@@ -312,17 +312,17 @@ static struct Object *parse_array(struct Interpreter *interp, struct Object **er
 	*curtok = (*curtok)->next;
 	assert(*curtok);    // TODO: report error "unexpected end of file"
 
-	struct Object *elements = arrayobject_newempty(interp, errptr);
+	struct Object *elements = arrayobject_newempty(interp);
 	if (!elements)
 		return NULL;
 
 	while ((*curtok) && !((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == ']')) {
-		struct Object *elem = ast_parse_expression(interp, errptr, curtok);
+		struct Object *elem = ast_parse_expression(interp, curtok);
 		if(!elem) {
 			OBJECT_DECREF(interp, elements);
 			return NULL;
 		}
-		int pushret = arrayobject_push(interp, errptr, elements, elem );
+		int pushret = arrayobject_push(interp, elements, elem );
 		OBJECT_DECREF(interp, elem);
 		if (pushret == STATUS_ERROR) {
 			OBJECT_DECREF(interp, elements);
@@ -334,7 +334,7 @@ static struct Object *parse_array(struct Interpreter *interp, struct Object **er
 	assert((*curtok)->str.len == 1 && (*curtok)->str.val[0] == ']');
 	*curtok = (*curtok)->next;   // skip ']'
 
-	struct Object *res = ast_new_expression(interp, errptr, AST_ARRAY, elements);
+	struct Object *res = ast_new_expression(interp, AST_ARRAY, elements);
 	if (!res) {
 		OBJECT_DECREF(interp, elements);
 		return NULL;
@@ -342,7 +342,7 @@ static struct Object *parse_array(struct Interpreter *interp, struct Object **er
 	return res;
 }
 
-struct Object *parse_block(struct Interpreter *interp, struct Object **errptr, struct Token **curtok)
+struct Object *parse_block(struct Interpreter *interp, struct Token **curtok)
 {
 	assert(*curtok);
 	assert((*curtok)->kind == TOKEN_OP);
@@ -351,18 +351,18 @@ struct Object *parse_block(struct Interpreter *interp, struct Object **errptr, s
 	*curtok = (*curtok)->next;
 	assert(*curtok);    // TODO: report error "unexpected end of file"
 
-	struct Object *statements = arrayobject_newempty(interp, errptr);
+	struct Object *statements = arrayobject_newempty(interp);
 	if (!statements)
 		return NULL;
 
 	// TODO: { expr } should be same as { return expr; }
 	while ((*curtok) && !((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == '}')) {
-		struct Object *stmt = ast_parse_statement(interp, errptr, curtok);
+		struct Object *stmt = ast_parse_statement(interp, curtok);
 		if (!stmt) {
 			OBJECT_DECREF(interp, statements);
 			return NULL;
 		}
-		int pushret = arrayobject_push(interp, errptr, statements, stmt);
+		int pushret = arrayobject_push(interp, statements, stmt);
 		OBJECT_DECREF(interp, stmt);
 		if (pushret == STATUS_ERROR) {
 			OBJECT_DECREF(interp, statements);
@@ -374,7 +374,7 @@ struct Object *parse_block(struct Interpreter *interp, struct Object **errptr, s
 	assert((*curtok)->str.len == 1 && (*curtok)->str.val[0] == '}');
 	*curtok = (*curtok)->next;   // skip ']'
 
-	struct Object *res = ast_new_expression(interp, errptr, AST_BLOCK, statements);
+	struct Object *res = ast_new_expression(interp, AST_BLOCK, statements);
 	if (!res) {
 		OBJECT_DECREF(interp, statements);
 		return NULL;
@@ -383,31 +383,31 @@ struct Object *parse_block(struct Interpreter *interp, struct Object **errptr, s
 }
 
 
-struct Object *ast_parse_expression(struct Interpreter *interp, struct Object **errptr, struct Token **curtok)
+struct Object *ast_parse_expression(struct Interpreter *interp, struct Token **curtok)
 {
 	struct Object *res;
 	switch ((*curtok)->kind) {
 	case TOKEN_STR:
-		res = parse_string(interp, errptr, curtok);
+		res = parse_string(interp, curtok);
 		break;
 	case TOKEN_INT:
-		res = parse_int(interp, errptr, curtok);
+		res = parse_int(interp, curtok);
 		break;
 	case TOKEN_ID:
-		res = parse_getvar(interp, errptr, curtok);
+		res = parse_getvar(interp, curtok);
 		break;
 	case TOKEN_OP:
 		if ((*curtok)->str.len == 1) {
 			if ((*curtok)->str.val[0] == '[') {
-				res = parse_array(interp, errptr, curtok);
+				res = parse_array(interp, curtok);
 				break;
 			}
 			if ((*curtok)->str.val[0] == '{') {
-				res = parse_block(interp, errptr, curtok);
+				res = parse_block(interp, curtok);
 				break;
 			}
 			if ((*curtok)->str.val[0] == '(') {
-				res = parse_call_expression(interp, errptr, curtok);
+				res = parse_call_expression(interp, curtok);
 				break;
 			}
 		}
@@ -445,7 +445,7 @@ struct Object *ast_parse_expression(struct Interpreter *interp, struct Object **
 		}
 		*curtok = (*curtok)->next;
 
-		struct Object *gam = ast_new_expression(interp, errptr, astkind, gaminfo);
+		struct Object *gam = ast_new_expression(interp, astkind, gaminfo);
 		if(!gam) {
 			free(gaminfo->name.val);
 			free(gaminfo);
@@ -459,7 +459,7 @@ struct Object *ast_parse_expression(struct Interpreter *interp, struct Object **
 }
 
 
-static struct Object *parse_var_statement(struct Interpreter *interp, struct Object **errptr, struct Token **curtok)
+static struct Object *parse_var_statement(struct Interpreter *interp, struct Token **curtok)
 {
 	// parse_statement() has checked (*curtok)->kind
 	// TODO: report error?
@@ -486,7 +486,7 @@ static struct Object *parse_var_statement(struct Interpreter *interp, struct Obj
 	assert((*curtok)->str.val[0] == '=');
 	*curtok = (*curtok)->next;
 
-	struct Object *value = ast_parse_expression(interp, errptr, curtok);
+	struct Object *value = ast_parse_expression(interp, curtok);
 	if (!value) {
 		free(varname.val);
 		return NULL;
@@ -502,7 +502,7 @@ static struct Object *parse_var_statement(struct Interpreter *interp, struct Obj
 	info->varname = varname;
 	info->valnode = value;
 
-	struct Object *res = ast_new_statement(interp, errptr, AST_CREATEVAR, lineno, info);
+	struct Object *res = ast_new_statement(interp, AST_CREATEVAR, lineno, info);
 	if (!res) {
 		// TODO: set no mem error
 		free(info);
@@ -513,19 +513,19 @@ static struct Object *parse_var_statement(struct Interpreter *interp, struct Obj
 	return res;
 }
 
-struct Object *ast_parse_statement(struct Interpreter *interp, struct Object **errptr, struct Token **curtok)
+struct Object *ast_parse_statement(struct Interpreter *interp, struct Token **curtok)
 {
 	struct Object *res;
 	if ((*curtok)->kind == TOKEN_KEYWORD) {
 		// var is currently the only keyword
-		res = parse_var_statement(interp, errptr, curtok);
+		res = parse_var_statement(interp, curtok);
 	} else {
 		// assume it's a function call
-		struct Object *funcnode = ast_parse_expression(interp, errptr, curtok);
+		struct Object *funcnode = ast_parse_expression(interp, curtok);
 		if (!funcnode)
 			return NULL;
 
-		res = parse_call(interp, errptr, curtok, funcnode);
+		res = parse_call(interp, curtok, funcnode);
 		OBJECT_DECREF(interp, funcnode);
 		if (!res)
 			return NULL;

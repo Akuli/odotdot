@@ -7,19 +7,19 @@
 #include "../unicode.h"        // IWYU pragma: keep
 
 // RETURNS A NEW REFERENCE or NULL on no mem, see builtins_setup()
-struct Object *stringobject_createclass(struct Interpreter *interp);
+struct Object *stringobject_createclass_noerr(struct Interpreter *interp);
 
 // should be called when other stuff is set up, see builtins_setup()
 // returns STATUS_OK or STATUS_ERROR
-int stringobject_addmethods(struct Interpreter *interp, struct Object **errptr);
+int stringobject_addmethods(struct Interpreter *interp);
 
 // makes a copy of ustr with unicodestring_copy(), returns NULL on error
 // RETURNS A NEW REFERENCE
-struct Object *stringobject_newfromustr(struct Interpreter *interp, struct Object **errptr, struct UnicodeString ustr);
+struct Object *stringobject_newfromustr(struct Interpreter *interp, struct UnicodeString ustr);
 
 // asserts that the char pointer is valid utf8, i.e. don't use with user-inputted strings
 // RETURNS A NEW REFERENCE
-struct Object *stringobject_newfromcharptr(struct Interpreter *interp, struct Object **errptr, char *ptr);
+struct Object *stringobject_newfromcharptr(struct Interpreter *interp, char *ptr);
 
 /* create a new string kinda like printf
 
@@ -46,10 +46,10 @@ these fixed limits are NOT CHECKED even with assert:
 	* stuff between format specifiers can be at most 200 characters long
 	* number of format specifiers + number of texts between them must be <= 20
 */
-struct Object *stringobject_newfromfmt(struct Interpreter *interp, struct Object **errptr, char *fmt, ...);
+struct Object *stringobject_newfromfmt(struct Interpreter *interp, char *fmt, ...);
 
 // like newfromfmt, but vprintf style
-struct Object *stringobject_newfromvfmt(struct Interpreter *interp, struct Object **errptr, char *fmt, va_list ap);
+struct Object *stringobject_newfromvfmt(struct Interpreter *interp, char *fmt, va_list ap);
 
 // the returned UnicodeString's val must NOT be free()'d
 struct UnicodeString *stringobject_getustr(struct Object *str);

@@ -31,14 +31,14 @@ struct ClassObjectData {
 
 // creates a new class
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *classobject_new(struct Interpreter *interp, struct Object **errptr, char *name, struct Object *base, int instanceshaveattrs, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb));
+struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *base, int instanceshaveattrs, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb));
 
 // RETURNS A NEW REFERENCE or NULL on no mem, for builtins_setup() only
-struct Object *classobject_new_noerrptr(struct Interpreter *interp, char *name, struct Object *base, int instanceshaveattrs, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb));
+struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, struct Object *base, int instanceshaveattrs, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb));
 
-// a nicer wrapper for object_new() that takes errptr and checks types
-// RETURNS A NEW REFERENCE or NULL on error
-struct Object *classobject_newinstance(struct Interpreter *interp, struct Object **errptr, struct Object *klass, void *data, void (*destructor)(struct Object*));
+// a nicer wrapper for object_new_noerr()
+// RETURNS A NEW REFERENCE or NULL on error (but unlike object_new_noerr, it sets interp->err)
+struct Object *classobject_newinstance(struct Interpreter *interp, struct Object *klass, void *data, void (*destructor)(struct Object*));
 
 // like obj->klass == klass, but checks for inheritance
 // never fails if klass is a classobject, bad things happen if it isn't
@@ -50,6 +50,7 @@ int classobject_instanceof(struct Object *obj, struct Object *klass);
 void classobject_runforeachref(struct Object *obj, void *data, classobject_foreachrefcb cb);
 
 // used only in builtins_setup(), RETURNS A NEW REFERENCE or NULL on no mem
-struct Object *classobject_create_classclass(struct Interpreter *interp, struct Object *objectclass);
+// uses interp->builtins.objectclass
+struct Object *classobject_create_classclass_noerr(struct Interpreter *interp);
 
 #endif    // OBJECTS_CLASSOBJECT_H

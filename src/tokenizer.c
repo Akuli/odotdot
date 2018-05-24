@@ -1,4 +1,5 @@
 // TODO: fix tokenizing empty files
+// TODO: add error objects
 #include "tokenizer.h"
 #include <assert.h>
 #include <stdio.h>

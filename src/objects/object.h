@@ -10,10 +10,10 @@ other files have things like OBJECTS_STRING_H and stringobject_blahblah() */
 
 // only called from builtins_setup()
 // RETURNS A NEW REFERENCE or NULL on no mem
-struct Object *objectobject_createclass(struct Interpreter *interp);
+struct Object *objectobject_createclass_noerr(struct Interpreter *interp);
 
 // returns STATUS_OK or STATUS_ERROR
 // see builtins_setup()
-int objectobject_addmethods(struct Interpreter *interp, struct Object **errptr);
+int objectobject_addmethods(struct Interpreter *interp);
 
 #endif   // OBJECTS_OBJECT_H

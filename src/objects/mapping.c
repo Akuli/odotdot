@@ -33,11 +33,11 @@ static void mapping_destructor(struct Object *map)
 	free(data);
 }
 
-struct Object *mappingobject_newempty(struct Interpreter *interp, struct Object **errptr)
+struct Object *mappingobject_newempty(struct Interpreter *interp)
 {
 	struct MappingObjectData *data = malloc(sizeof(struct MappingObjectData));
 	if (!data) {
-		errorobject_setnomem(interp, errptr);
+		errorobject_setnomem(interp);
 		return NULL;
 	}
 
@@ -45,12 +45,12 @@ struct Object *mappingobject_newempty(struct Interpreter *interp, struct Object 
 	data->nbuckets = 50;
 	data->buckets = calloc(data->nbuckets, sizeof(struct MappingObjectItem));
 	if (!(data->buckets)) {
-		errorobject_setnomem(interp, errptr);
+		errorobject_setnomem(interp);
 		free(data);
 		return NULL;
 	}
 
-	struct Object *map = classobject_newinstance(interp, errptr, interp->builtins.mappingclass, data, mapping_destructor);
+	struct Object *map = classobject_newinstance(interp, interp->builtins.mappingclass, data, mapping_destructor);
 	if (!map) {
 		free(data->buckets);
 		free(data);
@@ -61,7 +61,7 @@ struct Object *mappingobject_newempty(struct Interpreter *interp, struct Object 
 	return map;
 }
 
-static int make_bigger(struct Interpreter *interp, struct Object **errptr, struct MappingObjectData *data)
+static int make_bigger(struct Interpreter *interp, struct MappingObjectData *data)
 {
 	assert(data->nbuckets != UINT_MAX);   // the caller should check this
 
@@ -69,7 +69,7 @@ static int make_bigger(struct Interpreter *interp, struct Object **errptr, struc
 
 	struct MappingObjectItem **newbuckets = calloc(newnbuckets, sizeof(struct MappingObjectItem));
 	if (!newbuckets) {
-		errorobject_setnomem(interp, errptr);
+		errorobject_setnomem(interp);
 		return STATUS_ERROR;
 	}
 
@@ -92,17 +92,17 @@ static int make_bigger(struct Interpreter *interp, struct Object **errptr, struc
 }
 
 
-int mappingobject_set(struct Interpreter *interp, struct Object **errptr, struct Object *map, struct Object *key, struct Object *val)
+int mappingobject_set(struct Interpreter *interp, struct Object *map, struct Object *key, struct Object *val)
 {
 	if (!(key->hashable)) {
-		errorobject_setwithfmt(interp, errptr, "%D is not hashable, so it can't be used as a Mapping key", key);
+		errorobject_setwithfmt(interp, "%D is not hashable, so it can't be used as a Mapping key", key);
 		return STATUS_ERROR;
 	}
 
 	struct MappingObjectData *data = map->data;
 	unsigned int i = key->hash % data->nbuckets;
 	for (struct MappingObjectItem *olditem = data->buckets[i]; olditem; olditem=olditem->next) {
-		int eqres = equals(interp, errptr, olditem->key, key);
+		int eqres = equals(interp, olditem->key, key);
 		if (eqres == -1)
 			return STATUS_ERROR;
 		if (eqres == 1) {
@@ -126,7 +126,7 @@ int mappingobject_set(struct Interpreter *interp, struct Object **errptr, struct
 	if (data->nbuckets != UINT_MAX) {
 		float loadfactor = ((float) data->size) / data->nbuckets;
 		if (loadfactor > 0.75) {
-			if (make_bigger(interp, errptr, data) == STATUS_ERROR)
+			if (make_bigger(interp, data) == STATUS_ERROR)
 				return STATUS_ERROR;
 			i = key->hash % data->nbuckets;
 		}
@@ -134,7 +134,7 @@ int mappingobject_set(struct Interpreter *interp, struct Object **errptr, struct
 
 	struct MappingObjectItem *item = malloc(sizeof(struct MappingObjectItem));
 	if (!item) {
-		errorobject_setnomem(interp, errptr);
+		errorobject_setnomem(interp);
 		return STATUS_ERROR;
 	}
 	item->key = key;
@@ -150,29 +150,29 @@ int mappingobject_set(struct Interpreter *interp, struct Object **errptr, struct
 	return STATUS_OK;
 }
 
-static struct Object *set(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
+static struct Object *set(struct Interpreter *interp, struct Object **args, size_t nargs)
 {
-	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.mappingclass, interp->builtins.objectclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, args, nargs, interp->builtins.mappingclass, interp->builtins.objectclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
 		return NULL;
-	if (mappingobject_set(interp, errptr, args[0], args[1], args[2]) == STATUS_ERROR)
+	if (mappingobject_set(interp, args[0], args[1], args[2]) == STATUS_ERROR)
 		return NULL;
 
 	// must return a new reference
 	// TODO: we need a nulll ::((((((
-	return stringobject_newfromcharptr(interp, errptr, "asd");
+	return stringobject_newfromcharptr(interp, "asd");
 }
 
 
-struct Object *mappingobject_get(struct Interpreter *interp, struct Object **errptr, struct Object *map, struct Object *key)
+struct Object *mappingobject_get(struct Interpreter *interp, struct Object *map, struct Object *key)
 {
 	if (!(key->hashable)) {
-		errorobject_setwithfmt(interp, errptr, "%D is not hashable, so it can't be used as a Mapping key", key);
+		errorobject_setwithfmt(interp, "%D is not hashable, so it can't be used as a Mapping key", key);
 		return NULL;
 	}
 
 	struct MappingObjectData *data = map->data;
 	for (struct MappingObjectItem *item = data->buckets[key->hash % data->nbuckets]; item; item=item->next) {
-		int eqres = equals(interp, errptr, item->key, key);
+		int eqres = equals(interp, item->key, key);
 		if (eqres == -1)
 			return NULL;
 		if (eqres == 1) {
@@ -182,34 +182,34 @@ struct Object *mappingobject_get(struct Interpreter *interp, struct Object **err
 		assert(eqres == 0);
 	}
 
-	// returns NULL without setting errptr... be careful with this
+	// returns NULL without setting err... be careful with this
 	return NULL;
 }
 
-static struct Object *get(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
+static struct Object *get(struct Interpreter *interp, struct Object **args, size_t nargs)
 {
-	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.mappingclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, args, nargs, interp->builtins.mappingclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *map = args[0];
 	struct Object *key = args[1];
 
-	assert(!*errptr);
-	struct Object *res = mappingobject_get(interp, errptr, map, key);
-	if (!res && !*errptr)
-		errorobject_setwithfmt(interp, errptr, "cannot find key %D", key);
+	assert(!(interp->err));
+	struct Object *res = mappingobject_get(interp, map, key);
+	if (!res && !(interp->err))
+		errorobject_setwithfmt(interp, "cannot find key %D", key);
 	return res;
 }
 
 
-static struct Object *get_and_delete(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
+static struct Object *get_and_delete(struct Interpreter *interp, struct Object **args, size_t nargs)
 {
-	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.mappingclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, args, nargs, interp->builtins.mappingclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *map = args[0];
 	struct Object *key = args[1];
 
 	if (!(key->hashable)) {
-		errorobject_setwithfmt(interp, errptr, "%D is not hashable, so it can't be used as a Mapping key", key);
+		errorobject_setwithfmt(interp, "%D is not hashable, so it can't be used as a Mapping key", key);
 		return NULL;
 	}
 
@@ -218,7 +218,7 @@ static struct Object *get_and_delete(struct Interpreter *interp, struct Object *
 
 	struct MappingObjectItem *prev = NULL;
 	for (struct MappingObjectItem *item = data->buckets[i]; item; item=item->next) {
-		int eqres = equals(interp, errptr, item->key, key);
+		int eqres = equals(interp, item->key, key);
 		if (eqres == -1)
 			return NULL;
 		if (eqres == 1) {
@@ -239,19 +239,19 @@ static struct Object *get_and_delete(struct Interpreter *interp, struct Object *
 	}
 
 	// empty buckets or nothing but hash collisions
-	errorobject_setwithfmt(interp, errptr, "cannot find key %D", key);
+	errorobject_setwithfmt(interp, "cannot find key %D", key);
 	return NULL;
 }
 
-static struct Object *delete(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
+static struct Object *delete(struct Interpreter *interp, struct Object **args, size_t nargs)
 {
-	struct Object *res = get_and_delete(interp, errptr, args, nargs);
+	struct Object *res = get_and_delete(interp, args, nargs);
 	if (!res)
 		return NULL;
 	OBJECT_DECREF(interp, res);
 
 	// must return a new reference (lol)
-	return stringobject_newfromcharptr(interp, errptr, "asd");
+	return stringobject_newfromcharptr(interp, "asd");
 }
 
 
@@ -300,16 +300,16 @@ static void foreachref(struct Object *map, void *cbdata, classobject_foreachrefc
 	}
 }
 
-struct Object *mappingobject_createclass(struct Interpreter *interp, struct Object **errptr)
+struct Object *mappingobject_createclass(struct Interpreter *interp)
 {
-	return classobject_new(interp, errptr, "Mapping", interp->builtins.objectclass, 0, foreachref);
+	return classobject_new(interp, "Mapping", interp->builtins.objectclass, 0, foreachref);
 }
 
-int mappingobject_addmethods(struct Interpreter *interp, struct Object **errptr)
+int mappingobject_addmethods(struct Interpreter *interp)
 {
-	if (method_add(interp, errptr, interp->builtins.mappingclass, "set", set) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, errptr, interp->builtins.mappingclass, "get", get) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, errptr, interp->builtins.mappingclass, "delete", delete) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, errptr, interp->builtins.mappingclass, "get_and_delete", get_and_delete) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.mappingclass, "set", set) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.mappingclass, "get", get) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.mappingclass, "delete", delete) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.mappingclass, "get_and_delete", get_and_delete) == STATUS_ERROR) return STATUS_ERROR;
 	return STATUS_OK;
 }

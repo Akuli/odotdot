@@ -23,18 +23,18 @@
 
 
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *integerobject_createclass(struct Interpreter *interp, struct Object **errptr);
+struct Object *integerobject_createclass(struct Interpreter *interp);
 
 // asserts that the value fits in a 64-bit int, long long can be more than 64 bits in c99
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *integerobject_newfromlonglong(struct Interpreter *interp, struct Object **errptr, long long val);
+struct Object *integerobject_newfromlonglong(struct Interpreter *interp, long long val);
 
 // RETURNS A NEW REFERENCE
-struct Object *integerobject_newfromustr(struct Interpreter *interp, struct Object **errptr, struct UnicodeString ustr);
+struct Object *integerobject_newfromustr(struct Interpreter *interp, struct UnicodeString ustr);
 
 // asserts that the char pointer is digits only, i.e. don't use with user-inputted strings
 // RETURNS A NEW REFERENCE
-struct Object *integerobject_newfromcharptr(struct Interpreter *interp, struct Object **errptr, char *s);
+struct Object *integerobject_newfromcharptr(struct Interpreter *interp, char *s);
 
 // if the object is an integer, never fails
 // if the object is not an integer, bad things happen

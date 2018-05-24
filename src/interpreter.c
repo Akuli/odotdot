@@ -25,6 +25,7 @@ struct Interpreter *interpreter_new(char *argv0)
 
 	interp->argv0 = argv0;
 
+	interp->err =
 	interp->builtinscope =
 	interp->builtins.arrayclass =
 	interp->builtins.astnodeclass =
@@ -36,7 +37,6 @@ struct Interpreter *interpreter_new(char *argv0)
 	interp->builtins.mappingclass =
 	interp->builtins.objectclass =
 	interp->builtins.stringclass =
-
 	interp->builtins.array_func =
 	interp->builtins.nomemerr =
 	interp->builtins.print =
@@ -51,19 +51,19 @@ void interpreter_free(struct Interpreter *interp)
 	free(interp);
 }
 
-int interpreter_addbuiltin(struct Interpreter *interp, struct Object **errptr, char *name, struct Object *val)
+int interpreter_addbuiltin(struct Interpreter *interp, char *name, struct Object *val)
 {
-	struct Object *keystr = stringobject_newfromcharptr(interp, errptr, name);
+	struct Object *keystr = stringobject_newfromcharptr(interp, name);
 	if (!keystr)
 		return STATUS_ERROR;
 
-	struct Object *localvars = attribute_get(interp, errptr, interp->builtinscope, "local_vars");
+	struct Object *localvars = attribute_get(interp, interp->builtinscope, "local_vars");
 	if (!localvars) {
 		OBJECT_DECREF(interp, keystr);
 		return STATUS_ERROR;
 	}
 
-	struct Object *ret = method_call(interp, errptr, localvars, "set", keystr, val, NULL);
+	struct Object *ret = method_call(interp, localvars, "set", keystr, val, NULL);
 	OBJECT_DECREF(interp, keystr);
 	OBJECT_DECREF(interp, localvars);
 	if (ret) {
@@ -73,19 +73,19 @@ int interpreter_addbuiltin(struct Interpreter *interp, struct Object **errptr, c
 	return STATUS_ERROR;
 }
 
-struct Object *interpreter_getbuiltin(struct Interpreter *interp, struct Object **errptr, char *name)
+struct Object *interpreter_getbuiltin(struct Interpreter *interp, char *name)
 {
-	struct Object *keystr = stringobject_newfromcharptr(interp, errptr, name);
+	struct Object *keystr = stringobject_newfromcharptr(interp, name);
 	if (!keystr)
 		return NULL;
 
-	struct Object *localvars = attribute_get(interp, errptr, interp->builtinscope, "local_vars");
+	struct Object *localvars = attribute_get(interp, interp->builtinscope, "local_vars");
 	if (!localvars) {
 		OBJECT_DECREF(interp, keystr);
 		return NULL;
 	}
 
-	struct Object *ret = method_call(interp, errptr, localvars, "get", keystr, NULL);
+	struct Object *ret = method_call(interp, localvars, "get", keystr, NULL);
 	OBJECT_DECREF(interp, keystr);
 	OBJECT_DECREF(interp, localvars);
 	return ret;

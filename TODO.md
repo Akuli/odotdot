@@ -97,20 +97,6 @@ things that I would like to do some day. It's a mess.
 
             TODO: write more about problems with this approach
 
-## interpreter.c
-- errptr should be in the `Interpreter` struct for less boilerplate
-
-    ```c
-    struct Interpreter {
-        ...
-        struct Object *err;
-        ...
-    };
-    ```
-
-    functions that don't take `errptr` and just return `NULL` on no mem could
-    be named e.g. `blahblah_noerrset()`
-
 ## main.c
 - should evaluate `stdlib/builtins.ö` on startup, then `argv[1]` in a subscope
     - `stdlib/builtins.ö` doesn't exist yet, it should be created

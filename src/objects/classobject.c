@@ -16,7 +16,7 @@ static void class_destructor(struct Object *klass)
 }
 
 
-struct Object *classobject_new_noerrptr(struct Interpreter *interp, char *name, struct Object *base, int instanceshaveattrs, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb))
+struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, struct Object *base, int instanceshaveattrs, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb))
 {
 	assert(instanceshaveattrs == 0 || instanceshaveattrs == 1);
 	struct ClassObjectData *data = malloc(sizeof(struct ClassObjectData));
@@ -33,7 +33,7 @@ struct Object *classobject_new_noerrptr(struct Interpreter *interp, char *name, 
 	data->foreachref = foreachref;
 
 	// interp->classclass can be NULL, see builtins_setup()
-	struct Object *klass = object_new(interp, interp->builtins.classclass, data, class_destructor);
+	struct Object *klass = object_new_noerr(interp, interp->builtins.classclass, data, class_destructor);
 	if (!klass) {
 		OBJECT_DECREF(interp, base);
 		free(data);
@@ -43,7 +43,7 @@ struct Object *classobject_new_noerrptr(struct Interpreter *interp, char *name, 
 	return klass;
 }
 
-struct Object *classobject_new(struct Interpreter *interp, struct Object **errptr, char *name, struct Object *base, int instanceshaveattrs, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb))
+struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *base, int instanceshaveattrs, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb))
 {
 	assert(interp->builtins.classclass);
 	assert(interp->builtins.nomemerr);
@@ -51,19 +51,19 @@ struct Object *classobject_new(struct Interpreter *interp, struct Object **errpt
 	if (!classobject_instanceof(base->klass, interp->builtins.classclass)) {
 		// TODO: test this
 		// FIXME: don't use builtinctx, instead require passing in a context to this function
-		errorobject_setwithfmt(interp, errptr, "cannot inherit a new class from %D", base);
+		errorobject_setwithfmt(interp, "cannot inherit a new class from %D", base);
 		return NULL;
 	}
 
-	struct Object *klass = classobject_new_noerrptr(interp, name, base, instanceshaveattrs, foreachref);
+	struct Object *klass = classobject_new_noerr(interp, name, base, instanceshaveattrs, foreachref);
 	if (!klass) {
-		errorobject_setnomem(interp, errptr);
+		errorobject_setnomem(interp);
 		return NULL;
 	}
 
 	if (interp->builtins.mappingclass) {
 		struct ClassObjectData *data = klass->data;
-		data->methods = mappingobject_newempty(interp, errptr);
+		data->methods = mappingobject_newempty(interp);
 		if (!(data->methods)) {
 			OBJECT_DECREF(interp, klass);
 			return NULL;
@@ -73,21 +73,21 @@ struct Object *classobject_new(struct Interpreter *interp, struct Object **errpt
 	return klass;
 }
 
-struct Object *classobject_newinstance(struct Interpreter *interp, struct Object **errptr, struct Object *klass, void *data, void (*destructor)(struct Object*))
+struct Object *classobject_newinstance(struct Interpreter *interp, struct Object *klass, void *data, void (*destructor)(struct Object*))
 {
 	if (!classobject_instanceof(klass, interp->builtins.classclass)) {
 		// TODO: test this
-		errorobject_setwithfmt(interp, errptr, "cannot create an instance of %D", klass);
+		errorobject_setwithfmt(interp, "cannot create an instance of %D", klass);
 		return NULL;
 	}
-	struct Object *instance = object_new(interp, klass, data, destructor);
+	struct Object *instance = object_new_noerr(interp, klass, data, destructor);
 	if (!instance) {
-		errorobject_setnomem(interp, errptr);
+		errorobject_setnomem(interp);
 		return NULL;
 	}
 
 	if (((struct ClassObjectData *) klass->data)->instanceshaveattrs) {
-		instance->attrs = mappingobject_newempty(interp, errptr);
+		instance->attrs = mappingobject_newempty(interp);
 		if (!instance->attrs) {
 			OBJECT_INCREF(interp, instance);
 			return NULL;
@@ -130,8 +130,8 @@ static void class_foreachref(struct Object *klass, void *cbdata, classobject_for
 }
 
 
-struct Object *classobject_create_classclass(struct Interpreter *interp, struct Object *objectclass)
+struct Object *classobject_create_classclass_noerr(struct Interpreter *interp)
 {
 	// TODO: should the name of class objects be implemented as an attribute?
-	return classobject_new_noerrptr(interp, "Class", objectclass, 0, class_foreachref);
+	return classobject_new_noerr(interp, "Class", interp->builtins.objectclass, 0, class_foreachref);
 }

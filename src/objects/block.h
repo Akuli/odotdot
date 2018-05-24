@@ -9,10 +9,10 @@
 // TODO: add a definition_context attribute?
 
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *blockobject_createclass(struct Interpreter *interp, struct Object **errptr);
+struct Object *blockobject_createclass(struct Interpreter *interp);
 
 // RETURNS A NEW REFERENCE or NULL on error
 // TODO: definition context
-struct Object *blockobject_new(struct Interpreter *interp, struct Object **errptr, struct Object *definitionscope, struct Object *astnodearr);
+struct Object *blockobject_new(struct Interpreter *interp, struct Object *definitionscope, struct Object *astnodearr);
 
 #endif    // OBJECTS_BLOCK_H

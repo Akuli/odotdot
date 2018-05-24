@@ -50,15 +50,23 @@ int read_file_to_huge_string(FILE *f, char **dest, size_t *destlen)
 
 
 // TODO: print a stack trace and use stderr instead of stdout
-static void print_error(struct Interpreter *interp, struct Object *err)
+static void print_and_reset_err(struct Interpreter *interp)
 {
-	struct Object *err2 = NULL;
+	if (!(interp->err)) {
+		// no error to print, nothing to reset
+		fprintf(stderr, "%s: interp->err wasn't set correctly\n", interp->argv0);
+		return;
+	}
+
+	struct Object *err = interp->err;
+	interp->err = NULL;
 
 	printf("errör: ");
-	struct Object *printres = functionobject_call(interp, &err2, interp->builtins.print, (struct Object *) err->data, NULL);
+	struct Object *printres = functionobject_call(interp, interp->builtins.print, (struct Object *) err->data, NULL);
+	OBJECT_DECREF(interp, err);
 	if (!printres) {
 		fprintf(stderr, "%s: printing an error failed\n", interp->argv0);
-		OBJECT_DECREF(interp, err2);
+		OBJECT_DECREF(interp, interp->err);
 		return;
 	}
 	OBJECT_DECREF(interp, printres);
@@ -111,11 +119,9 @@ static int run_file(struct Interpreter *interp, struct Object *scope, char *path
 	free(hugeunicode.val);
 
 	// parse
-	struct Object *err = NULL;
-	struct Object *statements = arrayobject_newempty(interp, &err);
+	struct Object *statements = arrayobject_newempty(interp);
 	if (!statements) {
-		print_error(interp, err);
-		OBJECT_DECREF(interp, err);
+		print_and_reset_err(interp);
 		token_freeall(tok1st);
 		return 1;
 	}
@@ -124,20 +130,18 @@ static int run_file(struct Interpreter *interp, struct Object *scope, char *path
 
 	struct Token *curtok = tok1st;
 	while (curtok) {
-		struct Object *stmtnode = ast_parse_statement(interp, &err, &curtok);
+		struct Object *stmtnode = ast_parse_statement(interp, &curtok);
 		if (!stmtnode) {
-			print_error(interp, err);
-			OBJECT_DECREF(interp, err);
+			print_and_reset_err(interp);
 			token_freeall(tok1st);
 			returnval = 1;
 			goto end;
 		}
 
-		int status = arrayobject_push(interp, &err, statements, stmtnode);
+		int status = arrayobject_push(interp, statements, stmtnode);
 		OBJECT_DECREF(interp, stmtnode);
 		if (status == STATUS_ERROR) {
-			print_error(interp, err);
-			OBJECT_DECREF(interp, err);
+			print_and_reset_err(interp);
 			token_freeall(tok1st);
 			returnval = 1;
 			goto end;
@@ -147,13 +151,8 @@ static int run_file(struct Interpreter *interp, struct Object *scope, char *path
 
 	// run!
 	for (size_t i=0; i < ARRAYOBJECT_LEN(statements); i++) {
-		if (run_statement(interp, &err, scope, ARRAYOBJECT_GET(statements, i)) == STATUS_ERROR) {
-			if (err) {
-				print_error(interp, err);
-				OBJECT_DECREF(interp, err);
-			} else {
-				fprintf(stderr, "%s: errptr wasn't set correctly\n", interp->argv0);
-			}
+		if (run_statement(interp, scope, ARRAYOBJECT_GET(statements, i)) == STATUS_ERROR) {
+			print_and_reset_err(interp);
 			returnval = 1;
 			goto end;
 		}

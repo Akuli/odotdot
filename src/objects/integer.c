@@ -22,14 +22,14 @@ static void integer_destructor(struct Object *integer)
 	free(integer->data);
 }
 
-static struct Object *to_string(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
+static struct Object *to_string(struct Interpreter *interp, struct Object **args, size_t nargs)
 {
-	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.integerclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, args, nargs, interp->builtins.integerclass, NULL) == STATUS_ERROR)
 		return NULL;
 
 	long long val = *((long long *) args[0]->data);
 	if (val == 0)   // special case
-		return stringobject_newfromcharptr(interp, errptr, "0");
+		return stringobject_newfromcharptr(interp, "0");
 
 	assert(INTEGEROBJECT_MIN <= val && val <= INTEGEROBJECT_MAX);
 
@@ -53,16 +53,16 @@ static struct Object *to_string(struct Interpreter *interp, struct Object **errp
 	if (val < 0)
 		res[--i] = '-';
 
-	return stringobject_newfromcharptr(interp, errptr, res+i);
+	return stringobject_newfromcharptr(interp, res+i);
 }
 
-struct Object *integerobject_createclass(struct Interpreter *interp, struct Object **errptr)
+struct Object *integerobject_createclass(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, errptr, "Integer", interp->builtins.objectclass, 0, NULL);
+	struct Object *klass = classobject_new(interp, "Integer", interp->builtins.objectclass, 0, NULL);
 	if (!klass)
 		return NULL;
 
-	if (method_add(interp, errptr, klass, "to_string", to_string) == STATUS_ERROR) goto error;
+	if (method_add(interp, klass, "to_string", to_string) == STATUS_ERROR) goto error;
 	return klass;
 
 error:
@@ -70,18 +70,18 @@ error:
 	return NULL;
 }
 
-struct Object *integerobject_newfromlonglong(struct Interpreter *interp, struct Object **errptr, long long val)
+struct Object *integerobject_newfromlonglong(struct Interpreter *interp, long long val)
 {
 	assert(INTEGEROBJECT_MIN <= val && val <= INTEGEROBJECT_MAX);
 
 	long long *data = malloc(sizeof(long long));
 	if (!data) {
-		errorobject_setnomem(interp, errptr);
+		errorobject_setnomem(interp);
 		return NULL;
 	}
 	*data = val;
 
-	struct Object *integer = classobject_newinstance(interp, errptr, interp->builtins.integerclass, data, integer_destructor);
+	struct Object *integer = classobject_newinstance(interp, interp->builtins.integerclass, data, integer_destructor);
 	if (!integer) {
 		free(data);
 		return NULL;
@@ -90,7 +90,7 @@ struct Object *integerobject_newfromlonglong(struct Interpreter *interp, struct 
 	return integer;
 }
 
-struct Object *integerobject_newfromustr(struct Interpreter *interp, struct Object **errptr, struct UnicodeString ustr)
+struct Object *integerobject_newfromustr(struct Interpreter *interp, struct UnicodeString ustr)
 {
 	struct UnicodeString origstr = ustr;
 
@@ -109,7 +109,7 @@ struct Object *integerobject_newfromustr(struct Interpreter *interp, struct Obje
 	}
 
 	if (ustr.len == 0) {
-		errorobject_setwithfmt(interp, errptr, "'%U' is not an integer", origstr);
+		errorobject_setwithfmt(interp, "'%U' is not an integer", origstr);
 		return NULL;
 	}
 	if (ustr.len > INTEGEROBJECT_MAXDIGITS)
@@ -118,7 +118,7 @@ struct Object *integerobject_newfromustr(struct Interpreter *interp, struct Obje
 	int digits[INTEGEROBJECT_MAXDIGITS];
 	for (int i=0; i < (int)ustr.len; i++) {
 		if (ustr.val[i] < '0' || ustr.val[i] > '9') {
-			errorobject_setwithfmt(interp, errptr, "'%U' is not an integer", origstr);
+			errorobject_setwithfmt(interp, "'%U' is not an integer", origstr);
 			return NULL;
 		}
 		digits[i] = ustr.val[i] - '0';
@@ -138,14 +138,14 @@ struct Object *integerobject_newfromustr(struct Interpreter *interp, struct Obje
 #undef ABSMAX
 
 	long long val = isnegative ? -((long long)(absval-1)) - 1 : (long long)absval;
-	return integerobject_newfromlonglong(interp, errptr, val);
+	return integerobject_newfromlonglong(interp, val);
 
 mustBbetween:
-	errorobject_setwithfmt(interp, errptr, "integers must be between %s and %s, but '%U' is not", INTEGEROBJECT_MINSTR, INTEGEROBJECT_MAXSTR, origstr);
+	errorobject_setwithfmt(interp, "integers must be between %s and %s, but '%U' is not", INTEGEROBJECT_MINSTR, INTEGEROBJECT_MAXSTR, origstr);
 	return NULL;
 }
 
-struct Object *integerobject_newfromcharptr(struct Interpreter *interp, struct Object **errptr, char *s)
+struct Object *integerobject_newfromcharptr(struct Interpreter *interp, char *s)
 {
 	// it would be easy to skip many zeros like this:   while (s[0] == '0') s++;
 	// but -000000000000000000000000000000001 must be turned into -1
@@ -155,7 +155,7 @@ struct Object *integerobject_newfromcharptr(struct Interpreter *interp, struct O
 	ustr.len = strlen(s);
 	ustr.val = malloc(sizeof(unicode_char) * ustr.len);
 	if (!ustr.val) {
-		errorobject_setnomem(interp, errptr);
+		errorobject_setnomem(interp);
 		return NULL;
 	}
 
@@ -163,7 +163,7 @@ struct Object *integerobject_newfromcharptr(struct Interpreter *interp, struct O
 	for (size_t i=0; i < ustr.len; i++)
 		ustr.val[i] = s[i];
 
-	struct Object *res = integerobject_newfromustr(interp, errptr, ustr);
+	struct Object *res = integerobject_newfromustr(interp, ustr);
 	free(ustr.val);
 	return res;
 }

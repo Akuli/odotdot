@@ -7,64 +7,64 @@
 #include "objects/mapping.h"
 #include "objects/string.h"
 
-static struct Object *get_the_attribute(struct Interpreter *interp, struct Object **errptr, struct Object *obj, struct Object *attr)
+static struct Object *get_the_attribute(struct Interpreter *interp, struct Object *obj, struct Object *attr)
 {
-	struct Object *res = mappingobject_get(interp, errptr, obj->attrs, attr);
-	if (!res && !*errptr) {
+	struct Object *res = mappingobject_get(interp, obj->attrs, attr);
+	if (!res && !(interp->err)) {
 		// key not found
-		errorobject_setwithfmt(interp, errptr, "%D has no attribute named '%S'", obj, attr);
+		errorobject_setwithfmt(interp, "%D has no attribute named '%S'", obj, attr);
 		return NULL;
 	}
 	return res;   // may be NULL
 }
 
 // TODO: this is too copy/pasta
-struct Object *attribute_getwithustr(struct Interpreter *interp, struct Object **errptr, struct Object *obj, struct UnicodeString attr)
+struct Object *attribute_getwithustr(struct Interpreter *interp, struct Object *obj, struct UnicodeString attr)
 {
 	if (!obj->attrs) {
-		errorobject_setwithfmt(interp, errptr, "%D has no attributes", obj);
+		errorobject_setwithfmt(interp, "%D has no attributes", obj);
 		return NULL;
 	}
 
-	struct Object *s = stringobject_newfromustr(interp, errptr, attr);
+	struct Object *s = stringobject_newfromustr(interp, attr);
 	if (!s)
 		return NULL;
 
-	struct Object *res = get_the_attribute(interp, errptr, obj, s);
+	struct Object *res = get_the_attribute(interp, obj, s);
 	OBJECT_DECREF(interp, s);
 	return res;
 }
 
 // TODO: this is too copy/pasta
-struct Object *attribute_get(struct Interpreter *interp, struct Object **errptr, struct Object *obj, char *attr)
+struct Object *attribute_get(struct Interpreter *interp, struct Object *obj, char *attr)
 {
 	if (!obj->attrs) {
-		errorobject_setwithfmt(interp, errptr, "%D has no attributes", obj);
+		errorobject_setwithfmt(interp, "%D has no attributes", obj);
 		return NULL;
 	}
 
-	struct Object *s = stringobject_newfromcharptr(interp, errptr, attr);
+	struct Object *s = stringobject_newfromcharptr(interp, attr);
 	if (!s)
 		return NULL;
 
-	struct Object *res = get_the_attribute(interp, errptr, obj, s);
+	struct Object *res = get_the_attribute(interp, obj, s);
 	OBJECT_DECREF(interp, s);
 	return res;
 }
 
 
-int attribute_set(struct Interpreter *interp, struct Object **errptr, struct Object *obj, char *attr, struct Object *val)
+int attribute_set(struct Interpreter *interp, struct Object *obj, char *attr, struct Object *val)
 {
 	if (!obj->attrs) {
-		errorobject_setwithfmt(interp, errptr, "%D has no attributes", obj);
+		errorobject_setwithfmt(interp, "%D has no attributes", obj);
 		return STATUS_ERROR;
 	}
 
-	struct Object *s = stringobject_newfromcharptr(interp, errptr, attr);
+	struct Object *s = stringobject_newfromcharptr(interp, attr);
 	if (!s)
 		return STATUS_ERROR;
 
-	int setret = mappingobject_set(interp, errptr, obj->attrs, s, val);
+	int setret = mappingobject_set(interp, obj->attrs, s, val);
 	OBJECT_DECREF(interp, s);
 	return setret;
 }

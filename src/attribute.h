@@ -6,12 +6,12 @@
 #include "unicode.h"        // IWYU pragma: keep
 
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *attribute_get(struct Interpreter *interp, struct Object **errptr, struct Object *obj, char *attr);
+struct Object *attribute_get(struct Interpreter *interp, struct Object *obj, char *attr);
 
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *attribute_getwithustr(struct Interpreter *interp, struct Object **errptr, struct Object *obj, struct UnicodeString attr);
+struct Object *attribute_getwithustr(struct Interpreter *interp, struct Object *obj, struct UnicodeString attr);
 
 // returns STATUS_OK or STATUS_ERROR
-int attribute_set(struct Interpreter *interp, struct Object **errptr, struct Object *obj, char *attr, struct Object *val);
+int attribute_set(struct Interpreter *interp, struct Object *obj, char *attr, struct Object *val);
 
 #endif     // ATTRIBUTE_H

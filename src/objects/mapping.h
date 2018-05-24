@@ -17,23 +17,23 @@ struct MappingObjectData {
 
 
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *mappingobject_createclass(struct Interpreter *interp, struct Object **errptr);
+struct Object *mappingobject_createclass(struct Interpreter *interp);
 
 // returns STATUS_OK or STATUS_ERROR
 // methods are stored in a Mapping, so this can't be a part of mappingobject_createclass()
-int mappingobject_addmethods(struct Interpreter *interp, struct Object **errptr);
+int mappingobject_addmethods(struct Interpreter *interp);
 
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *mappingobject_newempty(struct Interpreter *interp, struct Object **errptr);
+struct Object *mappingobject_newempty(struct Interpreter *interp);
 
 // returns STATUS_OK or STATUS_ERROR
 // bad things happen if map is not a Mapping
-int mappingobject_set(struct Interpreter *interp, struct Object **errptr, struct Object *map, struct Object *key, struct Object *val);
+int mappingobject_set(struct Interpreter *interp, struct Object *map, struct Object *key, struct Object *val);
 
 // RETURNS A NEW REFERENCE or NULL on error
 // if the key is not found, RETURNS NULL WITHOUT SETTING ERRPTR
 // bad things happen if map is not a Mapping
-struct Object *mappingobject_get(struct Interpreter *interp, struct Object **errptr, struct Object *map, struct Object *key);
+struct Object *mappingobject_get(struct Interpreter *interp, struct Object *map, struct Object *key);
 
 
 struct MappingObjectIter {
@@ -41,8 +41,6 @@ struct MappingObjectIter {
 	struct Object *value;
 
 	// rest of these should be considered implementation details
-	struct Interpreter *interp;
-	struct Object **errptr;
 	struct MappingObjectData *data;
 	int started;
 	unsigned int lastbucketno;

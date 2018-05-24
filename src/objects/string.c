@@ -24,23 +24,23 @@ static void string_destructor(struct Object *str)
 	free(data);
 }
 
-struct Object *stringobject_createclass(struct Interpreter *interp)
+struct Object *stringobject_createclass_noerr(struct Interpreter *interp)
 {
-	return classobject_new_noerrptr(interp, "String", interp->builtins.objectclass, 0, NULL);
+	return classobject_new_noerr(interp, "String", interp->builtins.objectclass, 0, NULL);
 }
 
-static struct Object *to_string(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
+static struct Object *to_string(struct Interpreter *interp, struct Object **args, size_t nargs)
 {
-	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.stringclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, args, nargs, interp->builtins.stringclass, NULL) == STATUS_ERROR)
 		return NULL;
 
 	OBJECT_INCREF(interp, args[0]);   // we're returning a reference
 	return args[0];
 }
 
-static struct Object *to_debug_string(struct Interpreter *interp, struct Object **errptr, struct Object **args, size_t nargs)
+static struct Object *to_debug_string(struct Interpreter *interp, struct Object **args, size_t nargs)
 {
-	if (functionobject_checktypes(interp, errptr, args, nargs, interp->builtins.stringclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, args, nargs, interp->builtins.stringclass, NULL) == STATUS_ERROR)
 		return NULL;
 
 	struct UnicodeString noquotes = *((struct UnicodeString*) args[0]->data);
@@ -48,34 +48,34 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 	yesquotes.len = noquotes.len + 2;
 	yesquotes.val = malloc(sizeof(unicode_char) * yesquotes.len);
 	if (!yesquotes.val) {
-		errorobject_setnomem(interp, errptr);
+		errorobject_setnomem(interp);
 		return NULL;
 	}
 	yesquotes.val[0] = yesquotes.val[yesquotes.len - 1] = '"';
 	memcpy(yesquotes.val + 1, noquotes.val, sizeof(unicode_char) * noquotes.len);
 
-	struct Object *res = stringobject_newfromustr(interp, errptr, yesquotes);
+	struct Object *res = stringobject_newfromustr(interp, yesquotes);
 	free(yesquotes.val);
 	return res;
 }
 
-int stringobject_addmethods(struct Interpreter *interp, struct Object **errptr)
+int stringobject_addmethods(struct Interpreter *interp)
 {
 	// TODO: create many more string methods
-	if (method_add(interp, errptr, interp->builtins.stringclass, "to_string", to_string) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, errptr, interp->builtins.stringclass, "to_debug_string", to_debug_string) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.stringclass, "to_string", to_string) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.stringclass, "to_debug_string", to_debug_string) == STATUS_ERROR) return STATUS_ERROR;
 	return STATUS_OK;
 }
 
-struct Object *stringobject_newfromustr(struct Interpreter *interp, struct Object **errptr, struct UnicodeString ustr)
+struct Object *stringobject_newfromustr(struct Interpreter *interp, struct UnicodeString ustr)
 {
 	struct UnicodeString *data = unicodestring_copy(ustr);
 	if (!data) {
-		errorobject_setnomem(interp, errptr);
+		errorobject_setnomem(interp);
 		return NULL;
 	}
 
-	struct Object *str = classobject_newinstance(interp, errptr, interp->builtins.stringclass, data, string_destructor);
+	struct Object *str = classobject_newinstance(interp, interp->builtins.stringclass, data, string_destructor);
 	if (!str) {
 		free(data->val);
 		free(data);
@@ -85,7 +85,7 @@ struct Object *stringobject_newfromustr(struct Interpreter *interp, struct Objec
 	return str;
 }
 
-struct Object *stringobject_newfromcharptr(struct Interpreter *interp, struct Object **errptr, char *ptr)
+struct Object *stringobject_newfromcharptr(struct Interpreter *interp, char *ptr)
 {
 	struct UnicodeString *data = malloc(sizeof(struct UnicodeString));
 	if (!data)
@@ -100,7 +100,7 @@ struct Object *stringobject_newfromcharptr(struct Interpreter *interp, struct Ob
 	}
 	assert(status == STATUS_OK);   // it shooouldn't return anything else than STATUS_{NONEM,OK} or 1
 
-	struct Object *str = classobject_newinstance(interp, errptr, interp->builtins.stringclass, data, string_destructor);
+	struct Object *str = classobject_newinstance(interp, interp->builtins.stringclass, data, string_destructor);
 	if (!str) {
 		free(data->val);
 		free(data);
@@ -113,7 +113,7 @@ struct Object *stringobject_newfromcharptr(struct Interpreter *interp, struct Ob
 #define POINTER_MAXSTR 50            // should be big enough
 #define MAX_PARTS 20                 // feel free to make this bigger
 #define BETWEEN_SPECIFIERS_MAX 200   // makes really long error messages possible... not sure if that's good
-struct Object *stringobject_newfromvfmt(struct Interpreter *interp, struct Object **errptr, char *fmt, va_list ap)
+struct Object *stringobject_newfromvfmt(struct Interpreter *interp, char *fmt, va_list ap)
 {
 	struct UnicodeString parts[MAX_PARTS];
 	int nparts = 0;
@@ -167,9 +167,9 @@ struct Object *stringobject_newfromvfmt(struct Interpreter *interp, struct Objec
 
 				struct Object *strobj;
 				if (*(fmt-1) == 'D')
-					strobj = method_call_todebugstring(interp, errptr, obj);
+					strobj = method_call_todebugstring(interp, obj);
 				else
-					strobj = method_call_tostring(interp, errptr, obj);
+					strobj = method_call_tostring(interp, obj);
 				if (!strobj)
 					goto error;
 				*gonnadecrefptr++ = strobj;
@@ -182,10 +182,10 @@ struct Object *stringobject_newfromvfmt(struct Interpreter *interp, struct Objec
 				long long val = va_arg(ap, long long);
 
 				// TODO: don't copy/paste from above, move the stringifying code here instead?
-				struct Object *intobj = integerobject_newfromlonglong(interp, errptr, val);
+				struct Object *intobj = integerobject_newfromlonglong(interp, val);
 				if (!intobj)
 					goto error;
-				struct Object *strobj = method_call_tostring(interp, errptr, intobj);
+				struct Object *strobj = method_call_tostring(interp, intobj);
 				OBJECT_DECREF(interp, intobj);
 				if (!strobj)
 					goto error;
@@ -234,7 +234,7 @@ struct Object *stringobject_newfromvfmt(struct Interpreter *interp, struct Objec
 		ptr += parts[i].len;
 	}
 
-	struct Object *res = stringobject_newfromustr(interp, errptr, everything);
+	struct Object *res = stringobject_newfromustr(interp, everything);
 
 	free(everything.val);
 	for (int i=0; i < nparts; i++) {
@@ -247,7 +247,7 @@ struct Object *stringobject_newfromvfmt(struct Interpreter *interp, struct Objec
 	return res;
 
 nomem:
-	errorobject_setnomem(interp, errptr);
+	errorobject_setnomem(interp);
 	// "fall through" to error
 
 error:
@@ -261,11 +261,11 @@ error:
 }
 
 
-struct Object *stringobject_newfromfmt(struct Interpreter *interp, struct Object **errptr, char *fmt, ...)
+struct Object *stringobject_newfromfmt(struct Interpreter *interp, char *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
-	struct Object *res = stringobject_newfromvfmt(interp, errptr, fmt, ap);
+	struct Object *res = stringobject_newfromvfmt(interp, fmt, ap);
 	va_end(ap);
 	return res;
 }
