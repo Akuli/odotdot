@@ -229,7 +229,6 @@ static struct Object *parse_call(struct Interpreter *interp, struct Token **curt
 {
 	size_t lineno = (*curtok)->lineno;
 
-	// TODO: when should func be free()'d?
 	struct AstCallInfo *callinfo = malloc(sizeof(struct AstCallInfo));
 	if (!callinfo)
 		return NULL;
@@ -279,6 +278,63 @@ static struct Object *parse_call(struct Interpreter *interp, struct Token **curt
 }
 #undef MAX_ARGS
 
+// "arg1 `func` arg2" and "func arg1 arg2" should do the same thing
+static struct Object *parse_infix_call(struct Interpreter *interp, struct Token **curtok, struct Object *arg1)
+{
+	size_t lineno = (*curtok)->lineno;
+
+	// this SHOULD be checked by parse_expression()
+	assert((*curtok)->str.len == 1 && (*curtok)->str.val[0] == '`');
+	*curtok = (*curtok)->next;
+
+	struct Object *func = ast_parse_expression(interp, curtok);
+	if (!func)
+		return NULL;
+
+	if ((*curtok)->str.len != 1 || (*curtok)->str.val[0] != '`') {
+		// TODO: report error "expected another `"
+		assert(0);
+	}
+	*curtok = (*curtok)->next;
+
+	struct Object *arg2 = ast_parse_expression(interp, curtok);
+	if (!arg2) {
+		OBJECT_DECREF(interp, func);
+		return NULL;
+	}
+
+	struct AstCallInfo *callinfo = malloc(sizeof(struct AstCallInfo));
+	if (!callinfo) {
+		OBJECT_DECREF(interp, arg2);
+		OBJECT_DECREF(interp, func);
+		return NULL;
+	}
+	callinfo->funcnode = func;
+	callinfo->nargs = 2;
+
+	if (!(callinfo->argnodes = malloc(sizeof(struct Object *) * 2))) {
+		free(callinfo);
+		OBJECT_DECREF(interp, arg2);
+		OBJECT_DECREF(interp, func);
+		return NULL;
+	}
+	callinfo->argnodes[0] = arg1;
+	callinfo->argnodes[1] = arg2;
+
+	struct Object *res = ast_new_statement(interp, AST_CALL, lineno, callinfo);
+	if (!res) {
+		free(callinfo->argnodes);
+		free(callinfo);
+		OBJECT_DECREF(interp, arg2);
+		OBJECT_DECREF(interp, func);
+		return NULL;
+	}
+
+	// this function is already holding a reference to arg2 and func, but not arg1
+	OBJECT_INCREF(interp, arg1);
+	return res;
+}
+
 
 static struct Object *parse_call_expression(struct Interpreter *interp, struct Token **curtok)
 {
@@ -286,12 +342,16 @@ static struct Object *parse_call_expression(struct Interpreter *interp, struct T
 	assert((*curtok)->str.len == 1 && (*curtok)->str.val[0] == '(');
 	*curtok = (*curtok)->next;
 
-	struct Object *func = ast_parse_expression(interp, curtok);
-	if (!func)
+	struct Object *first = ast_parse_expression(interp, curtok);
+	if (!first)
 		return NULL;
 
-	struct Object *res = parse_call(interp, curtok, func);
-	OBJECT_DECREF(interp, func);
+	struct Object *res;
+	if ((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == '`')
+		res = parse_infix_call(interp, curtok, first);
+	else
+		res = parse_call(interp, curtok, first);
+	OBJECT_DECREF(interp, first);
 	if (!res)
 		return NULL;
 
@@ -520,16 +580,18 @@ struct Object *ast_parse_statement(struct Interpreter *interp, struct Token **cu
 		// var is currently the only keyword
 		res = parse_var_statement(interp, curtok);
 	} else {
-		// assume it's a function call
-		struct Object *funcnode = ast_parse_expression(interp, curtok);
-		if (!funcnode)
+		// a function call
+		struct Object *first = ast_parse_expression(interp, curtok);
+		if (!first)
 			return NULL;
 
-		res = parse_call(interp, curtok, funcnode);
-		OBJECT_DECREF(interp, funcnode);
+		if ((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == '`')
+			res = parse_infix_call(interp, curtok, first);
+		else
+			res = parse_call(interp, curtok, first);
+		OBJECT_DECREF(interp, first);
 		if (!res)
 			return NULL;
-		assert(!expression_coming_up(*curtok));   // parse_call() should take care of this
 	}
 
 	// TODO: report error "missing ';'"

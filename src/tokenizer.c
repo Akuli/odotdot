@@ -105,7 +105,7 @@ struct Token *token_ize(struct UnicodeString hugestring)
 			continue;
 		}
 
-		if (f('{')||f('}')||f('[')||f(']')||f('(')||f(')')||f('=')||f(';')||f('.')) {
+		if (f('{')||f('}')||f('[')||f(']')||f('(')||f(')')||f('=')||f(';')||f('.')||f('`')) {
 #undef f
 			kind = TOKEN_OP;
 			nchars = 1;

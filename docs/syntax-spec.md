@@ -28,6 +28,9 @@ Here are examples of all supported kinds of expressions:
   with the given arguments and returns whatever the function returned. The
   function and the arguments can be any expressions, and you can have any
   number of arguments you want.
+- Infixed function call expressions: ``(arg1 `function` arg2)`` is equivalent
+  to `(function arg1 arg2)`. Here `func`, `arg1` and `arg2` can be any
+  expressions.
 - Blocks: `{ statement1; statement2; }` returns a block object. You can have
   any number of [statements](#statements) inside the block you want. `{ }` is a
   code block that does nothing, and `{ expression }` without a `;` is
@@ -47,6 +50,8 @@ Here's another list:
 - Function calls: `function arg1 arg2 arg3;` is like the
   `(function arg1 arg2 arg3)` [expression](#expressions), but the return value
   is ignored.
+- Infixed function calls: ``arg1 `function` arg2;`` is equivalent to
+  `function arg1 arg2;`.
 - Variable creation: `var a = b;` sets the variable `a` to `b` **locally**.
   `a` can be any variable name, and `b` can be any expressions.
 - Assignments: `a = b;` is like `var a = b;`, but it sets the variable
