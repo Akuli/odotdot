@@ -5,7 +5,7 @@ TESTARGS ?=
 # TODO: comment this out some day? this is for debugging with gdb and valgrind
 CFLAGS += -g
 
-SRC := $(filter-out src/main.c, $(wildcard src/*.c src/objects/*.c))
+SRC := $(filter-out src/main.c, $(wildcard src/*.c src/objects/*.c src/builtins/*.c))
 OBJ := $(SRC:src/%.c=obj/%.o)
 CTESTS_SRC := $(wildcard ctests/*.c) $(wildcard ctests/*.h)
 

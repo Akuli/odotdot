@@ -1,13 +1,14 @@
 #include "arrayfunc.h"
 #include <assert.h>
-#include "attribute.h"
-#include "common.h"
-#include "method.h"
-#include "objects/array.h"
-#include "objects/function.h"
-#include "objects/mapping.h"
-#include "objects/scope.h"
-#include "objects/string.h"
+#include <stddef.h>
+#include "../attribute.h"
+#include "../common.h"
+#include "../method.h"
+#include "../objects/array.h"
+#include "../objects/function.h"
+#include "../objects/mapping.h"
+#include "../objects/scope.h"
+#include "../objects/string.h"
 
 // this is partialled to a block of code to create array_funcs
 static struct Object *runner(struct Interpreter *interp, struct Object **args, size_t nargs)
@@ -46,7 +47,7 @@ static struct Object *runner(struct Interpreter *interp, struct Object **args, s
 	return res;
 }
 
-static struct Object *arrayfunc_builtin(struct Interpreter *interp, struct Object **args, size_t nargs)
+struct Object *builtin_arrayfunc(struct Interpreter *interp, struct Object **args, size_t nargs)
 {
 	if (functionobject_checktypes(interp, args, nargs, interp->builtins.blockclass, NULL) == STATUS_ERROR)
 		return NULL;
@@ -59,9 +60,4 @@ static struct Object *arrayfunc_builtin(struct Interpreter *interp, struct Objec
 	struct Object *res = functionobject_newpartial(interp, runnerobj, block);
 	OBJECT_DECREF(interp, runnerobj);
 	return res;   // may be NULL
-}
-
-struct Object *arrayfunc_create(struct Interpreter *interp)
-{
-	return functionobject_new(interp, arrayfunc_builtin);
 }

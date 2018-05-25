@@ -3,11 +3,11 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "arrayfunc.h"
 #include "ast.h"
+#include "builtins/arrayfunc.h"
+#include "builtins/print.h"
 #include "common.h"
 #include "interpreter.h"
-#include "unicode.h"
 #include "objectsystem.h"
 #include "objects/array.h"
 #include "objects/block.h"
@@ -19,32 +19,8 @@
 #include "objects/object.h"
 #include "objects/scope.h"
 #include "objects/string.h"
+#include "unicode.h"
 
-
-static struct Object *print_builtin(struct Interpreter *interp, struct Object **args, size_t nargs)
-{
-	if (functionobject_checktypes(interp, args, nargs, interp->builtins.stringclass, NULL) == STATUS_ERROR)
-		return NULL;
-
-	char *utf8;
-	size_t utf8len;
-	char errormsg[100];
-	int status = utf8_encode(*((struct UnicodeString *) args[0]->data), &utf8, &utf8len, errormsg);
-	if (status == STATUS_NOMEM) {
-		errorobject_setnomem(interp);
-		return NULL;
-	}
-	assert(status == STATUS_OK);  // TODO: how about invalid unicode strings? make sure they don't exist when creating strings?
-
-	// TODO: avoid writing 1 byte at a time... seems to be hard with c \0 strings
-	for (size_t i=0; i < utf8len; i++)
-		putchar(utf8[i]);
-	free(utf8);
-	putchar('\n');
-
-	// this must return a new reference on success
-	return stringobject_newfromcharptr(interp, "asd");
-}
 
 static int create_method_mapping(struct Interpreter *interp, struct Object *klass)
 {
@@ -85,13 +61,13 @@ int builtins_setup(struct Interpreter *interp)
 	if (mappingobject_addmethods(interp) == STATUS_ERROR) goto error;
 	if (functionobject_addmethods(interp) == STATUS_ERROR) goto error;
 
-	if (!(interp->builtins.print = functionobject_new(interp, print_builtin))) goto error;
-	if (!(interp->builtins.array_func = arrayfunc_create(interp))) goto error;
 	if (!(interp->builtins.arrayclass = arrayobject_createclass(interp))) goto error;
 	if (!(interp->builtins.integerclass = integerobject_createclass(interp))) goto error;
 	if (!(interp->builtins.astnodeclass = astnode_createclass(interp))) goto error;
 	if (!(interp->builtins.scopeclass = scopeobject_createclass(interp))) goto error;
 	if (!(interp->builtins.blockclass = blockobject_createclass(interp))) goto error;
+	if (!(interp->builtins.print = functionobject_new(interp, builtin_print))) goto error;
+	if (!(interp->builtins.array_func = functionobject_new(interp, builtin_arrayfunc))) goto error;
 
 	if (!(interp->builtinscope = scopeobject_newbuiltin(interp))) goto error;
 
