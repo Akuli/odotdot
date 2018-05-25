@@ -56,10 +56,6 @@ things that I would like to do some day. It's a mess.
 - keyword arguments?
     - there are many many more important things to be done before these... but
       these might be useful
-    - `var` is a keyword because `var a=123;` looks much better than
-      `var "a" 123;`, but with keyword arguments, `var a=123;` could be
-      implemented as calling a `var` function with a keyword argument
-        - ambiguous? `a = 123;` still wouldn't be a function call
     - now there's no nice way to pass named options to functions
         - python solution: keyword arguments
 
@@ -95,41 +91,90 @@ things that I would like to do some day. It's a mess.
 
             kinda boilerplaty
 
-        - ö solution: passing a mapping object (looks really stupid)
+        - java solution: making a config object
 
-            ```
-            func "show_text" "options?" {
-                ...something ugly...
-            };
-
-            # black text on white
-            show_text "asd";
-
-            # red text on blue
-            show_text "asd" (new Mapping [ ["foreground" "red"] ["background" "blue"] ]);
+            ```java
+            ShowTextOptions options = new ShowTextOptions();
+            options.setForeground("red");
+            options.setBackground("blue");
+            showText("asd", options);
             ```
 
-            many many things featured here are not implemented yet... sorry
+            lots of boilerplate everywhere!
 
-            calling the function is really ugly!
+        - possible, bad and shit ö solutions
+            - javascript way, looks ugly
 
-            another alternative, this one looks like java (ewww):
+                ```
+                func "show_text" "options?" {
+                    ...something ugly...
+                };
 
-            ```
-            var options = (new ShowTextOptions);
-            options.foreground = "red";
-            options.background = "blue";
-            show_text "asd" options;
-            ```
+                # black text on white
+                show_text "asd";
 
-            this one is simple to use, but has its quirks and is harder to
-            implement, otherwise nice:
+                # red text on blue
+                show_text "asd" (new Mapping [ ["foreground" "red"] ["background" "blue"] ]);
+                ```
 
-            ```
-            show_text { foreground = "red"; background = "blue"; };
-            ```
+                many many things featured here are not implemented yet... sorry
 
-            TODO: write more about problems with this approach
+            - java way, also ugly
+
+                ```
+                var options = (new ShowTextOptions);
+                options.foreground = "red";
+                options.background = "blue";
+                show_text "asd" options;
+                ```
+
+            - code block magic
+
+                ```
+                show_text { foreground = "red"; background = "blue"; };
+                ```
+
+                simple to use, has its quirks and is hard to implement
+
+                TODO: write more about problems with this approach
+
+            - new syntax ftw :D
+
+                ```
+                func "show_text" "foreground:" "background:" {
+                    ...
+                };
+
+                show_text "asd";
+                show_text "asd" foreground:"red" background:"blue";
+                ```
+
+                constructing mappings with string keys could be easy as in
+                javascript, these would be equivalent:
+
+                ```
+                thing = (new Mapping [["a" 1] ["b" 2] ["c" 3]]);
+                thing = (new Mapping a:1 b:2 c:3);
+                ```
+
+            - could be also done with `=` instead of `:`, like in python
+
+                ```
+                show_text "asd" foreground="red" background="blue";
+                ```
+
+                maybe `var` wouldn't need to be a keyword?
+
+                ```
+                var some_var="hi";   # this could be just a function call
+                ```
+
+                but this would cause very confusing errors:
+
+                ```
+                some_function arg1 arg2 blah blah    # oops! missing ;
+                some_var = "lol";           # now this is a named argument to some_function
+                ```
 
 ## main.c
 - should evaluate `stdlib/builtins.ö` on startup, then `argv[1]` in a subscope
