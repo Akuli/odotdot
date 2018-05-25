@@ -30,6 +30,29 @@ things that I would like to do some day. It's a mess.
             - there is `__slots__`, but nobody uses it
     - attributes should be represented as setter,getter pairs of the class, and
       all instances of the class should have the same attributes
+        - how about modules? might be nice to have a python-style module system
+          where functions defined in modules are exposed as attributes of a
+          module object
+        - maybe add a flag that allows setting arbitrary attributes?
+
+            ```
+            class Module {
+                arbitrary_attributes = true;
+                ...
+            };
+
+            var toot = (new Module);
+            toot.asd = "lol wat";
+            ```
+
+        - or maybe a special class that does some magic?
+
+            ```
+            class Module inherits ArbitraryAttributes {
+                ...
+            };
+            ```
+
 - keyword arguments?
     - there are many many more important things to be done before these... but
       these might be useful
