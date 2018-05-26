@@ -1,5 +1,6 @@
 #include "block.h"
 #include "../attribute.h"
+#include "../check.h"
 #include "../common.h"
 #include "../interpreter.h"   // IWYU pragma: keep
 #include "../method.h"
@@ -14,7 +15,7 @@
 
 static struct Object *run_block(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, argarr, interp->builtins.blockclass, interp->builtins.scopeclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.blockclass, interp->builtins.scopeclass, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *block = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *scope = ARRAYOBJECT_GET(argarr, 1);
@@ -22,13 +23,13 @@ static struct Object *run_block(struct Interpreter *interp, struct Object *argar
 	struct Object *ast = attribute_get(interp, block, "ast_statements");
 	if (!ast)
 		return NULL;
-	if (errorobject_typecheck(interp, interp->builtins.arrayclass, ast) == STATUS_ERROR) {
+	if (check_type(interp, interp->builtins.arrayclass, ast) == STATUS_ERROR) {
 		OBJECT_DECREF(interp, ast);
 		return NULL;
 	}
 
 	for (size_t i=0; i < ARRAYOBJECT_LEN(ast); i++) {
-		if (errorobject_typecheck(interp, interp->builtins.astnodeclass, ARRAYOBJECT_GET(ast, i)) == STATUS_ERROR) {
+		if (check_type(interp, interp->builtins.astnodeclass, ARRAYOBJECT_GET(ast, i)) == STATUS_ERROR) {
 			OBJECT_DECREF(interp, ast);
 			return NULL;
 		}

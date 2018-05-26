@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "../check.h"
 #include "../common.h"
 #include "../interpreter.h"
 #include "../objectsystem.h"
@@ -13,7 +14,7 @@
 
 struct Object *builtin_print(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, argarr, interp->builtins.stringclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.stringclass, NULL) == STATUS_ERROR)
 		return NULL;
 
 	char *utf8;

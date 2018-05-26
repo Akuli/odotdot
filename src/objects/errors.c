@@ -4,13 +4,14 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include "classobject.h"
-#include "mapping.h"
-#include "string.h"
+#include "../check.h"
 #include "../common.h"
 #include "../interpreter.h"
 #include "../objectsystem.h"
 #include "../unicode.h"
+#include "classobject.h"
+#include "mapping.h"
+#include "string.h"
 
 static void error_foreachref(struct Object *obj, void *data, classobject_foreachrefcb cb)
 {
@@ -90,15 +91,5 @@ int errorobject_setwithfmt(struct Interpreter *interp, char *fmt, ...)
 		return STATUS_ERROR;
 	}
 	interp->err = err;
-	return STATUS_OK;
-}
-
-int errorobject_typecheck(struct Interpreter *interp, struct Object *klass, struct Object *obj)
-{
-	if (!classobject_instanceof(obj, klass)) {
-		char *name = ((struct ClassObjectData*) klass->data)->name;
-		errorobject_setwithfmt(interp, "should be an instance of %s, not %D", name, obj);
-		return STATUS_ERROR;
-	}
 	return STATUS_OK;
 }

@@ -7,16 +7,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "array.h"
-#include "classobject.h"
-#include "errors.h"
-#include "function.h"
-#include "integer.h"
+#include "../check.h"
 #include "../common.h"
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"
 #include "../unicode.h"
+#include "array.h"
+#include "classobject.h"
+#include "errors.h"
+#include "function.h"
+#include "integer.h"
 
 static void string_destructor(struct Object *str)
 {
@@ -32,7 +33,7 @@ struct Object *stringobject_createclass_noerr(struct Interpreter *interp)
 
 static struct Object *to_string(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, argarr, interp->builtins.stringclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.stringclass, NULL) == STATUS_ERROR)
 		return NULL;
 
 	OBJECT_INCREF(interp, ARRAYOBJECT_GET(argarr, 0));   // we're returning a reference
@@ -41,7 +42,7 @@ static struct Object *to_string(struct Interpreter *interp, struct Object *argar
 
 static struct Object *to_debug_string(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, argarr, interp->builtins.stringclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.stringclass, NULL) == STATUS_ERROR)
 		return NULL;
 
 	struct UnicodeString noquotes = *((struct UnicodeString*) ARRAYOBJECT_GET(argarr, 0)->data);

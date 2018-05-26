@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stddef.h>
 #include "../attribute.h"
+#include "../check.h"
 #include "../common.h"
 #include "../method.h"
 #include "../objects/array.h"
@@ -49,7 +50,7 @@ static struct Object *runner(struct Interpreter *interp, struct Object *argarr)
 
 struct Object *builtin_arrayfunc(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, argarr, interp->builtins.blockclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.blockclass, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *block = ARRAYOBJECT_GET(argarr, 0);
 

@@ -3,14 +3,15 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-#include "array.h"
-#include "classobject.h"
-#include "errors.h"
-#include "mapping.h"
+#include "../check.h"
 #include "../common.h"
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"
+#include "array.h"
+#include "classobject.h"
+#include "errors.h"
+#include "mapping.h"
 
 /* see below for how this is used
    passing more than 10 arguments would be kinda insane, and more than 20 would be really insane
@@ -54,7 +55,7 @@ static struct Object *partial(struct Interpreter *interp, struct Object *argarr)
 		errorobject_setwithfmt(interp, "not enough arguments to Function::partial");
 		return NULL;
 	}
-	if (errorobject_typecheck(interp, interp->builtins.functionclass, ARRAYOBJECT_GET(argarr, 0)) == STATUS_ERROR)
+	if (check_type(interp, interp->builtins.functionclass, ARRAYOBJECT_GET(argarr, 0)) == STATUS_ERROR)
 		return NULL;
 
 	struct Object *func = ARRAYOBJECT_GET(argarr, 0);
@@ -117,36 +118,6 @@ int functionobject_addmethods(struct Interpreter *interp)
 {
 	// TODO: map, to_string
 	if (method_add(interp, interp->builtins.functionclass, "partial", partial) == STATUS_ERROR) return STATUS_ERROR;
-	return STATUS_OK;
-}
-
-int functionobject_checktypes(struct Interpreter *interp, struct Object *argarr, ...)
-{
-	va_list ap;
-	va_start(ap, argarr);
-
-	unsigned int expectnargs;   // expected number of arguments
-	struct Object *classes[NARGS_MAX];
-	for (expectnargs=0; expectnargs < NARGS_MAX; expectnargs++) {
-		struct Object *klass = va_arg(ap, struct Object *);
-		if (!klass)
-			break;      // end of argument list, not an error
-		classes[expectnargs] = klass;
-	}
-	va_end(ap);
-
-	// TODO: test these
-	// TODO: include the function name in the error?
-	if (ARRAYOBJECT_LEN(argarr) != expectnargs) {
-		errorobject_setwithfmt(interp, "%s arguments", ARRAYOBJECT_LEN(argarr) > expectnargs ? "too many" : "not enough");
-		return STATUS_ERROR;
-	}
-
-	for (unsigned int i=0; i < expectnargs; i++) {
-		if (errorobject_typecheck(interp, classes[i], ARRAYOBJECT_GET(argarr, i)) == STATUS_ERROR)
-			return STATUS_ERROR;
-	}
-
 	return STATUS_OK;
 }
 

@@ -1,15 +1,16 @@
 #include "object.h"
 #include <stddef.h>
+#include "../check.h"
+#include "../common.h"
+#include "../interpreter.h"
+#include "../method.h"
+#include "../objectsystem.h"
 #include "array.h"
 #include "classobject.h"
 #include "errors.h"
 #include "function.h"
 #include "integer.h"
 #include "string.h"
-#include "../common.h"
-#include "../interpreter.h"
-#include "../method.h"
-#include "../objectsystem.h"
 
 static void object_foreachref(struct Object *obj, void *data, classobject_foreachrefcb cb)
 {
@@ -27,7 +28,7 @@ struct Object *objectobject_createclass_noerr(struct Interpreter *interp)
 
 static struct Object *to_string(struct Interpreter *interp, struct Object *argarr)
 {
-	// functionobject_checktypes may call to_string when creating an error message
+	// check_args may call to_string when creating an error message
 	// so we can't use it here, otherwise this may recurse
 	// maybe it wouldn't recurse... but better safe than sorry
 	if (ARRAYOBJECT_LEN(argarr) != 1) {

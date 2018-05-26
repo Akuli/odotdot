@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <stdlib.h>
+#include "../check.h"
 #include "../common.h"
 #include "../equals.h"
 #include "../method.h"
@@ -153,7 +154,7 @@ int mappingobject_set(struct Interpreter *interp, struct Object *map, struct Obj
 
 static struct Object *set(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, argarr, interp->builtins.mappingclass, interp->builtins.objectclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.mappingclass, interp->builtins.objectclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
 		return NULL;
 	if (mappingobject_set(interp, ARRAYOBJECT_GET(argarr, 0), ARRAYOBJECT_GET(argarr, 1), ARRAYOBJECT_GET(argarr, 2)) == STATUS_ERROR)
 		return NULL;
@@ -189,7 +190,7 @@ struct Object *mappingobject_get(struct Interpreter *interp, struct Object *map,
 
 static struct Object *get(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, argarr, interp->builtins.mappingclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.mappingclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *map = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *key = ARRAYOBJECT_GET(argarr, 1);
@@ -204,7 +205,7 @@ static struct Object *get(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *get_and_delete(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, argarr, interp->builtins.mappingclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.mappingclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *map = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *key = ARRAYOBJECT_GET(argarr, 1);

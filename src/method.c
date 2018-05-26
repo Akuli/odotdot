@@ -123,7 +123,7 @@ static struct Object *to_maybe_debug_string(struct Interpreter *interp, struct O
 	if (!res)
 		return NULL;
 
-	// this doesn't use errorobject_typecheck() because this uses a custom error message string
+	// this doesn't use check_type() because this uses a custom error message string
 	if (!classobject_instanceof(res, interp->builtins.stringclass)) {
 		// FIXME: is it possible to make this recurse infinitely by returning the object itself from to_{debug,}string?
 		errorobject_setwithfmt(interp, "%s should return a String, but it returned %D", methname, res);

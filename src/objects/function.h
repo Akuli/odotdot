@@ -12,22 +12,6 @@
 */
 typedef struct Object* (*functionobject_cfunc)(struct Interpreter *interp, struct Object *argarr);
 
-/* for example, do this in the beginning of a functionobject_cfunc...
-
-	if (function_checktypes(interp, argarr, interp->builtins.stringclass, interp->builtins.integerclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
-		return NULL;
-
-...to make sure that:
-	* the function is being called with 3 arguments
-	* the first argument is a String
-	* the second argument is an Integer
-	* the 3rd argument can be anything because all classes inherit from Object
-
-bad things happen if the ... arguments are not class objects or you forget the NULL
-returns STATUS_OK or STATUS_ERROR
-*/
-int functionobject_checktypes(struct Interpreter *interp, struct Object *argarr, ...);
-
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *functionobject_createclass(struct Interpreter *interp);
 

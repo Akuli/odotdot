@@ -2,16 +2,17 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "classobject.h"
-#include "errors.h"
-#include "function.h"
-#include "integer.h"
-#include "string.h"
+#include "../check.h"
 #include "../common.h"
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"
 #include "../unicode.h"
+#include "classobject.h"
+#include "errors.h"
+#include "function.h"
+#include "integer.h"
+#include "string.h"
 
 static void array_foreachref(struct Object *arr, void *cbdata, classobject_foreachrefcb cb)
 {
@@ -72,7 +73,7 @@ static struct Object *to_string_joiner(struct Interpreter *interp, struct Object
 
 static struct Object *to_string(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, argarr, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *arr = ARRAYOBJECT_GET(argarr, 0);
 
@@ -120,7 +121,7 @@ static int validate_index(struct Interpreter *interp, struct Object *arr, long l
 
 static struct Object *get(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, argarr, interp->builtins.arrayclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.arrayclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *arr = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *index = ARRAYOBJECT_GET(argarr, 1);
@@ -136,7 +137,7 @@ static struct Object *get(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *set(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, argarr, interp->builtins.arrayclass, interp->builtins.integerclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.arrayclass, interp->builtins.integerclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *arr = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *index = ARRAYOBJECT_GET(argarr, 1);
@@ -157,7 +158,7 @@ static struct Object *set(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *push(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, argarr, interp->builtins.arrayclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.arrayclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *arr = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *obj = ARRAYOBJECT_GET(argarr, 1);
@@ -169,7 +170,7 @@ static struct Object *push(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *pop(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, argarr, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *res = arrayobject_pop(interp, ARRAYOBJECT_GET(argarr, 0));
 	if (!res)
@@ -179,7 +180,7 @@ static struct Object *pop(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *slice(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, argarr, interp->builtins.arrayclass, interp->builtins.integerclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.arrayclass, interp->builtins.integerclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
 		return NULL;
 	return arrayobject_slice(interp, ARRAYOBJECT_GET(argarr, 0), integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1)), integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 2)));
 }
@@ -187,7 +188,7 @@ static struct Object *slice(struct Interpreter *interp, struct Object *argarr)
 // TODO: should this be an attribute?
 static struct Object *get_length(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, argarr, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
 		return NULL;
 	return integerobject_newfromlonglong(interp, ARRAYOBJECT_LEN(ARRAYOBJECT_GET(argarr, 0)));
 }

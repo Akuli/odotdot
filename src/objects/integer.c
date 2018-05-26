@@ -6,16 +6,17 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include "array.h"
-#include "classobject.h"
-#include "errors.h"
-#include "function.h"
-#include "string.h"
+#include "../check.h"
 #include "../common.h"
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"
 #include "../unicode.h"
+#include "array.h"
+#include "classobject.h"
+#include "errors.h"
+#include "function.h"
+#include "string.h"
 
 
 static void integer_destructor(struct Object *integer)
@@ -25,7 +26,7 @@ static void integer_destructor(struct Object *integer)
 
 static struct Object *to_string(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, argarr, interp->builtins.integerclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.integerclass, NULL) == STATUS_ERROR)
 		return NULL;
 
 	long long val = *((long long *) ARRAYOBJECT_GET(argarr, 0)->data);

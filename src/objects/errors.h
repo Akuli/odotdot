@@ -28,9 +28,4 @@ int errorobject_setwithfmt(struct Interpreter *interp, char *fmt, ...);
 		(interp)->err = (interp)->builtins.nomemerr; \
 	} while (0)
 
-// sets an error and returns STATUS_ERROR if obj is not an instance of klass
-// bad things happen if klass is not a class object
-// returns STATUS_OK on success
-int errorobject_typecheck(struct Interpreter *interp, struct Object *klass, struct Object *obj);
-
 #endif    // OBJECTS_ERRORS_H

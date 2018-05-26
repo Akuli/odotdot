@@ -3,11 +3,12 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include "errors.h"
-#include "mapping.h"
+#include "../check.h"
 #include "../interpreter.h"
 #include "../objectsystem.h"
 #include "../unicode.h"
+#include "errors.h"
+#include "mapping.h"
 
 static void class_destructor(struct Object *klass)
 {
