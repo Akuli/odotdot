@@ -60,18 +60,24 @@ static void print_and_reset_err(struct Interpreter *interp)
 		return;
 	}
 
-	struct Object *err = interp->err;
-	interp->err = NULL;
-
-	printf("errör: ");
-	struct Object *printres = functionobject_call(interp, interp->builtins.print, (struct Object *) err->data, NULL);
-	OBJECT_DECREF(interp, err);
-	if (!printres) {
-		fprintf(stderr, "%s: printing an error failed\n", interp->argv0);
-		OBJECT_DECREF(interp, interp->err);
-		return;
+	// no memory must be allocated in this case...
+	if (interp->err == interp->builtins.nomemerr) {
+		fprintf(stderr, "error: not enough memory\n");
+	} else {
+		char *utf8;
+		size_t utf8len;
+		char errormsg[100];
+		// TODO: handle no mem
+		assert(utf8_encode(*((struct UnicodeString *) ((struct Object *) interp->err->data)->data), &utf8, &utf8len, errormsg) == STATUS_OK);
+		fprintf(stderr, "error: ");
+		for (size_t i=0; i < utf8len; i++)
+			fputc(utf8[i], stderr);
+		free(utf8);
+		fputc('\n', stderr);
 	}
-	OBJECT_DECREF(interp, printres);
+
+	OBJECT_DECREF(interp, interp->err);
+	interp->err = NULL;
 }
 
 

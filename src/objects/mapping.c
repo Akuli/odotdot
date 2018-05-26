@@ -158,10 +158,7 @@ static struct Object *set(struct Interpreter *interp, struct Object *argarr)
 		return NULL;
 	if (mappingobject_set(interp, ARRAYOBJECT_GET(argarr, 0), ARRAYOBJECT_GET(argarr, 1), ARRAYOBJECT_GET(argarr, 2)) == STATUS_ERROR)
 		return NULL;
-
-	// must return a new reference
-	// TODO: we need a nulll ::((((((
-	return stringobject_newfromcharptr(interp, "asd");
+	return interpreter_getbuiltin(interp, "null");
 }
 
 
@@ -250,10 +247,9 @@ static struct Object *delete(struct Interpreter *interp, struct Object *argarr)
 	struct Object *res = get_and_delete(interp, argarr);
 	if (!res)
 		return NULL;
-	OBJECT_DECREF(interp, res);
 
-	// must return a new reference (lol)
-	return stringobject_newfromcharptr(interp, "asd");
+	OBJECT_DECREF(interp, res);
+	return interpreter_getbuiltin(interp, "null");
 }
 
 

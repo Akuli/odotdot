@@ -39,13 +39,14 @@ error:
 
 struct Object *scopeobject_newbuiltin(struct Interpreter *interp)
 {
-	// TODO: we really need a null object.....
-	struct Object *shouldBnull = stringobject_newfromcharptr(interp, "asd shit");
-	if (!shouldBnull)
+	// null is defined in stdlib/builtins.ö, but this is called from builtins.c before builtins.ö runs
+	// builtins.ö replaces this with the correct null object
+	struct Object *fakenull = classobject_newinstance(interp, interp->builtins.scopeclass, NULL, NULL);
+	if (!fakenull)
 		return NULL;
 
-	struct Object *res = scopeobject_newsub(interp, shouldBnull);
-	OBJECT_DECREF(interp, shouldBnull);
+	struct Object *res = scopeobject_newsub(interp, fakenull);
+	OBJECT_DECREF(interp, fakenull);
 	return res;
 }
 
@@ -62,19 +63,25 @@ static struct Object *set_var(struct Interpreter *interp, struct Object *argarr)
 	struct Object *localvars = attribute_get(interp, scope, "local_vars");
 	if (!localvars)
 		return NULL;
+	// TODO: type checks!!
 
 	// is the variable defined here?
-	struct Object *res = method_call(interp, localvars, "get", varname, NULL);
+	struct Object *res = mappingobject_get(interp, localvars, varname);
 	OBJECT_DECREF(interp, localvars);
 	if (res) {
 		// yes
 		OBJECT_DECREF(interp, res);
-		return method_call(interp, localvars, "set", varname, val, NULL);
-	}
-	OBJECT_DECREF(interp, interp->err);
-	interp->err = NULL;
 
-	// no, but do we have a parent scope?
+		if (mappingobject_set(interp, localvars, varname, val) == STATUS_ERROR)
+			return NULL;
+		return interpreter_getbuiltin(interp, "null");
+	}
+
+	if (interp->err)
+		return NULL;
+	// the key wasn't found, mappingobject_get() returned NULL without setting errptr
+
+	// but do we have a parent scope?
 	if (scope == interp->builtinscope) {
 		// no, all scopes were already checked
 		errorobject_setwithfmt(interp, "no variable named '%S'", varname);

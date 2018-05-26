@@ -60,5 +60,5 @@ struct Object *builtin_arrayfunc(struct Interpreter *interp, struct Object *arga
 
 	struct Object *res = functionobject_newpartial(interp, runnerobj, block);
 	OBJECT_DECREF(interp, runnerobj);
-	return res;   // may be NULL
+	return res;
 }

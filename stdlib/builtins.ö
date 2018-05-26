@@ -2,3 +2,7 @@
 var true = "true";
 var false = "false";
 var null = "null";
+
+# the C code doesn't set this to null because null doesn't exist yet
+# FIXME: this fails for some reason
+#{}.definition_scope.parent_scope = null;

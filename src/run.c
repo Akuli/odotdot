@@ -12,6 +12,7 @@
 #include "objects/block.h"
 #include "objects/errors.h"
 #include "objects/function.h"
+#include "objects/mapping.h"
 #include "objects/scope.h"
 #include "objects/string.h"
 
@@ -145,15 +146,11 @@ int run_statement(struct Interpreter *interp, struct Object *scope, struct Objec
 			OBJECT_DECREF(interp, val);
 		}
 
-		struct Object *ret = method_call(interp, localvars, "set", keystr, val, NULL);
+		int res = mappingobject_set(interp, localvars, keystr, val);
 		OBJECT_DECREF(interp, keystr);
 		OBJECT_DECREF(interp, localvars);
 		OBJECT_DECREF(interp, val);
-		if (ret) {
-			OBJECT_DECREF(interp, ret);
-			return STATUS_OK;
-		}
-		return STATUS_ERROR;
+		return res;
 	}
 #undef INFO_AS
 

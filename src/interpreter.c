@@ -10,6 +10,7 @@
 #include "objectsystem.h"
 #include "unicode.h"
 #include "objects/errors.h"
+#include "objects/mapping.h"
 #include "objects/string.h"
 
 struct Interpreter *interpreter_new(char *argv0)
@@ -67,14 +68,10 @@ int interpreter_addbuiltin(struct Interpreter *interp, char *name, struct Object
 		return STATUS_ERROR;
 	}
 
-	struct Object *ret = method_call(interp, localvars, "set", keystr, val, NULL);
+	int ret = mappingobject_set(interp, localvars, keystr, val);
 	OBJECT_DECREF(interp, keystr);
 	OBJECT_DECREF(interp, localvars);
-	if (ret) {
-		OBJECT_DECREF(interp, ret);
-		return STATUS_OK;
-	}
-	return STATUS_ERROR;
+	return ret;
 }
 
 struct Object *interpreter_getbuiltin(struct Interpreter *interp, char *name)

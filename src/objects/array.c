@@ -152,8 +152,7 @@ static struct Object *set(struct Interpreter *interp, struct Object *argarr)
 	data->elems[i] = obj;
 	OBJECT_INCREF(interp, obj);
 
-	// must return a new reference (lol)
-	return stringobject_newfromcharptr(interp, "this thing really should be null :((((");
+	return interpreter_getbuiltin(interp, "null");
 }
 
 static struct Object *push(struct Interpreter *interp, struct Object *argarr)
@@ -165,13 +164,14 @@ static struct Object *push(struct Interpreter *interp, struct Object *argarr)
 
 	if (arrayobject_push(interp, arr, obj) == STATUS_ERROR)
 		return NULL;
-	return stringobject_newfromcharptr(interp, "this thing really should be null :((((");
+	return interpreter_getbuiltin(interp, "null");
 }
 
 static struct Object *pop(struct Interpreter *interp, struct Object *argarr)
 {
 	if (check_args(interp, argarr, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
 		return NULL;
+
 	struct Object *res = arrayobject_pop(interp, ARRAYOBJECT_GET(argarr, 0));
 	if (!res)
 		errorobject_setwithfmt(interp, "cannot pop from an empty array");

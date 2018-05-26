@@ -40,7 +40,7 @@ static struct Object *run_block(struct Interpreter *interp, struct Object *argar
 	}
 
 	OBJECT_DECREF(interp, ast);
-	return stringobject_newfromcharptr(interp, "asd");    // TODO: we need a null object :^/
+	return interpreter_getbuiltin(interp, "null");
 }
 
 struct Object *blockobject_createclass(struct Interpreter *interp)

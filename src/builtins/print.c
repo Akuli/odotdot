@@ -33,6 +33,5 @@ struct Object *builtin_print(struct Interpreter *interp, struct Object *argarr)
 	free(utf8);
 	putchar('\n');
 
-	// this must return a new reference on success
-	return stringobject_newfromcharptr(interp, "asd");
+	return interpreter_getbuiltin(interp, "null");
 }

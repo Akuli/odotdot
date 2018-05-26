@@ -13,12 +13,6 @@
 #include "errors.h"
 #include "mapping.h"
 
-/* see below for how this is used
-   passing more than 10 arguments would be kinda insane, and more than 20 would be really insane
-   if this was a part of some kind of API, i would allow at least 100 arguments though
-   but calling a function from ö doesn't call anything that uses this, so that's no problem */
-#define NARGS_MAX 20
-
 
 struct FunctionData {
 	functionobject_cfunc cfunc;
