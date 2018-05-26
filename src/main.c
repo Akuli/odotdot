@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <errno.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,6 +15,7 @@
 #include "unicode.h"
 #include "objects/array.h"
 #include "objects/function.h"
+#include "objects/scope.h"
 
 #define FILE_CHUNK_SIZE 4096
 
@@ -79,7 +81,7 @@ static int run_file(struct Interpreter *interp, struct Object *scope, char *path
 {
 	FILE *f = fopen(path, "rb");   // b because the content is decoded below... i think this is good
 	if (!f) {
-		fprintf(stderr, "%s: cannot open '%s'\n", interp->argv0, path);
+		fprintf(stderr, "%s: cannot open '%s': %s\n", interp->argv0, path, strerror(errno));
 		return 1;
 	}
 
@@ -179,12 +181,15 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+	int returnval = 0;
 	int status = builtins_setup(interp);
-	if (status == STATUS_NOMEM) {
-		builtins_teardown(interp);
+	assert(status == STATUS_NOMEM || status == STATUS_ERROR || status == STATUS_OK);
+	if (status == STATUS_NOMEM)
 		fprintf(stderr, "%s: not enough memory\n", argv[0]);
-		interpreter_free(interp);
-		return 1;
+
+	if (status != STATUS_OK) {
+		returnval = 1;
+		goto end;
 	}
 	if (status == STATUS_ERROR) {
 		// an error message has already been printed
@@ -194,10 +199,26 @@ int main(int argc, char **argv)
 	}
 	assert(status == STATUS_OK);
 
-	// TODO: run stdlib/fake_builtins.ö and create a new subscope for this file
-	int res = run_file(interp, interp->builtinscope, argv[1]);
+	// TODO: find stdlib better, e.g. don't rely on current working directory
+	// TODO: use a backslash on windows
+	returnval = run_file(interp, interp->builtinscope, "stdlib/builtins.ö");
+	if (returnval != 0)
+		goto end;
+
+	struct Object *subscope = scopeobject_newsub(interp, interp->builtinscope);
+	if (!subscope) {
+		print_and_reset_err(interp);
+		returnval = 1;
+		goto end;
+	}
+
+	returnval = run_file(interp, subscope, argv[1]);
+	OBJECT_DECREF(interp, subscope);
+	// "fall through" to end
+
+end:
 	builtins_teardown(interp);
-	gc_run(interp);    // remove reference cycles
+	gc_run(interp);
 	interpreter_free(interp);
-	return res;
+	return returnval;
 }

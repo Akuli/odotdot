@@ -1,0 +1,4 @@
+# FIXME: these suck
+var true = "true";
+var false = "false";
+var null = "null";

@@ -176,11 +176,6 @@ things that I would like to do some day. It's a mess.
                 some_var = "lol";           # now this is a named argument to some_function
                 ```
 
-## main.c
-- should evaluate `stdlib/builtins.ö` on startup, then `argv[1]` in a subscope
-    - `stdlib/builtins.ö` doesn't exist yet, it should be created
-    - `stdlib/fake_builtins.ö` can stay and be used by pythoninterp for now
-
 ## tokenizer.h
 - tokenizing an empty file fails
     - `token_ize()` returns a linked list, and an empty linked list is
