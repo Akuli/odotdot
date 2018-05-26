@@ -6,6 +6,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include "array.h"
 #include "classobject.h"
 #include "errors.h"
 #include "function.h"
@@ -22,12 +23,12 @@ static void integer_destructor(struct Object *integer)
 	free(integer->data);
 }
 
-static struct Object *to_string(struct Interpreter *interp, struct Object **args, size_t nargs)
+static struct Object *to_string(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, args, nargs, interp->builtins.integerclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, argarr, interp->builtins.integerclass, NULL) == STATUS_ERROR)
 		return NULL;
 
-	long long val = *((long long *) args[0]->data);
+	long long val = *((long long *) ARRAYOBJECT_GET(argarr, 0)->data);
 	if (val == 0)   // special case
 		return stringobject_newfromcharptr(interp, "0");
 

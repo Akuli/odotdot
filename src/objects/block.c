@@ -12,12 +12,12 @@
 #include "string.h"
 
 
-static struct Object *run_block(struct Interpreter *interp, struct Object **args, size_t nargs)
+static struct Object *run_block(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, args, nargs, interp->builtins.blockclass, interp->builtins.scopeclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, argarr, interp->builtins.blockclass, interp->builtins.scopeclass, NULL) == STATUS_ERROR)
 		return NULL;
-	struct Object *block = args[0];
-	struct Object *scope = args[1];
+	struct Object *block = ARRAYOBJECT_GET(argarr, 0);
+	struct Object *scope = ARRAYOBJECT_GET(argarr, 1);
 
 	struct Object *ast = attribute_get(interp, block, "ast_statements");
 	if (!ast)

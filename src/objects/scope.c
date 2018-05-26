@@ -4,6 +4,7 @@
 #include "../common.h"
 #include "../method.h"
 #include "../objectsystem.h"
+#include "array.h"
 #include "classobject.h"
 #include "errors.h"
 #include "function.h"
@@ -48,14 +49,14 @@ struct Object *scopeobject_newbuiltin(struct Interpreter *interp)
 }
 
 
-static struct Object *set_var(struct Interpreter *interp, struct Object **args, size_t nargs)
+static struct Object *set_var(struct Interpreter *interp, struct Object *argarr)
 {
 	// TODO: figure out a nice way to make sure that the first argument is a Scope
-	if (functionobject_checktypes(interp, args, nargs, interp->builtins.objectclass, interp->builtins.stringclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, argarr, interp->builtins.objectclass, interp->builtins.stringclass, NULL) == STATUS_ERROR)
 		return NULL;
-	struct Object *scope = args[0];
-	struct Object *varname = args[1];
-	struct Object *val = args[2];
+	struct Object *scope = ARRAYOBJECT_GET(argarr, 0);
+	struct Object *varname = ARRAYOBJECT_GET(argarr, 1);
+	struct Object *val = ARRAYOBJECT_GET(argarr, 2);
 
 	struct Object *localvars = attribute_get(interp, scope, "local_vars");
 	if (!localvars)
@@ -84,18 +85,25 @@ static struct Object *set_var(struct Interpreter *interp, struct Object **args, 
 	if (!parentscope)
 		return NULL;
 
-	struct Object *newargs[] = { parentscope, varname, val };
-	res = set_var(interp, newargs, nargs);
+	struct Object *tmp[] = { parentscope, varname, val };
+	struct Object *newargarr = arrayobject_new(interp, tmp, 3);
+	if (!newargarr) {
+		OBJECT_DECREF(interp, parentscope);
+		return NULL;
+	}
+
+	res = set_var(interp, newargarr);
+	OBJECT_DECREF(interp, newargarr);
 	OBJECT_DECREF(interp, parentscope);
 	return res;
 }
 
-static struct Object *get_var(struct Interpreter *interp, struct Object **args, size_t nargs)
+static struct Object *get_var(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, args, nargs, interp->builtins.objectclass, interp->builtins.stringclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, argarr, interp->builtins.objectclass, interp->builtins.stringclass, NULL) == STATUS_ERROR)
 		return NULL;
-	struct Object *scope = args[0];
-	struct Object *varname = args[1];
+	struct Object *scope = ARRAYOBJECT_GET(argarr, 0);
+	struct Object *varname = ARRAYOBJECT_GET(argarr, 1);
 
 	struct Object *localvars = attribute_get(interp, scope, "local_vars");
 	if (!localvars)
@@ -118,17 +126,24 @@ static struct Object *get_var(struct Interpreter *interp, struct Object **args, 
 	if (!parentscope)
 		return NULL;
 
-	struct Object *newargs[] = { parentscope, varname };
-	res = get_var(interp, newargs, nargs);
+	struct Object *tmp[] = { parentscope, varname };
+	struct Object *newargarr = arrayobject_new(interp, tmp, 2);
+	if (!newargarr) {
+		OBJECT_DECREF(interp, parentscope);
+		return NULL;
+	}
+
+	res = get_var(interp, newargarr);
+	OBJECT_DECREF(interp, newargarr);
 	OBJECT_DECREF(interp, parentscope);
 	return res;
 }
 
-struct Object *create_subscope(struct Interpreter *interp, struct Object **args, size_t nargs)
+struct Object *create_subscope(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, args, nargs, interp->builtins.scopeclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, argarr, interp->builtins.scopeclass, NULL) == STATUS_ERROR)
 		return NULL;
-	return scopeobject_newsub(interp, args[0]);
+	return scopeobject_newsub(interp, ARRAYOBJECT_GET(argarr, 0));
 }
 
 struct Object *scopeobject_createclass(struct Interpreter *interp)

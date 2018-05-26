@@ -5,6 +5,6 @@
 struct Interpreter;
 struct Object;
 
-struct Object *builtin_print(struct Interpreter *interp, struct Object **args, size_t nargs);
+struct Object *builtin_print(struct Interpreter *interp, struct Object *argarr);
 
 #endif  // BUILTINS_PRINT_H

@@ -11,9 +11,9 @@
 #include "../objects/string.h"
 
 // this is partialled to a block of code to create array_funcs
-static struct Object *runner(struct Interpreter *interp, struct Object **args, size_t nargs)
+static struct Object *runner(struct Interpreter *interp, struct Object *argarr)
 {
-	struct Object *parentscope = attribute_get(interp, args[0], "definition_scope");
+	struct Object *parentscope = attribute_get(interp, ARRAYOBJECT_GET(argarr, 0), "definition_scope");
 	if (!parentscope)
 		return NULL;
 
@@ -25,7 +25,7 @@ static struct Object *runner(struct Interpreter *interp, struct Object **args, s
 	struct Object *localvars = NULL, *string = NULL, *array = NULL;
 	if (!((localvars = attribute_get(interp, scope, "local_vars")) &&
 			(string = stringobject_newfromcharptr(interp, "arguments")) &&
-			(array = arrayobject_new(interp, args+1, nargs-1)))) {
+			(array = arrayobject_slice(interp, argarr, 1, ARRAYOBJECT_LEN(argarr))))) {
 		if (localvars) OBJECT_DECREF(interp, localvars);
 		if (string) OBJECT_DECREF(interp, string);
 		if (array) OBJECT_DECREF(interp, array);
@@ -42,16 +42,16 @@ static struct Object *runner(struct Interpreter *interp, struct Object **args, s
 		return NULL;
 	}
 
-	struct Object *res = method_call(interp, args[0], "run", scope, NULL);
+	struct Object *res = method_call(interp, ARRAYOBJECT_GET(argarr, 0), "run", scope, NULL);
 	OBJECT_DECREF(interp, scope);
 	return res;
 }
 
-struct Object *builtin_arrayfunc(struct Interpreter *interp, struct Object **args, size_t nargs)
+struct Object *builtin_arrayfunc(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, args, nargs, interp->builtins.blockclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, argarr, interp->builtins.blockclass, NULL) == STATUS_ERROR)
 		return NULL;
-	struct Object *block = args[0];
+	struct Object *block = ARRAYOBJECT_GET(argarr, 0);
 
 	struct Object *runnerobj = functionobject_new(interp, runner);
 	if (!runnerobj)

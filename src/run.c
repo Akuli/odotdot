@@ -58,29 +58,29 @@ static struct Object *run_expression(struct Interpreter *interp, struct Object *
 		// TODO: better error reporting
 		assert(func->klass == interp->builtins.functionclass);
 
-		struct Object **args = malloc(sizeof(struct Object*) * INFO_AS(AstCallInfo)->nargs);
-		if (!args) {
+		struct Object *argarr = arrayobject_newempty(interp);
+		if (!argarr) {
 			OBJECT_DECREF(interp, func);
-			errorobject_setnomem(interp);
 			return NULL;
 		}
-
 		for (size_t i=0; i < INFO_AS(AstCallInfo)->nargs; i++) {
 			struct Object *arg = run_expression(interp, scope, INFO_AS(AstCallInfo)->argnodes[i]);
 			if (!arg) {
-				for (size_t j=0; j<i; j++)
-					OBJECT_DECREF(interp, args[j]);
-				free(args);
+				OBJECT_DECREF(interp, argarr);
 				OBJECT_DECREF(interp, func);
 				return NULL;
 			}
-			args[i] = arg;
+			int ret = arrayobject_push(interp, argarr, arg);
+			OBJECT_DECREF(interp, arg);
+			if (ret == STATUS_ERROR) {
+				OBJECT_DECREF(interp, argarr);
+				OBJECT_DECREF(interp, func);
+				return NULL;
+			}
 		}
 
-		struct Object *res = functionobject_vcall(interp, func, args, INFO_AS(AstCallInfo)->nargs);
-		for (size_t i=0; i < INFO_AS(AstCallInfo)->nargs; i++)
-			OBJECT_DECREF(interp, args[i]);
-		free(args);
+		struct Object *res = functionobject_vcall(interp, func, argarr);
+		OBJECT_DECREF(interp, argarr);
 		OBJECT_DECREF(interp, func);
 		return res;
 	}

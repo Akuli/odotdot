@@ -1,5 +1,6 @@
 #include "object.h"
 #include <stddef.h>
+#include "array.h"
 #include "classobject.h"
 #include "errors.h"
 #include "function.h"
@@ -24,27 +25,27 @@ struct Object *objectobject_createclass_noerr(struct Interpreter *interp)
 }
 
 
-static struct Object *to_string(struct Interpreter *interp, struct Object **args, size_t nargs)
+static struct Object *to_string(struct Interpreter *interp, struct Object *argarr)
 {
 	// functionobject_checktypes may call to_string when creating an error message
 	// so we can't use it here, otherwise this may recurse
 	// maybe it wouldn't recurse... but better safe than sorry
-	if (nargs != 1) {
+	if (ARRAYOBJECT_LEN(argarr) != 1) {
 		errorobject_setwithfmt(interp, "Object::to_string takes exactly 1 argument");
 		return NULL;
 	}
 
-	char *name = ((struct ClassObjectData*) args[0]->klass->data)->name;
-	return stringobject_newfromfmt(interp, "<%s at %p>", name, (void *) args[0]);
+	char *name = ((struct ClassObjectData*) ARRAYOBJECT_GET(argarr, 0)->klass->data)->name;
+	return stringobject_newfromfmt(interp, "<%s at %p>", name, (void *) ARRAYOBJECT_GET(argarr, 0));
 }
 
-static struct Object *to_debug_string(struct Interpreter *interp, struct Object **args, size_t nargs)
+static struct Object *to_debug_string(struct Interpreter *interp, struct Object *argarr)
 {
-	if (nargs != 1) {
+	if (ARRAYOBJECT_LEN(argarr) != 1) {
 		errorobject_setwithfmt(interp, "Object::to_debug_string takes exactly 1 argument");
 		return NULL;
 	}
-	return method_call(interp, args[0], "to_string", NULL);
+	return method_call(interp, ARRAYOBJECT_GET(argarr, 0), "to_string", NULL);
 }
 
 int objectobject_addmethods(struct Interpreter *interp)

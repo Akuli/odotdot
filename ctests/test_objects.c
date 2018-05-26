@@ -58,11 +58,13 @@ void test_objects_error(void)
 struct Object *callback_arg1, *callback_arg2;
 int flipped = 0;
 
-struct Object *callback(struct Interpreter *interp, struct Object **args, size_t nargs)
+struct Object *callback(struct Interpreter *interp, struct Object *argarr)
 {
-	buttert(nargs == 2);
-	buttert(args[0] == (flipped ? callback_arg2 : callback_arg1));
-	buttert(args[1] == (flipped ? callback_arg1 : callback_arg2));
+	buttert(interp == testinterp);
+	buttert(argarr->klass == interp->builtins.arrayclass);
+	buttert(ARRAYOBJECT_LEN(argarr) == 2);
+	buttert(ARRAYOBJECT_GET(argarr, flipped?1:0) == callback_arg1);
+	buttert(ARRAYOBJECT_GET(argarr, flipped?0:1) == callback_arg2);
 	return (struct Object*) 0x123abc;
 }
 

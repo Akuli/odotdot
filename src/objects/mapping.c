@@ -8,6 +8,7 @@
 #include "../common.h"
 #include "../equals.h"
 #include "../method.h"
+#include "array.h"
 #include "classobject.h"
 #include "errors.h"
 #include "string.h"
@@ -150,11 +151,11 @@ int mappingobject_set(struct Interpreter *interp, struct Object *map, struct Obj
 	return STATUS_OK;
 }
 
-static struct Object *set(struct Interpreter *interp, struct Object **args, size_t nargs)
+static struct Object *set(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, args, nargs, interp->builtins.mappingclass, interp->builtins.objectclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, argarr, interp->builtins.mappingclass, interp->builtins.objectclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
 		return NULL;
-	if (mappingobject_set(interp, args[0], args[1], args[2]) == STATUS_ERROR)
+	if (mappingobject_set(interp, ARRAYOBJECT_GET(argarr, 0), ARRAYOBJECT_GET(argarr, 1), ARRAYOBJECT_GET(argarr, 2)) == STATUS_ERROR)
 		return NULL;
 
 	// must return a new reference
@@ -186,12 +187,12 @@ struct Object *mappingobject_get(struct Interpreter *interp, struct Object *map,
 	return NULL;
 }
 
-static struct Object *get(struct Interpreter *interp, struct Object **args, size_t nargs)
+static struct Object *get(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, args, nargs, interp->builtins.mappingclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, argarr, interp->builtins.mappingclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
 		return NULL;
-	struct Object *map = args[0];
-	struct Object *key = args[1];
+	struct Object *map = ARRAYOBJECT_GET(argarr, 0);
+	struct Object *key = ARRAYOBJECT_GET(argarr, 1);
 
 	assert(!(interp->err));
 	struct Object *res = mappingobject_get(interp, map, key);
@@ -201,12 +202,12 @@ static struct Object *get(struct Interpreter *interp, struct Object **args, size
 }
 
 
-static struct Object *get_and_delete(struct Interpreter *interp, struct Object **args, size_t nargs)
+static struct Object *get_and_delete(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, args, nargs, interp->builtins.mappingclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, argarr, interp->builtins.mappingclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
 		return NULL;
-	struct Object *map = args[0];
-	struct Object *key = args[1];
+	struct Object *map = ARRAYOBJECT_GET(argarr, 0);
+	struct Object *key = ARRAYOBJECT_GET(argarr, 1);
 
 	if (!(key->hashable)) {
 		errorobject_setwithfmt(interp, "%D is not hashable, so it can't be used as a Mapping key", key);
@@ -243,9 +244,9 @@ static struct Object *get_and_delete(struct Interpreter *interp, struct Object *
 	return NULL;
 }
 
-static struct Object *delete(struct Interpreter *interp, struct Object **args, size_t nargs)
+static struct Object *delete(struct Interpreter *interp, struct Object *argarr)
 {
-	struct Object *res = get_and_delete(interp, args, nargs);
+	struct Object *res = get_and_delete(interp, argarr);
 	if (!res)
 		return NULL;
 	OBJECT_DECREF(interp, res);

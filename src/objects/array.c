@@ -70,25 +70,25 @@ static struct Object *to_string_joiner(struct Interpreter *interp, struct Object
 	return res;
 }
 
-static struct Object *to_string(struct Interpreter *interp, struct Object **args, size_t nargs)
+static struct Object *to_string(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, args, nargs, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, argarr, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
 		return NULL;
-
-	struct ArrayObjectData *data = args[0]->data;
+	struct Object *arr = ARRAYOBJECT_GET(argarr, 0);
 
 	// this is handeled specially because malloc(0) may return NULL
-	if (data->len == 0)
+	if (ARRAYOBJECT_LEN(arr) == 0)
 		return stringobject_newfromcharptr(interp, "[]");
 
-	struct Object **strings = malloc(sizeof(struct Object*) * data->len);
+	// TODO: check for overflow with * or use calloc?
+	struct Object **strings = malloc(sizeof(struct Object*) * ARRAYOBJECT_LEN(arr));
 	if (!strings) {
 		errorobject_setnomem(interp);
 		return NULL;
 	}
 
-	for (size_t i = 0; i < data->len; i++) {
-		struct Object *stringed = method_call_todebugstring(interp, data->elems[i]);
+	for (size_t i = 0; i < ARRAYOBJECT_LEN(arr); i++) {
+		struct Object *stringed = method_call_todebugstring(interp, ARRAYOBJECT_GET(arr, i));
 		if (!stringed) {
 			for (size_t j=0; j<i; j++)
 				OBJECT_DECREF(interp, strings[i]);
@@ -98,8 +98,8 @@ static struct Object *to_string(struct Interpreter *interp, struct Object **args
 		strings[i] = stringed;
 	}
 
-	struct Object *res = to_string_joiner(interp, strings, data->len);
-	for (size_t i=0; i < data->len; i++)
+	struct Object *res = to_string_joiner(interp, strings, ARRAYOBJECT_LEN(arr));
+	for (size_t i=0; i < ARRAYOBJECT_LEN(arr); i++)
 		OBJECT_DECREF(interp, strings[i]);
 	free(strings);
 	return res;
@@ -118,12 +118,12 @@ static int validate_index(struct Interpreter *interp, struct Object *arr, long l
 	return STATUS_OK;
 }
 
-static struct Object *get(struct Interpreter *interp, struct Object **args, size_t nargs)
+static struct Object *get(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, args, nargs, interp->builtins.arrayclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, argarr, interp->builtins.arrayclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
 		return NULL;
-	struct Object *arr = args[0];
-	struct Object *index = args[1];
+	struct Object *arr = ARRAYOBJECT_GET(argarr, 0);
+	struct Object *index = ARRAYOBJECT_GET(argarr, 1);
 
 	long long i = integerobject_tolonglong(index);
 	if (validate_index(interp, arr, i) == STATUS_ERROR)
@@ -134,13 +134,13 @@ static struct Object *get(struct Interpreter *interp, struct Object **args, size
 	return res;
 }
 
-static struct Object *set(struct Interpreter *interp, struct Object **args, size_t nargs)
+static struct Object *set(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, args, nargs, interp->builtins.arrayclass, interp->builtins.integerclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, argarr, interp->builtins.arrayclass, interp->builtins.integerclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
 		return NULL;
-	struct Object *arr = args[0];
-	struct Object *index = args[1];
-	struct Object *obj = args[2];
+	struct Object *arr = ARRAYOBJECT_GET(argarr, 0);
+	struct Object *index = ARRAYOBJECT_GET(argarr, 1);
+	struct Object *obj = ARRAYOBJECT_GET(argarr, 2);
 
 	long long i = integerobject_tolonglong(index);
 	if (validate_index(interp, arr, i) == STATUS_ERROR)
@@ -155,35 +155,41 @@ static struct Object *set(struct Interpreter *interp, struct Object **args, size
 	return stringobject_newfromcharptr(interp, "this thing really should be null :((((");
 }
 
-static struct Object *push(struct Interpreter *interp, struct Object **args, size_t nargs)
+static struct Object *push(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, args, nargs, interp->builtins.arrayclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, argarr, interp->builtins.arrayclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
 		return NULL;
-	struct Object *arr = args[0];
-	struct Object *obj = args[1];
+	struct Object *arr = ARRAYOBJECT_GET(argarr, 0);
+	struct Object *obj = ARRAYOBJECT_GET(argarr, 1);
 
 	if (arrayobject_push(interp, arr, obj) == STATUS_ERROR)
 		return NULL;
 	return stringobject_newfromcharptr(interp, "this thing really should be null :((((");
 }
 
-static struct Object *pop(struct Interpreter *interp, struct Object **args, size_t nargs)
+static struct Object *pop(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, args, nargs, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, argarr, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
 		return NULL;
-
-	struct Object *res = arrayobject_pop(interp, args[0]);
+	struct Object *res = arrayobject_pop(interp, ARRAYOBJECT_GET(argarr, 0));
 	if (!res)
 		errorobject_setwithfmt(interp, "cannot pop from an empty array");
 	return res;
 }
 
-// TODO: should this be an attribute?
-static struct Object *get_length(struct Interpreter *interp, struct Object **args, size_t nargs)
+static struct Object *slice(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, args, nargs, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, argarr, interp->builtins.arrayclass, interp->builtins.integerclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
 		return NULL;
-	return integerobject_newfromlonglong(interp, ARRAYOBJECT_LEN(args[0]));
+	return arrayobject_slice(interp, ARRAYOBJECT_GET(argarr, 0), integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1)), integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 2)));
+}
+
+// TODO: should this be an attribute?
+static struct Object *get_length(struct Interpreter *interp, struct Object *argarr)
+{
+	if (functionobject_checktypes(interp, argarr, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
+		return NULL;
+	return integerobject_newfromlonglong(interp, ARRAYOBJECT_LEN(ARRAYOBJECT_GET(argarr, 0)));
 }
 
 struct Object *arrayobject_createclass(struct Interpreter *interp)
@@ -196,6 +202,7 @@ struct Object *arrayobject_createclass(struct Interpreter *interp)
 	if (method_add(interp, klass, "get", get) == STATUS_ERROR) goto error;
 	if (method_add(interp, klass, "push", push) == STATUS_ERROR) goto error;
 	if (method_add(interp, klass, "pop", pop) == STATUS_ERROR) goto error;
+	if (method_add(interp, klass, "slice", slice) == STATUS_ERROR) goto error;
 	if (method_add(interp, klass, "get_length", get_length) == STATUS_ERROR) goto error;
 	if (method_add(interp, klass, "to_string", to_string) == STATUS_ERROR) goto error;
 	return klass;
@@ -289,4 +296,30 @@ struct Object *arrayobject_pop(struct Interpreter *interp, struct Object *arr)
 
 	// don't touch refcounts, we remove a reference from the data but we also return a reference
 	return data->elems[--data->len];
+}
+
+struct Object *arrayobject_slice(struct Interpreter *interp, struct Object *arr, long long start, long long end)
+{
+	// ignore out of bounds indexes, like in python
+	if (start < 0)
+		start = 0;
+	if (end < 0)
+		return arrayobject_newempty(interp);   // may be NULL
+	// now end is guaranteed to be non-negative, so it can be casted to size_t
+	if ((size_t)end > ARRAYOBJECT_LEN(arr))
+		end = ARRAYOBJECT_LEN(arr);
+	if (start >= end)
+		return arrayobject_newempty(interp);   // may be NULL
+
+	struct Object *res = arrayobject_newempty(interp);
+	if (!res)
+		return NULL;
+
+	for (size_t i=start; i < (size_t) end; i++) {
+		if (arrayobject_push(interp, res, ARRAYOBJECT_GET(arr, i)) == STATUS_ERROR) {
+			OBJECT_DECREF(interp, res);
+			return NULL;
+		}
+	}
+	return res;
 }

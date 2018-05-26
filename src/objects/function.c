@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#include "array.h"
 #include "classobject.h"
 #include "errors.h"
 #include "mapping.h"
@@ -45,18 +46,23 @@ struct Object *functionobject_createclass(struct Interpreter *interp)
 	return classobject_new(interp, "Function", interp->builtins.objectclass, 0, function_foreachref);
 }
 
-static struct Object *partial(struct Interpreter *interp, struct Object **args, size_t nargs)
+static struct Object *partial(struct Interpreter *interp, struct Object *argarr)
 {
 	// check the first argument, rest are the args that are being partialled
 	// there can be 0 or more partialled args (0 partialled args allowed for consistency)
-	if (functionobject_checktypes(interp, args, (nargs>1 ? 1 : nargs), interp->builtins.functionclass, NULL) == STATUS_ERROR)
+	if (ARRAYOBJECT_LEN(argarr) == 0) {
+		errorobject_setwithfmt(interp, "not enough arguments to Function::partial");
 		return NULL;
-	struct Object *func = args[0];
-	struct Object **partialargs = args + 1;
-	size_t npartialargs = nargs - 1;
+	}
+	if (errorobject_typecheck(interp, interp->builtins.functionclass, ARRAYOBJECT_GET(argarr, 0)) == STATUS_ERROR)
+		return NULL;
 
-	// shortcut: no partial args to add
-	if (nargs == 1) {
+	struct Object *func = ARRAYOBJECT_GET(argarr, 0);
+	struct Object **partialargs = ((struct ArrayObjectData *) argarr->data)->elems + 1;
+	size_t npartialargs = ARRAYOBJECT_LEN(argarr) - 1;
+
+	// shortcut
+	if (npartialargs == 0) {
 		OBJECT_INCREF(interp, func);
 		return func;
 	}
@@ -97,8 +103,14 @@ static struct Object *partial(struct Interpreter *interp, struct Object **args, 
 // that would be infinite recursion
 struct Object *functionobject_newpartial(struct Interpreter *interp, struct Object *func, struct Object *partialarg)
 {
-	struct Object *args[] = { func, partialarg };
-	return partial(interp, args, 2);
+	struct Object *tmp[] = { func, partialarg };
+	struct Object *arr = arrayobject_new(interp, tmp, 2);
+	if (!arr)
+		return NULL;
+
+	struct Object *res = partial(interp, arr);
+	OBJECT_DECREF(interp, arr);
+	return res;
 }
 
 int functionobject_addmethods(struct Interpreter *interp)
@@ -108,10 +120,10 @@ int functionobject_addmethods(struct Interpreter *interp)
 	return STATUS_OK;
 }
 
-int functionobject_checktypes(struct Interpreter *interp, struct Object **args, size_t nargs, ...)
+int functionobject_checktypes(struct Interpreter *interp, struct Object *argarr, ...)
 {
 	va_list ap;
-	va_start(ap, nargs);
+	va_start(ap, argarr);
 
 	unsigned int expectnargs;   // expected number of arguments
 	struct Object *classes[NARGS_MAX];
@@ -125,15 +137,13 @@ int functionobject_checktypes(struct Interpreter *interp, struct Object **args, 
 
 	// TODO: test these
 	// TODO: include the function name in the error?
-	if (nargs != expectnargs) {
-		errorobject_setwithfmt(interp, "%s arguments", nargs > expectnargs ? "too many" : "not enough");
-		for (unsigned int i=0; i < expectnargs; i++)
-			OBJECT_DECREF(interp, classes[i]);
+	if (ARRAYOBJECT_LEN(argarr) != expectnargs) {
+		errorobject_setwithfmt(interp, "%s arguments", ARRAYOBJECT_LEN(argarr) > expectnargs ? "too many" : "not enough");
 		return STATUS_ERROR;
 	}
 
-	for (unsigned int i=0; i < nargs; i++) {
-		if (errorobject_typecheck(interp, classes[i], args[i]) == STATUS_ERROR)
+	for (unsigned int i=0; i < expectnargs; i++) {
+		if (errorobject_typecheck(interp, classes[i], ARRAYOBJECT_GET(argarr, i)) == STATUS_ERROR)
 			return STATUS_ERROR;
 	}
 
@@ -163,45 +173,59 @@ struct Object *functionobject_call(struct Interpreter *interp, struct Object *fu
 {
 	assert(func->klass == interp->builtins.functionclass);    // TODO: better type check
 
-	struct Object *args[NARGS_MAX];
+	struct Object *argarr = arrayobject_newempty(interp);
+	if (!argarr)
+		return NULL;
+
 	va_list ap;
 	va_start(ap, func);
 
-	int nargs;
-	for (nargs=0; nargs < NARGS_MAX; nargs++) {
+	while(true) {
 		struct Object *arg = va_arg(ap, struct Object *);
-		if (!arg)
+		if (!arg)    // end of argument list, not an error
 			break;
-		args[nargs] = arg;
+		if (arrayobject_push(interp, argarr, arg) == STATUS_ERROR) {
+			OBJECT_DECREF(interp, argarr);
+			return NULL;
+		}
 	}
 	va_end(ap);
 
-	return functionobject_vcall(interp, func, args, nargs);
+	struct Object *res = functionobject_vcall(interp, func, argarr);
+	OBJECT_DECREF(interp, argarr);
+	return res;
 }
 
-struct Object *functionobject_vcall(struct Interpreter *interp, struct Object *func, struct Object **args, size_t nargs)
+struct Object *functionobject_vcall(struct Interpreter *interp, struct Object *func, struct Object *argarr)
 {
-	struct Object **theargs;
-	size_t thenargs;
+	struct Object *theargs;
 	struct FunctionData *data = func->data;     // casts implicitly
 
 	if (data->npartialargs > 0) {
-		// TODO: is there a more efficient way to do this?
-		thenargs = nargs + data->npartialargs;
-		theargs = malloc(sizeof(struct Object *) * thenargs);
-		if (!theargs) {
-			errorobject_setnomem(interp);
+		// TODO: add a more efficient way to concatenate arrays
+		// TODO: data->partialargs should be an array
+		theargs = arrayobject_newempty(interp);
+		if (!theargs)
 			return NULL;
+
+		for (size_t i=0; i < data->npartialargs; i++) {
+			if (arrayobject_push(interp, theargs, data->partialargs[i]) == STATUS_ERROR) {
+				OBJECT_DECREF(interp, theargs);
+				return NULL;
+			}
 		}
-		memcpy(theargs, data->partialargs, sizeof(struct Object*) * data->npartialargs);
-		memcpy(theargs + data->npartialargs, args, sizeof(struct Object*) * nargs);
+		for (size_t i=0; i < ARRAYOBJECT_LEN(argarr); i++) {
+			if (arrayobject_push(interp, theargs, ARRAYOBJECT_GET(argarr, i)) == STATUS_ERROR) {
+				OBJECT_DECREF(interp, theargs);
+				return NULL;
+			}
+		}
 	} else {
-		thenargs = nargs;
-		theargs = args;
+		theargs = argarr;
 	}
 
-	struct Object *res = data->cfunc(interp, theargs, thenargs);
-	if (data->npartialargs > 0)
-		free(theargs);
-	return res;
+	struct Object *res = data->cfunc(interp, theargs);
+	if (theargs != argarr)
+		OBJECT_DECREF(interp, theargs);
+	return res;   // may be NULL
 }

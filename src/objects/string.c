@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "array.h"
 #include "classobject.h"
 #include "errors.h"
 #include "function.h"
@@ -29,21 +30,21 @@ struct Object *stringobject_createclass_noerr(struct Interpreter *interp)
 	return classobject_new_noerr(interp, "String", interp->builtins.objectclass, 0, NULL);
 }
 
-static struct Object *to_string(struct Interpreter *interp, struct Object **args, size_t nargs)
+static struct Object *to_string(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, args, nargs, interp->builtins.stringclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, argarr, interp->builtins.stringclass, NULL) == STATUS_ERROR)
 		return NULL;
 
-	OBJECT_INCREF(interp, args[0]);   // we're returning a reference
-	return args[0];
+	OBJECT_INCREF(interp, ARRAYOBJECT_GET(argarr, 0));   // we're returning a reference
+	return ARRAYOBJECT_GET(argarr, 0);
 }
 
-static struct Object *to_debug_string(struct Interpreter *interp, struct Object **args, size_t nargs)
+static struct Object *to_debug_string(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, args, nargs, interp->builtins.stringclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, argarr, interp->builtins.stringclass, NULL) == STATUS_ERROR)
 		return NULL;
 
-	struct UnicodeString noquotes = *((struct UnicodeString*) args[0]->data);
+	struct UnicodeString noquotes = *((struct UnicodeString*) ARRAYOBJECT_GET(argarr, 0)->data);
 	struct UnicodeString yesquotes;
 	yesquotes.len = noquotes.len + 2;
 	yesquotes.val = malloc(sizeof(unicode_char) * yesquotes.len);

@@ -34,4 +34,7 @@ int arrayobject_push(struct Interpreter *interp, struct Object *arr, struct Obje
 // never fails if arr is an array object, bad things happen if it isn't
 struct Object *arrayobject_pop(struct Interpreter *interp, struct Object *arr);
 
+// RETURNS A NEW REFERENCE or NULL on error
+struct Object *arrayobject_slice(struct Interpreter *interp, struct Object *arr, long long start, long long end);
+
 #endif    // OBJECTS_ARRAY_H

@@ -5,20 +5,21 @@
 #include "../common.h"
 #include "../interpreter.h"
 #include "../objectsystem.h"
+#include "../objects/array.h"
 #include "../objects/errors.h"
 #include "../objects/function.h"
 #include "../objects/string.h"
 #include "../unicode.h"
 
-struct Object *builtin_print(struct Interpreter *interp, struct Object **args, size_t nargs)
+struct Object *builtin_print(struct Interpreter *interp, struct Object *argarr)
 {
-	if (functionobject_checktypes(interp, args, nargs, interp->builtins.stringclass, NULL) == STATUS_ERROR)
+	if (functionobject_checktypes(interp, argarr, interp->builtins.stringclass, NULL) == STATUS_ERROR)
 		return NULL;
 
 	char *utf8;
 	size_t utf8len;
 	char errormsg[100];
-	int status = utf8_encode(*((struct UnicodeString *) args[0]->data), &utf8, &utf8len, errormsg);
+	int status = utf8_encode(*((struct UnicodeString *) ARRAYOBJECT_GET(argarr, 0)->data), &utf8, &utf8len, errormsg);
 	if (status == STATUS_NOMEM) {
 		errorobject_setnomem(interp);
 		return NULL;

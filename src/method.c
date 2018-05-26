@@ -1,10 +1,12 @@
 #include "method.h"
 #include <assert.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include "common.h"
 #include "interpreter.h"
+#include "objects/array.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
 #include "objects/function.h"
@@ -82,31 +84,38 @@ struct Object *method_get(struct Interpreter *interp, struct Object *obj, char *
 }
 
 
-#define NARGS_MAX 20   // same as in objects/function.c
 struct Object *method_call(struct Interpreter *interp, struct Object *obj, char *methname, ...)
 {
 	struct Object *method = method_get(interp, obj, methname);
 	if (!method)
 		return NULL;
 
-	struct Object *args[NARGS_MAX];
+	struct Object *argarr = arrayobject_newempty(interp);
+	if (!argarr) {
+		OBJECT_DECREF(interp, method);
+		return NULL;
+	}
+
 	va_list ap;
 	va_start(ap, methname);
 
-	int nargs;
-	for (nargs = 0; nargs < NARGS_MAX; nargs++) {
+	while(true) {
 		struct Object *arg = va_arg(ap, struct Object*);
 		if (!arg)
 			break;   // end of argument list, not an error
-		args[nargs] = arg;
+		if (arrayobject_push(interp, argarr, arg) == STATUS_ERROR) {
+			OBJECT_DECREF(interp, argarr);
+			OBJECT_DECREF(interp, method);
+			return NULL;
+		}
 	}
 	va_end(ap);
 
-	struct Object *res = functionobject_vcall(interp, method, args, nargs);
+	struct Object *res = functionobject_vcall(interp, method, argarr);
+	OBJECT_DECREF(interp, argarr);
 	OBJECT_DECREF(interp, method);
 	return res;
 }
-#undef NARGS_MAX
 
 static struct Object *to_maybe_debug_string(struct Interpreter *interp, struct Object *obj, char *methname)
 {
