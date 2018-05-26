@@ -1,0 +1,5 @@
+{
+	this_function_does_not_exist;
+} `catch` {
+	print "oops";
+};

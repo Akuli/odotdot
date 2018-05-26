@@ -39,6 +39,7 @@ struct Interpreter *interpreter_new(char *argv0)
 	interp->builtins.stringclass =
 
 	interp->builtins.array_func =
+	interp->builtins.catch =
 	interp->builtins.equals =
 	interp->builtins.nomemerr =
 	interp->builtins.print =

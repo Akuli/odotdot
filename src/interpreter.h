@@ -22,6 +22,7 @@ struct InterpreterBuiltins {
 	struct Object *stringclass;
 
 	struct Object *array_func;
+	struct Object *catch;
 	struct Object *equals;
 	struct Object *nomemerr;
 	struct Object *print;

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include "ast.h"
 #include "builtins/arrayfunc.h"
+#include "builtins/catch.h"
 #include "builtins/operators.h"
 #include "builtins/print.h"
 #include "common.h"
@@ -69,6 +70,7 @@ int builtins_setup(struct Interpreter *interp)
 	if (!(interp->builtins.blockclass = blockobject_createclass(interp))) goto error;
 
 	if (!(interp->builtins.array_func = functionobject_new(interp, builtin_arrayfunc))) goto error;
+	if (!(interp->builtins.catch = functionobject_new(interp, builtin_catch))) goto error;
 	if (!(interp->builtins.equals = functionobject_new(interp, builtin_equals))) goto error;
 	if (!(interp->builtins.print = functionobject_new(interp, builtin_print))) goto error;
 	if (!(interp->builtins.same_object = functionobject_new(interp, builtin_sameobject))) goto error;
@@ -82,6 +84,7 @@ int builtins_setup(struct Interpreter *interp)
 	if (interpreter_addbuiltin(interp, "Object", interp->builtins.objectclass) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "String", interp->builtins.stringclass) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "array_func", interp->builtins.array_func) == STATUS_ERROR) goto error;
+	if (interpreter_addbuiltin(interp, "catch", interp->builtins.catch) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "equals", interp->builtins.equals) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "print", interp->builtins.print) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "same_object", interp->builtins.same_object) == STATUS_ERROR) goto error;
@@ -147,6 +150,7 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(stringclass);
 
 	TEARDOWN(array_func);
+	TEARDOWN(catch);
 	TEARDOWN(equals);
 	TEARDOWN(nomemerr);
 	TEARDOWN(print);
