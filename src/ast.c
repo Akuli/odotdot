@@ -106,7 +106,6 @@ struct Object *astnode_createclass(struct Interpreter *interp)
 }
 
 
-// RETURNS A NEW REFERENCE or NULL on error
 struct Object *ast_new_statement(struct Interpreter *interp, char kind, size_t lineno, void *info)
 {
 	struct AstNodeData *data = malloc(sizeof(struct AstNodeData));
@@ -146,6 +145,7 @@ static int expression_coming_up(struct Token *curtok)
 // all parse_blahblah() functions RETURN A NEW REFERENCE or NULL on error
 
 
+// "asd"
 static struct Object *parse_string(struct Interpreter *interp, struct Token **curtok)
 {
 	// these should be checked by the caller
@@ -173,6 +173,7 @@ static struct Object *parse_string(struct Interpreter *interp, struct Token **cu
 }
 
 
+// 123, -456
 static struct Object *parse_int(struct Interpreter *interp, struct Token **curtok)
 {
 	assert(*curtok);
@@ -193,7 +194,7 @@ static struct Object *parse_int(struct Interpreter *interp, struct Token **curto
 }
 
 
-// RETURNS A NEW REFERENCE or NULL on error
+// x
 static struct Object *parse_getvar(struct Interpreter *interp, struct Token **curtok)
 {
 	assert(*curtok);
@@ -223,6 +224,7 @@ static struct Object *parse_getvar(struct Interpreter *interp, struct Token **cu
 // because i'm lazy, wouldn't be hard to fix
 #define MAX_ARGS 100
 
+// func arg1 arg2;
 // this takes the function as an already-parsed argument
 // this way parse_statement() knows when this should be called
 static struct Object *parse_call(struct Interpreter *interp, struct Token **curtok, struct Object *funcnode)
@@ -253,7 +255,7 @@ static struct Object *parse_call(struct Interpreter *interp, struct Token **curt
 			return NULL;
 		}
 
-		// don't incref or decref arg, parse_expression() returned a reference
+		// don't incref or decref arg, ast_parse_expression() returned a reference
 		callinfo->argnodes[callinfo->nargs] = arg;
 	}
 
@@ -278,12 +280,12 @@ static struct Object *parse_call(struct Interpreter *interp, struct Token **curt
 }
 #undef MAX_ARGS
 
-// "arg1 `func` arg2" and "func arg1 arg2" should do the same thing
+// "arg1 `func` arg2"
 static struct Object *parse_infix_call(struct Interpreter *interp, struct Token **curtok, struct Object *arg1)
 {
 	size_t lineno = (*curtok)->lineno;
 
-	// this SHOULD be checked by parse_expression()
+	// this SHOULD be checked by ast_parse_expression()
 	assert((*curtok)->str.len == 1 && (*curtok)->str.val[0] == '`');
 	*curtok = (*curtok)->next;
 
@@ -336,9 +338,10 @@ static struct Object *parse_infix_call(struct Interpreter *interp, struct Token 
 }
 
 
+// (func arg1 arg2) or (arg1 `func` arg2)
 static struct Object *parse_call_expression(struct Interpreter *interp, struct Token **curtok)
 {
-	// this SHOULD be checked by parse_expression()
+	// this SHOULD be checked by ast_parse_expression()
 	assert((*curtok)->str.len == 1 && (*curtok)->str.val[0] == '(');
 	*curtok = (*curtok)->next;
 
@@ -363,6 +366,7 @@ static struct Object *parse_call_expression(struct Interpreter *interp, struct T
 }
 
 
+// [a b c]
 static struct Object *parse_array(struct Interpreter *interp, struct Token **curtok)
 {
 	assert(*curtok);
@@ -402,6 +406,7 @@ static struct Object *parse_array(struct Interpreter *interp, struct Token **cur
 	return res;
 }
 
+// { ... }
 struct Object *parse_block(struct Interpreter *interp, struct Token **curtok)
 {
 	assert(*curtok);
@@ -519,6 +524,7 @@ struct Object *ast_parse_expression(struct Interpreter *interp, struct Token **c
 }
 
 
+// var x = y;
 static struct Object *parse_var_statement(struct Interpreter *interp, struct Token **curtok)
 {
 	// parse_statement() has checked (*curtok)->kind
@@ -573,6 +579,76 @@ static struct Object *parse_var_statement(struct Interpreter *interp, struct Tok
 	return res;
 }
 
+// x = y;
+static struct Object *parse_assignment(struct Interpreter *interp, struct Token **curtok, struct Object *lhs)
+{
+	struct AstNodeData *lhsdata = lhs->data;
+	if (lhsdata->kind != AST_GETVAR && lhsdata->kind != AST_GETATTR) {
+		// TODO: report an error e.g. like this:
+		//   the x of 'x = y;' must be a variable name or an attribute
+		assert(0);
+	}
+
+	// these should be checked by the caller
+	assert((*curtok)->str.len == 1);
+	assert((*curtok)->str.val[0] == '=');
+	*curtok = (*curtok)->next;
+
+	struct Object *rhs = ast_parse_expression(interp, curtok);
+	if (!rhs)
+		return NULL;
+
+	if (lhsdata->kind == AST_GETVAR) {
+		struct AstGetVarInfo *lhsinfo = lhsdata->info;
+		struct AstCreateOrSetVarInfo *info = malloc(sizeof(struct AstCreateOrSetVarInfo));
+		if (!info)
+			goto error;
+
+		if (unicodestring_copyinto(lhsinfo->varname, &(info->varname)) == STATUS_NOMEM) {
+			errorobject_setnomem(interp);
+			free(info);
+			goto error;
+		}
+		info->valnode = rhs;
+
+		struct Object *result = ast_new_statement(interp, AST_SETVAR, lhsdata->lineno, info);
+		if (!result) {
+			free(info->varname.val);
+			free(info);
+			goto error;
+		}
+		return result;
+	} else {
+		assert(lhsdata->kind == AST_GETATTR);
+		struct AstGetAttrOrMethodInfo *lhsinfo = lhsdata->info;
+		struct AstSetAttrInfo *info = malloc(sizeof(struct AstSetAttrInfo));
+		if (!info)
+			goto error;
+
+		if (unicodestring_copyinto(lhsinfo->name, &(info->attr)) == STATUS_NOMEM) {
+			errorobject_setnomem(interp);
+			free(info);
+			goto error;
+		}
+		info->objnode = lhsinfo->objnode;
+		OBJECT_INCREF(interp, lhsinfo->objnode);
+		info->valnode = rhs;
+
+		struct Object *result = ast_new_statement(interp, AST_SETATTR, lhsdata->lineno, info);
+		if (!result) {
+			OBJECT_DECREF(interp, lhsinfo->objnode);
+			free(info->attr.val);
+			free(info);
+			goto error;
+		}
+		return result;
+	}
+
+error:
+	OBJECT_DECREF(interp, rhs);
+	return NULL;
+}
+
 struct Object *ast_parse_statement(struct Interpreter *interp, struct Token **curtok)
 {
 	struct Object *res;
@@ -580,12 +656,14 @@ struct Object *ast_parse_statement(struct Interpreter *interp, struct Token **cu
 		// var is currently the only keyword
 		res = parse_var_statement(interp, curtok);
 	} else {
-		// a function call
+		// a function call or an assignment
 		struct Object *first = ast_parse_expression(interp, curtok);
 		if (!first)
 			return NULL;
 
-		if ((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == '`')
+		if ((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == '=')
+			res = parse_assignment(interp, curtok, first);
+		else if ((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == '`')
 			res = parse_infix_call(interp, curtok, first);
 		else
 			res = parse_call(interp, curtok, first);

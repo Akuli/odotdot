@@ -68,3 +68,20 @@ int attribute_set(struct Interpreter *interp, struct Object *obj, char *attr, st
 	OBJECT_DECREF(interp, s);
 	return setret;
 }
+
+// TODO: this is too copy/pasta
+int attribute_setwithustr(struct Interpreter *interp, struct Object *obj, struct UnicodeString attr, struct Object *val)
+{
+	if (!obj->attrs) {
+		errorobject_setwithfmt(interp, "%D has no attributes", obj);
+		return STATUS_ERROR;
+	}
+
+	struct Object *s = stringobject_newfromustr(interp, attr);
+	if (!s)
+		return STATUS_ERROR;
+
+	int setret = mappingobject_set(interp, obj->attrs, s, val);
+	OBJECT_DECREF(interp, s);
+	return setret;
+}

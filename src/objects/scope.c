@@ -54,7 +54,7 @@ struct Object *scopeobject_newbuiltin(struct Interpreter *interp)
 static struct Object *set_var(struct Interpreter *interp, struct Object *argarr)
 {
 	// TODO: figure out a nice way to make sure that the first argument is a Scope
-	if (check_args(interp, argarr, interp->builtins.objectclass, interp->builtins.stringclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.scopeclass, interp->builtins.stringclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *scope = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *varname = ARRAYOBJECT_GET(argarr, 1);
@@ -108,7 +108,7 @@ static struct Object *set_var(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *get_var(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.objectclass, interp->builtins.stringclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.scopeclass, interp->builtins.stringclass, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *scope = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *varname = ARRAYOBJECT_GET(argarr, 1);

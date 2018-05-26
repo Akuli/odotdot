@@ -152,6 +152,46 @@ int run_statement(struct Interpreter *interp, struct Object *scope, struct Objec
 		OBJECT_DECREF(interp, val);
 		return res;
 	}
+
+	if (nodedata->kind == AST_SETVAR) {
+		struct Object *namestr = stringobject_newfromustr(interp, INFO_AS(AstCreateOrSetVarInfo)->varname);
+		if (!namestr)
+			return STATUS_ERROR;
+
+		struct Object *val = run_expression(interp, scope, INFO_AS(AstCreateOrSetVarInfo)->valnode);
+		if (!val) {
+			OBJECT_DECREF(interp, namestr);
+			return STATUS_ERROR;
+		}
+
+		// TODO: expose Scope::set_var?
+		struct Object *res = method_call(interp, scope, "set_var", namestr, val, NULL);
+		OBJECT_DECREF(interp, namestr);
+		OBJECT_DECREF(interp, val);
+
+		if (res) {
+			OBJECT_DECREF(interp, res);
+			return STATUS_OK;
+		}
+		return STATUS_ERROR;
+	}
+
+	if (nodedata->kind == AST_SETATTR) {
+		struct Object *obj = run_expression(interp, scope, INFO_AS(AstSetAttrInfo)->objnode);
+		if (!obj)
+			return STATUS_ERROR;
+
+		struct Object *val = run_expression(interp, scope, INFO_AS(AstSetAttrInfo)->valnode);
+		if (!val) {
+			OBJECT_DECREF(interp, obj);
+			return STATUS_ERROR;
+		}
+
+		int res = attribute_setwithustr(interp, obj, INFO_AS(AstSetAttrInfo)->attr, val);
+		OBJECT_DECREF(interp, obj);
+		OBJECT_DECREF(interp, val);
+		return res;
+	}
 #undef INFO_AS
 
 	assert(0);
