@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include "ast.h"
 #include "builtins/arrayfunc.h"
+#include "builtins/operators.h"
 #include "builtins/print.h"
 #include "common.h"
 #include "interpreter.h"
@@ -66,8 +67,11 @@ int builtins_setup(struct Interpreter *interp)
 	if (!(interp->builtins.astnodeclass = astnode_createclass(interp))) goto error;
 	if (!(interp->builtins.scopeclass = scopeobject_createclass(interp))) goto error;
 	if (!(interp->builtins.blockclass = blockobject_createclass(interp))) goto error;
-	if (!(interp->builtins.print = functionobject_new(interp, builtin_print))) goto error;
+
 	if (!(interp->builtins.array_func = functionobject_new(interp, builtin_arrayfunc))) goto error;
+	if (!(interp->builtins.equals = functionobject_new(interp, builtin_equals))) goto error;
+	if (!(interp->builtins.print = functionobject_new(interp, builtin_print))) goto error;
+	if (!(interp->builtins.same_object = functionobject_new(interp, builtin_sameobject))) goto error;
 
 	if (!(interp->builtinscope = scopeobject_newbuiltin(interp))) goto error;
 
@@ -78,7 +82,9 @@ int builtins_setup(struct Interpreter *interp)
 	if (interpreter_addbuiltin(interp, "Object", interp->builtins.objectclass) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "String", interp->builtins.stringclass) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "array_func", interp->builtins.array_func) == STATUS_ERROR) goto error;
+	if (interpreter_addbuiltin(interp, "equals", interp->builtins.equals) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "print", interp->builtins.print) == STATUS_ERROR) goto error;
+	if (interpreter_addbuiltin(interp, "same_object", interp->builtins.same_object) == STATUS_ERROR) goto error;
 
 #ifdef DEBUG_BUILTINS       // compile like this:   $ CFLAGS=-DDEBUG_BUILTINS make clean all
 	printf("things created by builtins_setup():\n");
@@ -141,8 +147,10 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(stringclass);
 
 	TEARDOWN(array_func);
+	TEARDOWN(equals);
 	TEARDOWN(nomemerr);
 	TEARDOWN(print);
+	TEARDOWN(same_object);
 #undef TEARDOWN
 
 	if (interp->builtinscope) {
