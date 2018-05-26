@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include "ast.h"
 #include "attribute.h"
+#include "check.h"
 #include "common.h"
 #include "interpreter.h"
 #include "method.h"
@@ -23,10 +24,11 @@ static struct Object *run_expression(struct Interpreter *interp, struct Object *
 
 #define INFO_AS(X) ((struct X *) nodedata->info)
 	if (nodedata->kind == AST_GETVAR) {
-		// TODO: optimize this :^/(
 		struct Object *name = stringobject_newfromustr(interp, INFO_AS(AstGetVarInfo)->varname);
 		if (!name)
 			return NULL;
+
+		// TODO: expose scope get_var in C to avoid method_call?
 		struct Object *res = method_call(interp, scope, "get_var", name, NULL);
 		OBJECT_DECREF(interp, name);
 		return res;
@@ -55,9 +57,10 @@ static struct Object *run_expression(struct Interpreter *interp, struct Object *
 		struct Object *func = run_expression(interp, scope, INFO_AS(AstCallInfo)->funcnode);
 		if (!func)
 			return NULL;
-
-		// TODO: better error reporting
-		assert(func->klass == interp->builtins.functionclass);
+		if (check_type(interp, interp->builtins.functionclass, func) == STATUS_ERROR) {
+			OBJECT_DECREF(interp, func);
+			return NULL;
+		}
 
 		struct Object *argarr = arrayobject_newempty(interp);
 		if (!argarr) {
