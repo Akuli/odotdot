@@ -53,4 +53,7 @@ void classobject_runforeachref(struct Object *obj, void *data, classobject_forea
 // uses interp->builtins.objectclass
 struct Object *classobject_create_classclass_noerr(struct Interpreter *interp);
 
+// returns STATUS_OK or STATUS_ERROR
+int classobject_addmethods(struct Interpreter *interp);
+
 #endif    // OBJECTS_CLASSOBJECT_H

@@ -26,6 +26,12 @@ struct Object *objectobject_createclass_noerr(struct Interpreter *interp)
 }
 
 
+// setup does nothing by default
+static struct Object *setup(struct Interpreter *interp, struct Object *argarr) {
+	if (check_args(interp, argarr, interp->builtins.objectclass, NULL) == STATUS_ERROR) return NULL;
+	return interpreter_getbuiltin(interp, "null");
+}
+
 static struct Object *to_string(struct Interpreter *interp, struct Object *argarr)
 {
 	// check_args may call to_string when creating an error message
@@ -51,6 +57,7 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 
 int objectobject_addmethods(struct Interpreter *interp)
 {
+	if (method_add(interp, interp->builtins.objectclass, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.objectclass, "to_string", to_string) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.objectclass, "to_debug_string", to_debug_string) == STATUS_ERROR) return STATUS_ERROR;
 	return STATUS_OK;

@@ -29,6 +29,13 @@ static void array_destructor(struct Object *arr)
 	free(data);
 }
 
+
+static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
+{
+	errorobject_setwithfmt(interp, "arrays can't be created with (new Array), use [ ] instead");
+	return NULL;
+}
+
 /* joins string objects together and adds [ ] around the whole thing
 to_string was becoming huge, had to break into two functions
 TODO: how about putting the array inside itself? python does this:
@@ -199,6 +206,7 @@ struct Object *arrayobject_createclass(struct Interpreter *interp)
 	if (!klass)
 		return NULL;
 
+	if (method_add(interp, klass, "setup", setup) == STATUS_ERROR) goto error;
 	if (method_add(interp, klass, "set", set) == STATUS_ERROR) goto error;
 	if (method_add(interp, klass, "get", get) == STATUS_ERROR) goto error;
 	if (method_add(interp, klass, "push", push) == STATUS_ERROR) goto error;

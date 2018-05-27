@@ -52,11 +52,13 @@ int builtins_setup(struct Interpreter *interp)
 
 	// these classes must exist before methods exist, so they are handled specially
 	// TODO: classclass
+	if (create_method_mapping(interp, interp->builtins.classclass) == STATUS_ERROR) goto error;
 	if (create_method_mapping(interp, interp->builtins.objectclass) == STATUS_ERROR) goto error;
 	if (create_method_mapping(interp, interp->builtins.stringclass) == STATUS_ERROR) goto error;
 	if (create_method_mapping(interp, interp->builtins.errorclass) == STATUS_ERROR) goto error;
 	if (create_method_mapping(interp, interp->builtins.mappingclass) == STATUS_ERROR) goto error;
 	if (create_method_mapping(interp, interp->builtins.functionclass) == STATUS_ERROR) goto error;
+	if (classobject_addmethods(interp) == STATUS_ERROR) goto error;
 	if (objectobject_addmethods(interp) == STATUS_ERROR) goto error;
 	if (stringobject_addmethods(interp) == STATUS_ERROR) goto error;
 	if (errorobject_addmethods(interp) == STATUS_ERROR) goto error;

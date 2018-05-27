@@ -4,7 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../check.h"
+#include "../common.h"
 #include "../interpreter.h"
+#include "../method.h"
 #include "../objectsystem.h"
 #include "../unicode.h"
 #include "errors.h"
@@ -51,7 +53,6 @@ struct Object *classobject_new(struct Interpreter *interp, char *name, struct Ob
 
 	if (!classobject_instanceof(base->klass, interp->builtins.classclass)) {
 		// TODO: test this
-		// FIXME: don't use builtinctx, instead require passing in a context to this function
 		errorobject_setwithfmt(interp, "cannot inherit a new class from %D", base);
 		return NULL;
 	}
@@ -135,4 +136,17 @@ struct Object *classobject_create_classclass_noerr(struct Interpreter *interp)
 {
 	// TODO: should the name of class objects be implemented as an attribute?
 	return classobject_new_noerr(interp, "Class", interp->builtins.objectclass, 0, class_foreachref);
+}
+
+static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
+{
+	errorobject_setwithfmt(interp, "classes can't be created with (new Class) yet");
+	return NULL;
+}
+
+int classobject_addmethods(struct Interpreter *interp)
+{
+	if (method_add(interp, interp->builtins.classclass, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
+	// TODO: to_debug_string
+	return STATUS_OK;
 }

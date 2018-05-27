@@ -41,6 +41,13 @@ struct Object *functionobject_createclass(struct Interpreter *interp)
 	return classobject_new(interp, "Function", interp->builtins.objectclass, 0, function_foreachref);
 }
 
+
+static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
+{
+	errorobject_setwithfmt(interp, "functions can't be created with (new Function), use func instead");
+	return NULL;
+}
+
 static struct Object *partial(struct Interpreter *interp, struct Object *argarr)
 {
 	// check the first argument, rest are the args that are being partialled
@@ -96,6 +103,7 @@ static struct Object *partial(struct Interpreter *interp, struct Object *argarr)
 
 // methods are partialled functions, but the partial method can't be used when looking up methods
 // that would be infinite recursion
+// TODO: shouldn't partial() call this thing instead of the other way around?
 struct Object *functionobject_newpartial(struct Interpreter *interp, struct Object *func, struct Object *partialarg)
 {
 	struct Object *tmp[] = { func, partialarg };
@@ -110,7 +118,8 @@ struct Object *functionobject_newpartial(struct Interpreter *interp, struct Obje
 
 int functionobject_addmethods(struct Interpreter *interp)
 {
-	// TODO: map, to_string
+	// TODO: to_string, map? map might as well be an array method or something
+	if (method_add(interp, interp->builtins.functionclass, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.functionclass, "partial", partial) == STATUS_ERROR) return STATUS_ERROR;
 	return STATUS_OK;
 }

@@ -63,6 +63,27 @@ struct Object *mappingobject_newempty(struct Interpreter *interp)
 	return map;
 }
 
+
+static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
+{
+	if (check_args(interp, argarr, interp->builtins.mappingclass, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
+		return NULL;
+	struct Object *map = ARRAYOBJECT_GET(argarr, 0);
+	struct Object *pairs = ARRAYOBJECT_GET(argarr, 1);
+
+	for (size_t i=0; i < ARRAYOBJECT_LEN(pairs); i++) {
+		struct Object *pair = ARRAYOBJECT_GET(pairs, i);
+		if (!classobject_instanceof(pair, interp->builtins.arrayclass) || ARRAYOBJECT_LEN(pair) != 2) {
+			errorobject_setwithfmt(interp, "expected a [key value] pair, got %D", pair);
+			return NULL;
+		}
+		if (mappingobject_set(interp, map, ARRAYOBJECT_GET(pair, 0), ARRAYOBJECT_GET(pair, 1)) == STATUS_ERROR)
+			return NULL;
+	}
+
+	return interpreter_getbuiltin(interp, "null");
+}
+
 static int make_bigger(struct Interpreter *interp, struct MappingObjectData *data)
 {
 	assert(data->nbuckets != UINT_MAX);   // the caller should check this
@@ -92,7 +113,6 @@ static int make_bigger(struct Interpreter *interp, struct MappingObjectData *dat
 	data->nbuckets = newnbuckets;
 	return STATUS_OK;
 }
-
 
 int mappingobject_set(struct Interpreter *interp, struct Object *map, struct Object *key, struct Object *val)
 {
@@ -252,6 +272,16 @@ static struct Object *delete(struct Interpreter *interp, struct Object *argarr)
 	return interpreter_getbuiltin(interp, "null");
 }
 
+int mappingobject_addmethods(struct Interpreter *interp)
+{
+	if (method_add(interp, interp->builtins.mappingclass, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.mappingclass, "set", set) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.mappingclass, "get", get) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.mappingclass, "delete", delete) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.mappingclass, "get_and_delete", get_and_delete) == STATUS_ERROR) return STATUS_ERROR;
+	return STATUS_OK;
+}
+
 
 void mappingobject_iterbegin(struct MappingObjectIter *it, struct Object *map)
 {
@@ -301,13 +331,4 @@ static void foreachref(struct Object *map, void *cbdata, classobject_foreachrefc
 struct Object *mappingobject_createclass(struct Interpreter *interp)
 {
 	return classobject_new(interp, "Mapping", interp->builtins.objectclass, 0, foreachref);
-}
-
-int mappingobject_addmethods(struct Interpreter *interp)
-{
-	if (method_add(interp, interp->builtins.mappingclass, "set", set) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.mappingclass, "get", get) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.mappingclass, "delete", delete) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.mappingclass, "get_and_delete", get_and_delete) == STATUS_ERROR) return STATUS_ERROR;
-	return STATUS_OK;
 }

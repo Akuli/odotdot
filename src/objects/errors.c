@@ -7,15 +7,18 @@
 #include "../check.h"
 #include "../common.h"
 #include "../interpreter.h"
+#include "../method.h"
 #include "../objectsystem.h"
 #include "../unicode.h"
+#include "array.h"
 #include "classobject.h"
 #include "mapping.h"
 #include "string.h"
 
 static void error_foreachref(struct Object *obj, void *data, classobject_foreachrefcb cb)
 {
-	cb((struct Object *) obj->data, data);
+	if (obj->data)
+		cb((struct Object *) obj->data, data);
 }
 
 struct Object *errorobject_createclass_noerr(struct Interpreter *interp)
@@ -25,9 +28,26 @@ struct Object *errorobject_createclass_noerr(struct Interpreter *interp)
 	return classobject_new_noerr(interp, "Error", interp->builtins.objectclass, 1, error_foreachref);
 }
 
+static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
+{
+	if (check_args(interp, argarr, interp->builtins.errorclass, interp->builtins.stringclass) == STATUS_ERROR)
+		return NULL;
+
+	struct Object *err = ARRAYOBJECT_GET(argarr, 0);
+	if (err->data) {
+		errorobject_setwithfmt(interp, "setup was called twice");
+		return NULL;
+	}
+
+	err->data = ARRAYOBJECT_GET(argarr, 1);
+	OBJECT_INCREF(interp, ARRAYOBJECT_GET(argarr, 1));
+	return interpreter_getbuiltin(interp, "null");
+}
+
 int errorobject_addmethods(struct Interpreter *interp)
 {
-	// TODO: do we need any methodss
+	// TODO: to_debug_string
+	if (method_add(interp, interp->builtins.errorclass, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
 	return STATUS_OK;
 }
 

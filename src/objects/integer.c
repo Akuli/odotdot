@@ -24,6 +24,13 @@ static void integer_destructor(struct Object *integer)
 	free(integer->data);
 }
 
+
+static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
+{
+	errorobject_setwithfmt(interp, "Integers can't be created with (new Integer), use e.g. 123 or -456 instead");
+	return NULL;
+}
+
 static struct Object *to_string(struct Interpreter *interp, struct Object *argarr)
 {
 	if (check_args(interp, argarr, interp->builtins.integerclass, NULL) == STATUS_ERROR)
@@ -64,6 +71,7 @@ struct Object *integerobject_createclass(struct Interpreter *interp)
 	if (!klass)
 		return NULL;
 
+	if (method_add(interp, klass, "setup", setup) == STATUS_ERROR) goto error;
 	if (method_add(interp, klass, "to_string", to_string) == STATUS_ERROR) goto error;
 	return klass;
 

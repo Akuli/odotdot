@@ -31,6 +31,13 @@ struct Object *stringobject_createclass_noerr(struct Interpreter *interp)
 	return classobject_new_noerr(interp, "String", interp->builtins.objectclass, 0, NULL);
 }
 
+
+static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
+{
+	errorobject_setwithfmt(interp, "strings can't be created with (new String), use \"text in quotes\" instead");
+	return NULL;
+}
+
 static struct Object *to_string(struct Interpreter *interp, struct Object *argarr)
 {
 	if (check_args(interp, argarr, interp->builtins.stringclass, NULL) == STATUS_ERROR)
@@ -64,10 +71,12 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 int stringobject_addmethods(struct Interpreter *interp)
 {
 	// TODO: create many more string methods
+	if (method_add(interp, interp->builtins.stringclass, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.stringclass, "to_string", to_string) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.stringclass, "to_debug_string", to_debug_string) == STATUS_ERROR) return STATUS_ERROR;
 	return STATUS_OK;
 }
+
 
 struct Object *stringobject_newfromustr(struct Interpreter *interp, struct UnicodeString ustr)
 {

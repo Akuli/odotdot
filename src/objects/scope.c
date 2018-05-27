@@ -51,6 +51,28 @@ struct Object *scopeobject_newbuiltin(struct Interpreter *interp)
 }
 
 
+// TODO: make this less copy/pasta from scopeobject_newsub
+static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
+{
+	if (check_args(interp, argarr, interp->builtins.scopeclass, interp->builtins.scopeclass, NULL) == STATUS_ERROR) return NULL;
+	struct Object *scope = ARRAYOBJECT_GET(argarr, 0);
+	struct Object *parentscope = ARRAYOBJECT_GET(argarr, 1);
+
+	struct Object *localvars = mappingobject_newempty(interp);
+	if (!localvars)
+		return NULL;
+
+	if (attribute_set(interp, scope, "parent_scope", parentscope) == STATUS_ERROR) goto error;
+	if (attribute_set(interp, scope, "local_vars", localvars) == STATUS_ERROR) goto error;
+
+	OBJECT_DECREF(interp, localvars);
+	return interpreter_getbuiltin(interp, "null");
+
+error:
+	OBJECT_DECREF(interp, localvars);
+	return NULL;
+}
+
 static struct Object *set_var(struct Interpreter *interp, struct Object *argarr)
 {
 	// TODO: figure out a nice way to make sure that the first argument is a Scope
@@ -147,22 +169,15 @@ static struct Object *get_var(struct Interpreter *interp, struct Object *argarr)
 	return res;
 }
 
-struct Object *create_subscope(struct Interpreter *interp, struct Object *argarr)
-{
-	if (check_args(interp, argarr, interp->builtins.scopeclass, NULL) == STATUS_ERROR)
-		return NULL;
-	return scopeobject_newsub(interp, ARRAYOBJECT_GET(argarr, 0));
-}
-
 struct Object *scopeobject_createclass(struct Interpreter *interp)
 {
 	struct Object *klass = classobject_new(interp, "Scope", interp->builtins.objectclass, 1, NULL);
 	if (!klass)
 		return NULL;
 
+	if (method_add(interp, klass, "setup", setup) == STATUS_ERROR) goto error;
 	if (method_add(interp, klass, "set_var", set_var) == STATUS_ERROR) goto error;
 	if (method_add(interp, klass, "get_var", get_var) == STATUS_ERROR) goto error;
-	if (method_add(interp, klass, "create_subscope", create_subscope) == STATUS_ERROR) goto error;
 	return klass;
 
 error:
