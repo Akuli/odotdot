@@ -35,20 +35,27 @@ static void mapping_destructor(struct Object *map)
 	free(data);
 }
 
-struct Object *mappingobject_newempty(struct Interpreter *interp)
+static struct MappingObjectData *create_empty_data(void)
 {
 	struct MappingObjectData *data = malloc(sizeof(struct MappingObjectData));
-	if (!data) {
-		errorobject_setnomem(interp);
+	if (!data)
 		return NULL;
-	}
 
 	data->size = 0;
 	data->nbuckets = 50;
 	data->buckets = calloc(data->nbuckets, sizeof(struct MappingObjectItem));
 	if (!(data->buckets)) {
-		errorobject_setnomem(interp);
 		free(data);
+		return NULL;
+	}
+	return data;
+}
+
+struct Object *mappingobject_newempty(struct Interpreter *interp)
+{
+	struct MappingObjectData *data = create_empty_data();
+	if (!data) {
+		errorobject_setnomem(interp);
 		return NULL;
 	}
 
@@ -70,6 +77,19 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 		return NULL;
 	struct Object *map = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *pairs = ARRAYOBJECT_GET(argarr, 1);
+
+	if (map->data) {
+		errorobject_setwithfmt(interp, "setup was called twice");
+		return NULL;
+	}
+	struct MappingObjectData *data = create_empty_data();
+	if (!data) {
+		errorobject_setnomem(interp);
+		return NULL;
+	}
+
+	map->data = data;
+	map->destructor = mapping_destructor;
 
 	for (size_t i=0; i < ARRAYOBJECT_LEN(pairs); i++) {
 		struct Object *pair = ARRAYOBJECT_GET(pairs, i);
@@ -320,6 +340,9 @@ starthere:
 
 static void foreachref(struct Object *map, void *cbdata, classobject_foreachrefcb cb)
 {
+	if (!map->data)
+		return;
+
 	struct MappingObjectIter iter;
 	mappingobject_iterbegin(&iter, map);
 	while (mappingobject_iternext(&iter)) {

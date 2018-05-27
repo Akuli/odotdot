@@ -167,6 +167,48 @@ static struct Object *print(struct Interpreter *interp, struct Object *argarr)
 }
 
 
+static struct Object *new(struct Interpreter *interp, struct Object *argarr)
+{
+	if (ARRAYOBJECT_LEN(argarr) == 0) {
+		errorobject_setwithfmt(interp, "new needs at least 1 argument, the class");
+		return NULL;
+	}
+	if (check_type(interp, interp->builtins.classclass, ARRAYOBJECT_GET(argarr, 0)) == STATUS_ERROR)
+		return NULL;
+	struct Object *klass = ARRAYOBJECT_GET(argarr, 0);
+
+	struct Object *obj = classobject_newinstance(interp, klass, NULL, NULL);
+	if (!obj)
+		return NULL;
+
+	struct Object *setupargs = arrayobject_slice(interp, argarr, 1, ARRAYOBJECT_LEN(argarr));
+	if (!setupargs) {
+		OBJECT_DECREF(interp, obj);
+		return NULL;
+	}
+
+	// there's no argument array taking version of method_call()
+	struct Object *setup = method_get(interp, obj, "setup");
+	if (!setup) {
+		OBJECT_DECREF(interp, setupargs);
+		OBJECT_DECREF(interp, obj);
+		return NULL;
+	}
+
+	struct Object *res = functionobject_vcall(interp, setup, setupargs);
+	OBJECT_DECREF(interp, setupargs);
+	OBJECT_DECREF(interp, setup);
+	if (!res) {
+		OBJECT_DECREF(interp, obj);
+		return NULL;
+	}
+	OBJECT_DECREF(interp, res);
+
+	// no need to incref, this thing is already holding a reference to obj
+	return obj;
+}
+
+
 static int create_method_mapping(struct Interpreter *interp, struct Object *klass)
 {
 	struct ClassObjectData *data = klass->data;
@@ -217,6 +259,7 @@ int builtins_setup(struct Interpreter *interp)
 	if (!(interp->builtins.array_func = functionobject_new(interp, array_func))) goto error;
 	if (!(interp->builtins.catch = functionobject_new(interp, catch))) goto error;
 	if (!(interp->builtins.equals = functionobject_new(interp, equals_builtin))) goto error;
+	if (!(interp->builtins.new = functionobject_new(interp, new))) goto error;
 	if (!(interp->builtins.print = functionobject_new(interp, print))) goto error;
 	if (!(interp->builtins.same_object = functionobject_new(interp, same_object))) goto error;
 
@@ -227,10 +270,12 @@ int builtins_setup(struct Interpreter *interp)
 	if (interpreter_addbuiltin(interp, "Integer", interp->builtins.integerclass) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "Mapping", interp->builtins.mappingclass) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "Object", interp->builtins.objectclass) == STATUS_ERROR) goto error;
+	if (interpreter_addbuiltin(interp, "Scope", interp->builtins.scopeclass) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "String", interp->builtins.stringclass) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "array_func", interp->builtins.array_func) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "catch", interp->builtins.catch) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "equals", interp->builtins.equals) == STATUS_ERROR) goto error;
+	if (interpreter_addbuiltin(interp, "new", interp->builtins.new) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "print", interp->builtins.print) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "same_object", interp->builtins.same_object) == STATUS_ERROR) goto error;
 
@@ -250,8 +295,12 @@ int builtins_setup(struct Interpreter *interp)
 	debug(builtins.stringclass);
 
 	debug(builtins.array_func);
+	debug(builtins.catch);
+	debug(builtins.equals);
+	debug(builtins.new);
 	debug(builtins.nomemerr);
 	debug(builtins.print);
+	debug(builtins.same_object);
 
 	debug(builtinscope);
 #undef debug
@@ -297,6 +346,7 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(array_func);
 	TEARDOWN(catch);
 	TEARDOWN(equals);
+	TEARDOWN(new);
 	TEARDOWN(nomemerr);
 	TEARDOWN(print);
 	TEARDOWN(same_object);

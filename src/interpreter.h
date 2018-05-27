@@ -24,6 +24,7 @@ struct InterpreterBuiltins {
 	struct Object *array_func;
 	struct Object *catch;
 	struct Object *equals;
+	struct Object *new;
 	struct Object *nomemerr;
 	struct Object *print;
 	struct Object *same_object;
