@@ -3,7 +3,23 @@
 This list contains things that are horribly broken, things that annoy me and
 things that I would like to do some day. It's a mess.
 
-## Language design changes
+## Language design stuff
+- importing? here is what i have in mind right now:
+    - `(import "<stdlib>/x")` loads `stdlib/x.ö`, or something like
+      `stdlib/x/setup.ö` if `stdlib/x.ö` doesn't exist and `stdlib/x` is a
+      directory
+        - maybe warn if there is an `x` directory AND an `x.ö` file?
+    - `"<stdlib>"` is special, other paths are treated as relative to the
+      importing file
+    - ideally importing would be implemented in pure Ö, but many other things
+      must be done before that:
+        - file I/O
+        - path utilities: checking if the path is absolute, `\\` on windows etc
+            - speaking of windows... i'd like to learn a less unixy alternative
+              to make and try to compile ö on windows some day
+        - expose a function that converts a long string to an AST tree
+        - how to make the path relative to the calling file? see stack
+        - see the attribute stuff below
 - operators
     - syntactic sugar for infixes? e.g. ``a + b`` might be
       ``a `(import "<stdlib>/operators").add` b``
@@ -12,9 +28,18 @@ things that I would like to do some day. It's a mess.
           evaluating `b * c` first in math and many other programming languages
         - real mathematicians (tm) write `a + bc` to avoid this problem, but
           `ab` mean `a` times `b` in ö so parentheses would be ö's solution
-- error handling so that tests can be written in ö
-    - `throw "asd";` and ``{ ... } `catch` { ... };`` would be good enough for
-      now
+- error handling issues
+    - the `throw` function isn't actually implemented yet, but calling it
+      throws an exception anyway because nonexisting variables cause errors :D
+    - `catch` can't catch the error object yet, so tests can't check exception
+      messages :( can't really write good tests in Ö yet
+- need tracebacks and other stack magic
+    - might be easiest to get the traceback in `Error::new`? that way
+      rethrowing would be easy as `throw caught_error;`
+    - maybe traceback printing could be implemented in pure ö?
+    - c functions that push and pop to an array of stack info objects
+    - maybe expose the stack info in ö?
+    - stack infos should contain at least file name (absolute path?) and lineno
 - attributes should not be just items of a mapping
     - problems with current setup:
         - some objects are special because they have no attributes
@@ -176,7 +201,28 @@ things that I would like to do some day. It's a mess.
                 some_var = "lol";           # now this is a named argument to some_function
                 ```
 
-## tokenizer.h
+    - would be good for avoiding stupid marker objects
+
+        ```
+        # without keyword arguments
+        class "Thing" inherits Thingy {    # inherits would be a marker object created in builtins.ö
+            ...
+        };
+
+        # with keyword arguments
+        class "Thing" inherits:Thingy {
+            ...
+        };
+
+        # with keyword arguments, different coding style
+        class "Thing"
+            inherits: Thingy
+        {
+            ...
+        };
+        ```
+
+## tokenizer.{c,h}
 - tokenizing an empty file fails
     - `token_ize()` returns a linked list, and an empty linked list is
       represented as `NULL`, which is also used for errors
@@ -189,7 +235,7 @@ things that I would like to do some day. It's a mess.
 - all uses of `STATUS_NOMEM` should be removed
 - `<stdbool.h>` should be used instead of `STATUS_OK` and `STATUS_ERROR`
 
-## unicode.c and unicode.h
+## unicode.{c,h}
 - delete some unused and stupid macros from the end of unicode.h
 - delete UnicodeString?
     - string objects are quite capable anyway
@@ -214,7 +260,7 @@ things that I would like to do some day. It's a mess.
               equivalent of `%#X`, or maybe just add `errorobject_setsprintf()`
               or something for using all printf formatting features
 
-## ast.c and ast.h
+## ast.{c,h}
 - add nonzero linenos to expression nodes
     - debugging would be a lot easier
 - use an enum for ast node kinds?
@@ -223,10 +269,26 @@ things that I would like to do some day. It's a mess.
       quite debuggable
 - error handling in ast.c sucks dick, should use error objects instead
 
-## equals.h
-this file sucks, must figure out a more customizable alternative
+## equals.{c,h}
+these suck, must figure out a more customizable alternative
 
-## gc.c and gc.h
+if dispatchable functions will exist some day, maybe like this:
+
+```
+# this stuff would go to a special file, e.g. stdlib/operators.ö
+
+dispatchable_func "equals a b";
+equals::dispatch [Integer Integer] {
+    return (some magic that computes a+b);
+};
+equals::dispatch [String String] {
+    return (some magic that concatenates the strings);
+};
+
+# now ("a" == "b") would call the string thing and (1 == 2) would call the integer thing
+```
+
+## gc.{c,h}
 - add some way to clean up reference cycles while the interpreter is running?
   maybe by invoking a library function after doing something unusually refcycly?
     - not sure if this will ever be needed, reference cycles should be rare-ish
