@@ -4,4 +4,5 @@ Currently there's very little documentation :(
 
 ## List of Contents
 
-* [Syntax Specification](syntax-spec.md)
+* [Tutorial: start here](tutorial.md)
+* [A very complete syntax specification](syntax-spec.md)

@@ -9,53 +9,34 @@
 
 ## Hello World!
 
-Make sure you have Python 3.4 or newer and git installed. Then download the
-interpreter:
+Install `make`, a C compiler and `git`. For example, if you're using a
+Debian-based Linux distribution like Ubuntu or Mint, run this command:
 
-    $ git clone https://github.com/akuli/odotdot ö
-    $ cd ö
+    $ sudo apt install gcc make git
 
-Save this to `hello.ö`:
+Then download and compile the interpreter.
 
-```python
-var msg = "hello world";
+    $ git clone https://github.com/akuli/odotdot
+    $ cd odotdot
+    $ make ö
+
+You should get lots of output, but no errors.
+
+Save this code to `hello.ö`...
+
+```js
+var msg = "Hellö Wörld!";
 print msg;
 ```
 
-Here `print` is a function, not a keyword. Functions are just called without
-parentheses.
+...and run it:
 
-Run the code like this:
+    $ ./ö hello.ö
+    Hellö Wörld!
 
-    $ python3 -m pythoninterp hello.ö
-
-My favorite feature with this language is blocks. Anything between `{`
-and `}` is a block, and blocks have a `.run` method that works like
-this:
-
-```python
-var helloblock = {
-    print "hello world";
-};
-
-# run it 3 times
-helloblock.run;
-helloblock.run;
-helloblock.run;
-```
-
-Of course, every block gets a new scope; variables defined in `{ }` are
-not visible outside of the `{ }`:
-
-```python
-{
-    var a = "hello";
-    print a;    # prints hello
-}.run;
-print a;    # error!
-```
-
-See [the examples directory](examples/) for more!
+See [the tutorial](docs/tutorial.md) for more. There's also
+[an examples directory](examples/), but at the time of updating this README,
+most examples don't actually work yet. Some day they should work...
 
 ## FAQ
 
