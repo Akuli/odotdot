@@ -1,19 +1,109 @@
 # Syntax Specification
 
-This page defines the `ö` syntax that the interpreter can execute.
+This page defines the Ö syntax that the interpreter can execute. If you are
+interested in writing your own alternative to my Ö interpreter, you came to the
+right place. You might be also interested in this stuff if you just want to
+know how my Ö interpreter works.
 
-## Expressions
 
-An expression is any piece of code that returns a value. For example:
+## Tokenizing
+
+The first step with running any code is tokenizing it. It means taking code
+like this...
 
 ```python
-print "hello";
+print ([1 2 3]::to_string);
 ```
 
-Here `"hello"` is an expression that returns a `String` object, and `print` is
-an expression that returns the value of the `print` variable.
+...and turning it into a bunch of tokens. The above code would be tokenized
+like this:
 
-Here are examples of all supported kinds of expressions:
+| Token kind        | Value         |
+| ----------------- | ------------- |
+| identifier        | `print`       |
+| operator          | `(`           |
+| operator          | `[`           |
+| integer literal   | `1`           |
+| integer literal   | `2`           |
+| integer literal   | `3`           |
+| operator          | `]`           |
+| operator          | `::`          |
+| identifier        | `to_string`   |
+| operator          | `)`           |
+| operator          | `;`           |
+
+Some notes:
+- The code is far from runnable after tokenizing it; tokenizing is just the
+  very first step.
+- Each token must have at least a kind and a value string, but it's best to
+  also include line number information in the tokens. That is needed when
+  displaying stack traces. The interpreter doesn't display stack traces right
+  now, but it's on [the huge todo list](../TODO.md).
+- The Ö tokenizer ignores all Unicode whitespace (e.g. spaces, tabs, newlines)
+  except when the whitespace is in a string (`"hello world"` is a string
+  literal token) or the whitespace separates tokens that would be parsed
+  differently without the whitespace (`1 2` is two tokens, and `12` is one
+  token).
+
+Here's a list of *all* supported kinds of tokens:
+- *Identifiers* are names of e.g. variables and methods. They can contain any
+  alphabetical Unicode characters as well as any of the characters
+  `_0123456789`. An identifier cannot start with any of the characters
+  `0123456789`; code like `123asd` should be parsed as two tokens, `123` and
+  `asd`.
+- *Non-negative integer literals* are characters `0123456789` jammed together
+  in different ways. The literal must not start with `0`, but *just* `0` is a
+  valid integer literal. Things like `0123` are invalid syntax, *not* two
+  separate tokens; this is because some other programming languages give a
+  special meaning to integer literals starting with 0 and `0123 != 123`, and
+  trying to do that in Ö must not silent lead to wrong results.
+- *Negative integer literals* are `-` immediately followed by a non-negative
+  integer literal. This definition means that `-0` is a valid alternative to
+  `0`.
+- Operators are `{`, `}`, `[`, `]`, `(`, `)`, `=`, `;`, `.`, `` ` `` or `::`.
+- `var` is parsed with similar rules as identifiers, but it's best for the
+  tokenizer to output `var` tokens as non-identifiers. This way `thing::var`
+  will cause errors when parsing to AST. Note that `var0` is an identifier,
+  just like e.g. `thingy0`.
+
+There are no float objects in the whole language yet, so `0.0` should be
+tokenized as two integers and an operator (even though parsing those will
+fail because `.` must be followed by an identifier).
+
+
+## Parsing to AST
+
+The parser takes tokens as input and outputs
+[AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree) nodes. For example,
+this thing we tokenized above...
+
+```python
+print ([1 2 3]::to_string);
+```
+
+...produces an AST tree like this:
+
+![](syntax-spec-ast.png)
+
+Each ball in the above diagram must be available as an `AstNode` object in Ö.
+`Block` objects have an `ast_statements` attribute that is set to an array
+of `AstNode` objects representing statements. The `AstNode` class itself is not
+in [the built-in scope](tutorial.md#scopes), but when a function for getting
+the class of an instance will be added, the `AstNode` class can be retrieved
+with a code object like this:
+
+```python
+var AstNode = (magic_function_that_gets_the_class ({ print "hello"; }.ast_statements::get 0));
+```
+
+Ast nodes can represent two things:
+
+- A statement is anything that ends with a `;`, like `print "hello";`. The
+  1-arg function call in the above diagram is a statement.
+- An expression is anything that returns a value. All other AST nodes in the
+  above drawing represent expressions.
+
+Here's a list of all supported kinds of expressions:
 
 - String literals: `""` and `"hello"` return `String` objects.
 - Integer literals: `123`, `-5` and `0` return `Integer` objects.
@@ -35,17 +125,9 @@ Here are examples of all supported kinds of expressions:
   any number of [statements](#statements) inside the block you want. `{ }` is a
   code block that does nothing, and `{ expression }` without a `;` is
   equivalent to `{ return expression; }`.
+  TODO: the Ö interpreter doesn't support the `{ expression }` syntax yet :(
 
-So far we have called functions like `function a b c;` instead of
-`(function a b c)`. The big difference is that the function's return value is
-ignored with a statement like `function a b c;`, but `(function a b c)` is an
-expression that returns that value instead of ignoring it.
-
-## Statements
-
-A statement is anything that ends with a `;`, like `print "hello";`.
-
-Here's another list:
+Here's a list of statements
 
 - Function calls: `function arg1 arg2 arg3;` is like the
   `(function arg1 arg2 arg3)` [expression](#expressions), but the return value
@@ -60,23 +142,34 @@ Here's another list:
 - Setting attributes: `a.b = c;` sets the `b` attribute of `a` to `c`. `b` can
   be any attribute name, and `a` and `c` can be any expressions.
 
-The global and local variable stuff is probably kind of confusing. Here's an
-example that should make it clear:
 
-```python
-var a = "old a";
+## Running the AST
 
-{
-    print a;            # old a
-    var a = "new a";    # set it locally
-    print a;            # new a
-}::run;
-print a;    # old a
+Some interpreters (e.g. cpython) create bytecode from the AST, write it to a
+file and run that. This speeds things up when many files must be loaded on
+startup because there's no need to go through the tokenizing and parsing every
+time, only if the cached bytecode is older than the source file. The Ö
+interpreter could do something like that, but right now it just runs the AST as
+is.
 
-{
-    print a;                # old a
-    a = "really new a";     # set it where it was defined
-    print a;                # really new a
-}::run;
-print a;    # really new a
-```
+The Ö interpreter does these things on startup:
+
+1. Create [the built-in scope](tutorial.md#scopes). The `parent_scope` should be
+   set to `null`, but `null` is implemented in `stdlib/builtins.ö`, so
+   `parent_scope` must be set to a dummy value for now. `"lol"` will do;
+   `builtins.ö` will set it to `null`.
+2. Add some stuff to the built-in scope.
+3. Tokenize, parse and execute `builtins.ö` in the built-in scope. It's best to
+   read `builtins.ö` yourself to see which things it expects to have there
+   already and which things it creates.
+4. Create a new subscope of the built-in scope for the file that is being ran.
+5. Run the file in the subscope.
+
+Some of these things are not as simple as they sound like. For example, the
+first step is creating a `Scope` object, but for that we need to have the
+`Scope` class. Then, for the `Scope` class we need to have the `Class` class;
+that is, the `Scope` class is a `Class` object. But for the `Class` class we
+need the `Object` class because every class inherits from `Object`, but
+`Object` should also be a `Class` instance because it's a class even though
+`Class` wasn't supposed to exist yet... You get the idea. If you are writing an
+Ö interpreter, you can solve these problems however you want to.
