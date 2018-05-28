@@ -31,3 +31,31 @@ var if = null;   # set soon
         raw_if (arguments::get 0) (arguments::get 1);
     });
 }::run (new Scope {}.definition_scope);
+
+# VERY STUPID
+# usage example:
+#
+#   # strip spaces from a string
+#   var s = "      lol";
+#   while { keep_going = ((s::get 0) `equals` " "); } {
+#       s = (s::slice 1);
+#   };
+#   print s;    # prints "lol"
+#
+# infinite loops segfault
+var while = (array_func {
+    var cond = (arguments::get 0);
+    var body = (arguments::get 1);
+
+    var scope = (new Scope body.definition_scope);
+    scope.local_vars::set "keep_going" null;
+
+    var run_stuff = {
+        cond::run scope;
+        if (scope.local_vars::get "keep_going") {
+            body::run scope;
+            run_stuff::run run_stuff.definition_scope;
+        };
+    };
+    run_stuff::run run_stuff.definition_scope;
+});

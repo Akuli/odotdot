@@ -120,7 +120,7 @@ static int validate_index(struct Interpreter *interp, struct Object *arr, long l
 		return STATUS_ERROR;
 	}
 	if ((unsigned long long) i >= ARRAYOBJECT_LEN(arr)) {
-		errorobject_setwithfmt(interp, "%L is not a valid index for an array of length %L", i, ARRAYOBJECT_LEN(arr));
+		errorobject_setwithfmt(interp, "%L is not a valid index for an array of length %L", i, (long long) ARRAYOBJECT_LEN(arr));
 		return STATUS_ERROR;
 	}
 	return STATUS_OK;

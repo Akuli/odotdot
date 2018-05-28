@@ -68,10 +68,76 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 	return res;
 }
 
+// get and slice are a lot like array methods
+// some day strings will hopefully behave like an immutable array of 1-character strings
+static struct Object *get(struct Interpreter *interp, struct Object *argarr)
+{
+	if (check_args(interp, argarr, interp->builtins.stringclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
+		return NULL;
+
+	struct UnicodeString ustr = *((struct UnicodeString*) ARRAYOBJECT_GET(argarr, 0)->data);
+	long long i = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1));
+
+	if (i < 0) {
+		errorobject_setwithfmt(interp, "%L is not a valid array index", i);
+		return NULL;
+	}
+	if ((unsigned long long) i >= ustr.len) {
+		errorobject_setwithfmt(interp, "%L is not a valid index for an array of length %L", i, (long long) ustr.len);
+		return NULL;
+	}
+
+	ustr.val += i;
+	ustr.len = 1;
+	return stringobject_newfromustr(interp, ustr);
+}
+
+static struct Object *slice(struct Interpreter *interp, struct Object *argarr)
+{
+	long long start, end;
+	if (ARRAYOBJECT_LEN(argarr) == 2) {
+		// (s::slice start)
+		if (check_args(interp, argarr, interp->builtins.stringclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
+			return NULL;
+		start = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1));
+		end = ((struct UnicodeString*) ARRAYOBJECT_GET(argarr, 0)->data)->len;
+	} else {
+		// (s::slice start end)
+		if (check_args(interp, argarr, interp->builtins.stringclass, interp->builtins.integerclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
+			return NULL;
+		start = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1));
+		end = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 2));
+	}
+
+	struct UnicodeString ustr = *((struct UnicodeString*) ARRAYOBJECT_GET(argarr, 0)->data);
+
+	if (start < 0)
+		start = 0;
+	if (end < 0)
+		return stringobject_newfromcharptr(interp, "");
+	// now end can be casted to size_t
+	if ((size_t) end > ustr.len)
+		end = ustr.len;
+	if (start >= end)
+		return stringobject_newfromcharptr(interp, "");
+
+	if (start == 0 && (size_t) end == ustr.len) {
+		struct Object *s = ARRAYOBJECT_GET(argarr, 0);
+		OBJECT_INCREF(interp, s);
+		return s;
+	}
+
+	ustr.val += start;
+	ustr.len = end - start;
+	return stringobject_newfromustr(interp, ustr);
+}
+
 int stringobject_addmethods(struct Interpreter *interp)
 {
 	// TODO: create many more string methods
 	if (method_add(interp, interp->builtins.stringclass, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.stringclass, "get", get) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.stringclass, "slice", slice) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.stringclass, "to_string", to_string) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.stringclass, "to_debug_string", to_debug_string) == STATUS_ERROR) return STATUS_ERROR;
 	return STATUS_OK;
