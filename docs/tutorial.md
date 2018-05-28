@@ -72,7 +72,7 @@ some_function a other_function b;
 
 ...because functions are first-class objects in Ö; that is, they can be
 assigned to variables, passed as arguments to other function and so on, so the
-`WRONG` code calls `some_function` with three arguments and doesn't call
+above code calls `some_function` with three arguments and doesn't call
 `other_function` at all. It should look like this:
 
 ```python
