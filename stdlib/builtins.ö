@@ -59,3 +59,24 @@ var while = (array_func {
     };
     run_stuff::run run_stuff.definition_scope;
 });
+
+# usage example:
+#
+#    foreach [1 2 3] "x" {
+#        print (x::to_string);
+#    };
+#
+var foreach = (array_func {
+    var arr = (arguments::get 0);
+    var varname = (arguments::get 1);
+    var block = (arguments::get 2);
+
+    var scope = (new Scope block.definition_scope);
+    var looped = [];
+    while { keep_going = (not (looped `equals` arr)); } {
+        var elem = (arr::get (looped::get_length));
+        scope.local_vars::set varname elem;
+        block::run scope;
+        looped::push elem;
+    };
+});
