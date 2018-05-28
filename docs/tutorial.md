@@ -235,8 +235,7 @@ accessed just like methods, but with `.` instead of `::`. The
 that is, the scope that Ö is running our file in.
 
 `Scope` objects have a `local_vars` attribute. It's a mapping with variable
-name strings as keys. We can access attributes just like methods, but with `.`
-instead of `::`.
+name strings as keys.
 
 ```python
 var this_scope = { }.definition_scope;
