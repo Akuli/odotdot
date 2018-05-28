@@ -149,7 +149,8 @@ Arrays have more useful methods than `to_string`:
   value. `i` must be less than the length of `thing`.
 - `(thing::slice i j)` returns a new array that contains the elements between
   `i` and `j`. Both `i` and `j` are interpreted so that `0` means the beginning
-  of the array and `(thing::get_length)` means the end of the array.
+  of the array and `(thing::get_length)` means the end of the array. Too big or
+  small indexes are ignored, but only with `slice`; not with other methods.
 - `(thing::slice i)` returns `(thing::slice i (thing::get_length))`.
 
 Here's an example:
@@ -168,8 +169,11 @@ print (stuff::pop);         # e
 print (stuff::to_string);   # ["a" "b" "c" "ddd"]
 
 print ((stuff::slice 1 3)::to_string);   #     ["b" "c"]
-print ((stuff::slice 0 1)::to_string);   # ["a" "b" "c"]
+print ((stuff::slice 0 3)::to_string);   # ["a" "b" "c"]
 print ((stuff::slice 1)::to_string);     #     ["b" "c", "ddd"]
+
+# too big and small indexes are ignored:
+print ((stuff::slice -10 1000)::to_string);     # ["a" "b" "c", "ddd"]
 ```
 
 
