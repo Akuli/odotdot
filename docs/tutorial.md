@@ -47,9 +47,8 @@ if something {
 ```
 
 In fact, Ö's function call syntax is so powerful that **var is the only keyword**
-in Ö. That's correct, Ö code consists of nothing but function calls and `var`
-statements, even though Ö has most things you would expect a modern programming
-language to have, like control flow tools, functions and classes.
+in Ö. Most things that are done with keywords in most other languages, like
+loops, functions and classes, are implemented with functions in Ö.
 
 
 ## Function Call Expressions
