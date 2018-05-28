@@ -157,10 +157,8 @@ struct Object *stringobject_splitbywhitespace(struct Interpreter *interp, struct
 			subu.val += offset;
 			subu.len = nows_end - offset;
 			struct Object *sub = stringobject_newfromustr(interp, subu);
-			if (!sub) {
-				OBJECT_DECREF(interp, result);
-				return NULL;
-			}
+			if (!sub)
+				goto error;
 			int res = arrayobject_push(interp, result, sub);
 			OBJECT_DECREF(interp, sub);
 			if (res == STATUS_ERROR)
@@ -181,10 +179,8 @@ struct Object *stringobject_splitbywhitespace(struct Interpreter *interp, struct
 			lastu.val += offset;
 			lastu.len -= offset;
 			struct Object *last = stringobject_newfromustr(interp, lastu);
-			if (!last) {
-				OBJECT_DECREF(interp, result);
-				return NULL;
-			}
+			if (!last)
+				goto error;
 			int res = arrayobject_push(interp, result, last);
 			OBJECT_DECREF(interp, last);
 			if (res == STATUS_ERROR)
