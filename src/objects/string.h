@@ -6,6 +6,12 @@
 #include "../objectsystem.h"   // IWYU pragma: keep
 #include "../unicode.h"        // IWYU pragma: keep
 
+// bad things happen if s is not a string object or i < STRINGOBJECT_LEN(s)
+// otherwise these never fail
+// these DO NOT return a new reference!
+#define STRINGOBJECT_GET(s, i) (((struct UnicodeString*) (s)->data)->val[(i)])
+#define STRINGOBJECT_LEN(s)    (((struct UnicodeString*) (s)->data)->len)
+
 // RETURNS A NEW REFERENCE or NULL on no mem, see builtins_setup()
 struct Object *stringobject_createclass_noerr(struct Interpreter *interp);
 
@@ -52,7 +58,11 @@ struct Object *stringobject_newfromfmt(struct Interpreter *interp, char *fmt, ..
 struct Object *stringobject_newfromvfmt(struct Interpreter *interp, char *fmt, va_list ap);
 
 // the returned UnicodeString's val must NOT be free()'d
-struct UnicodeString *stringobject_getustr(struct Object *str);
+struct UnicodeString *stringobject_getustr(struct Object *s);
+
+// returns an array of substrings or NULL on error
+// bad things happen if the string is not a string object
+struct Object *stringobject_splitbywhitespace(struct Interpreter *interp, struct Object *s);
 
 
 #endif   // OBJECTS_STRING_H

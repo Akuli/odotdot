@@ -3,6 +3,7 @@
 #include "string.h"
 #include <assert.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,9 +20,9 @@
 #include "function.h"
 #include "integer.h"
 
-static void string_destructor(struct Object *str)
+static void string_destructor(struct Object *s)
 {
-	struct UnicodeString *data = str->data;
+	struct UnicodeString *data = s->data;
 	free(data->val);
 	free(data);
 }
@@ -132,12 +133,88 @@ static struct Object *slice(struct Interpreter *interp, struct Object *argarr)
 	return stringobject_newfromustr(interp, ustr);
 }
 
+struct Object *stringobject_splitbywhitespace(struct Interpreter *interp, struct Object *s)
+{
+	size_t offset = 0;
+	while (offset < STRINGOBJECT_LEN(s) && unicode_isspace(STRINGOBJECT_GET(s, offset)))
+		offset++;
+
+	struct Object *result = arrayobject_newempty(interp);
+	if (!result)
+		return NULL;
+
+	while (offset < STRINGOBJECT_LEN(s)) {
+		bool found_ws = false;
+
+		assert(!unicode_isspace(STRINGOBJECT_GET(s, offset)));
+		for (size_t nows_end = offset+1; nows_end < STRINGOBJECT_LEN(s); nows_end++) {
+			// skip characters until whitespace is found
+			if (!unicode_isspace(STRINGOBJECT_GET(s, nows_end)))
+				continue;
+
+			// slice it and push the slice to result
+			struct UnicodeString subu = *((struct UnicodeString*) s->data);
+			subu.val += offset;
+			subu.len = nows_end - offset;
+			struct Object *sub = stringobject_newfromustr(interp, subu);
+			if (!sub) {
+				OBJECT_DECREF(interp, result);
+				return NULL;
+			}
+			int res = arrayobject_push(interp, result, sub);
+			OBJECT_DECREF(interp, sub);
+			if (res == STATUS_ERROR)
+				goto error;
+
+			// skip 1 or more whitespaces
+			offset = nows_end+1;
+			while (offset < STRINGOBJECT_LEN(s) && unicode_isspace(STRINGOBJECT_GET(s, offset)))
+				offset++;
+
+			found_ws = true;
+			break;      // breaks the for loop
+		}
+
+		if (!found_ws) {
+			// rest of the string is non-whitespace
+			struct UnicodeString lastu = *((struct UnicodeString*) s->data);
+			lastu.val += offset;
+			lastu.len -= offset;
+			struct Object *last = stringobject_newfromustr(interp, lastu);
+			if (!last) {
+				OBJECT_DECREF(interp, result);
+				return NULL;
+			}
+			int res = arrayobject_push(interp, result, last);
+			OBJECT_DECREF(interp, last);
+			if (res == STATUS_ERROR)
+				goto error;
+			break;    // breaks the while loop
+		}
+	}
+
+	// no need to incref, this thing is already holding a reference to the result
+	return result;
+
+error:
+	OBJECT_DECREF(interp, result);
+	return NULL;
+}
+
+static struct Object *split_by_whitespace(struct Interpreter *interp, struct Object *argarr)
+{
+	if (check_args(interp, argarr, interp->builtins.stringclass, NULL) == STATUS_ERROR)
+		return NULL;
+	return stringobject_splitbywhitespace(interp, ARRAYOBJECT_GET(argarr, 0));
+}
+
 int stringobject_addmethods(struct Interpreter *interp)
 {
 	// TODO: create many more string methods
 	if (method_add(interp, interp->builtins.stringclass, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.stringclass, "get", get) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.stringclass, "slice", slice) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.stringclass, "split_by_whitespace", split_by_whitespace) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.stringclass, "to_string", to_string) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.stringclass, "to_debug_string", to_debug_string) == STATUS_ERROR) return STATUS_ERROR;
 	return STATUS_OK;
@@ -152,14 +229,14 @@ struct Object *stringobject_newfromustr(struct Interpreter *interp, struct Unico
 		return NULL;
 	}
 
-	struct Object *str = classobject_newinstance(interp, interp->builtins.stringclass, data, string_destructor);
-	if (!str) {
+	struct Object *s = classobject_newinstance(interp, interp->builtins.stringclass, data, string_destructor);
+	if (!s) {
 		free(data->val);
 		free(data);
 		return NULL;
 	}
-	str->hash = unicodestring_hash(ustr);
-	return str;
+	s->hash = unicodestring_hash(ustr);
+	return s;
 }
 
 struct Object *stringobject_newfromcharptr(struct Interpreter *interp, char *ptr)
@@ -177,14 +254,14 @@ struct Object *stringobject_newfromcharptr(struct Interpreter *interp, char *ptr
 	}
 	assert(status == STATUS_OK);   // it shooouldn't return anything else than STATUS_{NONEM,OK} or 1
 
-	struct Object *str = classobject_newinstance(interp, interp->builtins.stringclass, data, string_destructor);
-	if (!str) {
+	struct Object *s = classobject_newinstance(interp, interp->builtins.stringclass, data, string_destructor);
+	if (!s) {
 		free(data->val);
 		free(data);
 		return NULL;
 	}
-	str->hash = unicodestring_hash(*data);
-	return str;
+	s->hash = unicodestring_hash(*data);
+	return s;
 }
 
 #define POINTER_MAXSTR 50            // should be big enough

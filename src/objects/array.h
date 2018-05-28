@@ -22,7 +22,7 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **elems
 
 // bad things happen if arr is not an array object or i < ARRAYOBJECT_LEN(arr)
 // otherwise these never fail
-// note that ARRAYOBJECT_GET does NOT return a new reference!
+// these DO NOT return a new reference!
 #define ARRAYOBJECT_GET(arr, i) (((struct ArrayObjectData *) (arr)->data)->elems[(i)])
 #define ARRAYOBJECT_LEN(arr)    (((struct ArrayObjectData *) (arr)->data)->len)
 
