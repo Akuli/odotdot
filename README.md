@@ -60,13 +60,15 @@ Because github.
 
 ## Tests
 
-At the time of writing this README, I have horrible test coverage. I'll
-probably write more tests when the language supports catching exceptions and I
-can write some of the tests in the language itself.
+Some of the tests are written in C and some tests are written in Ö. You can run
+all tests like this:
 
-If you want to see for yourself how horrible the coverage is, run these
-commands:
+    $ make test
 
-    $ python3 -m coverage run -m pytest
-    $ python3 -m coverage html
-    $ yourfavoritebrowser htmlcov/index.html
+If the tests fail, you might want to get more output:
+
+    $ make testverbose
+
+I'm not using a coverage tool because I don't know how to use any C coverage
+tools, and there are much more important things to fix than bad coverage; see
+[my huge TODO list](TODO.md).
