@@ -234,9 +234,6 @@ accessed just like methods, but with `.` instead of `::`. The
 `definition_scope` is the scope that Ö was running when `block` was defined;
 that is, the scope that Ö is running our file in.
 
-Scopes also have two attributes: `local_vars` and `parent_scope`. `local_vars`
-is a `Mapping`
-
 `Scope` objects have a `local_vars` attribute. It's a mapping with variable
 name strings as keys. We can access attributes just like methods, but with `.`
 instead of `::`.
