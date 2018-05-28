@@ -19,7 +19,7 @@ struct Interpreter *testinterp;
 static void run_test(char *name, testfunc func)
 {
 	if (verbose) {
-		printf("   %-45s  ", name);
+		printf("%-50s  ", name);
 		fflush(stdout);
 
 		struct timeval start, end;
@@ -89,8 +89,8 @@ int main(int argc, char **argv)
 	interpreter_free(testinterp);
 
 	if (verbose)
-		printf("\n---------- all %d tests passed ----------\n", ntests);
+		printf("\n---------------------------\nall %d ctests pass ----------\n", ntests);
 	else
-		printf("\nok\n");
+		printf("\n");
 	return 0;
 }

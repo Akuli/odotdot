@@ -1,6 +1,5 @@
 CC ?= cc
 CFLAGS += -Wall -Wextra -Wpedantic -std=c99 -Wno-unused-parameter
-TESTARGS ?=
 
 # TODO: comment this out some day? this is for debugging with gdb and valgrind
 CFLAGS += -g
@@ -10,14 +9,14 @@ OBJ := $(SRC:src/%.c=obj/%.o)
 CTESTS_SRC := $(wildcard ctests/*.c) $(wildcard ctests/*.h)
 
 .PHONY: all
-all: ö runtests
+all: ö test
 
 ö: $(OBJ) src/main.c
 	$(CC) -I. $(CFLAGS) src/main.c $(OBJ) -o ö
 
 .PHONY: clean
 clean:
-	rm -vrf obj runtests *-compiled ö
+	rm -vrf obj ctestsrunner *-compiled ö
 
 misc-compiled/%: misc/%.c $(OBJ)
 	mkdir -p $(@D) && $(CC) -o $@ $(OBJ) $(CFLAGS) $< -I.
@@ -25,8 +24,24 @@ misc-compiled/%: misc/%.c $(OBJ)
 obj/%.o: src/%.c
 	mkdir -p $(@D) && $(CC) -c -o $@ $< $(CFLAGS)
 
-runtests: $(CTESTS_SRC) $(OBJ)
-	$(CC) -I. $(CFLAGS) $(CTESTS_SRC) $(OBJ) -o runtests
+ctestsrunner: $(CTESTS_SRC) $(OBJ)
+	$(CC) -I. $(CFLAGS) $(CTESTS_SRC) $(OBJ) -o ctestsrunner
+
+.PHONY: test
+test: ö ctestsrunner
+	./ctestsrunner
+	for file in ötests/test_*.ö; do ./ö "$$file" && printf . ; done
+	@echo
+	@echo "ok"
+
+.PHONY: testverbose
+testverbose: ö ctestsrunner
+	./ctestsrunner --verbose
+	@echo
+	for file in ötests/test_*.ö; do printf '%-40s  ' "$$file"; ./ö "$$file" && echo "ok" || echo "returned $$?"; done
+	@echo
+	@echo "---------------------------"
+	@echo "all ötests pass"
 
 .PHONY: iwyu
 iwyu:

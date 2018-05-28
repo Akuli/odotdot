@@ -158,5 +158,5 @@ dkms.conf
 
 # other stuffs
 *-compiled/
-runtests
+ctestsrunner
 ö

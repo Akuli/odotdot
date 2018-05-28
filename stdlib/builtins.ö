@@ -32,6 +32,17 @@ var if = null;   # set soon
     });
 }::run (new Scope {}.definition_scope);
 
+# usage: assert COND;
+var assert = (array_func {
+    var cond = (arguments::get 0);
+    if (not cond) {
+        # there's no throw function yet, but this fails anyway
+        # the error message is "no variable named 'throw'", but... lol, it works
+        throw "assertion failed";
+    };
+});
+
+
 # VERY STUPID
 # usage example:
 #
@@ -62,19 +73,19 @@ var while = (array_func {
 
 # usage example:
 #
-#    foreach [1 2 3] "x" {
+#    foreach "x" [1 2 3] {
 #        print (x::to_string);
 #    };
 #
 var foreach = (array_func {
-    var arr = (arguments::get 0);
-    var varname = (arguments::get 1);
+    var varname = (arguments::get 0);
+    var array = (arguments::get 1);
     var block = (arguments::get 2);
 
     var scope = (new Scope block.definition_scope);
     var looped = [];
-    while { keep_going = (not (looped `equals` arr)); } {
-        var elem = (arr::get (looped::get_length));
+    while { keep_going = (not (looped `equals` array)); } {
+        var elem = (array::get (looped::get_length));
         scope.local_vars::set varname elem;
         block::run scope;
         looped::push elem;

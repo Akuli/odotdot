@@ -32,12 +32,15 @@ static void setup_string(struct UnicodeString *target)
 // not really random at all, that's why lol
 #define RANDOM_CHOICE_LOL(a, b) ( ((int) time(NULL)) % 2 == 0 ? (a) : (b) )
 
+static unicode_char onetwothreeval[] = { '1', '2', '3' };
+static struct UnicodeString onetwothree = { .len = 3, .val = onetwothreeval };
+
 void test_ast_nodes_and_their_refcount_stuff(void)
 {
 	struct Object *strinfo = stringobject_newfromcharptr(testinterp, "asd");
 	struct Object *strnode = newnode(AST_STR, strinfo);
 
-	struct Object *intinfo = integerobject_newfromcharptr(testinterp, "123");
+	struct Object *intinfo = integerobject_newfromustr(testinterp, onetwothree);
 	struct Object *intnode = newnode(AST_INT, intinfo);
 
 	// the array references intnode and strnode
