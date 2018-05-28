@@ -32,10 +32,6 @@ struct Object *integerobject_newfromlonglong(struct Interpreter *interp, long lo
 // RETURNS A NEW REFERENCE
 struct Object *integerobject_newfromustr(struct Interpreter *interp, struct UnicodeString ustr);
 
-// asserts that the char pointer is digits only, i.e. don't use with user-inputted strings
-// RETURNS A NEW REFERENCE
-struct Object *integerobject_newfromcharptr(struct Interpreter *interp, char *s);
-
 // if the object is an integer, never fails
 // if the object is not an integer, bad things happen
 long long integerobject_tolonglong(struct Object *integer);

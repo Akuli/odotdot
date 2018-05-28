@@ -3,6 +3,7 @@
 
 #include "integer.h"
 #include <assert.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,16 +20,99 @@
 #include "string.h"
 
 
-static void integer_destructor(struct Object *integer)
+// returns STATUS_OK or STATUS_ERROR
+static int parse_ustr(struct Interpreter *interp, struct UnicodeString ustr, long long *res)
 {
-	free(integer->data);
+	struct UnicodeString origstr = ustr;
+	if (ustr.len == 0) {
+		errorobject_setwithfmt(interp, "'' is not an integer");
+		return STATUS_ERROR;
+	}
+
+	bool isnegative=(ustr.val[0] == '-');
+	if (isnegative) {
+		ustr.val++;
+		ustr.len--;
+	}
+
+	// remove leading zeros, but leave a single digit zero alone
+	// e.g. 0000000123 --> 123, 00000000 --> 0, 000001 --> 1
+	while (ustr.len > 1 && ustr.val[0] == '0') {
+		ustr.val++;
+		ustr.len--;
+	}
+
+	if (ustr.len == 0) {
+		errorobject_setwithfmt(interp, "'%U' is not an integer", origstr);
+		return STATUS_ERROR;
+	}
+	if (ustr.len > INTEGEROBJECT_MAXDIGITS) {
+		// FIXME: make sure to get the correct error message
+		// here the number can be either way too large or contain characters not in 0-9
+		goto mustBbetween;
+	}
+
+	int digits[INTEGEROBJECT_MAXDIGITS];
+	for (int i=0; i < (int)ustr.len; i++) {
+		if (ustr.val[i] < '0' || ustr.val[i] > '9') {
+			errorobject_setwithfmt(interp, "'%U' is not an integer", origstr);
+			return STATUS_ERROR;
+		}
+		digits[i] = ustr.val[i] - '0';
+	}
+
+	// careful here... -INTEGEROBJECT_MIN overflows, but -(INTEGEROBJECT_MIN+1) doesn't
+#define ABSMAX (isnegative ? ( (unsigned long long)(-(INTEGEROBJECT_MIN+1)) ) + 1 : (unsigned long long)INTEGEROBJECT_MAX)
+	unsigned long long absval = 0;
+
+	unsigned long long multipleby = 1;
+	for (int i = ustr.len-1; i>=0; i--) {
+		if (absval > ABSMAX - digits[i]*multipleby)
+			goto mustBbetween;
+		absval += digits[i]*multipleby;   // fitting was just checked
+		multipleby *= 10;
+	}
+#undef ABSMAX
+
+	*res = isnegative ? -((long long)(absval-1)) - 1 : (long long)absval;
+	return STATUS_OK;
+
+mustBbetween:
+	errorobject_setwithfmt(interp, "integers must be between %s and %s, but '%U' is not", INTEGEROBJECT_MINSTR, INTEGEROBJECT_MAXSTR, origstr);
+	return STATUS_ERROR;
 }
 
+static void integer_destructor(struct Object *integer)
+{
+	if (integer->data)
+		free(integer->data);
+}
 
+// (new Integer "123") converts a string to an integer
 static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 {
-	errorobject_setwithfmt(interp, "Integers can't be created with (new Integer), use e.g. 123 or -456 instead");
-	return NULL;
+	if (check_args(interp, argarr, interp->builtins.integerclass, interp->builtins.stringclass, NULL) == STATUS_ERROR)
+		return NULL;
+
+	struct Object *integer = ARRAYOBJECT_GET(argarr, 0);
+	struct Object *string = ARRAYOBJECT_GET(argarr, 1);
+	if (integer->data) {
+		errorobject_setwithfmt(interp, "setup was called twice");
+		return NULL;
+	}
+
+	long long *data = malloc(sizeof(long long));
+	if (!data) {
+		errorobject_setnomem(interp);
+		return NULL;
+	}
+	if (parse_ustr(interp, *((struct UnicodeString*) string->data), data) == STATUS_ERROR)
+		return NULL;
+
+	integer->data = data;
+	integer->destructor = integer_destructor;
+	integer->hash = (unsigned int) *data;
+	return interpreter_getbuiltin(interp, "null");
 }
 
 static struct Object *to_string(struct Interpreter *interp, struct Object *argarr)
@@ -42,10 +126,10 @@ static struct Object *to_string(struct Interpreter *interp, struct Object *argar
 
 	assert(INTEGEROBJECT_MIN <= val && val <= INTEGEROBJECT_MAX);
 
-	unsigned long long absval;   // 1 more bit of magnitude than long long
+	// see parse_ustr
+	unsigned long long absval;   
 	if (val < 0) {
 		// '-' will be added to res later
-		// careful here... -INTEGEROBJECT_MIN overflows, but -(INTEGEROBJECT_MIN+1) doesn't
 		absval = ( (unsigned long long)(-(val+1)) ) + 1;
 	} else {
 		absval = val;
@@ -102,80 +186,10 @@ struct Object *integerobject_newfromlonglong(struct Interpreter *interp, long lo
 
 struct Object *integerobject_newfromustr(struct Interpreter *interp, struct UnicodeString ustr)
 {
-	struct UnicodeString origstr = ustr;
-
-	int isnegative=(ustr.val[0] == '-');
-	if (isnegative) {
-		// this relies on pass-by-value
-		ustr.val++;
-		ustr.len--;
-	}
-
-	// remove leading zeros, but leave a single digit zero alone
-	// e.g. 0000000123 --> 123, 00000000 --> 0, 000001 --> 1
-	while (ustr.len > 1 && ustr.val[0] == '0') {
-		ustr.val++;
-		ustr.len--;
-	}
-
-	if (ustr.len == 0) {
-		errorobject_setwithfmt(interp, "'%U' is not an integer", origstr);
+	long long val;
+	if (parse_ustr(interp, ustr, &val) == STATUS_ERROR)
 		return NULL;
-	}
-	if (ustr.len > INTEGEROBJECT_MAXDIGITS)
-		goto mustBbetween;
-
-	int digits[INTEGEROBJECT_MAXDIGITS];
-	for (int i=0; i < (int)ustr.len; i++) {
-		if (ustr.val[i] < '0' || ustr.val[i] > '9') {
-			errorobject_setwithfmt(interp, "'%U' is not an integer", origstr);
-			return NULL;
-		}
-		digits[i] = ustr.val[i] - '0';
-	}
-
-	// see to_string
-	unsigned long long absval = 0;
-#define ABSMAX (isnegative ? ( (unsigned long long)(-(INTEGEROBJECT_MIN+1)) ) + 1 : (unsigned long long)INTEGEROBJECT_MAX)
-
-	unsigned long long multipleby = 1;
-	for (int i = ustr.len-1; i>=0; i--) {
-		if (absval > ABSMAX - digits[i]*multipleby)
-			goto mustBbetween;
-		absval += digits[i]*multipleby;   // fitting was just checked
-		multipleby *= 10;
-	}
-#undef ABSMAX
-
-	long long val = isnegative ? -((long long)(absval-1)) - 1 : (long long)absval;
 	return integerobject_newfromlonglong(interp, val);
-
-mustBbetween:
-	errorobject_setwithfmt(interp, "integers must be between %s and %s, but '%U' is not", INTEGEROBJECT_MINSTR, INTEGEROBJECT_MAXSTR, origstr);
-	return NULL;
-}
-
-struct Object *integerobject_newfromcharptr(struct Interpreter *interp, char *s)
-{
-	// it would be easy to skip many zeros like this:   while (s[0] == '0') s++;
-	// but -000000000000000000000000000000001 must be turned into -1
-	// it would be possible to do this without another malloc, but performance-critical
-	// stuff should use newfromustr or newfromlonglong anyway
-	struct UnicodeString ustr;
-	ustr.len = strlen(s);
-	ustr.val = malloc(sizeof(unicode_char) * ustr.len);
-	if (!ustr.val) {
-		errorobject_setnomem(interp);
-		return NULL;
-	}
-
-	// can't memcpy because types differ
-	for (size_t i=0; i < ustr.len; i++)
-		ustr.val[i] = s[i];
-
-	struct Object *res = integerobject_newfromustr(interp, ustr);
-	free(ustr.val);
-	return res;
 }
 
 long long integerobject_tolonglong(struct Object *integer)
