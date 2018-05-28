@@ -6,7 +6,7 @@ create syntax-spec-ast.png like this:
 
 digraph G {
     //rankdir=LR;
-    print [ label="get var \"print\"" ];
+    print [ label="get var\n\"print\"" ];
     printcall [ label="function call\n1 arg" ];
     tostringcall [ label="function call\n0 args" ];
     tostring [ label="get method\n\"to_string\"" ];

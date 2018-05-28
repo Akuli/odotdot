@@ -56,10 +56,12 @@ Here's a list of *all* supported kinds of tokens:
   valid integer literal. Things like `0123` are invalid syntax, *not* two
   separate tokens; this is because some other programming languages give a
   special meaning to integer literals starting with 0 and `0123 != 123`, and
-  trying to do that in Ö must not silent lead to wrong results.
+  trying to do that in Ö must not silently give unexpected results.
 - *Negative integer literals* are `-` immediately followed by a non-negative
   integer literal. This definition means that `-0` is a valid alternative to
-  `0`.
+  `0`. I'm not sure if this is a good thing or if the Ö interpreter does it
+  right now (I'm tired and I don't feel like trying it out). I might change
+  this later.
 - Operators are `{`, `}`, `[`, `]`, `(`, `)`, `=`, `;`, `.`, `` ` `` or `::`.
 - `var` is parsed with similar rules as identifiers, but it's best for the
   tokenizer to output `var` tokens as non-identifiers. This way `thing::var`
@@ -85,21 +87,22 @@ print ([1 2 3]::to_string);
 
 ![](syntax-spec-ast.png)
 
-Each ball in the above diagram must be available as an `AstNode` object in Ö.
+Each ball in the above drawing must be available as an `AstNode` object in Ö.
 `Block` objects have an `ast_statements` attribute that is set to an array
 of `AstNode` objects representing statements. The `AstNode` class itself is not
 in [the built-in scope](tutorial.md#scopes), but when a function for getting
-the class of an instance will be added, the `AstNode` class can be retrieved
-with a code object like this:
+the class of an instance will be added, it will be possible to access the
+`AstNode` class like this:
 
 ```python
-var AstNode = (magic_function_that_gets_the_class ({ print "hello"; }.ast_statements::get 0));
+var print_statement = ({ print "hello"; }.ast_statements::get 0);
+var AstNode = (magic_function_that_gets_the_class print_statement);
 ```
 
 Ast nodes can represent two things:
 
 - A statement is anything that ends with a `;`, like `print "hello";`. The
-  1-arg function call in the above diagram is a statement.
+  1-arg function call in the above drawing is a statement.
 - An expression is anything that returns a value. All other AST nodes in the
   above drawing represent expressions.
 
