@@ -141,23 +141,25 @@ struct Token *token_ize(struct UnicodeString hugestring)
 			nchars++;    // last ", the error handling stuff below runs if this is missing
 		}
 
-		else if (unicode_is0to9(hugestring.val[0])) {
+#define is0to9(x) ('0' <= (x) && (x) <= '9')
+		else if (is0to9(hugestring.val[0])) {
 			kind = TOKEN_INT;
 			nchars = 0;
-			while (hugestring.len > nchars && unicode_is0to9(hugestring.val[nchars]))
+			while (hugestring.len > nchars && is0to9(hugestring.val[nchars]))
 				nchars++;
 			if (!check_integer(hugestring, nchars, lineno))
 				goto error;
 		}
 
-		else if (hugestring.len >= 2 && hugestring.val[0] == '-' && unicode_is0to9(hugestring.val[1])) {
+		else if (hugestring.len >= 2 && hugestring.val[0] == '-' && is0to9(hugestring.val[1])) {
 			kind = TOKEN_INT;
 			nchars = 1;    // don't give the '-' to the while loop below
-			while (hugestring.len > nchars && unicode_is0to9(hugestring.val[nchars]))
+			while (hugestring.len > nchars && is0to9(hugestring.val[nchars]))
 				nchars++;
 			if (!check_integer(hugestring, nchars, lineno))
 				goto error;
 		}
+#undef is0to9
 
 		else if (unicode_isidentifier1st(hugestring.val[0])) {
 			kind = TOKEN_ID;

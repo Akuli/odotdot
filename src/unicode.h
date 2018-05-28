@@ -47,23 +47,25 @@ Errors are handled similarly to utf8_encode.
 int utf8_decode(char *utf8, size_t utf8len, struct UnicodeString *unicode, char *errormsg);
 
 
-// these operate on unicode_chars, not UnicodeString structs
-// FIXME: unicode_isalpha and unicode_iswovel suck, maybe unicode_isdigit sucks too?
-// TODO: remove unicode_is0to9
+/* i cheated with python
+	>>> for codepnt in range(0x110000):
+	...     if chr(codepnt).isspace():
+	...             print('(x) == %#x' % codepnt, end=' || ')
+*/
+#define unicode_isspace(x) ((x) == 0x9 || (x) == 0xa || (x) == 0xb || (x) == 0xc || (x) == 0xd || \
+	(x) == 0x1c || (x) == 0x1d || (x) == 0x1e || (x) == 0x1f || (x) == 0x20 || (x) == 0x85 || \
+	(x) == 0xa0 || (x) == 0x1680 || (x) == 0x2000 || (x) == 0x2001 || (x) == 0x2002 || \
+	(x) == 0x2003 || (x) == 0x2004 || (x) == 0x2005 || (x) == 0x2006 || (x) == 0x2007 || \
+	(x) == 0x2008 || (x) == 0x2009 || (x) == 0x200a || (x) == 0x2028 || (x) == 0x2029 || \
+	(x) == 0x202f || (x) == 0x205f || (x) == 0x3000)
+
+// TODO: make this suck less
 #define unicode_isalpha(x) ( \
 	('a' <= (x) && (x) <= 'z') || ('A' <= (x) && (x) <= 'Z') || \
 	(x) == 0xc5 /* Å */ || (x) == 0xc4 /* Ä */ || (x) == 0xd6 /* Ö */ || \
 	(x) == 0xe5 /* å */ || (x) == 0xe4 /* ä */ || (x) == 0xf6 /* ö */ )
-#define unicode_isdigit(x) ('0' <= (x) && (x) <= '9')
-#define unicode_is0to9(x) ('0' <= (x) && (x) <= '9')   // if there are other unicode digits, this must ignore them
-#define unicode_isalnum(x) (unicode_isalpha(x) || unicode_isdigit(x))
-#define unicode_isidentifier1st(x) (unicode_isalpha(x) || (x)=='_')
-#define unicode_isidentifiernot1st(x) (unicode_isalnum(x) || (x)=='_')
 
-#define unicode_iswovel(x) ( \
-	(x) == 'A' || (x) == 'E' || (x) == 'I' || (x) == 'O' || (x) == 'U' || (x) == 'Y' || \
-	(x) == 'a' || (x) == 'e' || (x) == 'i' || (x) == 'o' || (x) == 'u' || (x) == 'y' || \
-	(x) == 0xc5 /* Å */ || (x) == 0xc4 /* Ä */ || (x) == 0xd6 /* Ö */ || \
-	(x) == 0xe5 /* å */ || (x) == 0xe4 /* ä */ || (x) == 0xf6 /* ö */ )
+#define unicode_isidentifier1st(x) ((x)=='_' || unicode_isalpha(x))
+#define unicode_isidentifiernot1st(x) ((x)=='_' || unicode_isalpha(x) || ('0' <= (x) && (x) <= '9'))
 
 #endif   // UNICODE_H
