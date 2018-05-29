@@ -43,14 +43,21 @@ Some notes:
   except when the whitespace is in a string (`"hello world"` is a string
   literal token) or the whitespace separates tokens that would be parsed
   differently without the whitespace (`1 2` is two tokens, and `12` is one
-  token).
+  token). This means that `f"a"2b;` is a valid way to write `f "a" 2 b;`.
 
 Here's a list of *all* supported kinds of tokens:
+- A `#` character begins a *comment*, and a newline or end-of-file ends the
+  comment. The Ö interpreter doesn't actually create comment tokens at all;
+  it's not possible to access tokens directly from Ö code and the comment
+  tokens would need to be ignored anyway, so it's not possible to write Ö code
+  that actually notices the difference.
 - *Identifiers* are names of e.g. variables and methods. They can contain any
   alphabetical Unicode characters as well as any of the characters
   `_0123456789`. An identifier cannot start with any of the characters
   `0123456789`; code like `123asd` should be parsed as two tokens, `123` and
   `asd`.
+- *String literals* are any characters except `"` or newline between `"`
+  quotes. There are no escape sequences yet, not even `\n` :(
 - *Non-negative integer literals* are characters `0123456789` jammed together
   in different ways. The literal must not start with `0`, but *just* `0` is a
   valid integer literal. Things like `0123` are invalid syntax, *not* two
@@ -65,8 +72,12 @@ Here's a list of *all* supported kinds of tokens:
 - Operators are `{`, `}`, `[`, `]`, `(`, `)`, `=`, `;`, `.`, `` ` `` or `::`.
 - `var` is parsed with similar rules as identifiers, but it's best for the
   tokenizer to output `var` tokens as non-identifiers. This way `thing::var`
-  will cause errors when parsing to AST. Note that `var0` is an identifier,
-  just like e.g. `thingy0`.
+  will cause errors when parsing to AST. Note that e.g. `var_statement` and
+  `var0` are valid identifiers.
+
+The token rule that matches *first* should be used. For example,
+`"hello # world"` is not a comment because the very first character begins a
+valid string literal, and the `#` beginning a comment is the 8th character.
 
 There are no float objects in the whole language yet, so `0.0` should be
 tokenized as two integers and an operator (even though parsing those will
@@ -88,11 +99,14 @@ print ([1 2 3]::to_string);
 ![](syntax-spec-ast.png)
 
 Each ball in the above drawing must be available as an `AstNode` object in Ö.
-`Block` objects have an `ast_statements` attribute that is set to an array
-of `AstNode` objects representing statements. The `AstNode` class itself is not
-in [the built-in scope](tutorial.md#scopes), but when a function for getting
-the class of an instance will be added, it will be possible to access the
-`AstNode` class like this:
+`AstNode` objects don't have any attributes yet, so they are essentially
+useless. This will hopefully be fixed some day...
+
+`Block` objects have an `ast_statements` attribute that is set to an array of
+`AstNode` objects representing statements. The `AstNode` class itself is not in
+[the built-in scope](tutorial.md#scopes), but it's not hidden either; when a
+function for getting the class of an instance will be added, it will be
+possible to access the `AstNode` class like this:
 
 ```python
 var print_statement = ({ print "hello"; }.ast_statements::get 0);
@@ -100,14 +114,12 @@ var AstNode = (magic_function_that_gets_the_class print_statement);
 ```
 
 Ast nodes can represent two things:
-
 - A statement is anything that ends with a `;`, like `print "hello";`. The
   1-arg function call in the above drawing is a statement.
 - An expression is anything that returns a value. All other AST nodes in the
   above drawing represent expressions.
 
 Here's a list of all supported kinds of expressions:
-
 - String literals: `""` and `"hello"` return `String` objects.
 - Integer literals: `123`, `-5` and `0` return `Integer` objects.
 - Variable lookups: `print` and `magic_number` return values of variables.
@@ -130,8 +142,7 @@ Here's a list of all supported kinds of expressions:
   equivalent to `{ return expression; }`.
   TODO: the Ö interpreter doesn't support the `{ expression }` syntax yet :(
 
-Here's a list of statements
-
+Here's a list of statements:
 - Function calls: `function arg1 arg2 arg3;` is like the
   `(function arg1 arg2 arg3)` [expression](#expressions), but the return value
   is ignored.
@@ -144,6 +155,12 @@ Here's a list of statements
   this throws an error.
 - Setting attributes: `a.b = c;` sets the `b` attribute of `a` to `c`. `b` can
   be any attribute name, and `a` and `c` can be any expressions.
+
+When parsing a file or the content of a `Block`, the parser simply parses the
+tokens statement by statement until there are no more tokens left. The
+statement array is the result of the parsing, and usually it ends up being
+executed statement by statement or saved to an `ast_statements` attribute of a
+`Block`.
 
 
 ## Running the AST
