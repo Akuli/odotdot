@@ -224,6 +224,12 @@ things that I would like to do some day. It's a mess.
         };
         ```
 
+## docs
+- the builtins need to be document well, now `Array` methods are only listed in
+  the tutorial and `Mapping` methods are missing
+- `syntax-spec.md` is quite complete, need tests that check every possible
+  detail of it
+
 ## tokenizer.{c,h}
 - tokenizing an empty file fails
     - `token_ize()` returns a linked list, and an empty linked list is
