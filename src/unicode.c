@@ -28,16 +28,6 @@ struct UnicodeString *unicodestring_copy(struct UnicodeString src)
 	return res;
 }
 
-unsigned int unicodestring_hash(struct UnicodeString str)
-{
-	// djb2 hash
-	// http://www.cse.yorku.ca/~oz/hash.html
-	unsigned int hash = 5381;
-	for (size_t i=0; i < str.len; i++)
-		hash = hash*33 + str.val[i];
-	return hash;
-}
-
 
 // example: ONES(6) is 111111 in binary
 #define ONES(n) ((1<<(n))-1)

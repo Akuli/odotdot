@@ -7,7 +7,7 @@
 #include "objects/classobject.h"
 
 // this thing works by setting gcflag to what refcount SHOULD be and then checking it
-// Object.refcount and Object.gcflag are both ints
+// Object.refcount and Object.gcflag are both longs
 
 static void mark_reference(struct Object *referred, void *junkdata)
 {
@@ -26,13 +26,13 @@ void gc_run(struct Interpreter *interp)
 	for_each_object
 		classobject_runforeachref((struct Object *) iter.obj, NULL, mark_reference);
 
-	int problems = 0;
+	bool problems = false;
 	for_each_object {
 		struct Object *obj = iter.obj;
 		if (obj->refcount != obj->gcflag) {
 			if (!problems) {
 				fprintf(stderr, "%s: reference counting problems\n", interp->argv0);
-				problems=1;
+				problems=true;
 			}
 			fprintf(stderr, "   refcount of %p (class=%p) is %d too %s\n",
 				(void*) obj, (void*) obj->klass, abs(obj->refcount - obj->gcflag),

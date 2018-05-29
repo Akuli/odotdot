@@ -14,6 +14,11 @@
 #include "errors.h"
 #include "string.h"
 
+// hash should be a signed long, nbuckets should be an unsigned long
+// casting signed to unsigned is apparently well-defined 0_o
+#define HASH_MODULUS(hash, nbuckets) ( (unsigned long)(hash) % (unsigned long)(nbuckets) )
+
+
 struct MappingObjectItem {
 	struct Object *key;
 	struct Object *value;
@@ -23,7 +28,7 @@ struct MappingObjectItem {
 static void mapping_destructor(struct Object *map)
 {
 	struct MappingObjectData *data = map->data;
-	for (size_t i=0; i < data->nbuckets; i++) {
+	for (unsigned long i=0; i < data->nbuckets; i++) {
 		struct MappingObjectItem *item = data->buckets[i];
 		while (item) {
 			void *gonnafree = item;
@@ -106,9 +111,9 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 
 static int make_bigger(struct Interpreter *interp, struct MappingObjectData *data)
 {
-	assert(data->nbuckets != UINT_MAX);   // the caller should check this
+	assert(data->nbuckets != ULONG_MAX);   // the caller should check this
 
-	unsigned int newnbuckets = (data->nbuckets > UINT_MAX/3) ? UINT_MAX : data->nbuckets*3;
+	unsigned long newnbuckets = (data->nbuckets > ULONG_MAX/3) ? ULONG_MAX : data->nbuckets*3;
 
 	struct MappingObjectItem **newbuckets = calloc(newnbuckets, sizeof(struct MappingObjectItem));
 	if (!newbuckets) {
@@ -116,13 +121,13 @@ static int make_bigger(struct Interpreter *interp, struct MappingObjectData *dat
 		return STATUS_ERROR;
 	}
 
-	for (size_t oldi = 0; oldi < data->nbuckets; oldi++) {
+	for (unsigned long oldi = 0; oldi < data->nbuckets; oldi++) {
 		struct MappingObjectItem *next;
 		for (struct MappingObjectItem *item = data->buckets[oldi]; item; item=next) {
 			next = item->next;   // must be before changing item->next
 
 			// put the item to a new bucket, same code as in set()
-			size_t newi = item->key->hash % newnbuckets;
+			unsigned long newi = HASH_MODULUS(item->key->hash, newnbuckets);
 			item->next = newbuckets[newi];   // may be NULL
 			newbuckets[newi] = item;
 		}
@@ -142,7 +147,7 @@ int mappingobject_set(struct Interpreter *interp, struct Object *map, struct Obj
 	}
 
 	struct MappingObjectData *data = map->data;
-	unsigned int i = key->hash % data->nbuckets;
+	unsigned long i = HASH_MODULUS(key->hash, data->nbuckets);
 	for (struct MappingObjectItem *olditem = data->buckets[i]; olditem; olditem=olditem->next) {
 		int eqres = equals(interp, olditem->key, key);
 		if (eqres == -1)
@@ -165,12 +170,12 @@ int mappingobject_set(struct Interpreter *interp, struct Object *map, struct Obj
 	java's 3/4 seems to be a really good choice for this value, at least on my system
 	TODO: modify hashtable_speedtest.c for this
 	*/
-	if (data->nbuckets != UINT_MAX) {
+	if (data->nbuckets != LONG_MAX) {
 		float loadfactor = ((float) data->size) / data->nbuckets;
 		if (loadfactor > 0.75) {
 			if (make_bigger(interp, data) == STATUS_ERROR)
 				return STATUS_ERROR;
-			i = key->hash % data->nbuckets;
+			i = HASH_MODULUS(key->hash, data->nbuckets);
 		}
 	}
 
@@ -210,7 +215,7 @@ struct Object *mappingobject_get(struct Interpreter *interp, struct Object *map,
 	}
 
 	struct MappingObjectData *data = map->data;
-	for (struct MappingObjectItem *item = data->buckets[key->hash % data->nbuckets]; item; item=item->next) {
+	for (struct MappingObjectItem *item = data->buckets[HASH_MODULUS(key->hash, data->nbuckets)]; item; item=item->next) {
 		int eqres = equals(interp, item->key, key);
 		if (eqres == -1)
 			return NULL;
@@ -253,7 +258,7 @@ static struct Object *get_and_delete(struct Interpreter *interp, struct Object *
 	}
 
 	struct MappingObjectData *data = map->data;
-	unsigned int i = key->hash % data->nbuckets;
+	unsigned long i = HASH_MODULUS(key->hash, data->nbuckets);
 
 	struct MappingObjectItem *prev = NULL;
 	for (struct MappingObjectItem *item = data->buckets[i]; item; item=item->next) {

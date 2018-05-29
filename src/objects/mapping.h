@@ -11,7 +11,9 @@ struct MappingObjectItem;
 // everything except size should be considered implementation details
 struct MappingObjectData {
 	struct MappingObjectItem **buckets;
-	unsigned int nbuckets;   // hashes are uints, so more than UINT_MAX buckets would be useless
+	// hashes are longs, so more than ULONG_MAX buckets would be useless
+	// long and unsigned long are of the same size
+	unsigned long nbuckets;
 	size_t size;
 };
 
@@ -43,7 +45,7 @@ struct MappingObjectIter {
 	// rest of these should be considered implementation details
 	struct MappingObjectData *data;
 	int started;
-	unsigned int lastbucketno;
+	unsigned long lastbucketno;
 	struct MappingObjectItem *lastitem;
 };
 

@@ -217,6 +217,16 @@ int stringobject_addmethods(struct Interpreter *interp)
 }
 
 
+static long string_hash(struct UnicodeString u)
+{
+	// djb2 hash
+	// http://www.cse.yorku.ca/~oz/hash.html
+	unsigned long hash = 5381;
+	for (size_t i=0; i < u.len; i++)
+		hash = hash*33 + u.val[i];
+	return (long)hash;
+}
+
 struct Object *stringobject_newfromustr(struct Interpreter *interp, struct UnicodeString ustr)
 {
 	struct UnicodeString *data = unicodestring_copy(ustr);
@@ -231,7 +241,7 @@ struct Object *stringobject_newfromustr(struct Interpreter *interp, struct Unico
 		free(data);
 		return NULL;
 	}
-	s->hash = unicodestring_hash(ustr);
+	s->hash = string_hash(ustr);
 	return s;
 }
 
@@ -256,7 +266,7 @@ struct Object *stringobject_newfromcharptr(struct Interpreter *interp, char *ptr
 		free(data);
 		return NULL;
 	}
-	s->hash = unicodestring_hash(*data);
+	s->hash = string_hash(*data);
 	return s;
 }
 

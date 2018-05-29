@@ -2,7 +2,7 @@
 atomic incrementing and decrementing for thread-safe reference counting
 
 example:
-	int var = 0;
+	long var = 0;
 
 	void threadsafe_func(void)
 	{

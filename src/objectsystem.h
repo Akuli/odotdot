@@ -6,7 +6,7 @@
 #include "atomicincrdecr.h"
 
 
-// all ö objects are instances of this struct
+// all ö objects are pointers to instances of this struct
 struct Object {
 	// see objects/classobject.h
 	struct Object *klass;
@@ -23,13 +23,13 @@ struct Object {
 
 	// if hashable is 1, this object can be used as a key in Mappings
 	int hashable;    // 1 or 0
-	int hash;
+	long hash;
 
 	// use with atomicincrdecr.h functions only
-	int refcount;
+	long refcount;
 
 	// the garbage collector does something implementation-detaily with this
-	int gcflag;
+	long gcflag;
 };
 
 // THIS IS LOWLEVEL, see classobject_newinstance()

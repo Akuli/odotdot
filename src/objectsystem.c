@@ -22,8 +22,12 @@ struct Object *object_new_noerr(struct Interpreter *interp, struct Object *klass
 
 	obj->attrs = NULL;
 	obj->data = data;
+
+	// the rightmost bits are often used for alignment
+	// let's throw them away for a better distribution
+	obj->hash = (uintptr_t)((void*)obj) >> 3;
 	obj->hashable = 1;
-	obj->hash = (unsigned int)((uintptr_t)obj);   // by default, hash by identity
+
 	obj->refcount = 1;   // the returned reference
 	obj->gcflag = 0;
 	obj->destructor = destructor;
