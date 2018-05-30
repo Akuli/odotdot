@@ -3,7 +3,7 @@
 
 // FIXME: nomemerr handling
 
-#include "ast.h"
+#include "parse.h"
 #include <assert.h>
 #include <stdlib.h>
 #include "common.h"
@@ -12,119 +12,11 @@
 #include "tokenizer.h"
 #include "unicode.h"
 #include "objects/array.h"
+#include "objects/astnode.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
 #include "objects/integer.h"
 #include "objects/string.h"
-
-static void astnode_foreachref(struct Object *node, void *cbdata, classobject_foreachrefcb cb)
-{
-	struct AstNodeData *data = node->data;
-	size_t i;
-	switch (data->kind) {
-#define info_as(X) ((struct X *) data->info)
-	case AST_ARRAY:
-	case AST_BLOCK:
-		cb(info_as(AstArrayOrBlockInfo), cbdata);
-		break;
-	case AST_GETATTR:
-	case AST_GETMETHOD:
-		cb(info_as(AstGetAttrOrMethodInfo)->objnode, cbdata);
-		break;
-	case AST_CREATEVAR:
-	case AST_SETVAR:
-		cb(info_as(AstCreateOrSetVarInfo)->valnode, cbdata);
-		break;
-	case AST_SETATTR:
-		cb(info_as(AstSetAttrInfo)->objnode, cbdata);
-		cb(info_as(AstSetAttrInfo)->valnode, cbdata);
-		break;
-	case AST_CALL:
-		cb(info_as(AstCallInfo)->funcnode, cbdata);
-		for (i = 0; i < info_as(AstCallInfo)->nargs; i++)
-			cb(info_as(AstCallInfo)->argnodes[i], cbdata);
-		break;
-	case AST_INT:
-	case AST_STR:
-		cb(info_as(AstIntOrStrInfo), cbdata);
-		break;
-	case AST_GETVAR:
-		// do nothing
-		break;
-#undef info_as
-	default:
-		assert(0);      // unknown kind
-	}
-}
-
-static void astnode_destructor(struct Object *node)
-{
-	struct AstNodeData *data = node->data;
-	switch (data->kind) {
-#define info_as(X) ((struct X *) data->info)
-	case AST_GETVAR:
-		free(info_as(AstGetVarInfo)->varname.val);
-		free(data->info);
-		break;
-	case AST_GETATTR:
-	case AST_GETMETHOD:
-		free(info_as(AstGetAttrOrMethodInfo)->name.val);
-		free(data->info);
-		break;
-	case AST_CREATEVAR:
-	case AST_SETVAR:
-		free(info_as(AstCreateOrSetVarInfo)->varname.val);
-		free(data->info);
-		break;
-	case AST_SETATTR:
-		free(info_as(AstSetAttrInfo)->attr.val);
-		free(data->info);
-		break;
-	case AST_CALL:
-		free(info_as(AstCallInfo)->argnodes);
-		free(data->info);
-		break;
-	case AST_INT:
-	case AST_STR:
-	case AST_ARRAY:
-	case AST_BLOCK:
-		// do nothing
-		break;
-#undef info_as
-	default:
-		assert(0);  // unknown kind
-	}
-
-	free(data);
-}
-
-struct Object *astnode_createclass(struct Interpreter *interp)
-{
-	// the 1 means that AstNode instances may have attributes
-	// TODO: add at least kind and lineno attributes to the nodes?
-	return classobject_new(interp, "AstNode", interp->builtins.objectclass, 1, astnode_foreachref);
-}
-
-
-struct Object *ast_new_statement(struct Interpreter *interp, char kind, size_t lineno, void *info)
-{
-	struct AstNodeData *data = malloc(sizeof(struct AstNodeData));
-	if (!data) {
-		errorobject_setnomem(interp);
-		return NULL;
-	}
-	data->kind = kind;
-	data->lineno = lineno;
-	data->info = info;
-
-	struct Object *obj = classobject_newinstance(interp, interp->builtins.astnodeclass, data, astnode_destructor);
-	if (!obj) {
-		free(data);
-		return NULL;
-	}
-	return obj;
-}
-
 
 // remember to change this if you add more expressions!
 // this never fails
@@ -162,7 +54,7 @@ static struct Object *parse_string(struct Interpreter *interp, struct Token **cu
 	if (!info)
 		return NULL;
 
-	struct Object *res = ast_new_expression(interp, AST_STR, info);
+	struct Object *res = astnodeobject_new(interp, AST_STR, 0, info);
 	if (!res) {
 		OBJECT_DECREF(interp, info);
 		return NULL;
@@ -183,7 +75,7 @@ static struct Object *parse_int(struct Interpreter *interp, struct Token **curto
 	if (!info)
 		return NULL;
 
-	struct Object *res = ast_new_expression(interp, AST_INT, info);
+	struct Object *res = astnodeobject_new(interp, AST_INT, 0, info);
 	if(!res) {
 		OBJECT_DECREF(interp, info);
 		return NULL;
@@ -209,7 +101,7 @@ static struct Object *parse_getvar(struct Interpreter *interp, struct Token **cu
 		return NULL;
 	}
 
-	struct Object *res = ast_new_expression(interp, AST_GETVAR, info);
+	struct Object *res = astnodeobject_new(interp, AST_GETVAR, 0, info);
 	if (!res) {
 		free(info->varname.val);
 		free(info);
@@ -245,7 +137,7 @@ static struct Object *parse_call(struct Interpreter *interp, struct Token **curt
 	OBJECT_INCREF(interp, funcnode);
 
 	for (callinfo->nargs = 0; expression_coming_up(*curtok) && callinfo->nargs < MAX_ARGS; callinfo->nargs++) {
-		struct Object *arg = ast_parse_expression(interp, curtok);
+		struct Object *arg = parse_expression(interp, curtok);
 		if(!arg) {
 			for(size_t i=0; i < callinfo->nargs; i++)
 				OBJECT_DECREF(interp, callinfo->argnodes[i]);
@@ -255,7 +147,7 @@ static struct Object *parse_call(struct Interpreter *interp, struct Token **curt
 			return NULL;
 		}
 
-		// don't incref or decref arg, ast_parse_expression() returned a reference
+		// don't incref or decref arg, parse_expression() returned a reference
 		callinfo->argnodes[callinfo->nargs] = arg;
 	}
 
@@ -267,7 +159,7 @@ static struct Object *parse_call(struct Interpreter *interp, struct Token **curt
 	if (callinfo->nargs)       // 0 bytes of memory *MAY* be represented as NULL
 		assert(callinfo->argnodes);
 
-	struct Object *res = ast_new_statement(interp, AST_CALL, lineno, callinfo);
+	struct Object *res = astnodeobject_new(interp, AST_CALL, lineno, callinfo);
 	if (!res) {
 		for(size_t i=0; i < callinfo->nargs; i++)
 			OBJECT_DECREF(interp, callinfo->argnodes[i]);
@@ -285,11 +177,11 @@ static struct Object *parse_infix_call(struct Interpreter *interp, struct Token 
 {
 	size_t lineno = (*curtok)->lineno;
 
-	// this SHOULD be checked by ast_parse_expression()
+	// this SHOULD be checked by parse_expression()
 	assert((*curtok)->str.len == 1 && (*curtok)->str.val[0] == '`');
 	*curtok = (*curtok)->next;
 
-	struct Object *func = ast_parse_expression(interp, curtok);
+	struct Object *func = parse_expression(interp, curtok);
 	if (!func)
 		return NULL;
 
@@ -299,7 +191,7 @@ static struct Object *parse_infix_call(struct Interpreter *interp, struct Token 
 	}
 	*curtok = (*curtok)->next;
 
-	struct Object *arg2 = ast_parse_expression(interp, curtok);
+	struct Object *arg2 = parse_expression(interp, curtok);
 	if (!arg2) {
 		OBJECT_DECREF(interp, func);
 		return NULL;
@@ -323,7 +215,7 @@ static struct Object *parse_infix_call(struct Interpreter *interp, struct Token 
 	callinfo->argnodes[0] = arg1;
 	callinfo->argnodes[1] = arg2;
 
-	struct Object *res = ast_new_statement(interp, AST_CALL, lineno, callinfo);
+	struct Object *res = astnodeobject_new(interp, AST_CALL, lineno, callinfo);
 	if (!res) {
 		free(callinfo->argnodes);
 		free(callinfo);
@@ -341,11 +233,11 @@ static struct Object *parse_infix_call(struct Interpreter *interp, struct Token 
 // (func arg1 arg2) or (arg1 `func` arg2)
 static struct Object *parse_call_expression(struct Interpreter *interp, struct Token **curtok)
 {
-	// this SHOULD be checked by ast_parse_expression()
+	// this SHOULD be checked by parse_expression()
 	assert((*curtok)->str.len == 1 && (*curtok)->str.val[0] == '(');
 	*curtok = (*curtok)->next;
 
-	struct Object *first = ast_parse_expression(interp, curtok);
+	struct Object *first = parse_expression(interp, curtok);
 	if (!first)
 		return NULL;
 
@@ -381,7 +273,7 @@ static struct Object *parse_array(struct Interpreter *interp, struct Token **cur
 		return NULL;
 
 	while ((*curtok) && !((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == ']')) {
-		struct Object *elem = ast_parse_expression(interp, curtok);
+		struct Object *elem = parse_expression(interp, curtok);
 		if(!elem) {
 			OBJECT_DECREF(interp, elements);
 			return NULL;
@@ -398,7 +290,7 @@ static struct Object *parse_array(struct Interpreter *interp, struct Token **cur
 	assert((*curtok)->str.len == 1 && (*curtok)->str.val[0] == ']');
 	*curtok = (*curtok)->next;   // skip ']'
 
-	struct Object *res = ast_new_expression(interp, AST_ARRAY, elements);
+	struct Object *res = astnodeobject_new(interp, AST_ARRAY, 0, elements);
 	if (!res) {
 		OBJECT_DECREF(interp, elements);
 		return NULL;
@@ -422,7 +314,7 @@ struct Object *parse_block(struct Interpreter *interp, struct Token **curtok)
 
 	// TODO: { expr } should be same as { return expr; }
 	while ((*curtok) && !((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == '}')) {
-		struct Object *stmt = ast_parse_statement(interp, curtok);
+		struct Object *stmt = parse_statement(interp, curtok);
 		if (!stmt) {
 			OBJECT_DECREF(interp, statements);
 			return NULL;
@@ -439,7 +331,7 @@ struct Object *parse_block(struct Interpreter *interp, struct Token **curtok)
 	assert((*curtok)->str.len == 1 && (*curtok)->str.val[0] == '}');
 	*curtok = (*curtok)->next;   // skip ']'
 
-	struct Object *res = ast_new_expression(interp, AST_BLOCK, statements);
+	struct Object *res = astnodeobject_new(interp, AST_BLOCK, 0, statements);
 	if (!res) {
 		OBJECT_DECREF(interp, statements);
 		return NULL;
@@ -448,7 +340,7 @@ struct Object *parse_block(struct Interpreter *interp, struct Token **curtok)
 }
 
 
-struct Object *ast_parse_expression(struct Interpreter *interp, struct Token **curtok)
+struct Object *parse_expression(struct Interpreter *interp, struct Token **curtok)
 {
 	struct Object *res;
 	switch ((*curtok)->kind) {
@@ -510,7 +402,7 @@ struct Object *ast_parse_expression(struct Interpreter *interp, struct Token **c
 		}
 		*curtok = (*curtok)->next;
 
-		struct Object *gam = ast_new_expression(interp, astkind, gaminfo);
+		struct Object *gam = astnodeobject_new(interp, astkind, 0, gaminfo);
 		if(!gam) {
 			free(gaminfo->name.val);
 			free(gaminfo);
@@ -552,7 +444,7 @@ static struct Object *parse_var_statement(struct Interpreter *interp, struct Tok
 	assert((*curtok)->str.val[0] == '=');
 	*curtok = (*curtok)->next;
 
-	struct Object *value = ast_parse_expression(interp, curtok);
+	struct Object *value = parse_expression(interp, curtok);
 	if (!value) {
 		free(varname.val);
 		return NULL;
@@ -568,7 +460,7 @@ static struct Object *parse_var_statement(struct Interpreter *interp, struct Tok
 	info->varname = varname;
 	info->valnode = value;
 
-	struct Object *res = ast_new_statement(interp, AST_CREATEVAR, lineno, info);
+	struct Object *res = astnodeobject_new(interp, AST_CREATEVAR, lineno, info);
 	if (!res) {
 		// TODO: set no mem error
 		free(info);
@@ -582,7 +474,7 @@ static struct Object *parse_var_statement(struct Interpreter *interp, struct Tok
 // x = y;
 static struct Object *parse_assignment(struct Interpreter *interp, struct Token **curtok, struct Object *lhs)
 {
-	struct AstNodeData *lhsdata = lhs->data;
+	struct AstNodeObjectData *lhsdata = lhs->data;
 	if (lhsdata->kind != AST_GETVAR && lhsdata->kind != AST_GETATTR) {
 		// TODO: report an error e.g. like this:
 		//   the x of 'x = y;' must be a variable name or an attribute
@@ -594,7 +486,7 @@ static struct Object *parse_assignment(struct Interpreter *interp, struct Token 
 	assert((*curtok)->str.val[0] == '=');
 	*curtok = (*curtok)->next;
 
-	struct Object *rhs = ast_parse_expression(interp, curtok);
+	struct Object *rhs = parse_expression(interp, curtok);
 	if (!rhs)
 		return NULL;
 
@@ -611,7 +503,7 @@ static struct Object *parse_assignment(struct Interpreter *interp, struct Token 
 		}
 		info->valnode = rhs;
 
-		struct Object *result = ast_new_statement(interp, AST_SETVAR, lhsdata->lineno, info);
+		struct Object *result = astnodeobject_new(interp, AST_SETVAR, lhsdata->lineno, info);
 		if (!result) {
 			free(info->varname.val);
 			free(info);
@@ -634,7 +526,7 @@ static struct Object *parse_assignment(struct Interpreter *interp, struct Token 
 		OBJECT_INCREF(interp, lhsinfo->objnode);
 		info->valnode = rhs;
 
-		struct Object *result = ast_new_statement(interp, AST_SETATTR, lhsdata->lineno, info);
+		struct Object *result = astnodeobject_new(interp, AST_SETATTR, lhsdata->lineno, info);
 		if (!result) {
 			OBJECT_DECREF(interp, lhsinfo->objnode);
 			free(info->attr.val);
@@ -649,7 +541,7 @@ error:
 	return NULL;
 }
 
-struct Object *ast_parse_statement(struct Interpreter *interp, struct Token **curtok)
+struct Object *parse_statement(struct Interpreter *interp, struct Token **curtok)
 {
 	struct Object *res;
 	if ((*curtok)->kind == TOKEN_KEYWORD) {
@@ -657,7 +549,7 @@ struct Object *ast_parse_statement(struct Interpreter *interp, struct Token **cu
 		res = parse_var_statement(interp, curtok);
 	} else {
 		// a function call or an assignment
-		struct Object *first = ast_parse_expression(interp, curtok);
+		struct Object *first = parse_expression(interp, curtok);
 		if (!first)
 			return NULL;
 

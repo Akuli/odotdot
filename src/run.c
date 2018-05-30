@@ -2,7 +2,6 @@
 #include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include "ast.h"
 #include "attribute.h"
 #include "check.h"
 #include "common.h"
@@ -10,17 +9,19 @@
 #include "method.h"
 #include "objectsystem.h"
 #include "objects/array.h"
+#include "objects/astnode.h"
 #include "objects/block.h"
 #include "objects/errors.h"
 #include "objects/function.h"
 #include "objects/mapping.h"
 #include "objects/scope.h"
 #include "objects/string.h"
+#include "parse.h"
 
 // RETURNS A NEW REFERENCE
 static struct Object *run_expression(struct Interpreter *interp, struct Object *scope, struct Object *exprnode)
 {
-	struct AstNodeData *nodedata = exprnode->data;
+	struct AstNodeObjectData *nodedata = exprnode->data;
 
 #define INFO_AS(X) ((struct X *) nodedata->info)
 	if (nodedata->kind == AST_GETVAR) {
@@ -119,7 +120,7 @@ static struct Object *run_expression(struct Interpreter *interp, struct Object *
 
 int run_statement(struct Interpreter *interp, struct Object *scope, struct Object *stmtnode)
 {
-	struct AstNodeData *nodedata = stmtnode->data;
+	struct AstNodeObjectData *nodedata = stmtnode->data;
 
 #define INFO_AS(X) ((struct X *) nodedata->info)
 	if (nodedata->kind == AST_CALL) {

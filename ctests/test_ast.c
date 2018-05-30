@@ -1,13 +1,14 @@
-#include <src/ast.h>
 #include <src/common.h>
 #include <src/interpreter.h>
 #include <src/objectsystem.h>
 #include <src/tokenizer.h>
 #include <src/unicode.h>
 #include <src/objects/array.h>
+#include <src/objects/astnode.h>
 #include <src/objects/classobject.h>
 #include <src/objects/string.h>
 #include <src/objects/integer.h>
+#include <src/parse.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,8 +18,9 @@
 
 static struct Object *newnode(char kind, void *info)
 {
-	// TODO: get rid of this or add some assertions here?
-	return ast_new_statement(testinterp, kind, 123, info);
+	struct Object *res = astnodeobject_new(testinterp, kind, 123, info);
+	buttert(res);
+	return res;
 }
 
 static void setup_string(struct UnicodeString *target)
@@ -101,7 +103,7 @@ static struct Object *parse_expression_string(char *s)
 	free(hugestring.val);
 
 	struct Token *tmp = tok1st;
-	struct Object *node = ast_parse_expression(testinterp, &tmp);
+	struct Object *node = parse_expression(testinterp, &tmp);
 	buttert(!tmp);
 	token_freeall(tok1st);
 	buttert2(node, s);
@@ -121,7 +123,7 @@ static struct Object *parse_statement_string(char *s)
 	free(hugestring.val);
 
 	struct Token *tmp = tok1st;
-	struct Object *node = ast_parse_statement(testinterp, &tmp);
+	struct Object *node = parse_statement(testinterp, &tmp);
 	token_freeall(tok1st);
 	buttert2(node, s);
 	return node;
@@ -150,7 +152,7 @@ static int stringobject_equals_charp(struct Object *strobj, char *charp)
 void test_ast_strings(void)
 {
 	struct Object *node = parse_expression_string("\"hello\"");
-	struct AstNodeData *data = node->data;
+	struct AstNodeObjectData *data = node->data;
 
 	buttert(data->kind == AST_STR);
 	buttert(stringobject_equals_charp(data->info, "hello"));
@@ -160,7 +162,7 @@ void test_ast_strings(void)
 void test_ast_ints(void)
 {
 	struct Object *node = parse_expression_string("-123");
-	struct AstNodeData *data = node->data;
+	struct AstNodeObjectData *data = node->data;
 
 	buttert(data->kind == AST_INT);
 	buttert(integerobject_tolonglong(data->info) == -123);
@@ -170,20 +172,20 @@ void test_ast_ints(void)
 void test_ast_arrays(void)
 {
 	struct Object *node = parse_expression_string("[ \"a\" 123 ]");
-	struct AstNodeData *data = node->data;
+	struct AstNodeObjectData *data = node->data;
 	struct AstArrayOrBlockInfo *info = data->info;
 
 	buttert(data->kind == AST_ARRAY);
 	buttert(ARRAYOBJECT_LEN(info) == 2);
-	buttert(((struct AstNodeData *) ARRAYOBJECT_GET(info, 0)->data)->kind == AST_STR);
-	buttert(((struct AstNodeData *) ARRAYOBJECT_GET(info, 1)->data)->kind == AST_INT);
+	buttert(((struct AstNodeObjectData *) ARRAYOBJECT_GET(info, 0)->data)->kind == AST_STR);
+	buttert(((struct AstNodeObjectData *) ARRAYOBJECT_GET(info, 1)->data)->kind == AST_INT);
 	OBJECT_DECREF(testinterp, node);
 }
 
 void test_ast_getvars(void)
 {
 	struct Object *node = parse_expression_string("abc");
-	struct AstNodeData *data = node->data;
+	struct AstNodeObjectData *data = node->data;
 	struct AstGetVarInfo *info = data->info;
 
 	buttert(data->kind == AST_GETVAR);
@@ -193,7 +195,7 @@ void test_ast_getvars(void)
 
 struct Object *check_attribute_or_method(struct Object *node, char kind, char *name)
 {
-	struct AstNodeData *data = node->data;
+	struct AstNodeObjectData *data = node->data;
 	struct AstGetAttrOrMethodInfo *info = data->info;
 
 	buttert(data->kind == kind);
@@ -209,14 +211,14 @@ void test_ast_attributes_and_methods(void)
 	struct Object *dotb = check_attribute_or_method(dotc, AST_GETATTR, "c");
 	struct Object *dota = check_attribute_or_method(dotb, AST_GETMETHOD, "b");
 	struct Object *str = check_attribute_or_method(dota, AST_GETATTR, "a");
-	buttert(((struct AstNodeData *) str->data)->kind == AST_STR);
+	buttert(((struct AstNodeObjectData *) str->data)->kind == AST_STR);
 
 	OBJECT_DECREF(testinterp, dotc);
 }
 
 static void check_getvar(struct Object *node, char *varname)
 {
-	struct AstNodeData *data = node->data;
+	struct AstNodeObjectData *data = node->data;
 	buttert(data->kind == AST_GETVAR);
 	struct AstGetVarInfo *info = data->info;
 	buttert(ustr_equals_charp(info->varname, varname));
@@ -225,7 +227,7 @@ static void check_getvar(struct Object *node, char *varname)
 void test_ast_function_call_statement(void)
 {
 	struct Object *call = parse_statement_string("a b c;");
-	struct AstNodeData *calldata = call->data;
+	struct AstNodeObjectData *calldata = call->data;
 	struct AstCallInfo *callinfo = calldata->info;
 	buttert(calldata->kind == AST_CALL);
 	buttert(callinfo->nargs == 2);

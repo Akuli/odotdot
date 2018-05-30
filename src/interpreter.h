@@ -1,6 +1,6 @@
 #ifndef INTERPRETER_H
 #define INTERPRETER_H
- 
+
 #include "allobjects.h"
 
 // these are defined in other files that need to include this file

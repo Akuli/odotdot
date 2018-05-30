@@ -3,7 +3,6 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "ast.h"
 #include "attribute.h"
 #include "check.h"
 #include "common.h"
@@ -12,6 +11,7 @@
 #include "method.h"
 #include "objectsystem.h"
 #include "objects/array.h"
+#include "objects/astnode.h"
 #include "objects/block.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
@@ -252,7 +252,7 @@ int builtins_setup(struct Interpreter *interp)
 
 	if (!(interp->builtins.arrayclass = arrayobject_createclass(interp))) goto error;
 	if (!(interp->builtins.integerclass = integerobject_createclass(interp))) goto error;
-	if (!(interp->builtins.astnodeclass = astnode_createclass(interp))) goto error;
+	if (!(interp->builtins.astnodeclass = astnodeobject_createclass(interp))) goto error;
 	if (!(interp->builtins.scopeclass = scopeobject_createclass(interp))) goto error;
 	if (!(interp->builtins.blockclass = blockobject_createclass(interp))) goto error;
 

@@ -1,25 +1,25 @@
-#ifndef AST_H
-#define AST_H
+#ifndef OBJECTS_ASTNODE_H
+#define OBJECTS_ASTNODE_H
 
 #include <stddef.h>
-#include "interpreter.h"    // IWYU pragma: keep
-#include "objectsystem.h"   // IWYU pragma: keep
-#include "tokenizer.h"      // IWYU pragma: keep
-#include "unicode.h"
+#include "../interpreter.h"    // IWYU pragma: keep
+#include "../objectsystem.h"   // IWYU pragma: keep
+#include "../unicode.h"
 
-struct AstNodeData {
+struct AstNodeObjectData {
 	char kind;
-	size_t lineno;    // 0 for expressions
+	size_t lineno;    // 0 means expression, starts at 1
 	void *info;
 };
 
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *astnode_createclass(struct Interpreter *interp);
+struct Object *astnodeobject_createclass(struct Interpreter *interp);
 
 // for creating ast in things like tests
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *ast_new_statement(struct Interpreter *interp, char kind, size_t lineno, void *info);
+struct Object *astnodeobject_new(struct Interpreter *interp, char kind, size_t lineno, void *info);
 
+// TODO: expressions should also have line number information
 #define ast_new_expression(interp, kind, info) ast_new_statement((interp), (kind), 0, (info))
 
 
@@ -62,10 +62,4 @@ struct AstCallInfo { struct Object *funcnode; struct Object **argnodes; size_t n
 #define AST_CALL '('
 
 
-// TODO: make parse_expression() static?
-// these RETURN A NEW REFERENCE or NULL on error
-struct Object *ast_parse_expression(struct Interpreter *interp, struct Token **curtok);
-struct Object *ast_parse_statement(struct Interpreter *interp, struct Token **curtok);
-
-
-#endif    // AST_H
+#endif     // OBJECTS_ASTNODE_H

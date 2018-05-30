@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "ast.h"
 #include "builtins.h"
 #include "common.h"
 #include "gc.h"
@@ -16,6 +15,7 @@
 #include "objects/array.h"
 #include "objects/function.h"
 #include "objects/scope.h"
+#include "parse.h"
 
 #define FILE_CHUNK_SIZE 4096
 
@@ -138,7 +138,7 @@ static int run_file(struct Interpreter *interp, struct Object *scope, char *path
 
 	struct Token *curtok = tok1st;
 	while (curtok) {
-		struct Object *stmtnode = ast_parse_statement(interp, &curtok);
+		struct Object *stmtnode = parse_statement(interp, &curtok);
 		if (!stmtnode) {
 			print_and_reset_err(interp);
 			token_freeall(tok1st);
