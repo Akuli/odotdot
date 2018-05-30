@@ -1,4 +1,5 @@
 #include "array.h"
+#include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -187,9 +188,20 @@ static struct Object *pop(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *slice(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.arrayclass, interp->builtins.integerclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
-		return NULL;
-	return arrayobject_slice(interp, ARRAYOBJECT_GET(argarr, 0), integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1)), integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 2)));
+	long long i, j;
+	if (ARRAYOBJECT_LEN(argarr) == 2) {
+		// (thing::slice i) is same as (thing::slice i (thing::get_length))
+		if (check_args(interp, argarr, interp->builtins.arrayclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
+			return NULL;
+		i = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1));
+		j = LLONG_MAX;
+	} else {
+		if (check_args(interp, argarr, interp->builtins.arrayclass, interp->builtins.integerclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
+			return NULL;
+		i = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1));
+		j = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 2));
+	}
+	return arrayobject_slice(interp, ARRAYOBJECT_GET(argarr, 0), i, j);
 }
 
 // TODO: should this be an attribute?

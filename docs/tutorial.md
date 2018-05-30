@@ -273,29 +273,38 @@ write your own `if` in the next section.
 
 ## Defining Functions
 
-**Note:** *This stuff will hopefully change soon. I don't like `array_func`.*
-
-The `array_func` function takes a Block object (that is, `{ something }`) as an
-argument, and returns a function that runs the block. For example:
+The `func` function takes a string and a `Block` object (that is,
+`{ something }`) as arguments. It works like this:
 
 ```python
-var hello = (array_func {
-    print "Hello";
-});
+func "print_twice string" {
+    print string;
+    print string;
+};
 
-hello;     # prints hello
+print_twice "hello";
 ```
 
-Any arguments passed to `array_func`s end up in an `arguments` array.
-`array_func` just sets that local variable in the scope that it runs the code
-in.
+The string that `func` takes describes how the function must be called, and it
+should contain variable names separated by spaces. All variable names except
+the first are argument names of the function, and the resulting function ends
+up in the block's `.definition_scope` as a variable named by the first variable
+name in the string.
+
+You can have any number of arguments you want:
 
 ```python
-var test = (array_func {
-    print (arguments::to_string);
-});
+func "hello" {
+    print "hello";
+};
+hello;
 
-test 1 2 3;     # prints [1 2 3]
+func "print3 a b c" {
+    print a;
+    print b;
+    print c;
+};
+print3 "hello" "world" "test";
 ```
 
 Unfortunately there's no way to return anything from a function yet. :(
@@ -304,22 +313,27 @@ It's time to write our own **pure-Ö implementation of if** without using the
 built-in if at all! Let's do it.
 
 ```python
-var fake_if = (array_func {
-    var condition = (arguments::get 0);
-    var block = (arguments::get 1);
-
+func "fake_if condition block" {
     # keys are conditions, values are blocks that should run in each case
     var mapping = (new Mapping [
-        [true {block::run (new Scope block.definition_scope);}]
-        [false {}]
+        [true {
+            # run the block in a new subscope of the scope it was defined in
+            block::run (new Scope block.definition_scope);
+        }]
+        [false {
+            # do nothing
+        }]
     ]);
 
     (mapping::get condition)::run {}.definition_scope;
-});
+};
 
 fake_if (1 `equals` 1) {
     print "yay";
 };
 ```
 
-This is quite awesome IMO. `if` implemented purely in the language itself.
+This is quite awesome IMO. Our `fake_if` implemented purely in the language
+itself, but it's still called exactly like the built-in `if`. Many "built-in"
+functions are actually implemented in Ö; see
+[stdlib/builtins.ö](../stdlib/builtins.ö) for their source code.
