@@ -286,6 +286,7 @@ int builtins_setup(struct Interpreter *interp)
 	if (!(interp->builtinscope = scopeobject_newbuiltin(interp))) goto error;
 
 	if (interpreter_addbuiltin(interp, "Array", interp->builtins.arrayclass) == STATUS_ERROR) goto error;
+	if (interpreter_addbuiltin(interp, "Block", interp->builtins.blockclass) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "Error", interp->builtins.errorclass) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "Integer", interp->builtins.integerclass) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "Mapping", interp->builtins.mappingclass) == STATUS_ERROR) goto error;

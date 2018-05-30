@@ -51,13 +51,13 @@ Here's a list of *all* supported kinds of tokens:
   it's not possible to access tokens directly from Ö code and the comment
   tokens would need to be ignored anyway, so it's not possible to write Ö code
   that actually notices the difference.
+- *String literals* are any characters except `"` or newline between `"`
+  quotes. There are no escape sequences yet, not even `\n` :(
 - *Identifiers* are names of e.g. variables and methods. They can contain any
   alphabetical Unicode characters as well as any of the characters
   `_0123456789`. An identifier cannot start with any of the characters
   `0123456789`; code like `123asd` should be parsed as two tokens, `123` and
   `asd`.
-- *String literals* are any characters except `"` or newline between `"`
-  quotes. There are no escape sequences yet, not even `\n` :(
 - *Non-negative integer literals* are characters `0123456789` jammed together
   in different ways. The literal must not start with `0`, but *just* `0` is a
   valid integer literal. Things like `0123` are invalid syntax, *not* two

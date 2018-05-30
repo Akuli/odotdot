@@ -138,43 +138,14 @@ looks up a method; methods are just functions.
 print (thing::to_string);   # prints [1 2 3]
 ```
 
-Arrays have more useful methods than `to_string`:
-
-- `thing::push x;` adds `x` to the end of `thing`.
-- `(thing::pop)` deletes and returns the last element of `thing`.
-- `(thing::get_length)` returns the number of items in `thing`
-- `(thing::get i)` returns the `i`'th element from `thing`. The indexes start
-  at 0.
-- `thing::set i x;` sets the `i`'th element of `thing` to `x`, ignoring its old
-  value. `i` must be less than the length of `thing`.
-- `(thing::slice i j)` returns a new array that contains the elements between
-  `i` and `j`. Both `i` and `j` are interpreted so that `0` means the beginning
-  of the array and `(thing::get_length)` means the end of the array. Too big or
-  small indexes are ignored, but only with `slice`; not with other methods.
-- `(thing::slice i)` returns `(thing::slice i (thing::get_length))`.
-
-Here's an example:
+You can add more elements to an array like this:
 
 ```python
-var stuff = ["a" "b" "c"];
-
-stuff::push "d";
-stuff::push "e";
-print (stuff::to_string);   # ["a" "b" "c" "d" "e"]
-
-print (stuff::get 3);       # d
-stuff::set 3 "ddd";
-print (stuff::to_string);   # ["a" "b" "c" "ddd", "e"]
-print (stuff::pop);         # e
-print (stuff::to_string);   # ["a" "b" "c" "ddd"]
-
-print ((stuff::slice 1 3)::to_string);   #     ["b" "c"]
-print ((stuff::slice 0 3)::to_string);   # ["a" "b" "c"]
-print ((stuff::slice 1)::to_string);     #     ["b" "c", "ddd"]
-
-# too big and small indexes are ignored:
-print ((stuff::slice -10 1000)::to_string);     # ["a" "b" "c", "ddd"]
+thing::push 4;
+print (thing::to_string);   # prints [1 2 3 4]
 ```
+
+[Click here](builtins.md#array) for a complete list of array methods.
 
 
 ## Mappings
@@ -194,17 +165,8 @@ Now we can access the values of our keys with the `::get` method:
 print (thingy::get "key 2");   # prints "value 2"
 ```
 
-The values of a mapping can be any objects, but `Mapping` is
-[implemented](../src/objects/mapping.c) as [a hash
-table](https://en.wikipedia.org/wiki/Hash_table), so the keys must be hashable.
-
-Most objects are hashable in Ö, but arrays and mappings are not. If they were,
-the hash value would need to change as the content of the array or mapping
-changes, but objects that change their hash values on the fly would break most
-things that use hash values, e.g. hash tables.
-
-I'll probably create some kind of `ImmutableArray` some day. Immutable arrays
-would be hashable.
+[Click here](builtins.md#array) for a complete list of mapping methods and more
+information about mappings.
 
 
 ## Scopes
