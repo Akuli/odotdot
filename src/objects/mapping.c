@@ -98,7 +98,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 
 	for (size_t i=0; i < ARRAYOBJECT_LEN(pairs); i++) {
 		struct Object *pair = ARRAYOBJECT_GET(pairs, i);
-		if (!classobject_instanceof(pair, interp->builtins.arrayclass) || ARRAYOBJECT_LEN(pair) != 2) {
+		if (!classobject_isinstanceof(pair, interp->builtins.arrayclass) || ARRAYOBJECT_LEN(pair) != 2) {
 			errorobject_setwithfmt(interp, "expected a [key value] pair, got %D", pair);
 			return NULL;
 		}

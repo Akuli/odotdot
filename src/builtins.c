@@ -118,8 +118,24 @@ static struct Object *catch(struct Interpreter *interp, struct Object *argarr)
 	return interpreter_getbuiltin(interp, "null");
 }
 
+static struct Object *get_class(struct Interpreter *interp, struct Object *argarr)
+{
+	if (check_args(interp, argarr, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+		return NULL;
+
+	struct Object *obj = ARRAYOBJECT_GET(argarr, 0);
+	OBJECT_INCREF(interp, obj->klass);
+	return obj->klass;
+}
 
 #define BOOL(interp, x) interpreter_getbuiltin((interp), (x) ? "true" : "false")
+static struct Object *is_instance_of(struct Interpreter *interp, struct Object *argarr)
+{
+	if (check_args(interp, argarr, interp->builtins.objectclass, interp->builtins.classclass) == STATUS_ERROR)
+		return NULL;
+	return BOOL(interp, classobject_isinstanceof(ARRAYOBJECT_GET(argarr, 0), ARRAYOBJECT_GET(argarr, 1)));
+}
+
 struct Object *equals_builtin(struct Interpreter *interp, struct Object *argarr)
 {
 	if (check_args(interp, argarr, interp->builtins.objectclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
@@ -216,6 +232,17 @@ static int create_method_mapping(struct Interpreter *interp, struct Object *klas
 	return (data->methods = mappingobject_newempty(interp)) ? STATUS_OK : STATUS_ERROR;
 }
 
+static int add_function(struct Interpreter *interp, char *name, functionobject_cfunc cfunc)
+{
+	struct Object *func = functionobject_new(interp, cfunc);
+	if (!func)
+		return STATUS_ERROR;
+
+	int res = interpreter_addbuiltin(interp, name, func);
+	OBJECT_DECREF(interp, func);
+	return res;
+}
+
 int builtins_setup(struct Interpreter *interp)
 {
 	if (!(interp->builtins.objectclass = objectobject_createclass_noerr(interp))) return STATUS_NOMEM;
@@ -256,13 +283,6 @@ int builtins_setup(struct Interpreter *interp)
 	if (!(interp->builtins.scopeclass = scopeobject_createclass(interp))) goto error;
 	if (!(interp->builtins.blockclass = blockobject_createclass(interp))) goto error;
 
-	if (!(interp->builtins.array_func = functionobject_new(interp, array_func))) goto error;
-	if (!(interp->builtins.catch = functionobject_new(interp, catch))) goto error;
-	if (!(interp->builtins.equals = functionobject_new(interp, equals_builtin))) goto error;
-	if (!(interp->builtins.new = functionobject_new(interp, new))) goto error;
-	if (!(interp->builtins.print = functionobject_new(interp, print))) goto error;
-	if (!(interp->builtins.same_object = functionobject_new(interp, same_object))) goto error;
-
 	if (!(interp->builtinscope = scopeobject_newbuiltin(interp))) goto error;
 
 	if (interpreter_addbuiltin(interp, "Array", interp->builtins.arrayclass) == STATUS_ERROR) goto error;
@@ -272,12 +292,15 @@ int builtins_setup(struct Interpreter *interp)
 	if (interpreter_addbuiltin(interp, "Object", interp->builtins.objectclass) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "Scope", interp->builtins.scopeclass) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "String", interp->builtins.stringclass) == STATUS_ERROR) goto error;
-	if (interpreter_addbuiltin(interp, "array_func", interp->builtins.array_func) == STATUS_ERROR) goto error;
-	if (interpreter_addbuiltin(interp, "catch", interp->builtins.catch) == STATUS_ERROR) goto error;
-	if (interpreter_addbuiltin(interp, "equals", interp->builtins.equals) == STATUS_ERROR) goto error;
-	if (interpreter_addbuiltin(interp, "new", interp->builtins.new) == STATUS_ERROR) goto error;
-	if (interpreter_addbuiltin(interp, "print", interp->builtins.print) == STATUS_ERROR) goto error;
-	if (interpreter_addbuiltin(interp, "same_object", interp->builtins.same_object) == STATUS_ERROR) goto error;
+
+	if (add_function(interp, "array_func", array_func) == STATUS_ERROR) goto error;
+	if (add_function(interp, "catch", catch) == STATUS_ERROR) goto error;
+	if (add_function(interp, "equals", equals_builtin) == STATUS_ERROR) goto error;
+	if (add_function(interp, "get_class", get_class) == STATUS_ERROR) goto error;
+	if (add_function(interp, "is_instance_of", is_instance_of) == STATUS_ERROR) goto error;
+	if (add_function(interp, "new", new) == STATUS_ERROR) goto error;
+	if (add_function(interp, "print", print) == STATUS_ERROR) goto error;
+	if (add_function(interp, "same_object", same_object) == STATUS_ERROR) goto error;
 
 #ifdef DEBUG_BUILTINS       // compile like this:   $ CFLAGS=-DDEBUG_BUILTINS make clean all
 	printf("things created by builtins_setup():\n");
@@ -294,14 +317,7 @@ int builtins_setup(struct Interpreter *interp)
 	debug(builtins.scopeclass);
 	debug(builtins.stringclass);
 
-	debug(builtins.array_func);
-	debug(builtins.catch);
-	debug(builtins.equals);
-	debug(builtins.new);
 	debug(builtins.nomemerr);
-	debug(builtins.print);
-	debug(builtins.same_object);
-
 	debug(builtinscope);
 #undef debug
 #endif   // DEBUG_BUILTINS
@@ -311,15 +327,18 @@ int builtins_setup(struct Interpreter *interp)
 
 error:
 	fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
-	if (interp->builtins.print) {
+
+	struct Object *print = interpreter_getbuiltin(interp, "print");
+	if (print) {
 		struct Object *err = interp->err;
 		interp->err = NULL;
-		struct Object *printres = functionobject_call(interp, interp->builtins.print, (struct Object *) err->data, NULL);
+		struct Object *printres = functionobject_call(interp, print, (struct Object *) err->data, NULL);
 		OBJECT_DECREF(interp, err);
 		if (printres)
 			OBJECT_DECREF(interp, printres);
 		else     // print failed, interp->err is decreffed below
 			OBJECT_DECREF(interp, interp->err);
+		OBJECT_DECREF(interp, print);
 	}
 
 	OBJECT_DECREF(interp, interp->err);
@@ -343,13 +362,7 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(scopeclass);
 	TEARDOWN(stringclass);
 
-	TEARDOWN(array_func);
-	TEARDOWN(catch);
-	TEARDOWN(equals);
-	TEARDOWN(new);
 	TEARDOWN(nomemerr);
-	TEARDOWN(print);
-	TEARDOWN(same_object);
 #undef TEARDOWN
 
 	if (interp->builtinscope) {

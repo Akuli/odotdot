@@ -8,7 +8,7 @@
 
 int check_type(struct Interpreter *interp, struct Object *klass, struct Object *obj)
 {
-	if (!classobject_instanceof(obj, klass)) {
+	if (!classobject_isinstanceof(obj, klass)) {
 		char *name = ((struct ClassObjectData*) klass->data)->name;
 		errorobject_setwithfmt(interp, "should be an instance of %s, not %D", name, obj);
 		return STATUS_ERROR;

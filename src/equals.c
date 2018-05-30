@@ -10,7 +10,7 @@ int equals(struct Interpreter *interp, struct Object *a, struct Object *b)
 	if (a == b)      // the SAME object, == compares pointers
 		return 1;
 
-	if (classobject_instanceof(a, interp->builtins.stringclass) && classobject_instanceof(b, interp->builtins.stringclass)) {
+	if (classobject_isinstanceof(a, interp->builtins.stringclass) && classobject_isinstanceof(b, interp->builtins.stringclass)) {
 		struct UnicodeString *astr = a->data, *bstr = b->data;
 		if (astr->len != bstr->len)
 			return 0;
@@ -23,12 +23,12 @@ int equals(struct Interpreter *interp, struct Object *a, struct Object *b)
 		return 1;
 	}
 
-	if (classobject_instanceof(a, interp->builtins.integerclass) && classobject_instanceof(b, interp->builtins.integerclass)) {
+	if (classobject_isinstanceof(a, interp->builtins.integerclass) && classobject_isinstanceof(b, interp->builtins.integerclass)) {
 		long long *aval = a->data, *bval = b->data;
 		return (*aval == *bval);
 	}
 
-	if (classobject_instanceof(a, interp->builtins.arrayclass) && classobject_instanceof(b, interp->builtins.arrayclass)) {
+	if (classobject_isinstanceof(a, interp->builtins.arrayclass) && classobject_isinstanceof(b, interp->builtins.arrayclass)) {
 		if (ARRAYOBJECT_LEN(a) != ARRAYOBJECT_LEN(b))
 			return 0;
 		for (size_t i=0; i < ARRAYOBJECT_LEN(a); i++) {

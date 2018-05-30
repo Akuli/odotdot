@@ -43,7 +43,7 @@ struct Object *classobject_newinstance(struct Interpreter *interp, struct Object
 // like obj->klass == klass, but checks for inheritance
 // never fails if klass is a classobject, bad things happen if it isn't
 // returns 1 or 0
-int classobject_instanceof(struct Object *obj, struct Object *klass);
+int classobject_isinstanceof(struct Object *obj, struct Object *klass);
 
 // use this instead of ((struct ClassobjectData *) obj->klass->data)->foreachref(obj, data, cb)
 // ->foreachref may be NULL, this handles that and inheritance

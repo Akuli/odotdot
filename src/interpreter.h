@@ -21,13 +21,7 @@ struct InterpreterBuiltins {
 	struct Object *scopeclass;
 	struct Object *stringclass;
 
-	struct Object *array_func;
-	struct Object *catch;
-	struct Object *equals;
-	struct Object *new;
 	struct Object *nomemerr;
-	struct Object *print;
-	struct Object *same_object;
 };
 
 struct Interpreter {

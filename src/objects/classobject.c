@@ -51,7 +51,7 @@ struct Object *classobject_new(struct Interpreter *interp, char *name, struct Ob
 	assert(interp->builtins.classclass);
 	assert(interp->builtins.nomemerr);
 
-	if (!classobject_instanceof(base->klass, interp->builtins.classclass)) {
+	if (!classobject_isinstanceof(base->klass, interp->builtins.classclass)) {
 		// TODO: test this
 		errorobject_setwithfmt(interp, "cannot inherit a new class from %D", base);
 		return NULL;
@@ -77,7 +77,7 @@ struct Object *classobject_new(struct Interpreter *interp, char *name, struct Ob
 
 struct Object *classobject_newinstance(struct Interpreter *interp, struct Object *klass, void *data, void (*destructor)(struct Object*))
 {
-	if (!classobject_instanceof(klass, interp->builtins.classclass)) {
+	if (!classobject_isinstanceof(klass, interp->builtins.classclass)) {
 		// TODO: test this
 		errorobject_setwithfmt(interp, "cannot create an instance of %D", klass);
 		return NULL;
@@ -99,7 +99,7 @@ struct Object *classobject_newinstance(struct Interpreter *interp, struct Object
 	return instance;
 }
 
-int classobject_instanceof(struct Object *obj, struct Object *klass)
+int classobject_isinstanceof(struct Object *obj, struct Object *klass)
 {
 	struct Object *klass2 = obj->klass;
 	do {
