@@ -227,6 +227,7 @@ var subscope = (new Scope {}.definition_scope);
 { var z = "boom boom"; }::run subscope;
 { print z; }::run subscope;             # prints "boom boom"
 print (subscope.local_vars::get "z");   # prints "boom boom"
+print z;       # error because z is in the subscope
 ```
 
 This is how `if` runs the block that is passed to it. I'll show you how to

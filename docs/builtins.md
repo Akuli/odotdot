@@ -6,7 +6,7 @@ needed functions. They are listed here.
 
 ## Functions
 
-#### func
+### func
 
 `func "name arg1 arg2 arg3" block;` defines a new function with arguments named
 `arg1`, `arg2` and `arg3`.
@@ -23,7 +23,7 @@ error is thrown.
 Unfortunately there's no way to return anything from a function defined in Ö
 yet :( I'll fix this eventually.
 
-#### if
+### if
 
 `if condition block;` runs the block if `condition` is [true].
 
@@ -42,13 +42,13 @@ if (not something) {
 };
 ```
 
-#### not
+### not
 
 `(not x)` returns [false] if `x` is [true], or [true] if `x` is [false].
 
 If `x` is not [true] or [false], `(not x)` throws an error.
 
-#### equals
+### equals
 
 ``(x `equals` y)`` returns [true] if `x` and `y` should be considered equal,
 and [false] otherwise.
@@ -73,7 +73,7 @@ Bugs:
 - Comparing mappings is broken; it returns [false] for different mappings with
   equal content.
 
-#### same_object
+### same_object
 
 ``(x `same_object` y)`` returns [true] if `x` and `y` point to the same object,
 and [false] otherwise.
@@ -106,7 +106,7 @@ var y = [];
 - This time, ``(x `same_object` y)`` returns [false]!
 - Doing something to `x` doesn't do the same thing to `y`.
 
-#### while
+### while
 
 `while { keep_going = condition; } block;` runs `block` repeatedly until
 `keep_going` is set to [false].
@@ -136,7 +136,7 @@ while (not (i `equals` 10)) {
 };
 ```
 
-#### foreach
+### foreach
 
 `foreach varname array block;` runs `block` once for each element of `array`.
 
@@ -159,7 +159,7 @@ foreach "character" ["a" "b" "c"] {
 };
 ```
 
-#### catch
+### catch
 
 ``block1 `catch` block2;`` tries to run `block1`, and runs `block2` if `block1`
 throws an error.
@@ -175,11 +175,11 @@ Bugs:
   I'll hopefully implement more stuff soon so that you can do e.g.
   `throw (new ValueError "it's too small");`.
 
-#### assert
+### assert
 
 `assert x;` is equivalent to `if (not x) { throw "assertion failed"; };`.
 
-#### new
+### new
 
 `(new SomeClass arg1 arg2 arg3)` creates a new instance of a class.
 
@@ -187,7 +187,7 @@ The arguments are passed to the `setup` method of the class; that is, the
 number and meanings of the arguments depends on which class was passed to
 `new`.
 
-#### get_class
+### get_class
 
 `(get_class x)` returns the [class](#classes) of `x`.
 
@@ -196,7 +196,7 @@ Don't use this function for checking types. For example,
 [all values are Objects](#object). Use [is_instance_of](#is_instance_of)
 instead.
 
-#### is_instance_of
+### is_instance_of
 
 ``(x `is_instance_of` SomeClass)`` checks if `x` is an instance of the class.
 
@@ -217,7 +217,7 @@ a variable is an object in Ö.
 Classes are also objects and their class is `Class`, but the `Class` class
 doesn't have any attributes or methods yet so they aren't documented here.
 
-#### Object
+### Object
 
 This is the baseclass of all other classes; that is, all other classes inherit
 from this class and thus have the same methods as this class has.
@@ -238,7 +238,7 @@ Methods:
 
 See [String](#string) for an example of why two to-string methods are needed.
 
-#### String
+### String
 
 New strings cannot be created with `(new String)`; use *string literals* like
 `"hello"` instead. There are more details about string literals
@@ -274,7 +274,7 @@ Missing features:
 - There's no way to concatenate strings; `"hello" + "world"` doesn't work
   because there's no `+` operator yet.
 
-#### Integer
+### Integer
 
 New integers can be created with integer literals like `123`, or with a
 `(new Integer)` call like `(new Integer "123")`. The `new` call allows leading
@@ -304,7 +304,7 @@ Missing features:
 - `::plus` is the only way to do arithmetic with integers right now. It really
   sucks!
 
-#### Array
+### Array
 
 Arrays represent ordered lists of elements.
 
@@ -340,7 +340,7 @@ Methods:
   `to_debug_string`, so `(array::to_debug_string)` does the same thing as
   `(array::to_string)`.
 
-#### Mapping
+### Mapping
 
 Mapping objects *map* keys to values; that is, looking up the value
 corresponding to a key is easy and fast.
@@ -380,7 +380,7 @@ Missing features:
 - There's no `mapping::get_size` method.
 - There's no way to loop over all the items in the mapping.
 
-#### Block
+### Block
 
 **See Also:** [The Ö tutorial](tutorial.md) contains lots of examples of how
 Blocks are used in Ö.
@@ -405,7 +405,7 @@ Methods:
 - `block::run scope;` runs the AST statements in the scope passed to this
   function. This method does nothing with `definition_scope`.
 
-#### Scopes
+### Scopes
 
 **See Also:** The Ö tutorial has [a section just about
 scopes](tutorial.md#scopes), and it explains `parent_scope` and the built-in
@@ -442,7 +442,7 @@ Methods:
   returns it instead of changing its value. `{ print x; }::run scope;` is
   equivalent to `print (scope::get_var "x");`
 
-#### Functions
+### Functions
 
 New functions cannot be created with `(new Function)`; use [func](#func)
 instead.
@@ -462,14 +462,14 @@ Missing features:
 
 These objects are not functions or classes.
 
-#### null
+### null
 
 Like e.g. `none` or `nil` in many other programming languages.
 
 Currently this is the string `"null"`. It sucks and I'll hopefully fix it
 later.
 
-#### true, false
+### true, false
 
 These are currently defined as the strings `"true"` and `"false"`. It sucks,
 see `null` above.
