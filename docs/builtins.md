@@ -130,7 +130,7 @@ Example:
 ```python
 # print numbers from 0 to 9
 var i = 0;
-while (not (i `equals` 10)) {
+while { keep_going = (not (i `equals` 10)); } {
     print (i::to_string);
     i = (i::plus 1);   # yes, this sucks... no + operator yet
 };
@@ -215,12 +215,14 @@ treated like objects. I think that's dumb, so everything you can e.g. assign to
 a variable is an object in Ö.
 
 Classes are also objects and their class is `Class`, but the `Class` class
-doesn't have any attributes or methods yet so they aren't documented here.
+doesn't have any attributes or methods yet so there's no more documentation
+about it. The `Class` class isn't in the built-in namespace, but you can access
+it like `var Class = (get_class String);` if you need it for something.
 
 ### Object
 
 This is the baseclass of all other classes; that is, all other classes inherit
-from this class and thus have the same methods as this class has.
+from this class and thus have the methods that this class has.
 
 New objects can be created with [new](#new) like `(new Object)`, but that's not
 very useful because `Object` is meant to be used mostly as a base class for
@@ -290,17 +292,16 @@ The smallest allowed value of an integer is
 2<sup>63</sup> - 1 = 9223372036854775807. I'm planning on implementing
 `Integer` differently so that it won't have these restrictions.
 
-Methods:
-- `(integer1::plus integer2)` returns x+y. Yes, I know, Ö really needs a `+`
-  operator...
-- `(integer::to_string)` converts the integer to a string.
+Methods (`x` and `y` are Integers):
+- `(x::plus y)` returns x+y. Yes, I know, Ö really needs a `+` operator...
+- `(x::to_string)` converts the integer to a string without leading zeros.
 
 Missing features:
 - There's no support for other bases than 10. I think there's no need to add
   special syntax (`0xff` is useful in low-level languages like C, but confuses
   people in high-level languages), but syntax like `(new Integer "ff" 16)`
   would be useful for e.g. dealing with hexadecimal colors. Similarly,
-  `((new Integer 255)::to_string 16)` could return `"ff"`.
+  `(255::to_string 16)` could return `"ff"`.
 - `::plus` is the only way to do arithmetic with integers right now. It really
   sucks!
 
@@ -394,7 +395,8 @@ useful, but it might be fun for something crazy like creating new
 them.
 
 Attributes:
-- `block.ast_statements` is a list of [AstNode statement objects].
+- `block.ast_statements` is a list of
+  [AstNode statement objects](syntax-spec.md#parsing-to-ast).
 - `block.definition_scope` is
   [the scope that the block was defined in][definition scope] if the block was
   created with the `{ ... }` syntax, and the scope passed to `new Block`
@@ -442,10 +444,11 @@ Methods:
   returns it instead of changing its value. `{ print x; }::run scope;` is
   equivalent to `print (scope::get_var "x");`
 
-### Functions
+### Function
 
-New functions cannot be created with `(new Function)`; use [func](#func)
-instead.
+The `Function` class is not in the built-in namespace, but you can access it
+like `var Function = (get_class print)` if you need to. New functions cannot be
+created with `(new Function)`; use [func](#func) instead.
 
 Methods:
 - `(function::partial arg1 arg2 arg3)` returns a new function that calls the
@@ -478,6 +481,7 @@ see `null` above.
 [true]: #true-false
 [false]: #true-false
 [scope]: tutorial.md#scopes
+[subscope]: tutorial.md#scopes
 [built-in scope]: tutorial.md#scopes
 [definition scope]: tutorial.md#scopes
 [AstNode]: syntax-spec.md#parsing-to-ast
