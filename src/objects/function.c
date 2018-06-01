@@ -69,7 +69,7 @@ static struct Object *partial(struct Interpreter *interp, struct Object *argarr)
 		return func;
 	}
 
-	struct FunctionData *data = func->data;     // casts implicitly
+	struct FunctionData *data = func->data;
 	struct FunctionData *newdata = malloc(sizeof(struct FunctionData));
 	if (!newdata) {
 		errorobject_setnomem(interp);
@@ -85,8 +85,8 @@ static struct Object *partial(struct Interpreter *interp, struct Object *argarr)
 		return NULL;
 	}
 
-	memcpy(newdata->partialargs, partialargs, sizeof(struct Object*) * npartialargs);
-	memcpy(newdata->partialargs + npartialargs, data->partialargs, sizeof(struct Object*) * data->npartialargs);
+	memcpy(newdata->partialargs, data->partialargs, sizeof(struct Object*) * data->npartialargs);
+	memcpy(newdata->partialargs + data->npartialargs, partialargs, sizeof(struct Object*) * npartialargs);
 	for (size_t i=0; i < newdata->npartialargs; i++)
 		OBJECT_INCREF(interp, newdata->partialargs[i]);
 
