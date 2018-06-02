@@ -12,7 +12,10 @@
 struct Object *blockobject_createclass(struct Interpreter *interp);
 
 // RETURNS A NEW REFERENCE or NULL on error
-// TODO: definition context
 struct Object *blockobject_new(struct Interpreter *interp, struct Object *definitionscope, struct Object *astnodearr);
+
+// returns STATUS_OK or STATUS_ERROR
+// bad things happen if block is not a Block object or scope is not a Scope object
+int blockobject_run(struct Interpreter *interp, struct Object *block, struct Object *scope);
 
 #endif    // OBJECTS_BLOCK_H

@@ -17,11 +17,30 @@ the first part of the split result are argument names, and there may be 0 or
 more of them. The resulting [Function object](#function) is then set to
 `block`'s [definition scope] with the name from the string.
 
-If the resulting function is called with the wrong number of arguments, an
-error is thrown.
+When called, the function creates a new subscope of `block`'s
+[definition scope], and inserts the values of the arguments there as local
+variables. A `return` variable is also added with an initial value of `null`;
+its value is returned when the function exits. Note that `return` is just a
+variable, so `return = 123;` doesn't exit the function immediately like
+returning a value does in most other programming languages.
 
-Unfortunately there's no way to return anything from a function defined in Ö
-yet :( I'll fix this eventually.
+If the function is called with the wrong number of arguments, an error is
+thrown.
+
+Annoying and missing features:
+- The `return = value;` syntax sucks. I think it really should be a function
+  call like `return value;` instead, and that should exit the function right
+  away.
+- Functions don't have a `name` attribute or a nice `to_debug_string` yet, so
+  debugging is painful.
+
+### lambda
+
+`(lambda "arg1 arg2 arg3" block)` returns a new function.
+
+`lambda` is like [func](#func), but it returns a function instead of setting it
+to `block`'s definition scope automagically. This also means that there's no
+function name in the string argument.
 
 ### if
 
@@ -257,6 +276,8 @@ Methods:
 - `string::get` is like the array `::get` method.
 - `string::slice` is like the array `::get` method, but it returns a string
   instead of an array of characters.
+- `(string1::concat string2)` returns the strings added together. For example,
+  `("hello"::concat "world")` returns `"helloworld"`.
 - `(string::split_by_whitespace)` splits the string into an array of non-empty
   substrings separated by any Unicode whitespace (e.g. spaces, tabs or
   newlines). For example, `("  hello world  test"::split_by_whitespace)`

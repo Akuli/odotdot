@@ -33,7 +33,7 @@ struct Object *mappingobject_newempty(struct Interpreter *interp);
 int mappingobject_set(struct Interpreter *interp, struct Object *map, struct Object *key, struct Object *val);
 
 // RETURNS A NEW REFERENCE or NULL on error
-// if the key is not found, RETURNS NULL WITHOUT SETTING ERRPTR
+// if the key is not found, RETURNS NULL WITHOUT SETTING INTERP->ERR
 // bad things happen if map is not a Mapping
 struct Object *mappingobject_get(struct Interpreter *interp, struct Object *map, struct Object *key);
 

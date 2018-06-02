@@ -270,7 +270,35 @@ func "print3 a b c" {
 print3 "hello" "world" "test";
 ```
 
-Unfortunately there's no way to return anything from a function yet. :(
+`func` runs the block passed to it like this:
+1. A new subscope of the block's definition scope is created.
+2. A local `return` variable of the subscope is set to `null`.
+3. The block is ran in the subscope.
+4. The current value of the `return` variable is returned.
+
+To be honest, I don't like this `return` variable thing. I'll implement a
+*real* return later. Meanwhile, if you want to return something from a
+function, just set the `return` variable to something:
+
+```python
+func "asd" {
+    return = "asd asd";
+};
+
+print (asd);    # prints "asd asd"
+```
+
+Note that returning doesn't end the function like it does in many other
+programming languages, so this function...
+
+```python
+func "thingy" {
+    return = 123;
+    print "still alive";
+};
+```
+
+...prints `still alive`.
 
 It's time to write our own **pure-Ö implementation of if** without using the
 built-in if at all! Let's do it.

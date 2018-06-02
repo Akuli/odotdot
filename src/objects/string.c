@@ -69,6 +69,22 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 	return res;
 }
 
+static struct Object *concat(struct Interpreter *interp, struct Object *argarr)
+{
+	if (check_args(interp, argarr, interp->builtins.stringclass, interp->builtins.stringclass, NULL) == STATUS_ERROR)
+		return NULL;
+
+	struct UnicodeString u1 = *((struct UnicodeString*) ARRAYOBJECT_GET(argarr, 0)->data);
+	struct UnicodeString u2 = *((struct UnicodeString*) ARRAYOBJECT_GET(argarr, 1)->data);
+
+	unicode_char uval[u1.len + u2.len];     // this wörks because C99 magic
+	memcpy(uval, u1.val, u1.len * sizeof(unicode_char));
+	memcpy(uval + u1.len, u2.val, u2.len * sizeof(unicode_char));
+
+	struct UnicodeString u = { .len = u1.len + u2.len, .val = uval };   // moar C99 magicz
+	return stringobject_newfromustr(interp, u);
+}
+
 // get and slice are a lot like array methods
 // some day strings will hopefully behave like an immutable array of 1-character strings
 static struct Object *get(struct Interpreter *interp, struct Object *argarr)
@@ -208,6 +224,7 @@ int stringobject_addmethods(struct Interpreter *interp)
 {
 	// TODO: create many more string methods
 	if (method_add(interp, interp->builtins.stringclass, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.stringclass, "concat", concat) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.stringclass, "get", get) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.stringclass, "slice", slice) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.stringclass, "split_by_whitespace", split_by_whitespace) == STATUS_ERROR) return STATUS_ERROR;
@@ -229,7 +246,7 @@ static long string_hash(struct UnicodeString u)
 
 struct Object *stringobject_newfromustr(struct Interpreter *interp, struct UnicodeString ustr)
 {
-	struct UnicodeString *data = unicodestring_copy(ustr);
+	struct UnicodeString *data = unicodestring_copy(ustr);   // TODO: create a non-copying newfromustr
 	if (!data) {
 		errorobject_setnomem(interp);
 		return NULL;

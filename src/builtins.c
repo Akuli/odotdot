@@ -24,10 +24,25 @@
 #include "unicode.h"
 
 
-// this is partialled to a block of code to create array_funcs
-static struct Object *arrayfunc_runner(struct Interpreter *interp, struct Object *argarr)
+// lambda is like func, but it returns the function instead of setting it to a variable
+// this is partialled to an argument name array and a block to create lambdas
+static struct Object *lambda_runner(struct Interpreter *interp, struct Object *argarr)
 {
-	struct Object *parentscope = attribute_get(interp, ARRAYOBJECT_GET(argarr, 0), "definition_scope");
+	assert(ARRAYOBJECT_LEN(argarr) >= 2);
+	struct Object *argnames = ARRAYOBJECT_GET(argarr, 0);
+	struct Object *block = ARRAYOBJECT_GET(argarr, 1);
+
+	// these error messages should match check_args() in check.c
+	if (ARRAYOBJECT_LEN(argarr) - 2 < ARRAYOBJECT_LEN(argnames)) {
+		errorobject_setwithfmt(interp, "not enough arguments");
+		return NULL;
+	}
+	if (ARRAYOBJECT_LEN(argarr) - 2 > ARRAYOBJECT_LEN(argnames)) {
+		errorobject_setwithfmt(interp, "too many arguments");
+		return NULL;
+	}
+
+	struct Object *parentscope = attribute_get(interp, block, "definition_scope");
 	if (!parentscope)
 		return NULL;
 
@@ -36,44 +51,84 @@ static struct Object *arrayfunc_runner(struct Interpreter *interp, struct Object
 	if (!scope)
 		return NULL;
 
-	struct Object *localvars = NULL, *string = NULL, *array = NULL;
-	if (!((localvars = attribute_get(interp, scope, "local_vars")) &&
-			(string = stringobject_newfromcharptr(interp, "arguments")) &&
-			(array = arrayobject_slice(interp, argarr, 1, ARRAYOBJECT_LEN(argarr))))) {
-		if (localvars) OBJECT_DECREF(interp, localvars);
-		if (string) OBJECT_DECREF(interp, string);
-		if (array) OBJECT_DECREF(interp, array);
+	struct Object *localvars = attribute_get(interp, scope, "local_vars");
+	if (!localvars) {
 		OBJECT_DECREF(interp, scope);
 		return NULL;
 	}
+	if (check_type(interp, interp->builtins.mappingclass, localvars) == STATUS_ERROR)
+		goto error;
 
-	int status = mappingobject_set(interp, localvars, string, array);
-	OBJECT_DECREF(interp, localvars);
-	OBJECT_DECREF(interp, string);
-	OBJECT_DECREF(interp, array);
-	if (status == STATUS_ERROR) {
+	// FIXME: this return variable thing sucks
+	struct Object *returnstring = stringobject_newfromcharptr(interp, "return");
+	if (!returnstring) {
+		OBJECT_DECREF(interp, localvars);
 		OBJECT_DECREF(interp, scope);
-		return NULL;
+	}
+	struct Object *returndefault = interpreter_getbuiltin(interp, "null");
+	if (!returndefault)
+		goto error;
+	int status = mappingobject_set(interp, localvars, returnstring, returndefault);
+	OBJECT_DECREF(interp, returndefault);
+	if (status == STATUS_ERROR)
+		goto error;
+
+	for (size_t i=0; i < ARRAYOBJECT_LEN(argnames); i++) {
+		if (mappingobject_set(interp, localvars, ARRAYOBJECT_GET(argnames, i), ARRAYOBJECT_GET(argarr, i+2)) == STATUS_ERROR)
+			goto error;
 	}
 
-	struct Object *res = method_call(interp, ARRAYOBJECT_GET(argarr, 0), "run", scope, NULL);
+	status = blockobject_run(interp, block, scope);
+	if (status == STATUS_ERROR)
+		goto error;
 	OBJECT_DECREF(interp, scope);
-	return res;
+
+	assert(!interp->err);
+	struct Object *res = mappingobject_get(interp, localvars, returnstring);
+	OBJECT_DECREF(interp, localvars);
+	OBJECT_DECREF(interp, returnstring);
+	if ((!res) && (!interp->err)) {   // mappingobject_get() is stupid, see mapping.h
+		errorobject_setwithfmt(interp, "the local return variable was deleted");
+		return NULL;
+	}
+	return res;   // a new reference or NULL for error
+
+error:
+	OBJECT_DECREF(interp, localvars);
+	OBJECT_DECREF(interp, scope);
+	OBJECT_DECREF(interp, returnstring);
+	return NULL;
 }
 
-static struct Object *array_func(struct Interpreter *interp, struct Object *argarr)
+static struct Object *lambda(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.blockclass, NULL) == STATUS_ERROR)
-		return NULL;
-	struct Object *block = ARRAYOBJECT_GET(argarr, 0);
-
-	struct Object *runnerobj = functionobject_new(interp, arrayfunc_runner);
-	if (!runnerobj)
+	if (check_args(interp, argarr, interp->builtins.stringclass, interp->builtins.blockclass) == STATUS_ERROR)
 		return NULL;
 
-	struct Object *res = functionobject_newpartial(interp, runnerobj, block);
-	OBJECT_DECREF(interp, runnerobj);
-	return res;
+	struct Object *argnames = stringobject_splitbywhitespace(interp, ARRAYOBJECT_GET(argarr, 0));
+	if (!argnames)
+		return NULL;
+	struct Object *block = ARRAYOBJECT_GET(argarr, 1);
+
+	// it's possible to micro-optimize this by not creating a new runner every time
+	// but i don't think it would make a huge difference
+	// it doesn't actually affect calling the functions anyway, just defining them
+	struct Object *runner = functionobject_new(interp, lambda_runner);
+	if (!runner) {
+		OBJECT_DECREF(interp, argnames);
+		return NULL;
+	}
+
+	// TODO: we need a way to partial two things easily
+	struct Object *partial1 = functionobject_newpartial(interp, runner, argnames);
+	OBJECT_DECREF(interp, runner);
+	OBJECT_DECREF(interp, argnames);
+	if (!partial1)
+		return NULL;
+
+	struct Object *res = functionobject_newpartial(interp, partial1, block);
+	OBJECT_DECREF(interp, partial1);
+	return res;     // may be NULL
 }
 
 
@@ -131,6 +186,7 @@ static struct Object *get_class(struct Interpreter *interp, struct Object *argar
 #define BOOL(interp, x) interpreter_getbuiltin((interp), (x) ? "true" : "false")
 static struct Object *is_instance_of(struct Interpreter *interp, struct Object *argarr)
 {
+	// TODO: shouldn't this be implemented in builtins.ö? classobject_isinstanceof() doesn't do anything fancy
 	if (check_args(interp, argarr, interp->builtins.objectclass, interp->builtins.classclass) == STATUS_ERROR)
 		return NULL;
 	return BOOL(interp, classobject_isinstanceof(ARRAYOBJECT_GET(argarr, 0), ARRAYOBJECT_GET(argarr, 1)));
@@ -294,7 +350,7 @@ int builtins_setup(struct Interpreter *interp)
 	if (interpreter_addbuiltin(interp, "Scope", interp->builtins.scopeclass) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "String", interp->builtins.stringclass) == STATUS_ERROR) goto error;
 
-	if (add_function(interp, "array_func", array_func) == STATUS_ERROR) goto error;
+	if (add_function(interp, "lambda", lambda) == STATUS_ERROR) goto error;
 	if (add_function(interp, "catch", catch) == STATUS_ERROR) goto error;
 	if (add_function(interp, "equals", equals_builtin) == STATUS_ERROR) goto error;
 	if (add_function(interp, "get_class", get_class) == STATUS_ERROR) goto error;

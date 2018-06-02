@@ -24,16 +24,11 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 	return interpreter_getbuiltin(interp, "null");
 }
 
-static struct Object *run_block(struct Interpreter *interp, struct Object *argarr)
+int blockobject_run(struct Interpreter *interp, struct Object *block, struct Object *scope)
 {
-	if (check_args(interp, argarr, interp->builtins.blockclass, interp->builtins.scopeclass, NULL) == STATUS_ERROR)
-		return NULL;
-	struct Object *block = ARRAYOBJECT_GET(argarr, 0);
-	struct Object *scope = ARRAYOBJECT_GET(argarr, 1);
-
 	struct Object *ast = attribute_get(interp, block, "ast_statements");
 	if (!ast)
-		return NULL;
+		return STATUS_ERROR;
 	if (check_type(interp, interp->builtins.arrayclass, ast) == STATUS_ERROR)
 		goto error;
 
@@ -43,11 +38,19 @@ static struct Object *run_block(struct Interpreter *interp, struct Object *argar
 	}
 
 	OBJECT_DECREF(interp, ast);
-	return interpreter_getbuiltin(interp, "null");
+	return STATUS_OK;
 
 error:
 	OBJECT_DECREF(interp, ast);
-	return NULL;
+	return STATUS_ERROR;
+}
+
+static struct Object *run(struct Interpreter *interp, struct Object *argarr)
+{
+	if (check_args(interp, argarr, interp->builtins.blockclass, interp->builtins.scopeclass, NULL) == STATUS_ERROR)
+		return NULL;
+	return (blockobject_run(interp, ARRAYOBJECT_GET(argarr, 0), ARRAYOBJECT_GET(argarr, 1)) == STATUS_OK)
+		? interpreter_getbuiltin(interp, "null") : NULL;
 }
 
 struct Object *blockobject_createclass(struct Interpreter *interp)
@@ -57,7 +60,7 @@ struct Object *blockobject_createclass(struct Interpreter *interp)
 		return NULL;
 
 	if (method_add(interp, klass, "setup", setup) == STATUS_ERROR) goto error;
-	if (method_add(interp, klass, "run", run_block) == STATUS_ERROR) goto error;
+	if (method_add(interp, klass, "run", run) == STATUS_ERROR) goto error;
 	return klass;
 
 error:

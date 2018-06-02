@@ -6,134 +6,60 @@ var null = "null";
 # the C code doesn't set this to null because null doesn't exist yet
 {}.definition_scope.parent_scope = null;
 
-
-# let's delete array_func and replace it with func
-# this code creates func and deletes array_func so that:
-#   - most variables created in the block don't end up in the built-in namespace
-#   - array_func still exists in the subscope after deleting it
-#
-# have fun reading this :)
-#
-# TODO: should func be implemented in C instead? that would make things faster
-# and probably easier as well... and this uses a magic array_func thing
-# implemented in C anyway but doesn't let anything else use array_func
+# closures ftw
+var if = null;
 {
-    var builtin_scope = {}.definition_scope.parent_scope;
-    var array_func = (builtin_scope.local_vars::get_and_delete "array_func");
-
-    # temp_ functions don't check arguments very well
-    # that's why they are local vars
-    # the non-temp equivalents are created later
-    var temp_not = (new Mapping [[true false] [false true]])::get;
+    # this thing maps if conditions to blocks that are ran on the condition
     var if_mapping = (new Mapping [
-        [ true { block::run (new Scope block.definition_scope); } ]
-        [ false { } ]
+        [true { block::run (new Scope block.definition_scope); }]
+        [false {}]
     ]);
-    var temp_if = (array_func {
-        var cond = (arguments::get 0);
-        var block = (arguments::get 1);
-        (if_mapping::get cond)::run {}.definition_scope;
+
+    if = (lambda "condition block" {
+        (if_mapping::get condition)::run {}.definition_scope;
     });
-    var temp_while = (array_func {
-        var cond = (arguments::get 0);
-        var block = (arguments::get 1);
-
-        var scope = (new Scope block.definition_scope);
-        scope.local_vars::set "keep_going" null;
-
-        var run_stuff = {
-            cond::run scope;
-            temp_if (scope.local_vars::get "keep_going") {
-                block::run scope;
-                run_stuff::run run_stuff.definition_scope;
-            };
-        };
-        run_stuff::run run_stuff.definition_scope;
-    });
-
-    var func = (array_func {
-        temp_if (temp_not ((arguments::get_length) `equals` 2)) {
-            # there's no throw function yet, but this fails anyway
-            # the error message is "no variable named 'throw'", but... lol, it works
-            #
-            # TODO: some way to concatenate strings so that the message can
-            #       contain (arguments::get_length)
-            throw "func takes exactly 2 arguments";
-        };
-
-        var splitted = ((arguments::get 0)::split_by_whitespace);
-        temp_if ((splitted::get_length) `equals` 0) {
-            # TODO: better error message for 'func "" { ... }' ?
-            throw "missing function name";
-        };
-        var funcname = (splitted::get 0);
-        var argnames = (splitted::slice 1);
-        var block = (arguments::get 1);
-
-        block.definition_scope.local_vars::set funcname (array_func {
-            temp_if (temp_not ((argnames::get_length) `equals` (arguments::get_length))) {
-                # FIXME: function name, expected argument count and actual argument count :(((
-                throw "wrong number of arguments";
-            };
-
-            var scope = (new Scope block.definition_scope);
-            var i = 0;
-            temp_while { keep_going = (temp_not (i `equals` (arguments::get_length))); } {
-                scope.local_vars::set (argnames::get i) (arguments::get i);
-                i = (i::plus 1);
-            };
-
-            block::run scope;
-        });
-    });
-
-    # now we have func :D
-
-    # FIXME: return values aren't supported yet :(((
-    var not = temp_not;
-
-    func "if condition block" {
-        # must use temp_if here, otherwise this recurses
-        # ifs don't support else yet :(
-        temp_if (not (condition `same_object` false)) {
-            temp_if (not (condition `same_object` true)) {
-                throw "if's condition must be true or false";
-            };
-            block::run (new Scope block.definition_scope);
-        };
-    };
-
-    builtin_scope.local_vars::set "func" func;
-    builtin_scope.local_vars::set "not" not;
-    builtin_scope.local_vars::set "if" if;
 }::run (new Scope {}.definition_scope);
 
+var while = (lambda "condition_block body_block" {
+    var scope = (new Scope body_block.definition_scope);
+    scope.local_vars::set "keep_going" null;
 
-# VERY STUPID
-# usage example:
-#
-#    # strip spaces from a string
-#    var s = "      lol";
-#    while { keep_going = ((s::get 0) `equals` " "); } {
-#        s = (s::slice 1);
-#    };
-#    print s;    # prints "lol"
-#
-# FIXME: infinite loops segfault
-# FIXME: the keep_going syntax is horrible, we need return values
-func "while condition block" {
-    var scope = (new Scope block.definition_scope);
-    var run_stuff = {
-        scope.local_vars::set "keep_going" null;
-        condition::run scope;
-
-        # the not fails if keep_going wasn't set to a boolean
+    var one_iteration = {
+        condition_block::run scope;
         if (scope.local_vars::get "keep_going") {
-            block::run scope;
-            run_stuff::run run_stuff.definition_scope;
+            body_block::run scope;
+            one_iteration::run one_iteration.definition_scope;   # recurses :(((
         };
     };
-    run_stuff::run run_stuff.definition_scope;
+
+    one_iteration::run one_iteration.definition_scope;
+});
+
+var func = (lambda "funcname_and_argnames block" {
+    var splitted = (funcname_and_argnames::split_by_whitespace);
+    if ((splitted::get_length) `equals` 0) {
+        throw "func's string argument must not be empty";
+    };
+
+    # a stupid way to join strings by spaces
+    var argnames = "";
+    var i = 1;    # skip the function name
+
+    while { keep_going = ((i `equals` (splitted::get_length)) `equals` false); } {
+        argnames = (argnames::concat (splitted::get i));
+        argnames = (argnames::concat " ");
+        i = (i::plus 1);
+    };
+
+    block.definition_scope.local_vars::set (splitted::get 0) (lambda argnames block);
+});
+
+func "not x" {
+    # 'if x' throws an error if x is not a boolean
+    return = true;
+    if x {
+        return = false;
+    };
 };
 
 func "assert condition" {
