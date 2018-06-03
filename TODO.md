@@ -42,24 +42,10 @@ things that I would like to do some day. It's a mess.
     - c functions that push and pop to an array of stack info objects
     - maybe expose the stack info in ö?
     - stack infos should contain at least file name (absolute path?) and lineno
-- attributes should not be just items of a mapping
-    - problems with current setup:
-        - some objects are special because they have no attributes
-        - it's possible to add arbitrary attributes to any object that has
-          attributes, so a typo could cause code not working (like in python)
-        - it's not possible to implement something for customizing setting and
-          getting attributes (python's `@property`)
-        - built-in things would produce weird error messages if attributes were
-          deleted unexpectedly
-        - compare to python: it's *possible* but very confusing and bad style
-          to add attributes outside `__init__`, shouldn't be possible in the
-          first place IMO
-            - there is `__slots__`, but nobody uses it
-    - attributes should be represented as setter,getter pairs of the class, and
-      all instances of the class should have the same attributes
-        - how about modules? might be nice to have a python-style module system
-          where functions defined in modules are exposed as attributes of a
-          module object
+- there should be some way to have objects with arbitrary attributes, without
+  needing to create a new type for each object
+    - i want this because modules would be represented nicely as objects with
+      exported symbols as attributes
         - maybe add a flag that allows setting arbitrary attributes?
 
             ```
@@ -224,11 +210,16 @@ things that I would like to do some day. It's a mess.
         };
         ```
 
-## docs
-- the builtins need to be document well, now `Array` methods are only listed in
-  the tutorial and `Mapping` methods are missing
-- `syntax-spec.md` is quite complete, need tests that check every possible
-  detail of it
+## testing
+- tests suck!! :(
+    - they started sucking when they required running `stdlib/builtins.ö` but i
+      couldn't figure out a good way to run it run without lots of copy/pasta
+    - still haven't figured out
+    - everything has gotten less and less tested since then...
+- waiting for importing and good exception catching so i can write tests in ö
+    - maybe an `include` function would be good enough for now? :D
+- docs should be used as reference when writing the tests, also look through
+  the source and try to find funny corner cases
 
 ## tokenizer.{c,h}
 - tokenizing an empty file fails
@@ -239,7 +230,7 @@ things that I would like to do some day. It's a mess.
   `tokenize()` reads nicer
 
 ## common.h
-- this file should be removed
+- this shit should be removed
 - all uses of `STATUS_NOMEM` should be removed
 - `<stdbool.h>` should be used instead of `STATUS_OK` and `STATUS_ERROR`
 
@@ -294,6 +285,21 @@ equals.dispatch [String String] {
 };
 
 # now ("a" == "b") would call the string thing and (1 == 2) would call the integer thing
+```
+
+but i'm thinking of *not* making customizable callables, so maybe something
+like this:
+
+```
+var equals_dispatches = [];
+equals_dispatches.push (lambda "x y" {
+    if ((x `isinstance` String) `and` (y `isinstance` String)) {
+        return (some magic that concatenates the strings);   # returns true or false
+    };
+    return null;
+});
+
+# then something that loops through the array and checks for not-nulls
 ```
 
 ## gc.{c,h}
