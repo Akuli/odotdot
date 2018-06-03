@@ -48,8 +48,13 @@ static struct Object *run_expression(struct Interpreter *interp, struct Object *
 		struct Object *res;
 		if (nodedata->kind == AST_GETMETHOD)
 			res = method_getwithustr(interp, obj, INFO_AS(AstGetAttrOrMethodInfo)->name);
-		else
-			res = attribute_getwithustr(interp, obj, INFO_AS(AstGetAttrOrMethodInfo)->name);
+		else {
+			struct Object *s = stringobject_newfromustr(interp, INFO_AS(AstGetAttrOrMethodInfo)->name);
+			if (!s)
+				return NULL;
+			res = attribute_getwithstringobj(interp, obj, s);
+			OBJECT_DECREF(interp, s);
+		}
 		OBJECT_DECREF(interp, obj);
 		return res;
 	}
@@ -191,9 +196,17 @@ int run_statement(struct Interpreter *interp, struct Object *scope, struct Objec
 			return STATUS_ERROR;
 		}
 
-		int res = attribute_setwithustr(interp, obj, INFO_AS(AstSetAttrInfo)->attr, val);
+		struct Object *stringobj = stringobject_newfromustr(interp, INFO_AS(AstSetAttrInfo)->attr);
+		if (!stringobj) {
+			OBJECT_DECREF(interp, val);
+			OBJECT_DECREF(interp, obj);
+			return STATUS_ERROR;
+		}
+
+		int res = attribute_setwithstringobj(interp, obj, stringobj, val);
 		OBJECT_DECREF(interp, obj);
 		OBJECT_DECREF(interp, val);
+		OBJECT_DECREF(interp, stringobj);
 		return res;
 	}
 #undef INFO_AS

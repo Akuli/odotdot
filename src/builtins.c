@@ -102,7 +102,7 @@ error:
 
 static struct Object *lambda(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.stringclass, interp->builtins.blockclass) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.stringclass, interp->builtins.blockclass, NULL) == STATUS_ERROR)
 		return NULL;
 
 	struct Object *argnames = stringobject_splitbywhitespace(interp, ARRAYOBJECT_GET(argarr, 0));
@@ -359,7 +359,8 @@ int builtins_setup(struct Interpreter *interp)
 	if (add_function(interp, "print", print) == STATUS_ERROR) goto error;
 	if (add_function(interp, "same_object", same_object) == STATUS_ERROR) goto error;
 
-#ifdef DEBUG_BUILTINS       // compile like this:   $ CFLAGS=-DDEBUG_BUILTINS make clean all
+	// compile like this:   $ CFLAGS=-DDEBUG_BUILTINS make clean all
+#ifdef DEBUG_BUILTINS
 	printf("things created by builtins_setup():\n");
 #define debug(x) printf("  interp->%s = %p\n", #x, (void *) interp->x);
 	debug(builtins.arrayclass);
@@ -384,6 +385,7 @@ int builtins_setup(struct Interpreter *interp)
 
 error:
 	fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
+	assert(0);
 
 	struct Object *print = interpreter_getbuiltin(interp, "print");
 	if (print) {

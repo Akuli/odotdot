@@ -19,9 +19,8 @@ static void class_destructor(struct Object *klass)
 }
 
 
-struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, struct Object *base, int instanceshaveattrs, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb))
+struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, struct Object *base, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb))
 {
-	assert(instanceshaveattrs == 0 || instanceshaveattrs == 1);
 	struct ClassObjectData *data = malloc(sizeof(struct ClassObjectData));
 	if (!data)
 		return NULL;
@@ -32,7 +31,8 @@ struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, str
 	if (base)
 		OBJECT_INCREF(interp, base);
 	data->methods = NULL;
-	data->instanceshaveattrs = instanceshaveattrs;
+	data->setters = NULL;
+	data->getters = NULL;
 	data->foreachref = foreachref;
 
 	// interp->classclass can be NULL, see builtins_setup()
@@ -46,7 +46,7 @@ struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, str
 	return klass;
 }
 
-struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *base, int instanceshaveattrs, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb))
+struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *base, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb))
 {
 	assert(interp->builtins.classclass);
 	assert(interp->builtins.nomemerr);
@@ -57,7 +57,7 @@ struct Object *classobject_new(struct Interpreter *interp, char *name, struct Ob
 		return NULL;
 	}
 
-	struct Object *klass = classobject_new_noerr(interp, name, base, instanceshaveattrs, foreachref);
+	struct Object *klass = classobject_new_noerr(interp, name, base, foreachref);
 	if (!klass) {
 		errorobject_setnomem(interp);
 		return NULL;
@@ -87,15 +87,6 @@ struct Object *classobject_newinstance(struct Interpreter *interp, struct Object
 		errorobject_setnomem(interp);
 		return NULL;
 	}
-
-	if (((struct ClassObjectData *) klass->data)->instanceshaveattrs) {
-		instance->attrs = mappingobject_newempty(interp);
-		if (!instance->attrs) {
-			OBJECT_INCREF(interp, instance);
-			return NULL;
-		}
-	}
-
 	return instance;
 }
 
@@ -125,17 +116,17 @@ void classobject_runforeachref(struct Object *obj, void *data, classobject_forea
 static void class_foreachref(struct Object *klass, void *cbdata, classobject_foreachrefcb cb)
 {
 	struct ClassObjectData *data = klass->data;
-	if (data->baseclass)
-		cb(data->baseclass, cbdata);
-	if (data->methods)
-		cb(data->methods, cbdata);
+	if (data->baseclass) cb(data->baseclass, cbdata);
+	if (data->methods) cb(data->methods, cbdata);
+	if (data->setters) cb(data->setters, cbdata);
+	if (data->getters) cb(data->getters, cbdata);
 }
 
 
 struct Object *classobject_create_classclass_noerr(struct Interpreter *interp)
 {
 	// TODO: should the name of class objects be implemented as an attribute?
-	return classobject_new_noerr(interp, "Class", interp->builtins.objectclass, 0, class_foreachref);
+	return classobject_new_noerr(interp, "Class", interp->builtins.objectclass, class_foreachref);
 }
 
 static struct Object *setup(struct Interpreter *interp, struct Object *argarr)

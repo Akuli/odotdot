@@ -214,7 +214,7 @@ static struct Object *get_length(struct Interpreter *interp, struct Object *arga
 
 struct Object *arrayobject_createclass(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, "Array", interp->builtins.objectclass, 0, array_foreachref);
+	struct Object *klass = classobject_new(interp, "Array", interp->builtins.objectclass, array_foreachref);
 	if (!klass)
 		return NULL;
 

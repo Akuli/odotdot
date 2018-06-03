@@ -16,13 +16,11 @@ static void object_foreachref(struct Object *obj, void *data, classobject_foreac
 {
 	if (obj->klass)
 		cb(obj->klass, data);
-	if (obj->attrs)
-		cb(obj->attrs, data);
 }
 
 struct Object *objectobject_createclass_noerr(struct Interpreter *interp)
 {
-	return classobject_new_noerr(interp, "Object", NULL, 0, object_foreachref);
+	return classobject_new_noerr(interp, "Object", NULL, object_foreachref);
 }
 
 

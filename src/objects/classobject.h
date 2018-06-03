@@ -16,11 +16,14 @@ struct ClassObjectData {
 	// are being created
 	struct Object *baseclass;
 
+	// Mappings that implement attributes, keys are string objects, values are function objects
+	// these are first set to NULL, and the NULLs are replaced with empty mappings on-the-fly when needed
+	// it's kind of weird, but... RIGHT NOW i think its nice and simple
+	struct Object *setters;
+	struct Object *getters;
+
 	// a Mapping, or NULL if the class was created before Mappings existed
 	struct Object *methods;
-
-	// instances of e.g. String and Integer have no attributes
-	int instanceshaveattrs;   // 1 or 0
 
 	// calls cb(ref, data) for each ref object that this object (obj) refers to
 	// this is used for garbage collecting
@@ -31,10 +34,10 @@ struct ClassObjectData {
 
 // creates a new class
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *base, int instanceshaveattrs, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb));
+struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *base, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb));
 
 // RETURNS A NEW REFERENCE or NULL on no mem, for builtins_setup() only
-struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, struct Object *base, int instanceshaveattrs, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb));
+struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, struct Object *base, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb));
 
 // a nicer wrapper for object_new_noerr()
 // RETURNS A NEW REFERENCE or NULL on error (but unlike object_new_noerr, it sets interp->err)

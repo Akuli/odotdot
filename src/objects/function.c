@@ -38,7 +38,7 @@ static void function_destructor(struct Object *func)
 
 struct Object *functionobject_createclass(struct Interpreter *interp)
 {
-	return classobject_new(interp, "Function", interp->builtins.objectclass, 0, function_foreachref);
+	return classobject_new(interp, "Function", interp->builtins.objectclass, function_foreachref);
 }
 
 

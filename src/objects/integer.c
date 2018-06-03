@@ -162,7 +162,7 @@ static struct Object *plus(struct Interpreter *interp, struct Object *argarr)
 
 struct Object *integerobject_createclass(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, "Integer", interp->builtins.objectclass, 0, NULL);
+	struct Object *klass = classobject_new(interp, "Integer", interp->builtins.objectclass, NULL);
 	if (!klass)
 		return NULL;
 

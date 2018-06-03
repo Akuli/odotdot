@@ -20,7 +20,6 @@ struct Object *object_new_noerr(struct Interpreter *interp, struct Object *klass
 	if (klass)
 		OBJECT_INCREF(interp, klass);
 
-	obj->attrs = NULL;
 	obj->data = data;
 
 	// the rightmost bits are often used for alignment

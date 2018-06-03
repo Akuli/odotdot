@@ -97,7 +97,7 @@ struct Object *astnodeobject_createclass(struct Interpreter *interp)
 {
 	// the 1 means that AstNode instances may have attributes
 	// TODO: add at least kind and lineno attributes to the nodes?
-	return classobject_new(interp, "AstNode", interp->builtins.objectclass, 1, foreachref);
+	return classobject_new(interp, "AstNode", interp->builtins.objectclass, foreachref);
 }
 
 struct Object *astnodeobject_new(struct Interpreter *interp, char kind, size_t lineno, void *info)

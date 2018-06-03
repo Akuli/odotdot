@@ -25,7 +25,7 @@ struct Object *errorobject_createclass_noerr(struct Interpreter *interp)
 {
 	// Error objects can have any attributes
 	// TODO: use a message attribute instead of ->data?
-	return classobject_new_noerr(interp, "Error", interp->builtins.objectclass, 1, error_foreachref);
+	return classobject_new_noerr(interp, "Error", interp->builtins.objectclass, error_foreachref);
 }
 
 static struct Object *setup(struct Interpreter *interp, struct Object *argarr)

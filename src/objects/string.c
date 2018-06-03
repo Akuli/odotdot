@@ -29,7 +29,7 @@ static void string_destructor(struct Object *s)
 
 struct Object *stringobject_createclass_noerr(struct Interpreter *interp)
 {
-	return classobject_new_noerr(interp, "String", interp->builtins.objectclass, 0, NULL);
+	return classobject_new_noerr(interp, "String", interp->builtins.objectclass, NULL);
 }
 
 

@@ -1,6 +1,7 @@
 #ifndef OBJECTSYSTEM_H
 #define OBJECTSYSTEM_H
 
+#include <stdio.h>
 #include <stdbool.h>
 #include "interpreter.h"   // IWYU pragma: keep
 #include "atomicincrdecr.h"
@@ -11,11 +12,7 @@ struct Object {
 	// see objects/classobject.h
 	struct Object *klass;
 
-	// a Mapping object or NULL, keys are String objects
-	struct Object *attrs;
-
-	// NULL for objects created from the language, but constructor functions
-	// written in C can use this for anything
+	// can be anything, depends on the type of the object
 	void *data;
 
 	// a function that cleans up obj->data, can be NULL
@@ -47,6 +44,7 @@ struct Object *object_new_noerr(struct Interpreter *interp, struct Object *klass
 } while (0)
 
 // like the name says, this is pretty much an implementation detail
+// it's here just because OBJECT_{INCREF,DECREF} need it
 // use OBJECT_DECREF instead of calling this
 // calls obj->destructor and frees memory allocated by obj, optionally removes obj from interp->allobjects
 // you may need to modify gc_run() if you modify this

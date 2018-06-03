@@ -358,5 +358,5 @@ static void foreachref(struct Object *map, void *cbdata, classobject_foreachrefc
 
 struct Object *mappingobject_createclass(struct Interpreter *interp)
 {
-	return classobject_new(interp, "Mapping", interp->builtins.objectclass, 0, foreachref);
+	return classobject_new(interp, "Mapping", interp->builtins.objectclass, foreachref);
 }
