@@ -278,10 +278,10 @@ Methods:
   instead of an array of characters.
 - `(string1.concat string2)` returns the strings added together. For example,
   `("hello".concat "world")` returns `"helloworld"`.
-- `(string.split_by_whitespace)` splits the string into an array of non-empty
-  substrings separated by any Unicode whitespace (e.g. spaces, tabs or
-  newlines). For example, `("  hello world  test".split_by_whitespace)`
-  returns `["hello" "world" "test"]`.
+- `(string.split_by_whitespace)` splits the string into an array of substrings
+  separated by one or more Unicode whitespace characters (e.g. spaces, tabs or
+  newlines). For example, `(" hello world test ".split_by_whitespace)` returns
+  `["hello" "world" "test"]`.
 - `(string.to_string)` returns the string itself. This overrides
   [Object](#object)'s `to_string`.
 - `(string.to_debug_string)` returns the string with quotes around it, so
