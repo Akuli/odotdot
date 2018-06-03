@@ -11,8 +11,49 @@
 #include "objects/mapping.h"
 #include "objects/string.h"
 
+static bool init_data(struct Interpreter *interp, struct Object *obj)
+{
+	if (!obj->attrdata) {
+		obj->attrdata = mappingobject_newempty(interp);
+		if (!obj->attrdata)
+			return false;
+	}
+	return true;
+}
+
+int attribute_settoattrdata(struct Interpreter *interp, struct Object *obj, char *attr, struct Object *val)
+{
+	if (!init_data(interp, obj))
+		return STATUS_ERROR;
+
+	struct Object *stringobj = stringobject_newfromcharptr(interp, attr);
+	if (!stringobj)
+		return STATUS_ERROR;
+
+	int res = mappingobject_set(interp, obj->attrdata, stringobj, val);
+	OBJECT_DECREF(interp, stringobj);
+	return res;
+}
+
+struct Object *attribute_getfromattrdata(struct Interpreter *interp, struct Object *obj, char *attr)
+{
+	if (!init_data(interp, obj))
+		return NULL;
+
+	struct Object *stringobj = stringobject_newfromcharptr(interp, attr);
+	if (!stringobj)
+		return NULL;
+
+	// this sets a "key not found" error if the attribute is not found
+	// mappingobject_get() sets no errors in that case
+	struct Object *res = method_call(interp, obj->attrdata, "get", stringobj, NULL);
+	OBJECT_DECREF(interp, stringobj);
+	return res;
+}
+
+
 // returns true on success and false on failure
-static bool init_mappings(struct Interpreter *interp, struct ClassObjectData *data)
+static bool init_class_mappings(struct Interpreter *interp, struct ClassObjectData *data)
 {
 	if (!data->getters) {
 		if (!(data->getters = mappingobject_newempty(interp)))
@@ -25,14 +66,13 @@ static bool init_mappings(struct Interpreter *interp, struct ClassObjectData *da
 	return true;
 }
 
-
 int attribute_add(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc getter, functionobject_cfunc setter)
 {
 	assert(interp->builtins.mappingclass && interp->builtins.functionclass);   // must not be called tooo early by builtins_setup()
 	assert(setter || getter);
 
 	struct ClassObjectData *data = klass->data;
-	if (!init_mappings(interp, data))
+	if (!init_class_mappings(interp, data))
 		return STATUS_ERROR;
 
 	struct Object *string = stringobject_newfromcharptr(interp, name);
@@ -73,7 +113,7 @@ error:
 struct Object *attribute_getwithstringobj(struct Interpreter *interp, struct Object *obj, struct Object *stringobj)
 {
 	struct ClassObjectData *data = obj->klass->data;
-	if (!init_mappings(interp, data))
+	if (!init_class_mappings(interp, data))
 		return NULL;
 
 	struct Object *getter = mappingobject_get(interp, data->getters, stringobj);
@@ -105,7 +145,7 @@ struct Object *attribute_get(struct Interpreter *interp, struct Object *obj, cha
 int attribute_setwithstringobj(struct Interpreter *interp, struct Object *obj, struct Object *stringobj, struct Object *val)
 {
 	struct ClassObjectData *data = obj->klass->data;
-	if (!init_mappings(interp, data))
+	if (!init_class_mappings(interp, data))
 		return STATUS_ERROR;
 
 	struct Object *setter = mappingobject_get(interp, data->setters, stringobj);

@@ -16,6 +16,8 @@ static void object_foreachref(struct Object *obj, void *data, classobject_foreac
 {
 	if (obj->klass)
 		cb(obj->klass, data);
+	if (obj->attrdata)
+		cb(obj->attrdata, data);
 }
 
 struct Object *objectobject_createclass_noerr(struct Interpreter *interp)

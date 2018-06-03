@@ -21,6 +21,7 @@ struct Object *object_new_noerr(struct Interpreter *interp, struct Object *klass
 		OBJECT_INCREF(interp, klass);
 
 	obj->data = data;
+	obj->attrdata = NULL;
 
 	// the rightmost bits are often used for alignment
 	// let's throw them away for a better distribution

@@ -4,6 +4,8 @@
 #include "interpreter.h"    // IWYU pragma: keep
 #include "objectsystem.h"   // IWYU pragma: keep
 #include "unicode.h"        // IWYU pragma: keep
+#include "objects/array.h"
+#include "objects/errors.h"
 #include "objects/function.h"
 
 // returns STATUS_OK or STATUS_ERROR
@@ -19,7 +21,33 @@ struct Object *attribute_getwithstringobj(struct Interpreter *interp, struct Obj
 int attribute_set(struct Interpreter *interp, struct Object *obj, char *attr, struct Object *val);
 int attribute_setwithstringobj(struct Interpreter *interp, struct Object *obj, struct Object *stringobj, struct Object *val);
 
+// convenience functions that call mappingobject_set() and mappingobject_get() with obj->attrdata
+// setdata returns STATUS_OK or STATUS_ERROR, getdata returns a new reference or NULL
+int attribute_settoattrdata(struct Interpreter *interp, struct Object *obj, char *attr, struct Object *val);
+struct Object *attribute_getfromattrdata(struct Interpreter *interp, struct Object *obj, char *attr);
+
 // returns STATUS_OK or STATUS_ERROR
 int attribute_set(struct Interpreter *interp, struct Object *obj, char *attr, struct Object *val);
+
+
+// because writing unnecessary getters and setters by hand sucks, java users know it
+// these are meant to be placed outside other functions
+#define ATTRIBUTE_DEFINE_SIMPLE_GETTER(ATTRNAME, CLASSNAME) \
+	static struct Object* ATTRNAME##_getter(struct Interpreter *interp, struct Object *argarr) \
+	{ \
+		if (check_args(interp, argarr, interp->builtins.CLASSNAME, NULL) == STATUS_ERROR) \
+			return NULL; \
+		return attribute_getfromattrdata(interp, ARRAYOBJECT_GET(argarr, 0), #ATTRNAME); \
+	}
+
+#define ATTRIBUTE_DEFINE_SIMPLE_SETTER(ATTRNAME, CLASSNAME, VALUECLASSNAME) \
+	static struct Object* ATTRNAME##_setter(struct Interpreter *interp, struct Object *argarr) \
+	{ \
+		if (check_args(interp, argarr, interp->builtins.CLASSNAME, interp->builtins.VALUECLASSNAME, NULL) == STATUS_ERROR) \
+			return NULL; \
+		return attribute_settoattrdata(interp, ARRAYOBJECT_GET(argarr, 0), #ATTRNAME, ARRAYOBJECT_GET(argarr, 1))==STATUS_OK \
+			? interpreter_getbuiltin(interp, "null") : NULL; \
+	}
+
 
 #endif     // ATTRIBUTE_H

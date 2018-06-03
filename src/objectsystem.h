@@ -15,6 +15,11 @@ struct Object {
 	// can be anything, depends on the type of the object
 	void *data;
 
+	// a Mapping where attribute setters and getters can store the values
+	// this is NULL first, and created by attribute.c when needed
+	// not exposed in the language
+	struct Object *attrdata;
+
 	// a function that cleans up obj->data, can be NULL
 	void (*destructor)(struct Object *obj);
 
