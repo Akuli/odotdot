@@ -375,41 +375,38 @@ struct Object *parse_expression(struct Interpreter *interp, struct Token **curto
 	if (!res)
 		return NULL;
 
-	// attributes and methods
-	while ((*curtok) && (*curtok)->kind == TOKEN_OP && (
-			((*curtok)->str.len == 1 && (*curtok)->str.val[0] == '.') ||
-			((*curtok)->str.len == 2 && (*curtok)->str.val[0] == ':' && (*curtok)->str.val[1] == ':'))) {
-		char astkind = (*curtok)->str.len == 1 ? AST_GETATTR : AST_GETMETHOD;
-		*curtok = (*curtok)->next;   // skip '.' or '::'
+	// attributes
+	while ((*curtok) && (*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == '.') {
+		*curtok = (*curtok)->next;   // skip '.' or '.'
 		assert((*curtok));     // TODO: report error "expected an attribute name, but the file ended"
 		assert((*curtok)->kind == TOKEN_ID);   // TODO: report error "invalid attribute name 'bla bla'"
 
-		struct AstGetAttrOrMethodInfo *gaminfo = malloc(sizeof(struct AstGetAttrOrMethodInfo));
-		if(!gaminfo) {
+		struct AstGetAttrInfo *getattrinfo = malloc(sizeof(struct AstGetAttrInfo));
+		if(!getattrinfo) {
 			// TODO: set no mem error
 			OBJECT_DECREF(interp, res);
 			return NULL;
 		}
 
 		// no need to incref, this function is already holding a reference to res
-		gaminfo->objnode = res;
+		getattrinfo->objnode = res;
 
-		if (unicodestring_copyinto((*curtok)->str, &(gaminfo->name)) != STATUS_OK) {
+		if (unicodestring_copyinto((*curtok)->str, &(getattrinfo->name)) != STATUS_OK) {
 			// TODO: set no mem error
 			OBJECT_DECREF(interp, res);
-			free(gaminfo);
+			free(getattrinfo);
 			return NULL;
 		}
 		*curtok = (*curtok)->next;
 
-		struct Object *gam = astnodeobject_new(interp, astkind, 0, gaminfo);
-		if(!gam) {
-			free(gaminfo->name.val);
-			free(gaminfo);
+		struct Object *getattr = astnodeobject_new(interp, AST_GETATTR, 0, getattrinfo);
+		if(!getattr) {
+			free(getattrinfo->name.val);
+			free(getattrinfo);
 			OBJECT_DECREF(interp, res);
 			return NULL;
 		}
-		res = gam;
+		res = getattr;
 	}
 
 	return res;
@@ -512,7 +509,7 @@ static struct Object *parse_assignment(struct Interpreter *interp, struct Token 
 		return result;
 	} else {
 		assert(lhsdata->kind == AST_GETATTR);
-		struct AstGetAttrOrMethodInfo *lhsinfo = lhsdata->info;
+		struct AstGetAttrInfo *lhsinfo = lhsdata->info;
 		struct AstSetAttrInfo *info = malloc(sizeof(struct AstSetAttrInfo));
 		if (!info)
 			goto error;

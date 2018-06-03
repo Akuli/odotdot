@@ -190,7 +190,7 @@ static struct Object *slice(struct Interpreter *interp, struct Object *argarr)
 {
 	long long i, j;
 	if (ARRAYOBJECT_LEN(argarr) == 2) {
-		// (thing::slice i) is same as (thing::slice i (thing::get_length))
+		// (thing.slice i) is same as (thing.slice i (thing.get_length))
 		if (check_args(interp, argarr, interp->builtins.arrayclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
 			return NULL;
 		i = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1));

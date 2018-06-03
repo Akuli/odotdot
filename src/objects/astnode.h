@@ -39,11 +39,8 @@ struct Object *astnodeobject_new(struct Interpreter *interp, char kind, size_t l
 struct AstGetVarInfo { struct UnicodeString varname; };
 #define AST_GETVAR 'x'
 
-// obj is an ast node object
-// name is attribute or method name
-struct AstGetAttrOrMethodInfo { struct Object *objnode; struct UnicodeString name; };
+struct AstGetAttrInfo { struct Object *objnode; struct UnicodeString name; };
 #define AST_GETATTR '.'
-#define AST_GETMETHOD ':'
 
 
 // statements

@@ -108,7 +108,7 @@ var y = x;
 - `x` and `y` are both empty, so ``(x `equals` y)`` returns [true]; see
   [equals](#equals).
 - ``(x `same_object` y)`` returns [true].
-- If you do `x::push "hi";` and then `print (y::to_debug_string)`, you'll get
+- If you do `x.push "hi";` and then `print (y.to_debug_string)`, you'll get
   `["hi"]`. The `x` and `y` variables point to the same [array](#array), so
   doing something with `x` or `y` does that something to the array, regardless
   of the variable used.
@@ -150,8 +150,8 @@ Example:
 # print numbers from 0 to 9
 var i = 0;
 while { keep_going = (not (i `equals` 10)); } {
-    print (i::to_string);
-    i = (i::plus 1);   # yes, this sucks... no + operator yet
+    print (i.to_string);
+    i = (i.plus 1);   # yes, this sucks... no + operator yet
 };
 ```
 
@@ -227,7 +227,7 @@ For example, ``("hello" `is_instance_of` String)`` returns [true], and
 
 Every object has a class in Ö, and the class defines the methods that the
 object has. For example, the class of `[1 2 3]` is [Array](#array), and the
-Array class defines a method named `push` so you can do `the_array::push 4;`.
+Array class defines a method named `push` so you can do `the_array.push 4;`.
 
 In some languages, there are "primitives" that are not objects and cannot be
 treated like objects. I think that's dumb, so everything you can e.g. assign to
@@ -250,9 +250,9 @@ regardless of the type of `x`, and that could be useful with e.g. something
 that checks types with [is_instance_of](#is_instance_of).
 
 Methods:
-- `(object::to_string)` should return a string suitable for displaying to the
+- `(object.to_string)` should return a string suitable for displaying to the
   user of your Ö program. `Object`'s `to_string` calls `to_debug_string`.
-- `(object::to_debug_string)` should return a programmer-friendly string that
+- `(object.to_debug_string)` should return a programmer-friendly string that
   describes the object. `Object`'s `to_string` returns a string like
   `<ClassName at 0xblablabla>` where `ClassName` is the name of the object's
   class and the `0xblablabla` part is different for each object.
@@ -270,26 +270,26 @@ there is no [array](#array)-like `set` method even though there's a `get`
 method. Create a new string instead of modifying existing strings.
 
 Strings behave a lot like [arrays](#array) of strings of length 1. For example,
-`(["h" "e" "l" "l" "o"]::get 3)` and `("hello"::get 3)` both return `"l"`.
+`(["h" "e" "l" "l" "o"].get 3)` and `("hello".get 3)` both return `"l"`.
 
 Methods:
-- `string::get` is like the array `::get` method.
-- `string::slice` is like the array `::get` method, but it returns a string
+- `string.get` is like the array `.get` method.
+- `string.slice` is like the array `.get` method, but it returns a string
   instead of an array of characters.
-- `(string1::concat string2)` returns the strings added together. For example,
-  `("hello"::concat "world")` returns `"helloworld"`.
-- `(string::split_by_whitespace)` splits the string into an array of non-empty
+- `(string1.concat string2)` returns the strings added together. For example,
+  `("hello".concat "world")` returns `"helloworld"`.
+- `(string.split_by_whitespace)` splits the string into an array of non-empty
   substrings separated by any Unicode whitespace (e.g. spaces, tabs or
-  newlines). For example, `("  hello world  test"::split_by_whitespace)`
+  newlines). For example, `("  hello world  test".split_by_whitespace)`
   returns `["hello" "world" "test"]`.
-- `(string::to_string)` returns the string itself. This overrides
+- `(string.to_string)` returns the string itself. This overrides
   [Object](#object)'s `to_string`.
-- `(string::to_debug_string)` returns the string with quotes around it, so
-  `print ("hello"::to_debug_string);` prints `"hello"` including the quotes.
+- `(string.to_debug_string)` returns the string with quotes around it, so
+  `print ("hello".to_debug_string);` prints `"hello"` including the quotes.
   This overrides [Object](#object)'s `to_debug_string`.
 
 The `to_string` [array](#array) method calls `to_debug_string` methods of the
-content, so `print (["hello" "world"]::to_string)` prints `["hello" "world"]`,
+content, so `print (["hello" "world"].to_string)` prints `["hello" "world"]`,
 not `[hello world]`.
 
 Missing features:
@@ -314,16 +314,16 @@ The smallest allowed value of an integer is
 `Integer` differently so that it won't have these restrictions.
 
 Methods (`x` and `y` are Integers):
-- `(x::plus y)` returns x+y. Yes, I know, Ö really needs a `+` operator...
-- `(x::to_string)` converts the integer to a string without leading zeros.
+- `(x.plus y)` returns x+y. Yes, I know, Ö really needs a `+` operator...
+- `(x.to_string)` converts the integer to a string without leading zeros.
 
 Missing features:
 - There's no support for other bases than 10. I think there's no need to add
   special syntax (`0xff` is useful in low-level languages like C, but confuses
   people in high-level languages), but syntax like `(new Integer "ff" 16)`
   would be useful for e.g. dealing with hexadecimal colors. Similarly,
-  `(255::to_string 16)` could return `"ff"`.
-- `::plus` is the only way to do arithmetic with integers right now. It really
+  `(255.to_string 16)` could return `"ff"`.
+- `.plus` is the only way to do arithmetic with integers right now. It really
   sucks!
 
 ### Array
@@ -342,25 +342,25 @@ There are no size limits; you can add as many elements to an array as you want
 (as long as the array fits in the computer's memory).
 
 Methods:
-- `(array::get_length)` returns the number of items in the array as an
+- `(array.get_length)` returns the number of items in the array as an
   [Integer](#integer).
-- `array::push item;` adds `item` to the end of the array.
-- `(array::pop)` deletes and returns the last item from the end of the array.
-- `(array::get i)` returns the `i`'th element from the array. `(array::get 0)`
-  is the first element, `(array::get 1)` is the second and so on. An error is
-  thrown if `i` is negative or not less than `(array::get_length)`.
-- `array::set i value;` sets the `i`'th item of the array to `value`. See `get`
+- `array.push item;` adds `item` to the end of the array.
+- `(array.pop)` deletes and returns the last item from the end of the array.
+- `(array.get i)` returns the `i`'th element from the array. `(array.get 0)`
+  is the first element, `(array.get 1)` is the second and so on. An error is
+  thrown if `i` is negative or not less than `(array.get_length)`.
+- `array.set i value;` sets the `i`'th item of the array to `value`. See `get`
   for more information about the `i` index.
-- `(array::slice i j)` returns a new array that contains the elements between
+- `(array.slice i j)` returns a new array that contains the elements between
   `i` and `j`. Both `i` and `j` are interpreted so that `0` means the beginning
-  of the array and `(thing::get_length)` means the end of the array. Too big or
+  of the array and `(thing.get_length)` means the end of the array. Too big or
   small indexes are "rounded" to the closest possible values.
-- `(array::slice i)` returns `(array::slice i (array::get_length))`.
-- `(array::to_string)` calls `to_debug_string` methods of the array elements
+- `(array.slice i)` returns `(array.slice i (array.get_length))`.
+- `(array.to_string)` calls `to_debug_string` methods of the array elements
   and returns the debug strings in square brackets, joined with spaces. This
   overrides [Object](#object)'s `to_string` without overriding
-  `to_debug_string`, so `(array::to_debug_string)` does the same thing as
-  `(array::to_string)`.
+  `to_debug_string`, so `(array.to_debug_string)` does the same thing as
+  `(array.to_string)`.
 
 ### Mapping
 
@@ -372,7 +372,7 @@ array of `[key value]` arrays. For example:
 
 ```python
 var ordering_words = (new Mapping [[1 "first"] [2 "second"] [3 "third"]]);
-print (ordering_words::get 2);   # prints "second"
+print (ordering_words.get 2);   # prints "second"
 ```
 
 Use `(new Mapping [])` to create an empty mapping.
@@ -389,17 +389,17 @@ I'll probably create some kind of `ImmutableArray` some day. Immutable arrays
 would be hashable.
 
 Methods:
-- `mapping::set key value;` adds a new key-value pair to the mapping or changes
+- `mapping.set key value;` adds a new key-value pair to the mapping or changes
   the value of a key that is already in the mapping.
-- `(mapping::get key)` returns the value of a key or throws an error if the key
+- `(mapping.get key)` returns the value of a key or throws an error if the key
   is not found.
-- `mapping::delete key;` deletes a key-value pair from the mapping. An error is
+- `mapping.delete key;` deletes a key-value pair from the mapping. An error is
   thrown if the key is not found.
-- `(mapping::get_and_delete key)` is like `::delete`, but it returns the value
+- `(mapping.get_and_delete key)` is like `.delete`, but it returns the value
   of the deleted key.
 
 Missing features:
-- There's no `mapping::get_size` method.
+- There's no `mapping.get_size` method.
 - There's no way to loop over all the items in the mapping.
 
 ### Block
@@ -425,7 +425,7 @@ Attributes:
   scope that the code is running in.
 
 Methods:
-- `block::run scope;` runs the AST statements in the scope passed to this
+- `block.run scope;` runs the AST statements in the scope passed to this
   function. This method does nothing with `definition_scope`.
 
 ### Scopes
@@ -441,8 +441,8 @@ above).
 
 Attributes:
 - `scope.local_vars` is a [Mapping](#mapping) of local variables in the scope
-  with variable name strings as keys. `{ var x = 123; }::run scope;` is
-  equivalent to `scope.local_vars::set "x" 123;`.
+  with variable name strings as keys. `{ var x = 123; }.run scope;` is
+  equivalent to `scope.local_vars.set "x" 123;`.
 - `scope.parent_scope` is the scope that non-local variables are looked up from
   (see below), or [null](#null) if `scope` is the built-in scope.
 
@@ -453,17 +453,17 @@ var builtin_scope = {}.definition_scope;
 while { keep_going = (not (builtin_scope.definition_scope `same_object` null)); } {
     builtin_scope = builtin_scope.parent_scope;
 };
-# now (builtin_scope.local_vars::get "while") works
+# now (builtin_scope.local_vars.get "while") works
 ```
 
 Methods:
-- `scope::set_var varname value;` sets the value of an existing variable in the
+- `scope.set_var varname value;` sets the value of an existing variable in the
   scope, or if it's not found, in the parent scope or its parent scope and so
-  on. `{ x = 123; }::run scope;` without `var` in front of `x` is equivalent to
-  `scope::set_var "x" 123;`.
-- `(scope::get_var varname)` looks up a variable similarly to `set_var`, but
-  returns it instead of changing its value. `{ print x; }::run scope;` is
-  equivalent to `print (scope::get_var "x");`
+  on. `{ x = 123; }.run scope;` without `var` in front of `x` is equivalent to
+  `scope.set_var "x" 123;`.
+- `(scope.get_var varname)` looks up a variable similarly to `set_var`, but
+  returns it instead of changing its value. `{ print x; }.run scope;` is
+  equivalent to `print (scope.get_var "x");`
 
 ### Function
 
@@ -472,13 +472,13 @@ like `var Function = (get_class print)` if you need to. New functions cannot be
 created with `(new Function)`; use [func](#func) instead.
 
 Methods:
-- `(function::partial arg1 arg2 arg3)` returns a new function that calls the
+- `(function.partial arg1 arg2 arg3)` returns a new function that calls the
   original `function` with `arg1 arg2 arg3` and any arguments passed to the new
-  function as arguments. So, `var g = (f::partial a b); g x y;` runs
+  function as arguments. So, `var g = (f.partial a b); g x y;` runs
   `f a b x y;`.
 
 Missing features:
-- There's no `.name` attribute or a customized `::to_debug_string` method, so
+- There's no `.name` attribute or a customized `.to_debug_string` method, so
   debugging is hell.
 
 

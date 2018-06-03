@@ -48,26 +48,11 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 	return NULL;
 }
 
-static struct Object *partial(struct Interpreter *interp, struct Object *argarr)
+static struct Object *create_a_partial(struct Interpreter *interp, struct Object *func, struct Object **partialargs, size_t npartialargs)
 {
-	// check the first argument, rest are the args that are being partialled
-	// there can be 0 or more partialled args (0 partialled args allowed for consistency)
-	if (ARRAYOBJECT_LEN(argarr) == 0) {
-		errorobject_setwithfmt(interp, "not enough arguments to Function::partial");
-		return NULL;
-	}
-	if (check_type(interp, interp->builtins.functionclass, ARRAYOBJECT_GET(argarr, 0)) == STATUS_ERROR)
-		return NULL;
-
-	struct Object *func = ARRAYOBJECT_GET(argarr, 0);
-	struct Object **partialargs = ((struct ArrayObjectData *) argarr->data)->elems + 1;
-	size_t npartialargs = ARRAYOBJECT_LEN(argarr) - 1;
-
 	// shortcut
-	if (npartialargs == 0) {
-		OBJECT_INCREF(interp, func);
+	if (npartialargs == 0)
 		return func;
-	}
 
 	struct FunctionData *data = func->data;
 	struct FunctionData *newdata = malloc(sizeof(struct FunctionData));
@@ -101,19 +86,24 @@ static struct Object *partial(struct Interpreter *interp, struct Object *argarr)
 	return obj;
 }
 
-// methods are partialled functions, but the partial method can't be used when looking up methods
-// that would be infinite recursion
-// TODO: shouldn't partial() call this thing instead of the other way around?
-struct Object *functionobject_newpartial(struct Interpreter *interp, struct Object *func, struct Object *partialarg)
+static struct Object *partial(struct Interpreter *interp, struct Object *argarr)
 {
-	struct Object *tmp[] = { func, partialarg };
-	struct Object *arr = arrayobject_new(interp, tmp, 2);
-	if (!arr)
+	// check the first argument, rest are the args that are being partialled
+	// there can be 0 or more partialled args (0 partialled args allowed for consistency)
+	if (ARRAYOBJECT_LEN(argarr) == 0) {
+		errorobject_setwithfmt(interp, "not enough arguments to Function.partial");
+		return NULL;
+	}
+	if (check_type(interp, interp->builtins.functionclass, ARRAYOBJECT_GET(argarr, 0)) == STATUS_ERROR)
 		return NULL;
 
-	struct Object *res = partial(interp, arr);
-	OBJECT_DECREF(interp, arr);
-	return res;
+	return create_a_partial(interp, ARRAYOBJECT_GET(argarr, 0),
+		((struct ArrayObjectData *) argarr->data)->elems + 1, ARRAYOBJECT_LEN(argarr) - 1);
+}
+
+struct Object *functionobject_newpartial(struct Interpreter *interp, struct Object *func, struct Object *partialarg)
+{
+	return create_a_partial(interp, func, &partialarg, 1);
 }
 
 int functionobject_addmethods(struct Interpreter *interp)

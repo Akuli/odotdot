@@ -113,13 +113,13 @@ static struct Object *slice(struct Interpreter *interp, struct Object *argarr)
 {
 	long long start, end;
 	if (ARRAYOBJECT_LEN(argarr) == 2) {
-		// (s::slice start)
+		// (s.slice start)
 		if (check_args(interp, argarr, interp->builtins.stringclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
 			return NULL;
 		start = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1));
 		end = ((struct UnicodeString*) ARRAYOBJECT_GET(argarr, 0)->data)->len;
 	} else {
-		// (s::slice start end)
+		// (s.slice start end)
 		if (check_args(interp, argarr, interp->builtins.stringclass, interp->builtins.integerclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
 			return NULL;
 		start = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1));

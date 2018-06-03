@@ -19,11 +19,8 @@ struct ClassObjectData {
 	// Mappings that implement attributes, keys are string objects, values are function objects
 	// these are first set to NULL, and the NULLs are replaced with empty mappings on-the-fly when needed
 	// it's kind of weird, but... RIGHT NOW i think its nice and simple
-	struct Object *setters;
-	struct Object *getters;
-
-	// a Mapping, or NULL if the class was created before Mappings existed
-	struct Object *methods;
+	struct Object *setters;   // setters are called with 2 arguments, instance and value, they return null
+	struct Object *getters;   // getters are called with 1 argument, the instance
 
 	// calls cb(ref, data) for each ref object that this object (obj) refers to
 	// this is used for garbage collecting

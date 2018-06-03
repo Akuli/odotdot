@@ -36,7 +36,7 @@ things that I would like to do some day. It's a mess.
     - `catch` can't catch the error object yet, so tests can't check exception
       messages :( can't really write good tests in Ö yet
 - need tracebacks and other stack magic
-    - might be easiest to get the traceback in `Error::new`? that way
+    - might be easiest to get the traceback in `Error.new`? that way
       rethrowing would be easy as `throw caught_error;`
     - maybe traceback printing could be implemented in pure ö?
     - c functions that push and pop to an array of stack info objects
@@ -286,10 +286,10 @@ if dispatchable functions will exist some day, maybe like this:
 # this stuff would go to a special file, e.g. stdlib/operators.ö
 
 dispatchable_func "equals a b";
-equals::dispatch [Integer Integer] {
+equals.dispatch [Integer Integer] {
     return (some magic that computes a+b);
 };
-equals::dispatch [String String] {
+equals.dispatch [String String] {
     return (some magic that concatenates the strings);
 };
 

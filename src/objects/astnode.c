@@ -23,8 +23,7 @@ static void foreachref(struct Object *node, void *cbdata, classobject_foreachref
 		cb(info_as(AstArrayOrBlockInfo), cbdata);
 		break;
 	case AST_GETATTR:
-	case AST_GETMETHOD:
-		cb(info_as(AstGetAttrOrMethodInfo)->objnode, cbdata);
+		cb(info_as(AstGetAttrInfo)->objnode, cbdata);
 		break;
 	case AST_CREATEVAR:
 	case AST_SETVAR:
@@ -62,8 +61,7 @@ static void destructor(struct Object *node)
 		free(data->info);
 		break;
 	case AST_GETATTR:
-	case AST_GETMETHOD:
-		free(info_as(AstGetAttrOrMethodInfo)->name.val);
+		free(info_as(AstGetAttrInfo)->name.val);
 		free(data->info);
 		break;
 	case AST_CREATEVAR:

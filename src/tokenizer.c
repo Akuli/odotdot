@@ -111,13 +111,6 @@ struct Token *token_ize(struct UnicodeString hugestring)
 			nchars = 1;
 		}
 
-		else if (hugestring.len >= 2 &&
-				hugestring.val[0] == ':' &&
-				hugestring.val[1] == ':') {
-			kind = TOKEN_OP;
-			nchars = 2;
-		}
-
 		else if (hugestring.len >= 4 &&
 				hugestring.val[0] == 'v' &&
 				hugestring.val[1] == 'a' &&

@@ -12,33 +12,33 @@ var if = null;
 {
     # this thing maps if conditions to blocks that are ran on the condition
     var if_mapping = (new Mapping [
-        [true { block::run (new Scope block.definition_scope); }]
+        [true { block.run (new Scope block.definition_scope); }]
         [false {}]
     ]);
 
     if = (lambda "condition block" {
-        (if_mapping::get condition)::run {}.definition_scope;
+        (if_mapping.get condition).run {}.definition_scope;
     });
-}::run (new Scope {}.definition_scope);
+}.run (new Scope {}.definition_scope);
 
 var while = (lambda "condition_block body_block" {
     var scope = (new Scope body_block.definition_scope);
-    scope.local_vars::set "keep_going" null;
+    scope.local_vars.set "keep_going" null;
 
     var one_iteration = {
-        condition_block::run scope;
-        if (scope.local_vars::get "keep_going") {
-            body_block::run scope;
-            one_iteration::run one_iteration.definition_scope;   # recurses :(((
+        condition_block.run scope;
+        if (scope.local_vars.get "keep_going") {
+            body_block.run scope;
+            one_iteration.run one_iteration.definition_scope;   # recurses :(((
         };
     };
 
-    one_iteration::run one_iteration.definition_scope;
+    one_iteration.run one_iteration.definition_scope;
 });
 
 var func = (lambda "funcname_and_argnames block" {
-    var splitted = (funcname_and_argnames::split_by_whitespace);
-    if ((splitted::get_length) `equals` 0) {
+    var splitted = (funcname_and_argnames.split_by_whitespace);
+    if ((splitted.get_length) `equals` 0) {
         throw "func's string argument must not be empty";
     };
 
@@ -46,13 +46,13 @@ var func = (lambda "funcname_and_argnames block" {
     var argnames = "";
     var i = 1;    # skip the function name
 
-    while { keep_going = ((i `equals` (splitted::get_length)) `equals` false); } {
-        argnames = (argnames::concat (splitted::get i));
-        argnames = (argnames::concat " ");
-        i = (i::plus 1);
+    while { keep_going = ((i `equals` (splitted.get_length)) `equals` false); } {
+        argnames = (argnames.concat (splitted.get i));
+        argnames = (argnames.concat " ");
+        i = (i.plus 1);
     };
 
-    block.definition_scope.local_vars::set (splitted::get 0) (lambda argnames block);
+    block.definition_scope.local_vars.set (splitted.get 0) (lambda argnames block);
 });
 
 func "not x" {
@@ -72,15 +72,15 @@ func "assert condition" {
 # example:
 #
 #    foreach "x" [1 2 3] {
-#        print (x::to_string);
+#        print (x.to_string);
 #    };
 func "foreach varname array block" {
     var i = 0;
     var scope = (new Scope block.definition_scope);
 
-    while { keep_going = (not (i `equals` (array::get_length))); } {
-        scope.local_vars::set varname (array::get i);
-        block::run scope;
-        i = (i::plus 1);
+    while { keep_going = (not (i `equals` (array.get_length))); } {
+        scope.local_vars.set varname (array.get i);
+        block.run scope;
+        i = (i.plus 1);
     };
 };

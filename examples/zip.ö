@@ -1,8 +1,8 @@
 var array1 = ["a" "b" "c"];
 var array2 = ["d" "e" "f"];
 
-assert ((zip array1 array2)::equals [["a" "d"] ["b" "e"] ["c" "f"]]);
-(zip array1 array2)::foreach "item" {
-    print (item::get 0);
-    print (item::get 1);
+assert ((zip array1 array2).equals [["a" "d"] ["b" "e"] ["c" "f"]]);
+(zip array1 array2).foreach "item" {
+    print (item.get 0);
+    print (item.get 1);
 };

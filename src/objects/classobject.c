@@ -30,7 +30,6 @@ struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, str
 	data->baseclass = base;
 	if (base)
 		OBJECT_INCREF(interp, base);
-	data->methods = NULL;
 	data->setters = NULL;
 	data->getters = NULL;
 	data->foreachref = foreachref;
@@ -61,15 +60,6 @@ struct Object *classobject_new(struct Interpreter *interp, char *name, struct Ob
 	if (!klass) {
 		errorobject_setnomem(interp);
 		return NULL;
-	}
-
-	if (interp->builtins.mappingclass) {
-		struct ClassObjectData *data = klass->data;
-		data->methods = mappingobject_newempty(interp);
-		if (!(data->methods)) {
-			OBJECT_DECREF(interp, klass);
-			return NULL;
-		}
 	}
 
 	return klass;
@@ -117,7 +107,6 @@ static void class_foreachref(struct Object *klass, void *cbdata, classobject_for
 {
 	struct ClassObjectData *data = klass->data;
 	if (data->baseclass) cb(data->baseclass, cbdata);
-	if (data->methods) cb(data->methods, cbdata);
 	if (data->setters) cb(data->setters, cbdata);
 	if (data->getters) cb(data->getters, cbdata);
 }

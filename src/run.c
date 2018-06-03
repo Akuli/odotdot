@@ -40,22 +40,20 @@ static struct Object *run_expression(struct Interpreter *interp, struct Object *
 		return nodedata->info;
 	}
 
-	if (nodedata->kind == AST_GETMETHOD || nodedata->kind == AST_GETATTR) {
-		struct Object *obj = run_expression(interp, scope, INFO_AS(AstGetAttrOrMethodInfo)->objnode);
+	if (nodedata->kind == AST_GETATTR) {
+		struct Object *obj = run_expression(interp, scope, INFO_AS(AstGetAttrInfo)->objnode);
 		if (!obj)
 			return NULL;
 
-		struct Object *res;
-		if (nodedata->kind == AST_GETMETHOD)
-			res = method_getwithustr(interp, obj, INFO_AS(AstGetAttrOrMethodInfo)->name);
-		else {
-			struct Object *s = stringobject_newfromustr(interp, INFO_AS(AstGetAttrOrMethodInfo)->name);
-			if (!s)
-				return NULL;
-			res = attribute_getwithstringobj(interp, obj, s);
-			OBJECT_DECREF(interp, s);
+		struct Object *s = stringobject_newfromustr(interp, INFO_AS(AstGetAttrInfo)->name);
+		if (!s) {
+			OBJECT_DECREF(interp, obj);
+			return NULL;
 		}
+
+		struct Object *res = attribute_getwithstringobj(interp, obj, s);
 		OBJECT_DECREF(interp, obj);
+		OBJECT_DECREF(interp, s);
 		return res;
 	}
 
@@ -173,7 +171,7 @@ int run_statement(struct Interpreter *interp, struct Object *scope, struct Objec
 			return STATUS_ERROR;
 		}
 
-		// TODO: expose Scope::set_var?
+		// TODO: expose Scope.set_var?
 		struct Object *res = method_call(interp, scope, "set_var", namestr, val, NULL);
 		OBJECT_DECREF(interp, namestr);
 		OBJECT_DECREF(interp, val);

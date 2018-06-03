@@ -260,7 +260,7 @@ static struct Object *new(struct Interpreter *interp, struct Object *argarr)
 	}
 
 	// there's no argument array taking version of method_call()
-	struct Object *setup = method_get(interp, obj, "setup");
+	struct Object *setup = attribute_get(interp, obj, "setup");
 	if (!setup) {
 		OBJECT_DECREF(interp, setupargs);
 		OBJECT_DECREF(interp, obj);
@@ -280,13 +280,6 @@ static struct Object *new(struct Interpreter *interp, struct Object *argarr)
 	return obj;
 }
 
-
-static int create_method_mapping(struct Interpreter *interp, struct Object *klass)
-{
-	struct ClassObjectData *data = klass->data;
-	assert(!data->methods);
-	return (data->methods = mappingobject_newempty(interp)) ? STATUS_OK : STATUS_ERROR;
-}
 
 static int add_function(struct Interpreter *interp, char *name, functionobject_cfunc cfunc)
 {
@@ -320,12 +313,7 @@ int builtins_setup(struct Interpreter *interp)
 
 	// these classes must exist before methods exist, so they are handled specially
 	// TODO: classclass
-	if (create_method_mapping(interp, interp->builtins.classclass) == STATUS_ERROR) goto error;
-	if (create_method_mapping(interp, interp->builtins.objectclass) == STATUS_ERROR) goto error;
-	if (create_method_mapping(interp, interp->builtins.stringclass) == STATUS_ERROR) goto error;
-	if (create_method_mapping(interp, interp->builtins.errorclass) == STATUS_ERROR) goto error;
-	if (create_method_mapping(interp, interp->builtins.mappingclass) == STATUS_ERROR) goto error;
-	if (create_method_mapping(interp, interp->builtins.functionclass) == STATUS_ERROR) goto error;
+	// TODO: rename addmethods to addattributes functions? methods are attributes
 	if (classobject_addmethods(interp) == STATUS_ERROR) goto error;
 	if (objectobject_addmethods(interp) == STATUS_ERROR) goto error;
 	if (stringobject_addmethods(interp) == STATUS_ERROR) goto error;

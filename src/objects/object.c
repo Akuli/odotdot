@@ -38,7 +38,7 @@ static struct Object *to_string(struct Interpreter *interp, struct Object *argar
 	// so we can't use it here, otherwise this may recurse
 	// maybe it wouldn't recurse... but better safe than sorry
 	if (ARRAYOBJECT_LEN(argarr) != 1) {
-		errorobject_setwithfmt(interp, "Object::to_string takes exactly 1 argument");
+		errorobject_setwithfmt(interp, "Object.to_string takes exactly 1 argument");
 		return NULL;
 	}
 
@@ -49,7 +49,7 @@ static struct Object *to_string(struct Interpreter *interp, struct Object *argar
 static struct Object *to_debug_string(struct Interpreter *interp, struct Object *argarr)
 {
 	if (ARRAYOBJECT_LEN(argarr) != 1) {
-		errorobject_setwithfmt(interp, "Object::to_debug_string takes exactly 1 argument");
+		errorobject_setwithfmt(interp, "Object.to_debug_string takes exactly 1 argument");
 		return NULL;
 	}
 	return method_call(interp, ARRAYOBJECT_GET(argarr, 0), "to_string", NULL);

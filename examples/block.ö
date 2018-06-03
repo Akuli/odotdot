@@ -1,6 +1,6 @@
 var block = { print "hello"; };
 
 # print hello three times
-block::run block.definition_scope;
-block::run block.definition_scope;
-block::run block.definition_scope;
+block.run block.definition_scope;
+block.run block.definition_scope;
+block.run block.definition_scope;

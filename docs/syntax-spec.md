@@ -12,7 +12,7 @@ The first step with running any code is tokenizing it. It means taking code
 like this...
 
 ```python
-print ([1 2 3]::to_string);
+print ([1 2 3].to_string);
 ```
 
 ...and turning it into a bunch of tokens. The above code would be tokenized
@@ -27,7 +27,7 @@ like this:
 | integer literal   | `2`           |
 | integer literal   | `3`           |
 | operator          | `]`           |
-| operator          | `::`          |
+| operator          | `.`          |
 | identifier        | `to_string`   |
 | operator          | `)`           |
 | operator          | `;`           |
@@ -69,9 +69,9 @@ Here's a list of *all* supported kinds of tokens:
   `0`. I'm not sure if this is a good thing or if the Ö interpreter does it
   right now (I'm tired and I don't feel like trying it out). I might change
   this later.
-- Operators are `{`, `}`, `[`, `]`, `(`, `)`, `=`, `;`, `.`, `` ` `` or `::`.
+- Operators are `{`, `}`, `[`, `]`, `(`, `)`, `=`, `;`, `.`, `` ` `` or `.`.
 - `var` is parsed with similar rules as identifiers, but it's best for the
-  tokenizer to output `var` tokens as non-identifiers. This way `thing::var`
+  tokenizer to output `var` tokens as non-identifiers. This way `thing.var`
   will cause errors when parsing to AST. Note that e.g. `var_statement` and
   `var0` are valid identifiers.
 
@@ -91,7 +91,7 @@ The parser takes tokens as input and outputs
 this thing we tokenized above...
 
 ```python
-print ([1 2 3]::to_string);
+print ([1 2 3].to_string);
 ```
 
 ...produces an AST tree like this:
@@ -109,7 +109,7 @@ function for getting the class of an instance will be added, it will be
 possible to access the `AstNode` class like this:
 
 ```python
-var print_statement = ({ print "hello"; }.ast_statements::get 0);
+var print_statement = ({ print "hello"; }.ast_statements.get 0);
 var AstNode = (magic_function_that_gets_the_class print_statement);
 ```
 
@@ -125,7 +125,7 @@ Here's a list of all supported kinds of expressions:
 - Variable lookups: `print` and `magic_number` return values of variables.
 - Attribute lookups: `expr.attr` returns the `.attr` attribute of the object
   returned by the `expr` expression.
-- Method lookups: `expr::meth` returns the `::meth` method of the object
+- Method lookups: `expr.meth` returns the `.meth` method of the object
   returned by the `expr` expression.
 - List literals: `[element1 element2 element3]` and `[]` return `List` objects.
   The elements can be any expressions.

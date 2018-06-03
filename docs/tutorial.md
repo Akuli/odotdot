@@ -131,18 +131,18 @@ var thing = [1 2 3];
 
 There are no fixed sizes; you can put as many elements as you want to an array.
 Note that the `print` function wants a string, so convert arrays to strings
-before printing them, e.g. `print (thing::to_string);`. Here `thing::to_string`
+before printing them, e.g. `print (thing.to_string);`. Here `thing.to_string`
 looks up a method; methods are just functions.
 
 ```python
-print (thing::to_string);   # prints [1 2 3]
+print (thing.to_string);   # prints [1 2 3]
 ```
 
 You can add more elements to an array like this:
 
 ```python
-thing::push 4;
-print (thing::to_string);   # prints [1 2 3 4]
+thing.push 4;
+print (thing.to_string);   # prints [1 2 3 4]
 ```
 
 [Click here](builtins.md#array) for a complete list of array methods.
@@ -159,10 +159,10 @@ var thingy = (new Mapping [["key 1" "value 1"] ["key 2" "value 2"]]);
 
 The messy part is just a list of `[key value]` lists.
 
-Now we can access the values of our keys with the `::get` method:
+Now we can access the values of our keys with the `.get` method:
 
 ```python
-print (thingy::get "key 2");   # prints "value 2"
+print (thingy.get "key 2");   # prints "value 2"
 ```
 
 [Click here](builtins.md#array) for a complete list of mapping methods and more
@@ -191,11 +191,11 @@ objects.
 ```python
 var block = { print x; };
 var x = "lol";
-block::run block.definition_scope;     # prints "lol"
+block.run block.definition_scope;     # prints "lol"
 ```
 
 Here `block.definition_scope` is an attribute of `block`; attributes are
-accessed just like methods, but with `.` instead of `::`. The
+accessed just like methods, but with `.` instead of `.`. The
 `definition_scope` is the scope that Ö was running when `block` was defined;
 that is, the scope that Ö is running our file in.
 
@@ -204,7 +204,7 @@ name strings as keys.
 
 ```python
 var this_scope = { }.definition_scope;
-this_scope.local_vars::set "y" "lol wat";    # same as 'var y = "lol wat";'
+this_scope.local_vars.set "y" "lol wat";    # same as 'var y = "lol wat";'
 print y;          # prints "lol wat"
 ```
 
@@ -224,9 +224,9 @@ It's also possible to create new Scopes; just create a `Scope` object with
 
 ```python
 var subscope = (new Scope {}.definition_scope);
-{ var z = "boom boom"; }::run subscope;
-{ print z; }::run subscope;             # prints "boom boom"
-print (subscope.local_vars::get "z");   # prints "boom boom"
+{ var z = "boom boom"; }.run subscope;
+{ print z; }.run subscope;             # prints "boom boom"
+print (subscope.local_vars.get "z");   # prints "boom boom"
 print z;       # error because z is in the subscope
 ```
 
@@ -309,14 +309,14 @@ func "fake_if condition block" {
     var mapping = (new Mapping [
         [true {
             # run the block in a new subscope of the scope it was defined in
-            block::run (new Scope block.definition_scope);
+            block.run (new Scope block.definition_scope);
         }]
         [false {
             # do nothing
         }]
     ]);
 
-    (mapping::get condition)::run {}.definition_scope;
+    (mapping.get condition).run {}.definition_scope;
 };
 
 fake_if (1 `equals` 1) {

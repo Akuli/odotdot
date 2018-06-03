@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include "attribute.h"
+#include "check.h"
 #include "common.h"
 #include "interpreter.h"
 #include "objects/array.h"
@@ -16,80 +18,42 @@
 #include "objectsystem.h"
 #include "unicode.h"
 
+// this is partialled to function objects when creating methods
+// when getting the method, the partialled thing is called with the instance as an argument, see objects/classobject.h
+static struct Object *method_getter(struct Interpreter *interp, struct Object *argarr)
+{
+	if (check_args(interp, argarr, interp->builtins.functionclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+		return NULL;
+	return functionobject_newpartial(interp, ARRAYOBJECT_GET(argarr, 0), ARRAYOBJECT_GET(argarr, 1));
+}
+
 int method_add(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc cfunc)
 {
-	struct Object *nameobj = stringobject_newfromcharptr(interp, name);
-	if (!nameobj)
+	struct Object *func = functionobject_new(interp, cfunc);
+	if (!func)
 		return STATUS_ERROR;
 
-	struct Object *func = functionobject_new(interp, cfunc);
-	if (!func) {
-		OBJECT_DECREF(interp, nameobj);
+	struct Object *rawgetter = functionobject_new(interp, method_getter);
+	if (!rawgetter) {
+		OBJECT_DECREF(interp, func);
 		return STATUS_ERROR;
 	}
 
-	struct Object *methodmap = ((struct ClassObjectData *) klass->data)->methods;
-	assert(methodmap);
-
-	int setres = mappingobject_set(interp, methodmap, nameobj, func);
-	OBJECT_DECREF(interp, nameobj);
+	struct Object *getter = functionobject_newpartial(interp, rawgetter, func);
+	OBJECT_DECREF(interp, rawgetter);
 	OBJECT_DECREF(interp, func);
-	return setres;
-}
+	if (!getter)
+		return STATUS_ERROR;
 
-
-// does NOT return a new reference
-static struct Object *get_the_method(struct Interpreter *interp, struct Object *obj, struct Object *nameobj)
-{
-	struct Object *klass = obj->klass;
-	struct ClassObjectData *klassdata;
-
-	do {
-		klassdata = klass->data;
-
-		struct Object *nopartial;
-		int status = mappingobject_get(interp, klassdata->methods, nameobj, &nopartial);
-		if (status == -1)
-			return NULL;
-		if (status == 1) {
-			// now we have a function that takes self as the first argument, let's partial it
-			struct Object *res = functionobject_newpartial(interp, nopartial, obj);
-			OBJECT_DECREF(interp, nopartial);
-			return res;
-		}
-		// key not found, keep trying
-	} while ((klass = klassdata->baseclass));
-
-	errorobject_setwithfmt(interp, "%s objects don't have a method named '%S'", ((struct ClassObjectData *) obj->klass->data)->name, nameobj);
-	return NULL;
-}
-
-struct Object *method_getwithustr(struct Interpreter *interp, struct Object *obj, struct UnicodeString uname)
-{
-	struct Object *nameobj = stringobject_newfromustr(interp, uname);
-	if (!nameobj)
-		return NULL;
-
-	struct Object *res = get_the_method(interp, obj, nameobj);
-	OBJECT_DECREF(interp, nameobj);
-	return res;
-}
-
-struct Object *method_get(struct Interpreter *interp, struct Object *obj, char *name)
-{
-	struct Object *nameobj = stringobject_newfromcharptr(interp, name);
-	if (!nameobj)
-		return NULL;
-
-	struct Object *res = get_the_method(interp, obj, nameobj);
-	OBJECT_DECREF(interp, nameobj);
+	int res = attribute_addwithfuncobjs(interp, klass, name, getter, NULL);
+	OBJECT_DECREF(interp, getter);
 	return res;
 }
 
 
 struct Object *method_call(struct Interpreter *interp, struct Object *obj, char *methname, ...)
 {
-	struct Object *method = method_get(interp, obj, methname);
+	struct Object *method = attribute_get(interp, obj, methname);
 	if (!method)
 		return NULL;
 

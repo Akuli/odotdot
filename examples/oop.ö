@@ -12,17 +12,17 @@ var Tooter = (class {
 var FancyTooter = (class inheriting Tooter {
     var fancytoot = (meth {
         print "*** Extra Fanciness ***";
-        this::toot;
+        this.toot;
     });
 });
 
 
 var t = (new Tooter "Toot Toot!");
 print "tooting:";
-t::toot;
+t.toot;
 
 print "----------";
 
 var t2 = (new FancyTooter "Toot Toot!");
 print "tooting the fancy toot:";
-t2::fancytoot;
+t2.fancytoot;
