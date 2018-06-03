@@ -123,23 +123,22 @@ static struct Object *set_var(struct Interpreter *interp, struct Object *argarr)
 		return NULL;
 
 	// is the variable defined here?
-	struct Object *res = mappingobject_get(interp, local_vars, varname);
+	struct Object *oldval;
+	int res = mappingobject_get(interp, local_vars, varname, &oldval);
 	OBJECT_DECREF(interp, local_vars);
-	if (res) {
+	if (res == 1) {
 		// yes
-		OBJECT_DECREF(interp, res);
+		OBJECT_DECREF(interp, oldval);
 		int status = mappingobject_set(interp, local_vars, varname, val);
 		return status==STATUS_OK ? interpreter_getbuiltin(interp, "null") : NULL;
 	}
-
-	if (interp->err)
+	if (res == -1)
 		return NULL;
-	// the key wasn't found, mappingobject_get() returned NULL without setting interp->err
+	assert(res == 0);    // not found
 
 	// but do we have a parent scope?
 	if (scope == interp->builtinscope) {
 		// no, all scopes were already checked
-		// TODO: better error message for missing variables
 		errorobject_setwithfmt(interp, "no variable named '%S'", varname);
 		return NULL;
 	}
@@ -154,9 +153,9 @@ static struct Object *set_var(struct Interpreter *interp, struct Object *argarr)
 	if (!newargarr)
 		return NULL;
 
-	res = set_var(interp, newargarr);
+	struct Object *ret = set_var(interp, newargarr);
 	OBJECT_DECREF(interp, newargarr);
-	return res;
+	return ret;
 }
 
 static struct Object *get_var(struct Interpreter *interp, struct Object *argarr)
@@ -171,14 +170,14 @@ static struct Object *get_var(struct Interpreter *interp, struct Object *argarr)
 	struct Object *local_vars = attribute_get(interp, scope, "local_vars");
 	if (!local_vars)
 		return NULL;
-	struct Object *res = mappingobject_get(interp, local_vars, varname);
+	struct Object *val;
+	int res = mappingobject_get(interp, local_vars, varname, &val);
 	OBJECT_DECREF(interp, local_vars);
-	if (res)
-		return res;
-	if (interp->err) {
-		OBJECT_DECREF(interp, interp->err);
-		interp->err = NULL;
-	}
+	if (res == 1)
+		return val;
+	if (res == -1)
+		return NULL;
+	assert(res == 0);   // not found
 
 	if (scope == interp->builtinscope) {
 		errorobject_setwithfmt(interp, "no variable named '%S'", varname);
@@ -194,9 +193,9 @@ static struct Object *get_var(struct Interpreter *interp, struct Object *argarr)
 	if (!newargarr)
 		return NULL;
 
-	res = get_var(interp, newargarr);
+	struct Object *ret = get_var(interp, newargarr);
 	OBJECT_DECREF(interp, newargarr);
-	return res;
+	return ret;
 }
 
 struct Object *scopeobject_createclass(struct Interpreter *interp)

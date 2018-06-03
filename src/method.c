@@ -43,17 +43,20 @@ static struct Object *get_the_method(struct Interpreter *interp, struct Object *
 {
 	struct Object *klass = obj->klass;
 	struct ClassObjectData *klassdata;
+
 	do {
 		klassdata = klass->data;
-		struct Object *nopartial = mappingobject_get(interp, klassdata->methods, nameobj);
-		if (nopartial) {
+
+		struct Object *nopartial;
+		int status = mappingobject_get(interp, klassdata->methods, nameobj, &nopartial);
+		if (status == -1)
+			return NULL;
+		if (status == 1) {
 			// now we have a function that takes self as the first argument, let's partial it
 			struct Object *res = functionobject_newpartial(interp, nopartial, obj);
 			OBJECT_DECREF(interp, nopartial);
 			return res;
 		}
-		if (interp->err && !nopartial)
-			return NULL;    // error
 		// key not found, keep trying
 	} while ((klass = klassdata->baseclass));
 

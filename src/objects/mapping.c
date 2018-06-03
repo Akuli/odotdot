@@ -207,27 +207,26 @@ static struct Object *set(struct Interpreter *interp, struct Object *argarr)
 }
 
 
-struct Object *mappingobject_get(struct Interpreter *interp, struct Object *map, struct Object *key)
+int mappingobject_get(struct Interpreter *interp, struct Object *map, struct Object *key, struct Object **val)
 {
 	if (!(key->hashable)) {
 		errorobject_setwithfmt(interp, "%D is not hashable, so it can't be used as a Mapping key", key);
-		return NULL;
+		return -1;
 	}
 
 	struct MappingObjectData *data = map->data;
 	for (struct MappingObjectItem *item = data->buckets[HASH_MODULUS(key->hash, data->nbuckets)]; item; item=item->next) {
 		int eqres = equals(interp, item->key, key);
 		if (eqres == -1)
-			return NULL;
+			return -1;
 		if (eqres == 1) {
 			OBJECT_INCREF(interp, item->value);
-			return item->value;
+			*val = item->value;
+			return 1;
 		}
 		assert(eqres == 0);
 	}
-
-	// returns NULL without setting err... be careful with this
-	return NULL;
+	return 0;
 }
 
 static struct Object *get(struct Interpreter *interp, struct Object *argarr)
@@ -237,11 +236,13 @@ static struct Object *get(struct Interpreter *interp, struct Object *argarr)
 	struct Object *map = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *key = ARRAYOBJECT_GET(argarr, 1);
 
-	assert(!(interp->err));
-	struct Object *res = mappingobject_get(interp, map, key);
-	if (!res && !(interp->err))
+	struct Object *val;
+	int status = mappingobject_get(interp, map, key, &val);
+	if (status == 0)
 		errorobject_setwithfmt(interp, "cannot find key %D", key);
-	return res;
+	if (status != 1)
+		return NULL;
+	return val;
 }
 
 

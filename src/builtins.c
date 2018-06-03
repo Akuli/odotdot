@@ -83,15 +83,15 @@ static struct Object *lambda_runner(struct Interpreter *interp, struct Object *a
 		goto error;
 	OBJECT_DECREF(interp, scope);
 
-	assert(!interp->err);
-	struct Object *res = mappingobject_get(interp, localvars, returnstring);
+	struct Object *retval;
+	status = mappingobject_get(interp, localvars, returnstring, &retval);
 	OBJECT_DECREF(interp, localvars);
 	OBJECT_DECREF(interp, returnstring);
-	if ((!res) && (!interp->err)) {   // mappingobject_get() is stupid, see mapping.h
+	if (status == 0)
 		errorobject_setwithfmt(interp, "the local return variable was deleted");
+	if (status != 1)
 		return NULL;
-	}
-	return res;   // a new reference or NULL for error
+	return retval;
 
 error:
 	OBJECT_DECREF(interp, localvars);

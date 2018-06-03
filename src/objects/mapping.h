@@ -32,10 +32,14 @@ struct Object *mappingobject_newempty(struct Interpreter *interp);
 // bad things happen if map is not a Mapping
 int mappingobject_set(struct Interpreter *interp, struct Object *map, struct Object *key, struct Object *val);
 
-// RETURNS A NEW REFERENCE or NULL on error
-// if the key is not found, RETURNS NULL WITHOUT SETTING INTERP->ERR
-// bad things happen if map is not a Mapping
-struct Object *mappingobject_get(struct Interpreter *interp, struct Object *map, struct Object *key);
+/* return values
+0	key not found, *val is unchanged
+1	key found, a new reference has been set to *val
+-1	an error occurred, *val is unchanged, interp->err was set
+
+bad things happen if map is not a Mapping
+*/
+int mappingobject_get(struct Interpreter *interp, struct Object *map, struct Object *key, struct Object **val);
 
 
 struct MappingObjectIter {

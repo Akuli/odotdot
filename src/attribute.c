@@ -116,18 +116,16 @@ struct Object *attribute_getwithstringobj(struct Interpreter *interp, struct Obj
 	if (!init_class_mappings(interp, data))
 		return NULL;
 
-	struct Object *getter = mappingobject_get(interp, data->getters, stringobj);
-	if (!getter) {
-		// mappingobject_get is shit, so we need more shit here
-		if (interp->err)
-			return NULL;
+	struct Object *getter;
+	int res = mappingobject_get(interp, data->getters, stringobj, &getter);
+	if (res == 0)
 		errorobject_setwithfmt(interp, "%s objects have no attribute named %D", data->name, stringobj);
+	if (res != 1)
 		return NULL;
-	}
 
-	struct Object *res = functionobject_call(interp, getter, obj, NULL);
+	struct Object *ret = functionobject_call(interp, getter, obj, NULL);
 	OBJECT_DECREF(interp, getter);
-	return res;
+	return ret;
 }
 
 struct Object *attribute_get(struct Interpreter *interp, struct Object *obj, char *attr)
@@ -148,15 +146,14 @@ int attribute_setwithstringobj(struct Interpreter *interp, struct Object *obj, s
 	if (!init_class_mappings(interp, data))
 		return STATUS_ERROR;
 
-	struct Object *setter = mappingobject_get(interp, data->setters, stringobj);
-	if (!setter) {
-		// mappingobject_get is shit, so we need more shit here
-		if (interp->err)
-			return STATUS_ERROR;
+	struct Object *setter;
+	int status = mappingobject_get(interp, data->setters, stringobj, &setter);
+	if (status == 0) {
 		// TODO: check if there's a getter for the attribute for better error messages
 		errorobject_setwithfmt(interp, "%s objects have no attribute named %D or it's read-only", data->name, stringobj);
-		return STATUS_ERROR;
 	}
+	if (status != 1)
+		return STATUS_ERROR;
 
 	struct Object *res = functionobject_call(interp, setter, obj, val, NULL);
 	OBJECT_DECREF(interp, setter);
