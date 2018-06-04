@@ -9,7 +9,7 @@ digraph G {
     print [ label="get var\n\"print\"" ];
     printcall [ label="function call\n1 arg" ];
     tostringcall [ label="function call\n0 args" ];
-    tostring [ label="get method\n\"to_string\"" ];
+    tostring [ label="get attribute\n\"to_string\"" ];
     array [ label="array literal\n3 elements"];
     one [ label="integer literal\n\"1\"" ];
     two [ label="integer literal\n\"2\"" ];
@@ -18,7 +18,7 @@ digraph G {
     printcall -> print [label="func"];
     printcall -> tostringcall [label="arg 1"];
     tostringcall -> tostring [label="func"];
-    tostring -> array [label=" the object\n that has\n the method"];
+    tostring -> array [label=" the object\n that has\n the attribute"];
     array -> one [label="elem 1"];
     array -> two [label=" elem 2"];
     array -> three [label="elem 3"];

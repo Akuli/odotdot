@@ -34,6 +34,9 @@ Annoying and missing features:
 - Functions don't have a `name` attribute or a nice `to_debug_string` yet, so
   debugging is painful.
 
+**See Also:** There's more info about functions in the [Function](#function)
+class documentation. The functions created by `func` are `Function` objects.
+
 ### lambda
 
 `(lambda "arg1 arg2 arg3" block)` returns a new function.

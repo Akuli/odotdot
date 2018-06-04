@@ -131,12 +131,15 @@ var thing = [1 2 3];
 
 There are no fixed sizes; you can put as many elements as you want to an array.
 Note that the `print` function wants a string, so convert arrays to strings
-before printing them, e.g. `print (thing.to_string);`. Here `thing.to_string`
-looks up a method; methods are just functions.
+before printing them, e.g. `print (thing.to_string);`.
 
 ```python
 print (thing.to_string);   # prints [1 2 3]
 ```
+
+Here `thing.to_string` looks up an attribute. This attribute is a *method*;
+that is, a function object that does something with `thing`. So, all methods
+are attributes, but not vice versa.
 
 You can add more elements to an array like this:
 
@@ -194,10 +197,8 @@ var x = "lol";
 block.run block.definition_scope;     # prints "lol"
 ```
 
-Here `block.definition_scope` is an attribute of `block`; attributes are
-accessed just like methods, but with `.` instead of `.`. The
-`definition_scope` is the scope that Ö was running when `block` was defined;
-that is, the scope that Ö is running our file in.
+The `definition_scope` is the scope that Ö was running when `block` was
+defined; that is, the scope that Ö is running our file in.
 
 `Scope` objects have a `local_vars` attribute. It's a mapping with variable
 name strings as keys.

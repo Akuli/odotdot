@@ -69,7 +69,7 @@ Here's a list of *all* supported kinds of tokens:
   `0`. I'm not sure if this is a good thing or if the Ö interpreter does it
   right now (I'm tired and I don't feel like trying it out). I might change
   this later.
-- Operators are `{`, `}`, `[`, `]`, `(`, `)`, `=`, `;`, `.`, `` ` `` or `.`.
+- Operators are `{`, `}`, `[`, `]`, `(`, `)`, `=`, `;`, `.`  or `` ` ``.
 - `var` is parsed with similar rules as identifiers, but it's best for the
   tokenizer to output `var` tokens as non-identifiers. This way `thing.var`
   will cause errors when parsing to AST. Note that e.g. `var_statement` and
@@ -123,10 +123,9 @@ Here's a list of all supported kinds of expressions:
 - String literals: `""` and `"hello"` return `String` objects.
 - Integer literals: `123`, `-5` and `0` return `Integer` objects.
 - Variable lookups: `print` and `magic_number` return values of variables.
-- Attribute lookups: `expr.attr` returns the `.attr` attribute of the object
-  returned by the `expr` expression.
-- Method lookups: `expr.meth` returns the `.meth` method of the object
-  returned by the `expr` expression.
+  Variable names must be identifiers.
+- Attribute lookups: `expr.attr` returns the `attr` attribute of the object
+  returned by the `expr` expression. `attr` must be an identifier.
 - List literals: `[element1 element2 element3]` and `[]` return `List` objects.
   The elements can be any expressions.
 - Function call expressions: `(function arg1 arg2 arg3)` calls the function
@@ -135,11 +134,11 @@ Here's a list of all supported kinds of expressions:
   number of arguments you want.
 - Infixed function call expressions: ``(arg1 `function` arg2)`` is equivalent
   to `(function arg1 arg2)`. Here `func`, `arg1` and `arg2` can be any
-  expressions.
+  expressions. There must be exactly 2 arguments.
 - Blocks: `{ statement1; statement2; }` returns a block object. You can have
   any number of [statements](#statements) inside the block you want. `{ }` is a
-  code block that does nothing, and `{ expression }` without a `;` is
-  equivalent to `{ return expression; }`.
+  block that does nothing, and `{ expression }` without a `;` is equivalent to
+  `{ return expression; }`.
   TODO: the Ö interpreter doesn't support the `{ expression }` syntax yet :(
 
 Here's a list of statements:
@@ -149,12 +148,12 @@ Here's a list of statements:
 - Infixed function calls: ``arg1 `function` arg2;`` is equivalent to
   `function arg1 arg2;`.
 - Variable creation: `var a = b;` sets the variable `a` to `b` **locally**.
-  `a` can be any variable name, and `b` can be any expressions.
+  `a` can be any identifier, and `b` can be any expression.
 - Assignments: `a = b;` is like `var a = b;`, but it sets the variable
-  **wherever it's defined**. If the variable hasn't been defined anywhere,
-  this throws an error.
-- Setting attributes: `a.b = c;` sets the `b` attribute of `a` to `c`. `b` can
-  be any attribute name, and `a` and `c` can be any expressions.
+  **wherever it's defined**. See [scope stuff in the tutorail](tutorial.md#scopes)
+  for details.
+- Setting attributes: `a.b = c;` sets the `b` attribute of `a` to `c`. `b` must
+  be an identifier, and `a` and `c` can be any expressions.
 
 When parsing a file or the content of a `Block`, the parser simply parses the
 tokens statement by statement until there are no more tokens left. The
@@ -176,8 +175,8 @@ The Ö interpreter does these things on startup:
 
 1. Create [the built-in scope](tutorial.md#scopes). The `parent_scope` should be
    set to `null`, but `null` is implemented in `stdlib/builtins.ö`, so
-   `parent_scope` must be set to a dummy value for now. `"lol"` will do;
-   `builtins.ö` will set it to `null`.
+   `parent_scope` must be set to a dummy value for now. The string `"lol"` will
+   do; `builtins.ö` will set it to `null`.
 2. Add some stuff to the built-in scope.
 3. Tokenize, parse and execute `builtins.ö` in the built-in scope. It's best to
    read `builtins.ö` yourself to see which things it expects to have there
