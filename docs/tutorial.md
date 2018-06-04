@@ -141,6 +141,14 @@ Here `thing.to_string` looks up an attribute. This attribute is a *method*;
 that is, a function object that does something with `thing`. So, all methods
 are attributes, but not vice versa.
 
+For example, arrays have a `length` attribute that is not a method, so you
+don't need parentheseses around `some_array.length`. However, the length's
+`to_string` is a method, so we need parentheses around that.
+
+```python
+print (["a" "b" "c" "d"].length.to_string)
+```
+
 You can add more elements to an array like this:
 
 ```python
@@ -148,7 +156,8 @@ thing.push 4;
 print (thing.to_string);   # prints [1 2 3 4]
 ```
 
-[Click here](builtins.md#array) for a complete list of array methods.
+[Click here](builtins.md#array) for a complete list of array attributes and
+methods.
 
 
 ## Mappings

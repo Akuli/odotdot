@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../attribute.h"
 #include "../check.h"
 #include "../common.h"
 #include "../interpreter.h"
@@ -190,11 +191,11 @@ static struct Object *slice(struct Interpreter *interp, struct Object *argarr)
 {
 	long long i, j;
 	if (ARRAYOBJECT_LEN(argarr) == 2) {
-		// (thing.slice i) is same as (thing.slice i (thing.get_length))
+		// (thing.slice i) is same as (thing.slice i thing.length)
 		if (check_args(interp, argarr, interp->builtins.arrayclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
 			return NULL;
 		i = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1));
-		j = LLONG_MAX;
+		j = ARRAYOBJECT_LEN(ARRAYOBJECT_GET(argarr, 0));
 	} else {
 		if (check_args(interp, argarr, interp->builtins.arrayclass, interp->builtins.integerclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
 			return NULL;
@@ -204,8 +205,7 @@ static struct Object *slice(struct Interpreter *interp, struct Object *argarr)
 	return arrayobject_slice(interp, ARRAYOBJECT_GET(argarr, 0), i, j);
 }
 
-// TODO: should this be an attribute?
-static struct Object *get_length(struct Interpreter *interp, struct Object *argarr)
+static struct Object *length_getter(struct Interpreter *interp, struct Object *argarr)
 {
 	if (check_args(interp, argarr, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
 		return NULL;
@@ -218,13 +218,13 @@ struct Object *arrayobject_createclass(struct Interpreter *interp)
 	if (!klass)
 		return NULL;
 
+	if (attribute_add(interp, klass, "length", length_getter, NULL) == STATUS_ERROR) goto error;
 	if (method_add(interp, klass, "setup", setup) == STATUS_ERROR) goto error;
 	if (method_add(interp, klass, "set", set) == STATUS_ERROR) goto error;
 	if (method_add(interp, klass, "get", get) == STATUS_ERROR) goto error;
 	if (method_add(interp, klass, "push", push) == STATUS_ERROR) goto error;
 	if (method_add(interp, klass, "pop", pop) == STATUS_ERROR) goto error;
 	if (method_add(interp, klass, "slice", slice) == STATUS_ERROR) goto error;
-	if (method_add(interp, klass, "get_length", get_length) == STATUS_ERROR) goto error;
 	if (method_add(interp, klass, "to_string", to_string) == STATUS_ERROR) goto error;
 	return klass;
 

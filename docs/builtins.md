@@ -344,9 +344,10 @@ var array = [1 2 3];
 There are no size limits; you can add as many elements to an array as you want
 (as long as the array fits in the computer's memory).
 
+Attributes:
+- `array.length` is the length of the array, as an [Integer](#integer).
+
 Methods:
-- `(array.get_length)` returns the number of items in the array as an
-  [Integer](#integer).
 - `array.push item;` adds `item` to the end of the array.
 - `(array.pop)` deletes and returns the last item from the end of the array.
 - `(array.get i)` returns the `i`'th element from the array. `(array.get 0)`

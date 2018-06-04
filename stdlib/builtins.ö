@@ -38,7 +38,7 @@ var while = (lambda "condition_block body_block" {
 
 var func = (lambda "funcname_and_argnames block" {
     var splitted = (funcname_and_argnames.split_by_whitespace);
-    if ((splitted.get_length) `equals` 0) {
+    if (splitted.length `equals` 0) {
         throw "func's string argument must not be empty";
     };
 
@@ -46,7 +46,7 @@ var func = (lambda "funcname_and_argnames block" {
     var argnames = "";
     var i = 1;    # skip the function name
 
-    while { keep_going = ((i `equals` (splitted.get_length)) `equals` false); } {
+    while { keep_going = ((i `equals` splitted.length) `same_object` false); } {
         argnames = (argnames.concat (splitted.get i));
         argnames = (argnames.concat " ");
         i = (i.plus 1);
@@ -78,7 +78,7 @@ func "foreach varname array block" {
     var i = 0;
     var scope = (new Scope block.definition_scope);
 
-    while { keep_going = (not (i `equals` (array.get_length))); } {
+    while { keep_going = (not (i `equals` array.length)); } {
         scope.local_vars.set varname (array.get i);
         block.run scope;
         i = (i.plus 1);
