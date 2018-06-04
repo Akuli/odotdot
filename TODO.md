@@ -4,8 +4,6 @@ This list contains things that are horribly broken, things that annoy me and
 things that I would like to do some day. It's a mess.
 
 ## Language design stuff
-- mappings should *not* be hashable, this is a bug in the interpreter
-    - also check what `==` does with mappings, should compare their content
 - importing? here is what i have in mind right now:
     - `(import "<stdlib>/x")` loads `stdlib/x.ö`, or something like
       `stdlib/x/setup.ö` if `stdlib/x.ö` doesn't exist and `stdlib/x` is a

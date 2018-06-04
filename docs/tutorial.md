@@ -169,7 +169,7 @@ yet. Mappings are created with the `new` function like this:
 var thingy = (new Mapping [["key 1" "value 1"] ["key 2" "value 2"]]);
 ```
 
-The messy part is just a list of `[key value]` lists.
+The messy part is just an array of `[key value]` lists.
 
 Now we can access the values of our keys with the `.get` method:
 
@@ -177,8 +177,8 @@ Now we can access the values of our keys with the `.get` method:
 print (thingy.get "key 2");   # prints "value 2"
 ```
 
-[Click here](builtins.md#array) for a complete list of mapping methods and more
-information about mappings.
+[Click here](builtins.md#mapping) for a complete list of mapping methods and
+more information about mappings.
 
 
 ## Scopes

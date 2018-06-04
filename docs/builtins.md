@@ -345,7 +345,8 @@ There are no size limits; you can add as many elements to an array as you want
 (as long as the array fits in the computer's memory).
 
 Attributes:
-- `array.length` is the length of the array, as an [Integer](#integer).
+- `array.length` is the number of elements in the array as an
+  [Integer](#integer).
 
 Methods:
 - `array.push item;` adds `item` to the end of the array.
@@ -392,6 +393,10 @@ object would break most things that use hash values, e.g. hash tables.
 I'll probably create some kind of `ImmutableArray` some day. Immutable arrays
 would be hashable.
 
+Attributes:
+- `mapping.length` is the number of key-value pairs in the mapping as an
+  [Integer](#integer).
+
 Methods:
 - `mapping.set key value;` adds a new key-value pair to the mapping or changes
   the value of a key that is already in the mapping.
@@ -403,7 +408,6 @@ Methods:
   of the deleted key.
 
 Missing features:
-- There's no `mapping.get_size` method.
 - There's no way to loop over all the items in the mapping.
 
 ### Block

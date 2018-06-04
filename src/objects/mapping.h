@@ -5,10 +5,8 @@
 #include "../interpreter.h"     // IWYU pragma: keep
 #include "../objectsystem.h"    // IWYU pragma: keep
 
-// should be considered an implementation detail
+// these should be considered implementation details
 struct MappingObjectItem;
-
-// everything except size should be considered implementation details
 struct MappingObjectData {
 	struct MappingObjectItem **buckets;
 	// hashes are longs, so more than ULONG_MAX buckets would be useless
@@ -28,11 +26,14 @@ int mappingobject_addmethods(struct Interpreter *interp);
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *mappingobject_newempty(struct Interpreter *interp);
 
+// returns number of elements in the mapping
+#define MAPPINGOBJECT_SIZE(map) (((struct MappingObjectData *) (map)->data)->size)
+
 // returns STATUS_OK or STATUS_ERROR
 // bad things happen if map is not a Mapping
 int mappingobject_set(struct Interpreter *interp, struct Object *map, struct Object *key, struct Object *val);
 
-/* return values
+/* return values:
 0	key not found, *val is unchanged
 1	key found, a new reference has been set to *val
 -1	an error occurred, *val is unchanged, interp->err was set

@@ -1,10 +1,11 @@
 // https://en.wikipedia.org/wiki/Hash_table
-// TODO: test everything
+// TODO: test more stuff
 
 #include "mapping.h"
 #include <assert.h>
 #include <limits.h>
 #include <stdlib.h>
+#include "../attribute.h"
 #include "../check.h"
 #include "../common.h"
 #include "../equals.h"
@@ -12,6 +13,7 @@
 #include "array.h"
 #include "classobject.h"
 #include "errors.h"
+#include "integer.h"
 #include "string.h"
 
 // hash should be a signed long, nbuckets should be an unsigned long
@@ -95,6 +97,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 
 	map->data = data;
 	map->destructor = mapping_destructor;
+	map->hashable = 0;
 
 	for (size_t i=0; i < ARRAYOBJECT_LEN(pairs); i++) {
 		struct Object *pair = ARRAYOBJECT_GET(pairs, i);
@@ -108,6 +111,15 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 
 	return interpreter_getbuiltin(interp, "null");
 }
+
+
+static struct Object *length_getter(struct Interpreter *interp, struct Object *argarr)
+{
+	if (check_args(interp, argarr, interp->builtins.mappingclass, NULL) == STATUS_ERROR)
+		return NULL;
+	return integerobject_newfromlonglong(interp, MAPPINGOBJECT_SIZE(ARRAYOBJECT_GET(argarr, 0)));
+}
+
 
 static int make_bigger(struct Interpreter *interp, struct MappingObjectData *data)
 {
@@ -298,8 +310,10 @@ static struct Object *delete(struct Interpreter *interp, struct Object *argarr)
 	return interpreter_getbuiltin(interp, "null");
 }
 
+
 int mappingobject_addmethods(struct Interpreter *interp)
 {
+	if (attribute_add(interp, interp->builtins.mappingclass, "length", length_getter, NULL) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.mappingclass, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.mappingclass, "set", set) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.mappingclass, "get", get) == STATUS_ERROR) return STATUS_ERROR;
