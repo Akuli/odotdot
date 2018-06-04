@@ -294,7 +294,7 @@ like this:
 var equals_dispatches = [];
 equals_dispatches.push (lambda "x y" {
     if ((x `isinstance` String) `and` (y `isinstance` String)) {
-        return (some magic that concatenates the strings);   # returns true or false
+        return (some magic that checks the equality);   # returns true or false
     };
     return null;
 });
