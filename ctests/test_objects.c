@@ -56,15 +56,14 @@ void test_objects_error(void)
 }
 
 struct Object *callback_arg1, *callback_arg2;
-int flipped = 0;
 
 struct Object *callback(struct Interpreter *interp, struct Object *argarr)
 {
 	buttert(interp == testinterp);
 	buttert(argarr->klass == interp->builtins.arrayclass);
 	buttert(ARRAYOBJECT_LEN(argarr) == 2);
-	buttert(ARRAYOBJECT_GET(argarr, flipped?1:0) == callback_arg1);
-	buttert(ARRAYOBJECT_GET(argarr, flipped?0:1) == callback_arg2);
+	buttert(ARRAYOBJECT_GET(argarr, 0) == callback_arg1);
+	buttert(ARRAYOBJECT_GET(argarr, 1) == callback_arg2);
 	return (struct Object*) 0x123abc;
 }
 
@@ -73,19 +72,17 @@ void test_objects_function(void)
 	buttert((callback_arg1 = stringobject_newfromcharptr(testinterp, "asd1")));
 	buttert((callback_arg2 = stringobject_newfromcharptr(testinterp, "asd2")));
 
-	struct Object *func = functionobject_new(testinterp, callback);
+	struct Object *func = functionobject_new(testinterp, callback, "test func");
 	buttert(functionobject_call(testinterp, func, callback_arg1, callback_arg2, NULL) == (struct Object*) 0x123abc);
 
 	struct Object *partial1 = functionobject_newpartial(testinterp, func, callback_arg1);
 	OBJECT_DECREF(testinterp, callback_arg1);   // partialfunc should hold a reference to this
 	OBJECT_DECREF(testinterp, func);
-	flipped = 0;
 	buttert(functionobject_call(testinterp, partial1, callback_arg2, NULL) == (struct Object*) 0x123abc);
 
 	struct Object *partial2 = functionobject_newpartial(testinterp, partial1, callback_arg2);
 	OBJECT_DECREF(testinterp, callback_arg2);
 	OBJECT_DECREF(testinterp, partial1);
-	flipped = 1;    // arg 2 was partialled last, so it will go first
 	buttert(functionobject_call(testinterp, partial2, NULL) == (struct Object*) 0x123abc);
 
 	OBJECT_DECREF(testinterp, partial2);
@@ -354,7 +351,10 @@ void test_objects_mapping_iter(void)
 	struct Object *map = mappingobject_newempty(testinterp);
 	buttert(map);
 	for (unsigned int i=0; i < FINAL_SIZE; i++){
+		buttert(keys[i]);
+		buttert(vals[i]);
 		struct Object *ret = method_call(testinterp, map, "set", keys[i], vals[i], NULL);
+		buttert(ret);
 		OBJECT_DECREF(testinterp, keys[i]);
 		OBJECT_DECREF(testinterp, vals[i]);
 		OBJECT_DECREF(testinterp, ret);
@@ -386,11 +386,11 @@ void test_objects_hashes(void)
 	errorobject_setwithfmt(testinterp, "oh %s", "shit");
 
 	OBJECT_INCREF(testinterp, testinterp->builtins.stringclass);
-	OBJECT_INCREF(testinterp, testinterp->builtins.print);
+	struct Object *print = interpreter_getbuiltin(testinterp, "print");
 	struct HashTest tests[] = {
 		{ testinterp->builtins.stringclass, 1 },
 		{ testinterp->err, 1 },
-		{ testinterp->builtins.print, 1 },
+		{ print, 1 },
 		{ integerobject_newfromlonglong(testinterp, -123LL), 1 },
 		{ classobject_newinstance(testinterp, testinterp->builtins.objectclass, NULL, NULL), 1 },
 		{ stringobject_newfromcharptr(testinterp, "asd"), 1 },

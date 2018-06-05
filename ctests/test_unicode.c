@@ -1,4 +1,7 @@
 #include <src/common.h>
+#include <src/equals.h>
+#include <src/objects/string.h>
+#include <src/objectsystem.h>
 #include <src/unicode.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -7,6 +10,8 @@
 
 void check(struct UnicodeString *s)
 {
+	buttert(!testinterp->err);
+	buttert(s);
 	buttert(s->len == 5);
 	buttert(s->val[0] == 'h');
 	buttert(s->val[1] == 'e');
@@ -19,13 +24,13 @@ void test_copying(void)
 {
 	unicode_char avalues[] = { 'h', 'e', 'l', 'l', 'o' };
 	struct UnicodeString a = { avalues, 5 };
-	struct UnicodeString *b = unicodestring_copy(a);
+	struct UnicodeString *b = unicodestring_copy(testinterp, a);
 	check(b);
 	free(b->val);
 	free(b);
 
 	struct UnicodeString *c = bmalloc(sizeof(struct UnicodeString));
-	buttert(unicodestring_copyinto(a, c) == STATUS_OK);
+	buttert(unicodestring_copyinto(testinterp, a, c) == STATUS_OK);
 	check(c);
 	free(c->val);
 	free(c);
@@ -151,23 +156,30 @@ void test_utf8_encode(void)
 		if (test.unicodelen < 0)
 			continue;
 
-		char errormsg[100] = {0};
 		char *actual_utf8 = (char *) 0xdeadbeef;
 		size_t actual_utf8len = 123;
 		struct UnicodeString unicode = { test.unicodeval, (size_t) test.unicodelen };
-		int res = utf8_encode(unicode, &actual_utf8, &actual_utf8len, errormsg);
+		int res = utf8_encode(testinterp, unicode, &actual_utf8, &actual_utf8len);
 
 		if (strlen(test.errormsg) == 0) {
 			// should succeed
-			buttert(res == 0);
+			buttert(res == STATUS_OK);
 			buttert(actual_utf8len == (size_t) test.utf8len);
 			buttert(memcmp(test.utf8, actual_utf8, test.utf8len) == 0);
-			for (int i=0; i < 100; i++)
-				buttert(errormsg[i] == 0);
 			free(actual_utf8);
 		} else {
 			// should fail
-			buttert(res == 1);
+			buttert(res == STATUS_ERROR);
+			buttert(testinterp->err);
+
+			char *tmp;
+			size_t errormsglen;
+			struct UnicodeString *uerrormsg = ((struct Object*)testinterp->err->data)->data;
+			buttert(utf8_encode(testinterp, *uerrormsg, &tmp, &errormsglen) == STATUS_OK);
+			char errormsg[errormsglen+1];
+			memcpy(errormsg, tmp, errormsglen);
+			errormsg[errormsglen] = 0;
+
 			buttert(strcmp(errormsg, test.errormsg) == 0);
 
 			// these must be left untouched
@@ -182,24 +194,28 @@ void test_utf8_decode(void)
 	for (size_t i=0; i < N_UTF8_TESTS; i++) {
 		struct Utf8Test test = utf8_tests[i];
 
-		char errormsg[100] = {0};
+		buttert(!testinterp->err);
 		struct UnicodeString actual_unicode;
 		actual_unicode.len = 123;
 		actual_unicode.val = (unicode_char*)0xdeadbeef;   // lol
-		int res = utf8_decode(test.utf8, (size_t) test.utf8len, &actual_unicode, errormsg);
+		int res = utf8_decode(testinterp, test.utf8, (size_t) test.utf8len, &actual_unicode);
 
 		if (strlen(test.errormsg) == 0) {
 			// should succeed
-			buttert(res == 0);
+			buttert(!testinterp->err);
+			buttert(res == STATUS_OK);
 			buttert(actual_unicode.len == (size_t) test.unicodelen);
 			buttert(memcmp(test.unicodeval, actual_unicode.val, sizeof(unicode_char)*test.unicodelen) == 0);
-			for (int i=0; i < 100; i++)
-				buttert(errormsg[i] == 0);
 			free(actual_unicode.val);
 		} else {
 			// should fail
-			buttert(res == 1);
-			buttert(strcmp(errormsg, test.errormsg) == 0);
+			buttert(res == STATUS_ERROR);
+			struct Object *msg = testinterp->err->data;
+			struct Object *testmsg = stringobject_newfromcharptr(testinterp, test.errormsg);
+			buttert(equals(testinterp, msg, testmsg));
+			OBJECT_DECREF(testinterp, testmsg);
+			OBJECT_DECREF(testinterp, testinterp->err);
+			testinterp->err = NULL;
 
 			// these must be left untouched
 			buttert(actual_unicode.val == (unicode_char *) 0xdeadbeef);

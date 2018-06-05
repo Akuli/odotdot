@@ -59,10 +59,10 @@ void test_ast_nodes_and_their_refcount_stuff(void)
 	struct Object *getvarnode = newnode(AST_GETVAR, getvarinfo);
 
 	// this references getvarnode
-	struct AstGetAttrOrMethodInfo *gaminfo = bmalloc(sizeof(struct AstGetAttrOrMethodInfo));
-	gaminfo->objnode = getvarnode;
-	setup_string(&(gaminfo->name));
-	struct Object *gamnode = newnode(RANDOM_CHOICE_LOL(AST_GETATTR, AST_GETMETHOD), gaminfo);
+	struct AstGetAttrInfo *getattrinfo = bmalloc(sizeof(struct AstGetAttrInfo));
+	getattrinfo->objnode = getvarnode;
+	setup_string(&(getattrinfo->name));
+	struct Object *getattrnode = newnode(AST_GETATTR, getattrinfo);
 
 	// this references arrnode
 	struct AstCreateOrSetVarInfo *cosvinfo = bmalloc(sizeof(struct AstCreateOrSetVarInfo));
@@ -70,9 +70,9 @@ void test_ast_nodes_and_their_refcount_stuff(void)
 	cosvinfo->valnode = arrnode;
 	struct Object *cosvnode = newnode(RANDOM_CHOICE_LOL(AST_CREATEVAR, AST_SETVAR), cosvinfo);
 
-	// this references gamnode and cosvnode
+	// this references getattrnode and cosvnode
 	struct AstSetAttrInfo *setattrinfo = bmalloc(sizeof(struct AstSetAttrInfo));
-	setattrinfo->objnode = gamnode;
+	setattrinfo->objnode = getattrnode;
 	setup_string(&(setattrinfo->attr));
 	setattrinfo->valnode = cosvnode;
 	struct Object *setattrnode = newnode(AST_SETATTR, setattrinfo);
@@ -98,7 +98,7 @@ static struct Object *parse_expression_string(char *s)
 	for (size_t i=0; i < strlen(s); i++)
 		hugestring.val[i] = s[i];
 
-	struct Token *tok1st = token_ize(hugestring);
+	struct Token *tok1st = token_ize(testinterp, hugestring);
 	buttert(tok1st);
 	free(hugestring.val);
 
@@ -118,7 +118,7 @@ static struct Object *parse_statement_string(char *s)
 	for (size_t i=0; i < hugestring.len; i++)
 		hugestring.val[i] = s[i];
 
-	struct Token *tok1st = token_ize(hugestring);
+	struct Token *tok1st = token_ize(testinterp, hugestring);
 	buttert(tok1st);
 	free(hugestring.val);
 
@@ -193,12 +193,12 @@ void test_ast_getvars(void)
 	OBJECT_DECREF(testinterp, node);
 }
 
-struct Object *check_attribute_or_method(struct Object *node, char kind, char *name)
+struct Object *check_attribute(struct Object *node, char *name)
 {
 	struct AstNodeObjectData *data = node->data;
-	struct AstGetAttrOrMethodInfo *info = data->info;
+	struct AstGetAttrInfo *info = data->info;
 
-	buttert(data->kind == kind);
+	buttert(data->kind == AST_GETATTR);
 	buttert(ustr_equals_charp(info->name, name));
 
 	// funny convenience weirdness
@@ -207,10 +207,10 @@ struct Object *check_attribute_or_method(struct Object *node, char kind, char *n
 
 void test_ast_attributes_and_methods(void)
 {
-	struct Object *dotc = parse_expression_string("\"asd\".a::b.c");
-	struct Object *dotb = check_attribute_or_method(dotc, AST_GETATTR, "c");
-	struct Object *dota = check_attribute_or_method(dotb, AST_GETMETHOD, "b");
-	struct Object *str = check_attribute_or_method(dota, AST_GETATTR, "a");
+	struct Object *dotc = parse_expression_string("\"asd\".a.b.c");
+	struct Object *dotb = check_attribute(dotc, "c");
+	struct Object *dota = check_attribute(dotb, "b");
+	struct Object *str = check_attribute(dota, "a");
 	buttert(((struct AstNodeObjectData *) str->data)->kind == AST_STR);
 
 	OBJECT_DECREF(testinterp, dotc);
