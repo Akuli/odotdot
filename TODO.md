@@ -36,12 +36,29 @@ things that I would like to do some day. It's a mess.
 - need tracebacks and other stack magic
     - might be easiest to get the traceback in `Error.new`? that way
       rethrowing would be easy as `throw caught_error;`
-    - maybe traceback printing could be implemented in pure ö?
-    - c functions that push and pop to an array of stack info objects
+        - bad idea because nomemerrs would have no traceback
+        - maybe `throw` should instead add a stack trace to the exception only
+          if it doesn't have one already, maybe an attribute that is null by
+          default?
     - maybe expose the stack info in ö?
+    - maybe traceback printing could be implemented in pure ö?
+        - needs to be robust! an error in traceback printing would be really
+          confusing to a user
+        - also infinite recursion?
+        - most of this could be handled by catching all errors from traceback
+          printing and... doing some magic with them
+    - c functions that push and pop to an array of stack info objects
     - stack infos should contain at least file name (absolute path?) and lineno
+        - that's enough for reading the file in the traceback printer
+        - maybe also the scope so local variables are more debuggable?
+            - i'm not planning on implementing a debugger any time soon, so no
+              need to add this yet... but adding more stuff to stack info
+              objects must be possible without breaking any existing ö code
 - there should be some way to have objects with arbitrary attributes, without
   needing to create a new type for each object
+    - this would mean adding extra checks to pretty much every piece of c code
+      that does something with attributes, fortunately attribute.h abstracts it
+      away quite nicely
     - i want this because modules would be represented nicely as objects with
       exported symbols as attributes
         - maybe add a flag that allows setting arbitrary attributes?
@@ -214,10 +231,15 @@ things that I would like to do some day. It's a mess.
       couldn't figure out a good way to run it run without lots of copy/pasta
     - still haven't figured out
     - everything has gotten less and less tested since then...
+    - now the tests run, but lots of stuff is commented out :(
+        - i'm especially interested in getting unicode stuff tested, i recently
+          changed it quite a bit and it might be broken
 - waiting for importing and good exception catching so i can write tests in ö
     - maybe an `include` function would be good enough for now? :D
 - docs should be used as reference when writing the tests, also look through
   the source and try to find funny corner cases
+- writing the tests will be a HUUUGE amount of work, need to ask friends to do
+  that
 
 ## tokenizer.{c,h}
 - tokenizing an empty file fails
@@ -233,7 +255,6 @@ things that I would like to do some day. It's a mess.
 - `<stdbool.h>` should be used instead of `STATUS_OK` and `STATUS_ERROR`
 
 ## unicode.{c,h}
-- delete some unused and stupid macros from the end of unicode.h
 - delete UnicodeString?
     - string objects are quite capable anyway
     - now errors.h creates a string object without a `stringobject_newblabla()`
@@ -241,21 +262,6 @@ things that I would like to do some day. It's a mess.
       nomemerr
         - maybe add `stringobject_newnoerrptr()` or something for creating
           the `not enough memory` message string?
-- error objects should be used in `utf8_{en,de}code()` error handling
-    - I think the errors are always ignored right now because the error
-      handling is so difficult to use correctly
-    - setting an error from a C string decodes as UTF-8, but that can't
-      recurse because:
-        - `nomemerr` is created before `utf8_{en,de}code()` are used, so if
-          the encoder or decoder runs out of memory it will just use an
-          existing exception
-            - "not enough memory" is ASCII only, no need to use utf8
-              functions when creating nomemerr
-        - if the input string is invalid, the invalid parts are displayed
-          in hexadecimal and decoding them can't fail
-            - `errorobject_setwithfmt()` should probably support an
-              equivalent of `%#X`, or maybe just add `errorobject_setsprintf()`
-              or something for using all printf formatting features
 
 ## ast.{c,h}
 - add nonzero linenos to expression nodes
@@ -305,3 +311,8 @@ equals_dispatches.push (lambda "x y" {
   maybe by invoking a library function after doing something unusually refcycly?
     - not sure if this will ever be needed, reference cycles should be rare-ish
       and nobody will notice the problem anyway
+
+## more problems!
+
+see [builtins documentation](builtins.md) and ctrl+f for e.g. "annoyances" or
+"missing features"
