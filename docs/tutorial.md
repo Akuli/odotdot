@@ -264,7 +264,15 @@ the first are argument names of the function, and the resulting function ends
 up in the block's `.definition_scope` as a variable named by the first variable
 name in the string.
 
-You can have any number of arguments you want:
+Function objects have a nice `to_string` that makes debugging easier:
+
+```python
+print (print_twice.to_string);   # <Function "print_twice" at 0xblablabla>
+print (print.to_string);         # <Function "print" at 0xblablabla>
+print (func.to_string);          # <Function "func" at 0xblablabla>
+```
+
+You can pass any number of arguments you want to `func`.
 
 ```python
 func "hello" {

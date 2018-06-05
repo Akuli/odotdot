@@ -367,6 +367,21 @@ Methods:
   `to_debug_string`, so `(array.to_debug_string)` does the same thing as
   `(array.to_string)`.
 
+Annoyances:
+- There's no `array.foreach` method. Use [the foreach function](#foreach)
+  instead.
+- There's no `array.map` method or a built-in `map` function, but you can
+  easily define a `map` function like this:
+
+    ```python
+    func "map function array" {
+        return = [];
+        foreach "item" array {
+            return.push item;
+        };
+    };
+    ```
+
 ### Mapping
 
 Mapping objects *map* keys to values; that is, looking up the value
@@ -479,15 +494,20 @@ The `Function` class is not in the built-in namespace, but you can access it
 like `var Function = (get_class print)` if you need to. New functions cannot be
 created with `(new Function)`; use [func](#func) instead.
 
+Attributes:
+- `function.name` is a human-readable string for debugging. It can be e.g.
+  `"print"` or `"to_string method"`. You can set the `.name` of any function to
+  any string; this is not considered a problem because `.name` is just for
+  debugging anyway.
+
 Methods:
 - `(function.partial arg1 arg2 arg3)` returns a new function that calls the
   original `function` with `arg1 arg2 arg3` and any arguments passed to the new
   function as arguments. So, `var g = (f.partial a b); g x y;` runs
   `f a b x y;`.
-
-Missing features:
-- There's no `.name` attribute or a customized `.to_debug_string` method, so
-  debugging is hell.
+- `(function.to_string)` returns a string like
+  `<Function "the name of the function is here" at 0xblablabla>`. See also the
+  `.name` attribute above and [Object](#object)'s `to_string` method.
 
 
 ## Other objects in the built-in namespace
@@ -496,7 +516,7 @@ These objects are not functions or classes.
 
 ### null
 
-Like e.g. `none` or `nil` in many other programming languages.
+A dummy value like e.g. `none` or `nil` in many other programming languages.
 
 Currently this is the string `"null"`. It sucks and I'll hopefully fix it
 later.

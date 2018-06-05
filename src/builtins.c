@@ -113,7 +113,7 @@ static struct Object *lambda(struct Interpreter *interp, struct Object *argarr)
 	// it's possible to micro-optimize this by not creating a new runner every time
 	// but i don't think it would make a huge difference
 	// it doesn't actually affect calling the functions anyway, just defining them
-	struct Object *runner = functionobject_new(interp, lambda_runner);
+	struct Object *runner = functionobject_new(interp, lambda_runner, "<lambda>");
 	if (!runner) {
 		OBJECT_DECREF(interp, argnames);
 		return NULL;
@@ -283,7 +283,7 @@ static struct Object *new(struct Interpreter *interp, struct Object *argarr)
 
 static int add_function(struct Interpreter *interp, char *name, functionobject_cfunc cfunc)
 {
-	struct Object *func = functionobject_new(interp, cfunc);
+	struct Object *func = functionobject_new(interp, cfunc, name);
 	if (!func)
 		return STATUS_ERROR;
 

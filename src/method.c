@@ -29,11 +29,22 @@ static struct Object *method_getter(struct Interpreter *interp, struct Object *a
 
 int method_add(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc cfunc)
 {
-	struct Object *func = functionobject_new(interp, cfunc);
+	// the instance-specific method returned by the getter will have this name
+	size_t len = strlen(name);
+	char methodname[len + sizeof(" method") /* includes \0 */];
+	memcpy(methodname, name, len);
+	strcpy(methodname+len, " method");
+
+	struct Object *func = functionobject_new(interp, cfunc, methodname);
 	if (!func)
 		return STATUS_ERROR;
 
-	struct Object *rawgetter = functionobject_new(interp, method_getter);
+	// getters are named as in attribute.c
+	char gettername[sizeof("getter of ")-1 + len + 1];
+	memcpy(gettername, "getter of ", sizeof("getter of ")-1);
+	strcpy(gettername + sizeof("getter of ")-1, name);
+
+	struct Object *rawgetter = functionobject_new(interp, method_getter, gettername);
 	if (!rawgetter) {
 		OBJECT_DECREF(interp, func);
 		return STATUS_ERROR;

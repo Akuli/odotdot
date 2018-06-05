@@ -20,6 +20,7 @@ var if = null;
         (if_mapping.get condition).run {}.definition_scope;
     });
 }.run (new Scope {}.definition_scope);
+if.name = "if";   # it was "<lambda>", func will set these automatically
 
 var while = (lambda "condition_block body_block" {
     var scope = (new Scope body_block.definition_scope);
@@ -35,6 +36,7 @@ var while = (lambda "condition_block body_block" {
 
     one_iteration.run one_iteration.definition_scope;
 });
+while.name = "while";
 
 var func = (lambda "funcname_and_argnames block" {
     var splitted = (funcname_and_argnames.split_by_whitespace);
@@ -52,8 +54,11 @@ var func = (lambda "funcname_and_argnames block" {
         i = (i.plus 1);
     };
 
-    block.definition_scope.local_vars.set (splitted.get 0) (lambda argnames block);
+    var result = (lambda argnames block);
+    result.name = (splitted.get 0);
+    block.definition_scope.local_vars.set result.name result;
 });
+func.name = "func";
 
 func "not x" {
     # 'if x' throws an error if x is not a boolean

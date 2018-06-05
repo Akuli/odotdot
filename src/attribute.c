@@ -2,6 +2,8 @@
 #include "attribute.h"
 #include <assert.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
 #include "common.h"
 #include "method.h"
 #include "unicode.h"
@@ -100,12 +102,18 @@ int attribute_addwithfuncobjs(struct Interpreter *interp, struct Object *klass, 
 int attribute_add(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc getter, functionobject_cfunc setter)
 {
 	struct Object *getterobj = NULL, *setterobj = NULL;
+
+	char prefixedname[sizeof("getter of ")-1 + strlen(name) + 1];
+	memcpy(prefixedname, "getter of ", sizeof("getter of ")-1);
+	strcpy(prefixedname + sizeof("getter of ")-1, name);
+
 	if (getter) {
-		if (!(getterobj = functionobject_new(interp, getter)))
+		if (!(getterobj = functionobject_new(interp, getter, prefixedname)))
 			return STATUS_ERROR;
 	}
 	if (setter) {
-		if (!(setterobj = functionobject_new(interp, setter)))
+		prefixedname[0] = 's';    // "setter of blabla" instead of "getter of blabla"
+		if (!(setterobj = functionobject_new(interp, setter, prefixedname)))
 			return STATUS_ERROR;
 	}
 

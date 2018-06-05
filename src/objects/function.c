@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../attribute.h"
 #include "../check.h"
 #include "../common.h"
 #include "../interpreter.h"
@@ -12,9 +13,11 @@
 #include "classobject.h"
 #include "errors.h"
 #include "mapping.h"
+#include "string.h"
 
 
 struct FunctionData {
+	struct Object *name;
 	functionobject_cfunc cfunc;
 	struct Object **partialargs;
 	size_t npartialargs;
@@ -23,13 +26,14 @@ struct FunctionData {
 static void function_foreachref(struct Object *func, void *cbdata, classobject_foreachrefcb cb)
 {
 	struct FunctionData *data = func->data;    // casts implicitly
+	cb(data->name, cbdata);
 	for (size_t i=0; i < data->npartialargs; i++)
 		cb(data->partialargs[i], cbdata);
 }
 
 static void function_destructor(struct Object *func)
 {
-	// object_free_impl() takes care of partial args using function_foreachref()
+	// object_free_impl() takes care of name and partial args using function_foreachref()
 	struct FunctionData *data = func->data;
 	if (data->partialargs)
 		free(data->partialargs);
@@ -41,12 +45,6 @@ struct Object *functionobject_createclass(struct Interpreter *interp)
 	return classobject_new(interp, "Function", interp->builtins.objectclass, function_foreachref);
 }
 
-
-static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
-{
-	errorobject_setwithfmt(interp, "functions can't be created with (new Function), use func instead");
-	return NULL;
-}
 
 static struct Object *create_a_partial(struct Interpreter *interp, struct Object *func, struct Object **partialargs, size_t npartialargs)
 {
@@ -75,8 +73,13 @@ static struct Object *create_a_partial(struct Interpreter *interp, struct Object
 	for (size_t i=0; i < newdata->npartialargs; i++)
 		OBJECT_INCREF(interp, newdata->partialargs[i]);
 
+	// TODO: should this be changed?
+	newdata->name = data->name;
+	OBJECT_INCREF(interp, newdata->name);
+
 	struct Object *obj = classobject_newinstance(interp, interp->builtins.functionclass, newdata, function_destructor);
 	if (!obj) {
+		OBJECT_DECREF(interp, newdata->name);
 		for (size_t i=0; i < newdata->npartialargs; i++)
 			OBJECT_DECREF(interp, newdata->partialargs[i]);
 		free(newdata->partialargs);
@@ -106,27 +109,95 @@ struct Object *functionobject_newpartial(struct Interpreter *interp, struct Obje
 	return create_a_partial(interp, func, &partialarg, 1);
 }
 
-int functionobject_addmethods(struct Interpreter *interp)
+
+static struct Object *name_getter(struct Interpreter *interp, struct Object *argarr)
 {
-	// TODO: to_string, map? map might as well be an array method or something
-	if (method_add(interp, interp->builtins.functionclass, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.functionclass, "partial", partial) == STATUS_ERROR) return STATUS_ERROR;
+	if (check_args(interp, argarr, interp->builtins.functionclass, NULL) == STATUS_ERROR)
+		return NULL;
+
+	struct FunctionData *data = ARRAYOBJECT_GET(argarr, 0)->data;
+	OBJECT_INCREF(interp, data->name);
+	return data->name;
+}
+
+static struct Object *name_setter(struct Interpreter *interp, struct Object *argarr)
+{
+	if (check_args(interp, argarr, interp->builtins.functionclass, interp->builtins.stringclass, NULL) == STATUS_ERROR)
+		return NULL;
+
+	struct FunctionData *data = ARRAYOBJECT_GET(argarr, 0)->data;
+	OBJECT_DECREF(interp, data->name);
+	data->name = ARRAYOBJECT_GET(argarr, 1);
+	OBJECT_INCREF(interp, data->name);
+	return interpreter_getbuiltin(interp, "null");
+}
+
+int functionobject_setname(struct Interpreter *interp, struct Object *func, char *newname)
+{
+	struct Object *newnameobj = stringobject_newfromcharptr(interp, newname);
+	if (!newnameobj)
+		return STATUS_ERROR;
+
+	struct FunctionData *data = func->data;
+	OBJECT_DECREF(interp, data->name);
+	data->name = newnameobj;
+	// no need to incref, newnameobj is already holding a reference
 	return STATUS_OK;
 }
 
-struct Object *functionobject_new(struct Interpreter *interp, functionobject_cfunc cfunc)
+
+static struct Object *to_string(struct Interpreter *interp, struct Object *argarr)
+{
+	if (check_args(interp, argarr, interp->builtins.functionclass, NULL) == STATUS_ERROR)
+		return NULL;
+
+	struct Object *func = ARRAYOBJECT_GET(argarr, 0);
+	/* TODO: get rid of the "at" part?
+		good because hexadecimal is confusing to people not familiar with it
+		bad because right now partials are not named differently from the original functions
+	*/
+	return stringobject_newfromfmt(interp, "<Function %D at %p>", ((struct FunctionData*) func->data)->name, (void*)func);
+}
+
+static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
+{
+	errorobject_setwithfmt(interp, "functions can't be created with (new Function), use func instead");
+	return NULL;
+}
+
+
+int functionobject_addmethods(struct Interpreter *interp)
+{
+	if (attribute_add(interp, interp->builtins.functionclass, "name", name_getter, name_setter) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.functionclass, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.functionclass, "partial", partial) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.functionclass, "to_string", to_string) == STATUS_ERROR) return STATUS_ERROR;
+	return STATUS_OK;
+}
+
+
+struct Object *functionobject_new(struct Interpreter *interp, functionobject_cfunc cfunc, char *name)
 {
 	struct FunctionData *data = malloc(sizeof(struct FunctionData));
 	if (!data) {
 		errorobject_setnomem(interp);
 		return NULL;
 	}
+
+	struct Object *nameobj = stringobject_newfromcharptr(interp, name);
+	if (!nameobj) {
+		free(data);
+		return NULL;
+	}
+
+	data->name = nameobj;
 	data->cfunc = cfunc;
 	data->partialargs = NULL;
 	data->npartialargs = 0;
 
 	struct Object *obj = classobject_newinstance(interp, interp->builtins.functionclass, data, function_destructor);
 	if (!obj) {
+		OBJECT_DECREF(interp, nameobj);
 		free(data);
 		return NULL;
 	}
