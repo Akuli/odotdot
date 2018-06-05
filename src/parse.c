@@ -96,7 +96,7 @@ static struct Object *parse_getvar(struct Interpreter *interp, struct Token **cu
 	if (!info)
 		return NULL;
 
-	if (unicodestring_copyinto((*curtok)->str, &(info->varname)) == STATUS_NOMEM) {
+	if (unicodestring_copyinto(interp, (*curtok)->str, &(info->varname)) == STATUS_ERROR) {
 		free(info);
 		return NULL;
 	}
@@ -391,8 +391,7 @@ struct Object *parse_expression(struct Interpreter *interp, struct Token **curto
 		// no need to incref, this function is already holding a reference to res
 		getattrinfo->objnode = res;
 
-		if (unicodestring_copyinto((*curtok)->str, &(getattrinfo->name)) != STATUS_OK) {
-			// TODO: set no mem error
+		if (unicodestring_copyinto(interp, (*curtok)->str, &(getattrinfo->name)) == STATUS_ERROR) {
 			OBJECT_DECREF(interp, res);
 			free(getattrinfo);
 			return NULL;
@@ -429,7 +428,7 @@ static struct Object *parse_var_statement(struct Interpreter *interp, struct Tok
 	assert((*curtok)->kind == TOKEN_ID);
 
 	struct UnicodeString varname;
-	if (unicodestring_copyinto((*curtok)->str, &varname) == STATUS_NOMEM) {
+	if (unicodestring_copyinto(interp, (*curtok)->str, &varname) == STATUS_ERROR) {
 		// TODO: report no mem error
 		return NULL;
 	}
@@ -493,7 +492,7 @@ static struct Object *parse_assignment(struct Interpreter *interp, struct Token 
 		if (!info)
 			goto error;
 
-		if (unicodestring_copyinto(lhsinfo->varname, &(info->varname)) == STATUS_NOMEM) {
+		if (unicodestring_copyinto(interp, lhsinfo->varname, &(info->varname)) == STATUS_ERROR) {
 			errorobject_setnomem(interp);
 			free(info);
 			goto error;
@@ -514,7 +513,7 @@ static struct Object *parse_assignment(struct Interpreter *interp, struct Token 
 		if (!info)
 			goto error;
 
-		if (unicodestring_copyinto(lhsinfo->name, &(info->attr)) == STATUS_NOMEM) {
+		if (unicodestring_copyinto(interp, lhsinfo->name, &(info->attr)) == STATUS_NOMEM) {
 			errorobject_setnomem(interp);
 			free(info);
 			goto error;

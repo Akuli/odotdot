@@ -10,6 +10,8 @@
 #define TOKEN_STR '"'
 #define TOKEN_INT '1'
 
+struct Interpreter;
+
 struct Token {
 	char kind;
 	struct UnicodeString str;
@@ -17,7 +19,7 @@ struct Token {
 	struct Token *next;
 };
 
-struct Token *token_ize(struct UnicodeString hugestring);
+struct Token *token_ize(struct Interpreter *interp, struct UnicodeString hugestring);
 void token_freeall(struct Token *tok1st);
 
 #endif   // TOKENIZER_H

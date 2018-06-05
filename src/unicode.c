@@ -1,38 +1,73 @@
-#include <assert.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include "common.h"
 #include "unicode.h"
+#include <assert.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "common.h"   // i hate this file...........
+#include "objects/errors.h"
 
-int unicodestring_copyinto(struct UnicodeString src, struct UnicodeString *dst)
+/*
+some stuff about error handling
+objects/errors.c calls functions defined here
+these functions set errors in the following cases:
+
+1) running out of mem
+	however, errors.c won't call these functions again
+	the special nomemerr and its message string are created in builtins_setup()
+	so they'll just be used then without creating new strings using these functions
+
+2) invalid unicode or utf8
+	the error messages will be ASCII only and never contain the invalid characters
+	they may contain things like "U+ABCD", but not the actual character
+*/
+
+int unicodestring_copyinto(struct Interpreter *interp, struct UnicodeString src, struct UnicodeString *dst)
 {
 	unicode_char *val = malloc(sizeof(unicode_char) * src.len);
-	if (!val)
-		return STATUS_NOMEM;
+	if (!val) {
+		errorobject_setnomem(interp);
+		return STATUS_ERROR;
+	}
+
 	memcpy(val, src.val, sizeof(unicode_char) * src.len);
 	dst->len = src.len;
 	dst->val = val;
 	return STATUS_OK;
 }
 
-struct UnicodeString *unicodestring_copy(struct UnicodeString src)
+struct UnicodeString *unicodestring_copy(struct Interpreter *interp, struct UnicodeString src)
 {
 	struct UnicodeString *res = malloc(sizeof(struct UnicodeString));
-	if (!res)
+	if (!res) {
+		errorobject_setnomem(interp);
 		return NULL;
-	if (unicodestring_copyinto(src, res) == STATUS_NOMEM) {
+	}
+	if (unicodestring_copyinto(interp, src, res) == STATUS_ERROR) {
 		free(res);
+		errorobject_setnomem(interp);
 		return NULL;
 	}
 	return res;
 }
 
 
-// example: ONES(6) is 111111 in binary
-#define ONES(n) ((1<<(n))-1)
+static void error_printf(struct Interpreter *interp, char *fmt, ...)
+{
+	char msg[100];
+	va_list ap;
+	va_start(ap, fmt);
+	vsnprintf(msg, 100, fmt, ap);
+	va_end(ap);
+	msg[99] = 0;
+	errorobject_setwithfmt(interp, "%s", msg);
+}
 
-static inline int how_many_bytes(unicode_char codepnt, char *errormsg)
+
+// reference for utf8 stuff: https://en.wikipedia.org/wiki/UTF-8
+
+static int how_many_bytes(struct Interpreter *interp, unicode_char codepnt)
 {
 	if (codepnt <= 0x7f)
 		return 1;
@@ -47,36 +82,41 @@ static inline int how_many_bytes(unicode_char codepnt, char *errormsg)
 		return 4;
 
 	// "fall through" to invalid_code_point
+
 invalid_code_point:
-	// unsigned long is guaranteed to fit unicode_char
-	sprintf(errormsg, "invalid Unicode code point U+%lX", (unsigned long) codepnt);
+	// unsigned long is at least 32 bits, so unicode_char should fit in it
+	// errorobject_setwithfmt doesn't support %lX
+	error_printf(interp, "invalid Unicode code point U+%lX", (unsigned long)codepnt);
 	return -1;
 }
 
 
-int utf8_encode(struct UnicodeString unicode, char **utf8, size_t *utf8len, char *errormsg)
+// example: ONES(6) is 111111 in binary
+#define ONES(n) ((1<<(n))-1)
+
+int utf8_encode(struct Interpreter *interp, struct UnicodeString unicode, char **utf8, size_t *utf8len)
 {
 	// don't set utf8len if this fails
 	size_t utf8len_val = 0;
-	int part;
 	for (size_t i=0; i < unicode.len; i++) {
-		if ((part = how_many_bytes(unicode.val[i], errormsg)) == -1) {
-			// how_many_bytes() already set errormsg
-			return 1;
-		}
+		int part = how_many_bytes(interp, unicode.val[i]);
+		if (part == -1)
+			return STATUS_ERROR;
 		utf8len_val += part;
 	}
 
 	char *ptr = malloc(utf8len_val);
-	if (!ptr)
-		return STATUS_NOMEM;
+	if (!ptr) {
+		errorobject_setnomem(interp);
+		return STATUS_ERROR;
+	}
 
 	// rest of this will not fail
 	*utf8 = ptr;
 	*utf8len = utf8len_val;
 
 	for (size_t i=0; i < unicode.len; i++) {
-		int nbytes = how_many_bytes(unicode.val[i], NULL);
+		int nbytes = how_many_bytes(interp, unicode.val[i]);
 		switch (nbytes) {
 		case 1:
 			ptr[0] = unicode.val[i];
@@ -110,7 +150,7 @@ int utf8_encode(struct UnicodeString unicode, char **utf8, size_t *utf8len, char
 // i don't want to cast a char pointer to unsigned char because i'm not sure if that's standardy
 #define U(x) ((unsigned char)(x))
 
-int utf8_decode(char *utf8, size_t utf8len, struct UnicodeString *unicode, char *errormsg)
+int utf8_decode(struct Interpreter *interp, char *utf8, size_t utf8len, struct UnicodeString *unicode)
 {
 	// must leave unicode and unicodelen untouched on error
 	unicode_char *result;
@@ -126,8 +166,8 @@ int utf8_decode(char *utf8, size_t utf8len, struct UnicodeString *unicode, char 
 		unicode_char *ptr = result + resultlen;
 		int nbytes;
 
-#define CHECK_UTF8LEN()       do{ if (utf8len < (size_t)nbytes) { sprintf(errormsg, "unexpected end of string");           goto error; }}while(0)
-#define CHECK_CONTINUATION(c) do{ if ((c)>>6 != 1<<1)           { sprintf(errormsg, "invalid continuation byte %#x", (c)); goto error; }}while(0)
+#define CHECK_UTF8LEN()       do{ if (utf8len < (size_t)nbytes) { error_printf(interp, "unexpected end of string");           goto error; }}while(0)
+#define CHECK_CONTINUATION(c) do{ if ((c)>>6 != 1<<1)           { error_printf(interp, "invalid continuation byte %#x", (c)); goto error; }}while(0)
 		if (U(utf8[0]) >> 7 == 0) {
 			nbytes = 1;
 			assert(!(utf8len < 1));   // otherwise the while loop shouldn't run...
@@ -167,24 +207,23 @@ int utf8_decode(char *utf8, size_t utf8len, struct UnicodeString *unicode, char 
 #undef CHECK_CONTINUATION
 
 		else {
-			sprintf(errormsg, "invalid start byte %#x", (int) U(utf8[0]));
+			error_printf(interp, "invalid start byte %#x", (int) U(utf8[0]));
 			goto error;
 		}
 
-		int expected_nbytes = how_many_bytes(*ptr, errormsg);
+		int expected_nbytes = how_many_bytes(interp, *ptr);
 		if (expected_nbytes == -1) {
-			// how_many_bytes has already set errormsg
+			// how_many_bytes has already set an error
 			goto error;
 		}
 		assert(!(nbytes < expected_nbytes));
 		if (nbytes > expected_nbytes) {
-			// not worth making a utility function imo, too lazy to use switch-case
 			if (nbytes == 2)
-				sprintf(errormsg, "overlong encoding: %#x %#x", (int) U(utf8[0]), (int) U(utf8[1]));
+				error_printf(interp, "overlong encoding: %#x %#x", (int) U(utf8[0]), (int) U(utf8[1]));
 			else if (nbytes == 3)
-				sprintf(errormsg, "overlong encoding: %#x %#x %#x", (int) U(utf8[0]), (int) U(utf8[1]), (int) U(utf8[2]));
+				error_printf(interp, "overlong encoding: %#x %#x %#x", (int) U(utf8[0]), (int) U(utf8[1]), (int) U(utf8[2]));
 			else if (nbytes == 4)
-				sprintf(errormsg, "overlong encoding: %#x %#x %#x %#x", (int) U(utf8[0]), (int) U(utf8[1]), (int) U(utf8[2]), (int) U(utf8[3]));
+				error_printf(interp, "overlong encoding: %#x %#x %#x %#x", (int) U(utf8[0]), (int) U(utf8[1]), (int) U(utf8[2]), (int) U(utf8[3]));
 			else
 				assert(0);
 			goto error;
@@ -204,7 +243,7 @@ int utf8_decode(char *utf8, size_t utf8len, struct UnicodeString *unicode, char 
 error:
 	if (result)
 		free(result);
-	return 1;
+	return STATUS_ERROR;
 }
 
 #undef U

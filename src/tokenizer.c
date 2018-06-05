@@ -9,14 +9,14 @@
 
 
 // creates a token of first nchars chars of hugestring
-static struct Token *new_token(struct Token *prev, char kind, struct UnicodeString hugestring, size_t nchars, size_t lineno)
+static struct Token *new_token(struct Interpreter *interp, struct Token *prev, char kind, struct UnicodeString hugestring, size_t nchars, size_t lineno)
 {
 	struct Token *tok = malloc(sizeof (struct Token));
 	if (!tok)
 		return NULL;
 
 	hugestring.len = nchars;    // it's pass-by-value
-	if (unicodestring_copyinto(hugestring, &(tok->str)) != STATUS_OK) {
+	if (unicodestring_copyinto(interp, hugestring, &(tok->str)) == STATUS_ERROR) {
 		free(tok);
 		return NULL;
 	}
@@ -77,7 +77,7 @@ static int check_integer(struct UnicodeString hugestring, size_t nchars, size_t 
 
 // TODO: better error handling than fprintf
 // TODO: test the error cases :(
-struct Token *token_ize(struct UnicodeString hugestring)
+struct Token *token_ize(struct Interpreter *interp, struct UnicodeString hugestring)
 {
 	size_t lineno=1;
 	struct Token *tok1st = NULL;
@@ -173,9 +173,9 @@ struct Token *token_ize(struct UnicodeString hugestring)
 		}
 
 		if (tok1st)
-			curtok = new_token(curtok, kind, hugestring, nchars, lineno);
+			curtok = new_token(interp, curtok, kind, hugestring, nchars, lineno);
 		else
-			tok1st = curtok = new_token(NULL, kind, hugestring, nchars, lineno);
+			tok1st = curtok = new_token(interp, NULL, kind, hugestring, nchars, lineno);
 		if (!curtok)
 			goto error;
 		hugestring.val += nchars;    // must be after new_token()

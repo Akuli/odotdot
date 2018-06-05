@@ -3,10 +3,15 @@
 #ifndef UNICODE_H
 #define UNICODE_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
+struct Interpreter;
+
 // the standard says that int32_t is optional, but this must exist
+// you can also use unsigned long when working with unicode chars, that's also >= 32 bits
+// TODO: get rid of this and just unsigned long everything?
 typedef uint_least32_t unicode_char;
 
 struct UnicodeString {
@@ -15,33 +20,22 @@ struct UnicodeString {
 };
 
 // the return value's ->val and the return value must be free()'d
-struct UnicodeString *unicodestring_copy(struct UnicodeString src);
+// sets an error and returns NULL on failure
+struct UnicodeString *unicodestring_copy(struct Interpreter *interp, struct UnicodeString src);
 
-// returns STATUS_OK or STATUS_NOMEM, dst->val must be free()'d
-int unicodestring_copyinto(struct UnicodeString src, struct UnicodeString *dst);
+// dst->val must be free()'d
+// returns STATUS_OK or STATUS_ERROR
+int unicodestring_copyinto(struct Interpreter *interp, struct UnicodeString src, struct UnicodeString *dst);
 
 
-/* Convert a Unicode string to a UTF-8 string.
+// convert a Unicode string to a UTF-8 string
+// after calling this, *utf8 may contain \0 bytes
+// if you want a 0-terminated string, create a new string with 1 more byte at end set to 0
+int utf8_encode(struct Interpreter *interp, struct UnicodeString unicode, char **utf8, size_t *utf8len);
 
-The resulting utf8 may contain \0 bytes. If you want a \0-terminated string,
-realloc the resulting utf8 to have 1 more byte and set that last byte to 0.
-
-If the unicode string is invalid, an error message is saved to errormsg and
-this returns 1. The error message is \0-terminated, and it will always fit in
-an array of 100 chars.
-
-If the unicode string is valid, this returns STATUS_OK or STATUS_NOMEM.
-*/
-int utf8_encode(struct UnicodeString unicode, char **utf8, size_t *utf8len, char *errormsg);
-
-/* Convert a UTF-8 string to a Unicode string.
-
-The utf8 may contain \0 bytes. If it's \0-terminated, pass strlen(utf8) to
-utf8len.
-
-Errors are handled similarly to utf8_encode.
-*/
-int utf8_decode(char *utf8, size_t utf8len, struct UnicodeString *unicode, char *errormsg);
+// convert a UTF-8 string to a Unicode string
+// if utf8 is \0-terminated, pass strlen(utf8) for utf8len
+int utf8_decode(struct Interpreter *interp, char *utf8, size_t utf8len, struct UnicodeString *unicode);
 
 
 /* i cheated with python

@@ -221,13 +221,8 @@ static struct Object *print(struct Interpreter *interp, struct Object *argarr)
 
 	char *utf8;
 	size_t utf8len;
-	char errormsg[100];
-	int status = utf8_encode(*((struct UnicodeString *) ARRAYOBJECT_GET(argarr, 0)->data), &utf8, &utf8len, errormsg);
-	if (status == STATUS_NOMEM) {
-		errorobject_setnomem(interp);
+	if (utf8_encode(interp, *((struct UnicodeString *) ARRAYOBJECT_GET(argarr, 0)->data), &utf8, &utf8len) == STATUS_ERROR)
 		return NULL;
-	}
-	assert(status == STATUS_OK);  // TODO: how about invalid unicode strings? make sure they don't exist when creating strings?
 
 	// TODO: avoid writing 1 byte at a time... seems to be hard with c \0 strings
 	for (size_t i=0; i < utf8len; i++)

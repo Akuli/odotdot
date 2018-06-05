@@ -246,11 +246,9 @@ static long string_hash(struct UnicodeString u)
 
 struct Object *stringobject_newfromustr(struct Interpreter *interp, struct UnicodeString ustr)
 {
-	struct UnicodeString *data = unicodestring_copy(ustr);   // TODO: create a non-copying newfromustr
-	if (!data) {
-		errorobject_setnomem(interp);
+	struct UnicodeString *data = unicodestring_copy(interp, ustr);   // TODO: create an alternative non-copying function
+	if (!data)
 		return NULL;
-	}
 
 	struct Object *s = classobject_newinstance(interp, interp->builtins.stringclass, data, string_destructor);
 	if (!s) {
@@ -268,14 +266,10 @@ struct Object *stringobject_newfromcharptr(struct Interpreter *interp, char *ptr
 	if (!data)
 		return NULL;
 
-	char errormsg[100];
-	int status = utf8_decode(ptr, strlen(ptr), data, errormsg);
-	assert(status != 1);   // must be valid UTF8
-	if (status == STATUS_NOMEM) {
+	if (utf8_decode(interp, ptr, strlen(ptr), data) == STATUS_ERROR) {
 		free(data);
 		return NULL;
 	}
-	assert(status == STATUS_OK);   // it shooouldn't return anything else than STATUS_{NONEM,OK} or 1
 
 	struct Object *s = classobject_newinstance(interp, interp->builtins.stringclass, data, string_destructor);
 	if (!s) {
@@ -286,6 +280,8 @@ struct Object *stringobject_newfromcharptr(struct Interpreter *interp, char *ptr
 	s->hash = string_hash(*data);
 	return s;
 }
+
+
 
 #define POINTER_MAXSTR 50            // should be big enough
 #define MAX_PARTS 20                 // feel free to make this bigger
@@ -326,10 +322,8 @@ struct Object *stringobject_newfromvfmt(struct Interpreter *interp, char *fmt, v
 
 			else if (*(fmt-1) == 's') {   // c char pointer
 				char *part = va_arg(ap, char*);
-
-				// segfaults if the part is not valid utf8 because the NULL
-				if (utf8_decode(part, strlen(part), parts + nparts, NULL) != STATUS_OK)
-					goto nomem;
+				if (utf8_decode(interp, part, strlen(part), parts + nparts) == STATUS_ERROR)
+					goto error;
 			}
 
 			else if (*(fmt-1) == 'U') {   // struct UnicodeString
@@ -389,8 +383,8 @@ struct Object *stringobject_newfromvfmt(struct Interpreter *interp, char *fmt, v
 			int len = 0;
 			while (*fmt != '%' && *fmt)
 				part[len++] = *fmt++;
-			if (utf8_decode(part, len, parts + nparts, NULL) != STATUS_OK)
-				goto nomem;
+			if (utf8_decode(interp, part, len, parts + nparts) == STATUS_ERROR)
+				goto error;
 		}
 
 		nparts++;

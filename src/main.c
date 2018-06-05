@@ -66,14 +66,18 @@ static void print_and_reset_err(struct Interpreter *interp)
 	} else {
 		char *utf8;
 		size_t utf8len;
-		char errormsg[100];
-		// TODO: handle no mem
-		assert(utf8_encode(*((struct UnicodeString *) ((struct Object *) interp->err->data)->data), &utf8, &utf8len, errormsg) == STATUS_OK);
-		fprintf(stderr, "error: ");
-		for (size_t i=0; i < utf8len; i++)
-			fputc(utf8[i], stderr);
-		free(utf8);
-		fputc('\n', stderr);
+
+		if (utf8_encode(interp, *((struct UnicodeString *) ((struct Object *) interp->err->data)->data), &utf8, &utf8len) == STATUS_ERROR) {
+			fprintf(stderr, "failed to display the error\n");
+			OBJECT_DECREF(interp, interp->err);
+			interp->err = NULL;
+		} else {
+			fprintf(stderr, "error: ");
+			for (size_t i=0; i < utf8len; i++)
+				fputc(utf8[i], stderr);
+			free(utf8);
+			fputc('\n', stderr);
+		}
 	}
 
 	OBJECT_DECREF(interp, interp->err);
@@ -108,22 +112,16 @@ static int run_file(struct Interpreter *interp, struct Object *scope, char *path
 
 	// convert to UnicodeString
 	struct UnicodeString hugeunicode;
-	char errormsg[100];
-	status = utf8_decode(hugestr, hugestrlen, &hugeunicode, errormsg);
+	status = utf8_decode(interp, hugestr, hugestrlen, &hugeunicode);
 	free(hugestr);
-
-	if (status == 1) {
-		fprintf(stderr, "%s: the content of '%s' is not valid UTF-8: %s\n", interp->argv0, path, errormsg);
-		return 1;
-	}
-	if (status == STATUS_NOMEM) {
-		fprintf(stderr, "%s: ran out of memory while UTF8-decoding the content of '%s'\n", interp->argv0, path);
+	if (status == STATUS_ERROR) {
+		print_and_reset_err(interp);
 		return 1;
 	}
 	assert(status == STATUS_OK);
 
 	// tokenize
-	struct Token *tok1st = token_ize(hugeunicode);   // TODO: handle errors in tokenizer.c :(
+	struct Token *tok1st = token_ize(interp, hugeunicode);   // TODO: handle errors in tokenizer.c :(
 	free(hugeunicode.val);
 
 	// parse

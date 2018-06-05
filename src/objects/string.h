@@ -23,7 +23,7 @@ int stringobject_addmethods(struct Interpreter *interp);
 // RETURNS A NEW REFERENCE
 struct Object *stringobject_newfromustr(struct Interpreter *interp, struct UnicodeString ustr);
 
-// asserts that the char pointer is valid utf8, i.e. don't use with user-inputted strings
+// ptr must be \0-terminated
 // RETURNS A NEW REFERENCE
 struct Object *stringobject_newfromcharptr(struct Interpreter *interp, char *ptr);
 
@@ -36,15 +36,13 @@ fmt must be valid UTF-8, and it can contain any of these format specifiers:
 	             V
 	SPECIFIER  EXACT TYPE             NOTES
 	----------------------------------------------------------------------------------
-	%s         char *                 must be valid utf8
+	%s         char *                 an error is set for invalid utf8
 	%U         struct UnicodeString
 	%S         struct Object *        to_string will be called
 	%D         struct Object *        to_debug_string will be called
 	%p         void *                 prints the pointer in the output, e.g. 0x1b6baa0
 	%L         long long
 	%%         nothing                a % in the output
-
-	[*] remember to add a cast if needed, no implicit conversion here
 
 nothing else works, not even padding like %5s
 
