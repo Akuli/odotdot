@@ -168,6 +168,7 @@ struct Object *integerobject_createclass(struct Interpreter *interp)
 
 	if (method_add(interp, klass, "setup", setup) == STATUS_ERROR) goto error;
 	if (method_add(interp, klass, "to_string", to_string) == STATUS_ERROR) goto error;
+	if (method_add(interp, klass, "to_debug_string", to_string) == STATUS_ERROR) goto error;
 	if (method_add(interp, klass, "plus", plus) == STATUS_ERROR) goto error;
 	return klass;
 

@@ -146,7 +146,7 @@ int functionobject_setname(struct Interpreter *interp, struct Object *func, char
 }
 
 
-static struct Object *to_string(struct Interpreter *interp, struct Object *argarr)
+static struct Object *to_debug_string(struct Interpreter *interp, struct Object *argarr)
 {
 	if (check_args(interp, argarr, interp->builtins.functionclass, NULL) == STATUS_ERROR)
 		return NULL;
@@ -171,7 +171,7 @@ int functionobject_addmethods(struct Interpreter *interp)
 	if (attribute_add(interp, interp->builtins.functionclass, "name", name_getter, name_setter) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.functionclass, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.functionclass, "partial", partial) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.functionclass, "to_string", to_string) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.functionclass, "to_debug_string", to_debug_string) == STATUS_ERROR) return STATUS_ERROR;
 	return STATUS_OK;
 }
 

@@ -51,6 +51,35 @@ in Ö. Most things that are done with keywords in most other languages, like
 loops, functions and classes, are implemented with functions in Ö.
 
 
+## Debugging
+
+There's no Ö debugger yet, and even in languages that have debuggers, most
+programmers don't bother with learning to use debuggers because learning that
+is painful. Instead, people print stuff. If you want to figure out what the
+value of a variable is, you might be tempted to do this:
+
+```python
+...lots of code...
+print some_buggy_variable;
+...more code...
+```
+
+**This is bad** because Ö's [print](builtins.md#print) can only take strings,
+so if `some_buggy_variable` is set to something else than a string, e.g. an
+integer or an array, the `print` will fail. Do this instead:
+
+```python
+...lots of code...
+debug some_buggy_variable;
+...more code...
+```
+
+This will print the value of the buggy variable in a programmer-readable form.
+For example, `debug "lol";` prints `"lol"` including the quotes, and
+`debug [1 2 3];` prints `[1 2 3]`. The `[1 2 3]` is an array; there are more
+details about arrays [below](#arrays).
+
+
 ## Function Call Expressions
 
 So far we have called functions so that we throw away the return value, like
@@ -126,34 +155,35 @@ for `f a b`.
 Ö arrays can be created like this:
 
 ```python
-var thing = [1 2 3];
+var thing = ["a" "b" "c"];
 ```
 
 There are no fixed sizes; you can put as many elements as you want to an array.
-Note that the `print` function wants a string, so convert arrays to strings
-before printing them, e.g. `print (thing.to_string);`.
+If you want to display the content of the array, you need to use `debug`
+instead of `print` as explained [above](#debugging).
 
 ```python
-print (thing.to_string);   # prints [1 2 3]
+debug thing;     # prints ["a" "b" "c"]
+print thing;     # throws an error!
 ```
 
-Here `thing.to_string` looks up an attribute. This attribute is a *method*;
-that is, a function object that does something with `thing`. So, all methods
-are attributes, but not vice versa.
-
-For example, arrays have a `length` attribute that is not a method, so you
-don't need parentheseses around `some_array.length`. However, the length's
-`to_string` is a method, so we need parentheses around that.
+You can check the length of an array like this:
 
 ```python
-print (["a" "b" "c" "d"].length.to_string)
+debug thing.length;     # prints 3 because there are 3 elements in the array
 ```
 
-You can add more elements to an array like this:
+Here `thing.length` looks up an attribute, and the value of this attribute is
+an [Integer](builtins.md#integer).
+
+Most objects have many attributes whose values are functions; these attributes
+are called methods. For example, arrays have a `push` method that adds an
+element to the end of the array:
 
 ```python
-thing.push 4;
-print (thing.to_string);   # prints [1 2 3 4]
+debug thing.push;   # prints <Function "push method" at 0xblablabla>
+thing.push "d";
+debug thing;        # prints ["a" "b" "c" "d"]
 ```
 
 [Click here](builtins.md#array) for a complete list of array attributes and
@@ -169,9 +199,10 @@ yet. Mappings are created with the `new` function like this:
 var thingy = (new Mapping [["key 1" "value 1"] ["key 2" "value 2"]]);
 ```
 
-The messy part is just an array of `[key value]` lists.
+The messy part is just an array of `[key value]` arrays. You can put anything
+into an array, even other arrays.
 
-Now we can access the values of our keys with the `.get` method:
+Now we can access the values of our keys with the `get` method:
 
 ```python
 print (thingy.get "key 2");   # prints "value 2"
@@ -264,12 +295,12 @@ the first are argument names of the function, and the resulting function ends
 up in the block's `.definition_scope` as a variable named by the first variable
 name in the string.
 
-Function objects have a nice `to_string` that makes debugging easier:
+Function objects behave nicely with [the debug function](#debugging):
 
 ```python
-print (print_twice.to_string);   # <Function "print_twice" at 0xblablabla>
-print (print.to_string);         # <Function "print" at 0xblablabla>
-print (func.to_string);          # <Function "func" at 0xblablabla>
+debug print_twice;   # prints <Function "print_twice" at 0xblablabla>
+debug print;         # prints <Function "print" at 0xblablabla>
+debug func;          # prints <Function "func" at 0xblablabla>
 ```
 
 You can pass any number of arguments you want to `func`.

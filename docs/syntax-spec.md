@@ -12,25 +12,25 @@ The first step with running any code is tokenizing it. It means taking code
 like this...
 
 ```python
-print ([1 2 3].to_string);
+print ([1 2 3].to_debug_string);
 ```
 
 ...and turning it into a bunch of tokens. The above code would be tokenized
 like this:
 
-| Token kind        | Value         |
-| ----------------- | ------------- |
-| identifier        | `print`       |
-| operator          | `(`           |
-| operator          | `[`           |
-| integer literal   | `1`           |
-| integer literal   | `2`           |
-| integer literal   | `3`           |
-| operator          | `]`           |
-| operator          | `.`          |
-| identifier        | `to_string`   |
-| operator          | `)`           |
-| operator          | `;`           |
+| Token kind        | Value             |
+| ----------------- | ----------------- |
+| identifier        | `print`           |
+| operator          | `(`               |
+| operator          | `[`               |
+| integer literal   | `1`               |
+| integer literal   | `2`               |
+| integer literal   | `3`               |
+| operator          | `]`               |
+| operator          | `.`               |
+| identifier        | `to_debug_string` |
+| operator          | `)`               |
+| operator          | `;`               |
 
 Some notes:
 - The code is far from runnable after tokenizing it; tokenizing is just the
@@ -40,8 +40,8 @@ Some notes:
   displaying stack traces. The interpreter doesn't display stack traces right
   now, but it's on [the huge todo list](../TODO.md).
 - The Ö tokenizer ignores all Unicode whitespace (e.g. spaces, tabs, newlines)
-  except when the whitespace is in a string (`"hello world"` is a string
-  literal token) or the whitespace separates tokens that would be parsed
+  except when the whitespace is in a string (`"hello world"` is not same as
+  `"helloworld"`) or the whitespace separates tokens that would be parsed
   differently without the whitespace (`1 2` is two tokens, and `12` is one
   token). This means that `f"a"2b;` is a valid way to write `f "a" 2 b;`.
 
@@ -75,6 +75,9 @@ Here's a list of *all* supported kinds of tokens:
   will cause errors when parsing to AST. Note that e.g. `var_statement` and
   `var0` are valid identifiers.
 
+Anything else should throw an error. It's good if the error messages are
+descriptive, but there's no exact specification of what they need to say.
+
 The token rule that matches *first* should be used. For example,
 `"hello # world"` is not a comment because the very first character begins a
 valid string literal, and the `#` beginning a comment is the 8th character.
@@ -91,7 +94,7 @@ The parser takes tokens as input and outputs
 this thing we tokenized above...
 
 ```python
-print ([1 2 3].to_string);
+print ([1 2 3].to_debug_string);
 ```
 
 ...produces an AST tree like this:

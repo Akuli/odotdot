@@ -6,6 +6,11 @@ needed functions. They are listed here.
 
 ## Functions
 
+### debug
+
+`debug x;` does the same thing as `print (x.to_debug_string);`. See
+[Object](#object) for more info about the `to_debug_string` method.
+
 ### func
 
 `func "name arg1 arg2 arg3" block;` defines a new function with arguments named
@@ -253,14 +258,15 @@ regardless of the type of `x`, and that could be useful with e.g. something
 that checks types with [is_instance_of](#is_instance_of).
 
 Methods:
-- `(object.to_string)` should return a string suitable for displaying to the
-  user of your Ö program. `Object`'s `to_string` calls `to_debug_string`.
 - `(object.to_debug_string)` should return a programmer-friendly string that
-  describes the object. `Object`'s `to_string` returns a string like
-  `<ClassName at 0xblablabla>` where `ClassName` is the name of the object's
-  class and the `0xblablabla` part is different for each object.
+  describes the object. [The debug function](#debug) uses this. `Object`'s
+  `to_debug_string` returns a string like `<ClassName at 0xblablabla>` where
+  `ClassName` is the name of the object's class and the `0xblablabla` part is
+  different for each object.
 
-See [String](#string) for an example of why two to-string methods are needed.
+Many objects also have a `to_string` method that should return a human-readable
+string, but not all objects have a human-readable string representations, even
+though all objects *must* have a programmer-readable string representation.
 
 ### String
 
@@ -285,15 +291,8 @@ Methods:
   separated by one or more Unicode whitespace characters (e.g. spaces, tabs or
   newlines). For example, `(" hello world test ".split_by_whitespace)` returns
   `["hello" "world" "test"]`.
-- `(string.to_string)` returns the string itself. This overrides
-  [Object](#object)'s `to_string`.
-- `(string.to_debug_string)` returns the string with quotes around it, so
-  `print ("hello".to_debug_string);` prints `"hello"` including the quotes.
-  This overrides [Object](#object)'s `to_debug_string`.
-
-The `to_string` [array](#array) method calls `to_debug_string` methods of the
-content, so `print (["hello" "world"].to_string)` prints `["hello" "world"]`,
-not `[hello world]`.
+- `(string.to_debug_string)` returns the string with quotes around it. This
+  overrides [Object](#object)'s `to_debug_string`.
 
 Missing features:
 - There's no `get_length` method.
@@ -319,6 +318,8 @@ The smallest allowed value of an integer is
 Methods (`x` and `y` are Integers):
 - `(x.plus y)` returns x+y. Yes, I know, Ö really needs a `+` operator...
 - `(x.to_string)` converts the integer to a string without leading zeros.
+- `(x.to_debug_string)` returns `(x.to_string)`. This overrides
+  [Object](#object)'s `to_debug_string`.
 
 Missing features:
 - There's no support for other bases than 10. I think there's no need to add
@@ -361,11 +362,9 @@ Methods:
   of the array and `(thing.get_length)` means the end of the array. Too big or
   small indexes are "rounded" to the closest possible values.
 - `(array.slice i)` returns `(array.slice i (array.get_length))`.
-- `(array.to_string)` calls `to_debug_string` methods of the array elements
-  and returns the debug strings in square brackets, joined with spaces. This
-  overrides [Object](#object)'s `to_string` without overriding
-  `to_debug_string`, so `(array.to_debug_string)` does the same thing as
-  `(array.to_string)`.
+- `(array.to_debug_string)` calls `to_debug_string` methods of the array
+  elements and returns the debug strings in square brackets, joined with
+  spaces. This overrides [Object](#object)'s `to_debug_string`.
 
 Annoyances:
 - There's no `array.foreach` method. Use [the foreach function](#foreach)
@@ -505,9 +504,9 @@ Methods:
   original `function` with `arg1 arg2 arg3` and any arguments passed to the new
   function as arguments. So, `var g = (f.partial a b); g x y;` runs
   `f a b x y;`.
-- `(function.to_string)` returns a string like
+- `(function.to_debug_string)` returns a string like
   `<Function "the name of the function is here" at 0xblablabla>`. See also the
-  `.name` attribute above and [Object](#object)'s `to_string` method.
+  `.name` attribute above. This overrides [Object](#object)'s `to_debug_string`.
 
 
 ## Other objects in the built-in namespace

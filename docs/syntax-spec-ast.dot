@@ -8,16 +8,16 @@ digraph G {
     //rankdir=LR;
     print [ label="get var\n\"print\"" ];
     printcall [ label="function call\n1 arg" ];
-    tostringcall [ label="function call\n0 args" ];
-    tostring [ label="get attribute\n\"to_string\"" ];
+    todebugstringcall [ label="function call\n0 args" ];
+    tostring [ label="get attribute\n\"to_debug_string\"" ];
     array [ label="array literal\n3 elements"];
     one [ label="integer literal\n\"1\"" ];
     two [ label="integer literal\n\"2\"" ];
     three [ label="integer literal\n\"3\"" ];
 
     printcall -> print [label="func"];
-    printcall -> tostringcall [label="arg 1"];
-    tostringcall -> tostring [label="func"];
+    printcall -> todebugstringcall [label="arg 1"];
+    todebugstringcall -> tostring [label="func"];
     tostring -> array [label=" the object\n that has\n the attribute"];
     array -> one [label="elem 1"];
     array -> two [label=" elem 2"];

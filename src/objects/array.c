@@ -39,16 +39,15 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 }
 
 /* joins string objects together and adds [ ] around the whole thing
-to_string was becoming huge, had to break into two functions
+to_debug_string was becoming huge, had to break into two functions
 TODO: how about putting the array inside itself? python does this:
->>> asd = []
 >>> asd = [1, 2, 3]
 >>> asd.append(asd)
 >>> asd
 [1, 2, 3, [...]]
 
 python's reprlib.recursive_repr() handles this, maybe check how it's implemented? */
-static struct Object *to_string_joiner(struct Interpreter *interp, struct Object **strings, size_t nstrings)
+static struct Object *joiner(struct Interpreter *interp, struct Object **strings, size_t nstrings)
 {
 	// first compute total length, then malloc at once, should be more efficient than many reallocs
 	// TODO: check for overflow? the length may be huge if the array is huge and elements have huge reprs
@@ -80,7 +79,7 @@ static struct Object *to_string_joiner(struct Interpreter *interp, struct Object
 	return res;
 }
 
-static struct Object *to_string(struct Interpreter *interp, struct Object *argarr)
+static struct Object *to_debug_string(struct Interpreter *interp, struct Object *argarr)
 {
 	if (check_args(interp, argarr, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
 		return NULL;
@@ -108,7 +107,7 @@ static struct Object *to_string(struct Interpreter *interp, struct Object *argar
 		strings[i] = stringed;
 	}
 
-	struct Object *res = to_string_joiner(interp, strings, ARRAYOBJECT_LEN(arr));
+	struct Object *res = joiner(interp, strings, ARRAYOBJECT_LEN(arr));
 	for (size_t i=0; i < ARRAYOBJECT_LEN(arr); i++)
 		OBJECT_DECREF(interp, strings[i]);
 	free(strings);
@@ -225,7 +224,7 @@ struct Object *arrayobject_createclass(struct Interpreter *interp)
 	if (method_add(interp, klass, "push", push) == STATUS_ERROR) goto error;
 	if (method_add(interp, klass, "pop", pop) == STATUS_ERROR) goto error;
 	if (method_add(interp, klass, "slice", slice) == STATUS_ERROR) goto error;
-	if (method_add(interp, klass, "to_string", to_string) == STATUS_ERROR) goto error;
+	if (method_add(interp, klass, "to_debug_string", to_debug_string) == STATUS_ERROR) goto error;
 	return klass;
 
 error:

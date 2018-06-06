@@ -39,15 +39,6 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 	return NULL;
 }
 
-static struct Object *to_string(struct Interpreter *interp, struct Object *argarr)
-{
-	if (check_args(interp, argarr, interp->builtins.stringclass, NULL) == STATUS_ERROR)
-		return NULL;
-
-	OBJECT_INCREF(interp, ARRAYOBJECT_GET(argarr, 0));   // we're returning a reference
-	return ARRAYOBJECT_GET(argarr, 0);
-}
-
 static struct Object *to_debug_string(struct Interpreter *interp, struct Object *argarr)
 {
 	if (check_args(interp, argarr, interp->builtins.stringclass, NULL) == STATUS_ERROR)
@@ -228,7 +219,6 @@ int stringobject_addmethods(struct Interpreter *interp)
 	if (method_add(interp, interp->builtins.stringclass, "get", get) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.stringclass, "slice", slice) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.stringclass, "split_by_whitespace", split_by_whitespace) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.stringclass, "to_string", to_string) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.stringclass, "to_debug_string", to_debug_string) == STATUS_ERROR) return STATUS_ERROR;
 	return STATUS_OK;
 }

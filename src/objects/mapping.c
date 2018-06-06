@@ -319,6 +319,7 @@ int mappingobject_addmethods(struct Interpreter *interp)
 	if (method_add(interp, interp->builtins.mappingclass, "get", get) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.mappingclass, "delete", delete) == STATUS_ERROR) return STATUS_ERROR;
 	if (method_add(interp, interp->builtins.mappingclass, "get_and_delete", get_and_delete) == STATUS_ERROR) return STATUS_ERROR;
+	// TODO: to_debug_string
 	return STATUS_OK;
 }
 

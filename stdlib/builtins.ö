@@ -60,6 +60,10 @@ var func = (lambda "funcname_and_argnames block" {
 });
 func.name = "func";
 
+func "debug x" {
+    print (x.to_debug_string);
+};
+
 func "not x" {
     # 'if x' throws an error if x is not a boolean
     return = true;
