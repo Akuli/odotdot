@@ -290,17 +290,17 @@ static int add_function(struct Interpreter *interp, char *name, functionobject_c
 
 int builtins_setup(struct Interpreter *interp)
 {
-	if (!(interp->builtins.Object = objectobject_createclass_noerr(interp))) return STATUS_NOMEM;
-	if (!(interp->builtins.Class = classobject_create_Class_noerr(interp))) return STATUS_NOMEM;
+	if (!(interp->builtins.Object = objectobject_createclass_noerr(interp))) goto nomem;
+	if (!(interp->builtins.Class = classobject_create_Class_noerr(interp))) goto nomem;
 
 	interp->builtins.Object->klass = interp->builtins.Class;
 	OBJECT_INCREF(interp, interp->builtins.Class);
 	interp->builtins.Class->klass = interp->builtins.Class;
 	OBJECT_INCREF(interp, interp->builtins.Class);
 
-	if (!(interp->builtins.String = stringobject_createclass_noerr(interp))) return STATUS_NOMEM;
-	if (!(interp->builtins.Error = errorobject_createclass_noerr(interp))) return STATUS_NOMEM;
-	if (!(interp->builtins.nomemerr = errorobject_createnomemerr_noerr(interp))) return STATUS_NOMEM;
+	if (!(interp->builtins.String = stringobject_createclass_noerr(interp))) goto nomem;
+	if (!(interp->builtins.Error = errorobject_createclass_noerr(interp))) goto nomem;
+	if (!(interp->builtins.nomemerr = errorobject_createnomemerr_noerr(interp))) goto nomem;
 
 	// now interp->err stuff works
 	// but note that error printing must NOT use any methods because methods don't actually exist yet
@@ -387,6 +387,10 @@ error:
 
 	OBJECT_DECREF(interp, interp->err);
 	interp->err = NULL;
+	return STATUS_ERROR;
+
+nomem:
+	fprintf(stderr, "%s: not enough memory for setting up builtins\n", interp->argv0);
 	return STATUS_ERROR;
 }
 

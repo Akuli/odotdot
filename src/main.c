@@ -13,6 +13,7 @@
 #include "tokenizer.h"
 #include "unicode.h"
 #include "objects/array.h"
+#include "objects/errors.h"
 #include "objects/function.h"
 #include "objects/scope.h"
 #include "parse.h"
@@ -20,8 +21,8 @@
 #define FILE_CHUNK_SIZE 4096
 
 
-// returns STATUS_OK, STATUS_NOMEM or 1 for a reading error
-int read_file_to_huge_string(FILE *f, char **dest, size_t *destlen)
+// returns STATUS_OK or STATUS_ERROR
+int read_file_to_huge_string(struct Interpreter *interp, char *filename, FILE *f, char **dest, size_t *destlen)
 {
 	char *s = NULL;
 	char buf[FILE_CHUNK_SIZE];
@@ -33,7 +34,8 @@ int read_file_to_huge_string(FILE *f, char **dest, size_t *destlen)
 		if (!ptr) {
 			// free(NULL) does nothing
 			free(s);
-			return STATUS_NOMEM;
+			errorobject_setnomem(interp);
+			return STATUS_ERROR;
 		}
 		s = ptr;
 		memcpy(s+totalsize, buf, nread);
@@ -42,7 +44,9 @@ int read_file_to_huge_string(FILE *f, char **dest, size_t *destlen)
 
 	if (!feof(f)) {
 		free(s);
-		return 1;
+		// TODO: include more stuff in the error message, maybe use errno and strerror stuff
+		errorobject_setwithfmt(interp, "an error occurred while reading '%s'", filename);
+		return STATUS_ERROR;
 	}
 
 	*dest = s;
@@ -97,18 +101,13 @@ static int run_file(struct Interpreter *interp, struct Object *scope, char *path
 
 	char *hugestr;
 	size_t hugestrlen;
-	int status = read_file_to_huge_string(f, &hugestr, &hugestrlen);
+	int status = read_file_to_huge_string(interp, path, f, &hugestr, &hugestrlen);
 	fclose(f);
 
-	if (status == STATUS_NOMEM) {
-		fprintf(stderr, "%s: ran out of memory while reading '%s'\n", interp->argv0, path);
+	if (status == STATUS_ERROR) {
+		print_and_reset_err(interp);
 		return 1;
 	}
-	if (status == 1) {
-		fprintf(stderr, "%s: reading '%s' failed\n", interp->argv0, path);
-		return 1;
-	}
-	assert(status == STATUS_OK);
 
 	// convert to UnicodeString
 	struct UnicodeString hugeunicode;
@@ -118,7 +117,6 @@ static int run_file(struct Interpreter *interp, struct Object *scope, char *path
 		print_and_reset_err(interp);
 		return 1;
 	}
-	assert(status == STATUS_OK);
 
 	// tokenize
 	struct Token *tok1st = token_ize(interp, hugeunicode);   // TODO: handle errors in tokenizer.c :(
@@ -186,22 +184,10 @@ int main(int argc, char **argv)
 	}
 
 	int returnval = 0;
-	int status = builtins_setup(interp);
-	assert(status == STATUS_NOMEM || status == STATUS_ERROR || status == STATUS_OK);
-	if (status == STATUS_NOMEM)
-		fprintf(stderr, "%s: not enough memory\n", argv[0]);
-
-	if (status != STATUS_OK) {
+	if (builtins_setup(interp) == STATUS_ERROR) {
 		returnval = 1;
 		goto end;
 	}
-	if (status == STATUS_ERROR) {
-		// an error message has already been printed
-		builtins_teardown(interp);
-		interpreter_free(interp);
-		return 1;
-	}
-	assert(status == STATUS_OK);
 
 	// TODO: find stdlib better, e.g. don't rely on current working directory
 	// TODO: use a backslash on windows

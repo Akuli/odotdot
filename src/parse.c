@@ -493,7 +493,6 @@ static struct Object *parse_assignment(struct Interpreter *interp, struct Token 
 			goto error;
 
 		if (unicodestring_copyinto(interp, lhsinfo->varname, &(info->varname)) == STATUS_ERROR) {
-			errorobject_setnomem(interp);
 			free(info);
 			goto error;
 		}
@@ -513,8 +512,7 @@ static struct Object *parse_assignment(struct Interpreter *interp, struct Token 
 		if (!info)
 			goto error;
 
-		if (unicodestring_copyinto(interp, lhsinfo->name, &(info->attr)) == STATUS_NOMEM) {
-			errorobject_setnomem(interp);
+		if (unicodestring_copyinto(interp, lhsinfo->name, &(info->attr)) == STATUS_ERROR) {
 			free(info);
 			goto error;
 		}

@@ -159,8 +159,10 @@ int utf8_decode(struct Interpreter *interp, char *utf8, size_t utf8len, struct U
 	// each utf8 byte is at most 1 unicode code point
 	// this is realloc'd later to the correct size, feels better than many reallocs
 	result = malloc(utf8len*sizeof(unicode_char));
-	if (!result)
-		return STATUS_NOMEM;
+	if (!result) {
+		errorobject_setnomem(interp);
+		return STATUS_ERROR;
+	}
 
 	while (utf8len > 0) {
 		unicode_char *ptr = result + resultlen;
