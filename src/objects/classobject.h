@@ -50,8 +50,8 @@ int classobject_isinstanceof(struct Object *obj, struct Object *klass);
 void classobject_runforeachref(struct Object *obj, void *data, classobject_foreachrefcb cb);
 
 // used only in builtins_setup(), RETURNS A NEW REFERENCE or NULL on no mem
-// uses interp->builtins.objectclass
-struct Object *classobject_create_classclass_noerr(struct Interpreter *interp);
+// uses interp->builtins.Object
+struct Object *classobject_create_Class_noerr(struct Interpreter *interp);
 
 // returns STATUS_OK or STATUS_ERROR
 int classobject_addmethods(struct Interpreter *interp);

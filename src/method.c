@@ -22,7 +22,7 @@
 // when getting the method, the partialled thing is called with the instance as an argument, see objects/classobject.h
 static struct Object *method_getter(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.functionclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Function, interp->builtins.Object, NULL) == STATUS_ERROR)
 		return NULL;
 	return functionobject_newpartial(interp, ARRAYOBJECT_GET(argarr, 0), ARRAYOBJECT_GET(argarr, 1));
 }
@@ -102,7 +102,7 @@ static struct Object *to_maybe_debug_string(struct Interpreter *interp, struct O
 		return NULL;
 
 	// this doesn't use check_type() because this uses a custom error message string
-	if (!classobject_isinstanceof(res, interp->builtins.stringclass)) {
+	if (!classobject_isinstanceof(res, interp->builtins.String)) {
 		// FIXME: is it possible to make this recurse infinitely by returning the object itself from to_{debug,}string?
 		errorobject_setwithfmt(interp, "%s should return a String, but it returned %D", methname, res);
 		OBJECT_DECREF(interp, res);

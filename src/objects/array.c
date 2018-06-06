@@ -81,7 +81,7 @@ static struct Object *joiner(struct Interpreter *interp, struct Object **strings
 
 static struct Object *to_debug_string(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Array, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *arr = ARRAYOBJECT_GET(argarr, 0);
 
@@ -129,7 +129,7 @@ static int validate_index(struct Interpreter *interp, struct Object *arr, long l
 
 static struct Object *get(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.arrayclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Array, interp->builtins.Integer, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *arr = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *index = ARRAYOBJECT_GET(argarr, 1);
@@ -145,7 +145,7 @@ static struct Object *get(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *set(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.arrayclass, interp->builtins.integerclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Array, interp->builtins.Integer, interp->builtins.Object, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *arr = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *index = ARRAYOBJECT_GET(argarr, 1);
@@ -165,7 +165,7 @@ static struct Object *set(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *push(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.arrayclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Array, interp->builtins.Object, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *arr = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *obj = ARRAYOBJECT_GET(argarr, 1);
@@ -177,7 +177,7 @@ static struct Object *push(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *pop(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Array, NULL) == STATUS_ERROR)
 		return NULL;
 
 	struct Object *res = arrayobject_pop(interp, ARRAYOBJECT_GET(argarr, 0));
@@ -191,12 +191,12 @@ static struct Object *slice(struct Interpreter *interp, struct Object *argarr)
 	long long i, j;
 	if (ARRAYOBJECT_LEN(argarr) == 2) {
 		// (thing.slice i) is same as (thing.slice i thing.length)
-		if (check_args(interp, argarr, interp->builtins.arrayclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
+		if (check_args(interp, argarr, interp->builtins.Array, interp->builtins.Integer, NULL) == STATUS_ERROR)
 			return NULL;
 		i = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1));
 		j = ARRAYOBJECT_LEN(ARRAYOBJECT_GET(argarr, 0));
 	} else {
-		if (check_args(interp, argarr, interp->builtins.arrayclass, interp->builtins.integerclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
+		if (check_args(interp, argarr, interp->builtins.Array, interp->builtins.Integer, interp->builtins.Integer, NULL) == STATUS_ERROR)
 			return NULL;
 		i = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1));
 		j = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 2));
@@ -206,14 +206,14 @@ static struct Object *slice(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *length_getter(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Array, NULL) == STATUS_ERROR)
 		return NULL;
 	return integerobject_newfromlonglong(interp, ARRAYOBJECT_LEN(ARRAYOBJECT_GET(argarr, 0)));
 }
 
 struct Object *arrayobject_createclass(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, "Array", interp->builtins.objectclass, array_foreachref);
+	struct Object *klass = classobject_new(interp, "Array", interp->builtins.Object, array_foreachref);
 	if (!klass)
 		return NULL;
 
@@ -253,7 +253,7 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **elems
 		return NULL;
 	}
 
-	struct Object *arr = classobject_newinstance(interp, interp->builtins.arrayclass, data, array_destructor);
+	struct Object *arr = classobject_newinstance(interp, interp->builtins.Array, data, array_destructor);
 	if (!arr) {
 		free(data->elems);
 		free(data);

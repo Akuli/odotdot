@@ -91,7 +91,7 @@ static void integer_destructor(struct Object *integer)
 // (new Integer "123") converts a string to an integer
 static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.integerclass, interp->builtins.stringclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Integer, interp->builtins.String, NULL) == STATUS_ERROR)
 		return NULL;
 
 	struct Object *integer = ARRAYOBJECT_GET(argarr, 0);
@@ -117,7 +117,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *to_string(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.integerclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Integer, NULL) == STATUS_ERROR)
 		return NULL;
 
 	long long val = *((long long *) ARRAYOBJECT_GET(argarr, 0)->data);
@@ -152,7 +152,7 @@ static struct Object *to_string(struct Interpreter *interp, struct Object *argar
 // FIXME: we need operators
 static struct Object *plus(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.integerclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Integer, interp->builtins.Integer, NULL) == STATUS_ERROR)
 		return NULL;
 
 	long long x = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 0));
@@ -162,7 +162,7 @@ static struct Object *plus(struct Interpreter *interp, struct Object *argarr)
 
 struct Object *integerobject_createclass(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, "Integer", interp->builtins.objectclass, NULL);
+	struct Object *klass = classobject_new(interp, "Integer", interp->builtins.Object, NULL);
 	if (!klass)
 		return NULL;
 
@@ -188,7 +188,7 @@ struct Object *integerobject_newfromlonglong(struct Interpreter *interp, long lo
 	}
 	*data = val;
 
-	struct Object *integer = classobject_newinstance(interp, interp->builtins.integerclass, data, integer_destructor);
+	struct Object *integer = classobject_newinstance(interp, interp->builtins.Integer, data, integer_destructor);
 	if (!integer) {
 		free(data);
 		return NULL;

@@ -10,7 +10,7 @@ int check_type(struct Interpreter *interp, struct Object *klass, struct Object *
 
 /* for example, do this in the beginning of a functionobject_cfunc...
 
-        if (check_args(interp, argarr, interp->builtins.stringclass, interp->builtins.integerclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+        if (check_args(interp, argarr, interp->builtins.String, interp->builtins.Integer, interp->builtins.Object, NULL) == STATUS_ERROR)
                 return NULL;
 
 ...to make sure that:

@@ -29,7 +29,7 @@ static void string_destructor(struct Object *s)
 
 struct Object *stringobject_createclass_noerr(struct Interpreter *interp)
 {
-	return classobject_new_noerr(interp, "String", interp->builtins.objectclass, NULL);
+	return classobject_new_noerr(interp, "String", interp->builtins.Object, NULL);
 }
 
 
@@ -41,7 +41,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *to_debug_string(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.stringclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.String, NULL) == STATUS_ERROR)
 		return NULL;
 
 	struct UnicodeString noquotes = *((struct UnicodeString*) ARRAYOBJECT_GET(argarr, 0)->data);
@@ -62,7 +62,7 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 
 static struct Object *concat(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.stringclass, interp->builtins.stringclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.String, interp->builtins.String, NULL) == STATUS_ERROR)
 		return NULL;
 
 	struct UnicodeString u1 = *((struct UnicodeString*) ARRAYOBJECT_GET(argarr, 0)->data);
@@ -80,7 +80,7 @@ static struct Object *concat(struct Interpreter *interp, struct Object *argarr)
 // some day strings will hopefully behave like an immutable array of 1-character strings
 static struct Object *get(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.stringclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.String, interp->builtins.Integer, NULL) == STATUS_ERROR)
 		return NULL;
 
 	struct UnicodeString ustr = *((struct UnicodeString*) ARRAYOBJECT_GET(argarr, 0)->data);
@@ -105,13 +105,13 @@ static struct Object *slice(struct Interpreter *interp, struct Object *argarr)
 	long long start, end;
 	if (ARRAYOBJECT_LEN(argarr) == 2) {
 		// (s.slice start)
-		if (check_args(interp, argarr, interp->builtins.stringclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
+		if (check_args(interp, argarr, interp->builtins.String, interp->builtins.Integer, NULL) == STATUS_ERROR)
 			return NULL;
 		start = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1));
 		end = ((struct UnicodeString*) ARRAYOBJECT_GET(argarr, 0)->data)->len;
 	} else {
 		// (s.slice start end)
-		if (check_args(interp, argarr, interp->builtins.stringclass, interp->builtins.integerclass, interp->builtins.integerclass, NULL) == STATUS_ERROR)
+		if (check_args(interp, argarr, interp->builtins.String, interp->builtins.Integer, interp->builtins.Integer, NULL) == STATUS_ERROR)
 			return NULL;
 		start = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1));
 		end = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 2));
@@ -206,7 +206,7 @@ error:
 
 static struct Object *split_by_whitespace(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.stringclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.String, NULL) == STATUS_ERROR)
 		return NULL;
 	return stringobject_splitbywhitespace(interp, ARRAYOBJECT_GET(argarr, 0));
 }
@@ -214,12 +214,12 @@ static struct Object *split_by_whitespace(struct Interpreter *interp, struct Obj
 int stringobject_addmethods(struct Interpreter *interp)
 {
 	// TODO: create many more string methods
-	if (method_add(interp, interp->builtins.stringclass, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.stringclass, "concat", concat) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.stringclass, "get", get) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.stringclass, "slice", slice) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.stringclass, "split_by_whitespace", split_by_whitespace) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.stringclass, "to_debug_string", to_debug_string) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.String, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.String, "concat", concat) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.String, "get", get) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.String, "slice", slice) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.String, "split_by_whitespace", split_by_whitespace) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.String, "to_debug_string", to_debug_string) == STATUS_ERROR) return STATUS_ERROR;
 	return STATUS_OK;
 }
 
@@ -240,7 +240,7 @@ struct Object *stringobject_newfromustr(struct Interpreter *interp, struct Unico
 	if (!data)
 		return NULL;
 
-	struct Object *s = classobject_newinstance(interp, interp->builtins.stringclass, data, string_destructor);
+	struct Object *s = classobject_newinstance(interp, interp->builtins.String, data, string_destructor);
 	if (!s) {
 		free(data->val);
 		free(data);
@@ -261,7 +261,7 @@ struct Object *stringobject_newfromcharptr(struct Interpreter *interp, char *ptr
 		return NULL;
 	}
 
-	struct Object *s = classobject_newinstance(interp, interp->builtins.stringclass, data, string_destructor);
+	struct Object *s = classobject_newinstance(interp, interp->builtins.String, data, string_destructor);
 	if (!s) {
 		free(data->val);
 		free(data);

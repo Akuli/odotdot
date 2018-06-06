@@ -61,7 +61,7 @@ static struct Object *run_expression(struct Interpreter *interp, struct Object *
 		struct Object *func = run_expression(interp, scope, INFO_AS(AstCallInfo)->funcnode);
 		if (!func)
 			return NULL;
-		if (check_type(interp, interp->builtins.functionclass, func) == STATUS_ERROR) {
+		if (check_type(interp, interp->builtins.Function, func) == STATUS_ERROR) {
 			OBJECT_DECREF(interp, func);
 			return NULL;
 		}

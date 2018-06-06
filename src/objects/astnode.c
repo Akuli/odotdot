@@ -95,7 +95,7 @@ struct Object *astnodeobject_createclass(struct Interpreter *interp)
 {
 	// the 1 means that AstNode instances may have attributes
 	// TODO: add at least kind and lineno attributes to the nodes?
-	return classobject_new(interp, "AstNode", interp->builtins.objectclass, foreachref);
+	return classobject_new(interp, "AstNode", interp->builtins.Object, foreachref);
 }
 
 struct Object *astnodeobject_new(struct Interpreter *interp, char kind, size_t lineno, void *info)
@@ -109,7 +109,7 @@ struct Object *astnodeobject_new(struct Interpreter *interp, char kind, size_t l
 	data->lineno = lineno;
 	data->info = info;
 
-	struct Object *obj = classobject_newinstance(interp, interp->builtins.astnodeclass, data, destructor);
+	struct Object *obj = classobject_newinstance(interp, interp->builtins.AstNode, data, destructor);
 	if (!obj) {
 		free(data);
 		return NULL;

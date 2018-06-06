@@ -10,7 +10,7 @@ int equals(struct Interpreter *interp, struct Object *a, struct Object *b)
 	if (a == b)      // the SAME object, == compares pointers
 		return 1;
 
-	if (classobject_isinstanceof(a, interp->builtins.stringclass) && classobject_isinstanceof(b, interp->builtins.stringclass)) {
+	if (classobject_isinstanceof(a, interp->builtins.String) && classobject_isinstanceof(b, interp->builtins.String)) {
 		struct UnicodeString *astr = a->data, *bstr = b->data;
 		if (astr->len != bstr->len)
 			return 0;
@@ -23,12 +23,12 @@ int equals(struct Interpreter *interp, struct Object *a, struct Object *b)
 		return 1;
 	}
 
-	if (classobject_isinstanceof(a, interp->builtins.integerclass) && classobject_isinstanceof(b, interp->builtins.integerclass)) {
+	if (classobject_isinstanceof(a, interp->builtins.Integer) && classobject_isinstanceof(b, interp->builtins.Integer)) {
 		long long *aval = a->data, *bval = b->data;
 		return (*aval == *bval);
 	}
 
-	if (classobject_isinstanceof(a, interp->builtins.arrayclass) && classobject_isinstanceof(b, interp->builtins.arrayclass)) {
+	if (classobject_isinstanceof(a, interp->builtins.Array) && classobject_isinstanceof(b, interp->builtins.Array)) {
 		if (ARRAYOBJECT_LEN(a) != ARRAYOBJECT_LEN(b))
 			return 0;
 		for (size_t i=0; i < ARRAYOBJECT_LEN(a); i++) {
@@ -39,7 +39,7 @@ int equals(struct Interpreter *interp, struct Object *a, struct Object *b)
 		return 1;
 	}
 
-	if (classobject_isinstanceof(a, interp->builtins.mappingclass) && classobject_isinstanceof(b, interp->builtins.mappingclass)) {
+	if (classobject_isinstanceof(a, interp->builtins.Mapping) && classobject_isinstanceof(b, interp->builtins.Mapping)) {
 		// mappings are equal if they have same keys and values
 		// that's true if and only if for every key of a, a.get(key) == b.get(key)
 		// unless a and b are of different lengths

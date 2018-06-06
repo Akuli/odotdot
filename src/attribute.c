@@ -70,7 +70,7 @@ static bool init_class_mappings(struct Interpreter *interp, struct ClassObjectDa
 
 int attribute_addwithfuncobjs(struct Interpreter *interp, struct Object *klass, char *name, struct Object *getter, struct Object *setter)
 {
-	assert(interp->builtins.mappingclass && interp->builtins.functionclass);   // must not be called tooo early by builtins_setup()
+	assert(interp->builtins.Mapping && interp->builtins.Function);   // must not be called tooo early by builtins_setup()
 	assert(setter || getter);
 
 	struct ClassObjectData *data = klass->data;

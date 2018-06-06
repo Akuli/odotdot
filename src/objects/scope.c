@@ -14,8 +14,8 @@
 #include "string.h"
 
 
-ATTRIBUTE_DEFINE_SIMPLE_GETTER(parent_scope, scopeclass)
-ATTRIBUTE_DEFINE_SIMPLE_GETTER(local_vars, scopeclass)
+ATTRIBUTE_DEFINE_SIMPLE_GETTER(parent_scope, Scope)
+ATTRIBUTE_DEFINE_SIMPLE_GETTER(local_vars, Scope)
 
 /* this is a weird thing
 builtins.ö sets the parent scope of the built-in scope to null once
@@ -24,7 +24,7 @@ that's why this temporary thing deletes itself after it's used
 */
 static struct Object *temporary_parent_scope_setter(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.scopeclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Scope, interp->builtins.Object, NULL) == STATUS_ERROR)
 		return NULL;
 
 	struct Object *scope = ARRAYOBJECT_GET(argarr, 0);
@@ -51,9 +51,9 @@ static struct Object *temporary_parent_scope_setter(struct Interpreter *interp, 
 
 struct Object *scopeobject_newsub(struct Interpreter *interp, struct Object *parent_scope)
 {
-	assert(interp->builtins.scopeclass);
+	assert(interp->builtins.Scope);
 
-	struct Object *scope = classobject_newinstance(interp, interp->builtins.scopeclass, NULL, NULL);
+	struct Object *scope = classobject_newinstance(interp, interp->builtins.Scope, NULL, NULL);
 	if (!scope)
 		return NULL;
 
@@ -79,7 +79,7 @@ struct Object *scopeobject_newbuiltin(struct Interpreter *interp)
 {
 	// null is defined in stdlib/builtins.ö, but this is called from builtins.c before builtins.ö runs
 	// builtins.ö replaces this with the correct null object
-	struct Object *fakenull = classobject_newinstance(interp, interp->builtins.scopeclass, NULL, NULL);
+	struct Object *fakenull = classobject_newinstance(interp, interp->builtins.Scope, NULL, NULL);
 	if (!fakenull)
 		return NULL;
 
@@ -90,7 +90,7 @@ struct Object *scopeobject_newbuiltin(struct Interpreter *interp)
 
 static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.scopeclass, interp->builtins.scopeclass, NULL) == STATUS_ERROR) return NULL;
+	if (check_args(interp, argarr, interp->builtins.Scope, interp->builtins.Scope, NULL) == STATUS_ERROR) return NULL;
 	struct Object *scope = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *parent_scope = ARRAYOBJECT_GET(argarr, 1);
 
@@ -112,7 +112,7 @@ error:
 
 static struct Object *set_var(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.scopeclass, interp->builtins.stringclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Scope, interp->builtins.String, interp->builtins.Object, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *scope = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *varname = ARRAYOBJECT_GET(argarr, 1);
@@ -160,7 +160,7 @@ static struct Object *set_var(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *get_var(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.scopeclass, interp->builtins.stringclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Scope, interp->builtins.String, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *scope = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *varname = ARRAYOBJECT_GET(argarr, 1);
@@ -200,7 +200,7 @@ static struct Object *get_var(struct Interpreter *interp, struct Object *argarr)
 
 struct Object *scopeobject_createclass(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, "Scope", interp->builtins.objectclass, NULL);
+	struct Object *klass = classobject_new(interp, "Scope", interp->builtins.Object, NULL);
 	if (!klass)
 		return NULL;
 

@@ -13,12 +13,12 @@
 #include "function.h"
 #include "string.h"
 
-ATTRIBUTE_DEFINE_SIMPLE_GETTER(definition_scope, blockclass)
-ATTRIBUTE_DEFINE_SIMPLE_GETTER(ast_statements, blockclass)
+ATTRIBUTE_DEFINE_SIMPLE_GETTER(definition_scope, Block)
+ATTRIBUTE_DEFINE_SIMPLE_GETTER(ast_statements, Block)
 
 static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.blockclass, interp->builtins.scopeclass, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Block, interp->builtins.Scope, interp->builtins.Array, NULL) == STATUS_ERROR)
 		return NULL;
 
 	struct Object *block = ARRAYOBJECT_GET(argarr, 0);
@@ -32,13 +32,13 @@ int blockobject_run(struct Interpreter *interp, struct Object *block, struct Obj
 	struct Object *ast = attribute_get(interp, block, "ast_statements");
 	if (!ast)
 		return STATUS_ERROR;
-	if (check_type(interp, interp->builtins.arrayclass, ast) == STATUS_ERROR)
+	if (check_type(interp, interp->builtins.Array, ast) == STATUS_ERROR)
 		goto error;
 
 	for (size_t i=0; i < ARRAYOBJECT_LEN(ast); i++) {
 		// ast_statements attribute is an array, so it's possible to add anything into it
 		// must not have bad things happening, run_statements expects AstNodes
-		if (check_type(interp, interp->builtins.astnodeclass, ARRAYOBJECT_GET(ast, i)) == STATUS_ERROR) goto error;
+		if (check_type(interp, interp->builtins.AstNode, ARRAYOBJECT_GET(ast, i)) == STATUS_ERROR) goto error;
 		if (run_statement(interp, scope, ARRAYOBJECT_GET(ast, i)) == STATUS_ERROR) goto error;
 	}
 
@@ -52,7 +52,7 @@ error:
 
 static struct Object *run(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.blockclass, interp->builtins.scopeclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Block, interp->builtins.Scope, NULL) == STATUS_ERROR)
 		return NULL;
 	return (blockobject_run(interp, ARRAYOBJECT_GET(argarr, 0), ARRAYOBJECT_GET(argarr, 1)) == STATUS_OK)
 		? interpreter_getbuiltin(interp, "null") : NULL;
@@ -60,7 +60,7 @@ static struct Object *run(struct Interpreter *interp, struct Object *argarr)
 
 struct Object *blockobject_createclass(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, "Block", interp->builtins.objectclass, NULL);
+	struct Object *klass = classobject_new(interp, "Block", interp->builtins.Object, NULL);
 	if (!klass)
 		return NULL;
 
@@ -77,7 +77,7 @@ error:
 
 struct Object *blockobject_new(struct Interpreter *interp, struct Object *definition_scope, struct Object *astnodearr)
 {
-	struct Object *block = classobject_newinstance(interp, interp->builtins.blockclass, NULL, NULL);
+	struct Object *block = classobject_newinstance(interp, interp->builtins.Block, NULL, NULL);
 	if (!block)
 		return NULL;
 

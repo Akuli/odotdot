@@ -42,7 +42,7 @@ static void function_destructor(struct Object *func)
 
 struct Object *functionobject_createclass(struct Interpreter *interp)
 {
-	return classobject_new(interp, "Function", interp->builtins.objectclass, function_foreachref);
+	return classobject_new(interp, "Function", interp->builtins.Object, function_foreachref);
 }
 
 
@@ -77,7 +77,7 @@ static struct Object *create_a_partial(struct Interpreter *interp, struct Object
 	newdata->name = data->name;
 	OBJECT_INCREF(interp, newdata->name);
 
-	struct Object *obj = classobject_newinstance(interp, interp->builtins.functionclass, newdata, function_destructor);
+	struct Object *obj = classobject_newinstance(interp, interp->builtins.Function, newdata, function_destructor);
 	if (!obj) {
 		OBJECT_DECREF(interp, newdata->name);
 		for (size_t i=0; i < newdata->npartialargs; i++)
@@ -97,7 +97,7 @@ static struct Object *partial(struct Interpreter *interp, struct Object *argarr)
 		errorobject_setwithfmt(interp, "not enough arguments to Function.partial");
 		return NULL;
 	}
-	if (check_type(interp, interp->builtins.functionclass, ARRAYOBJECT_GET(argarr, 0)) == STATUS_ERROR)
+	if (check_type(interp, interp->builtins.Function, ARRAYOBJECT_GET(argarr, 0)) == STATUS_ERROR)
 		return NULL;
 
 	return create_a_partial(interp, ARRAYOBJECT_GET(argarr, 0),
@@ -112,7 +112,7 @@ struct Object *functionobject_newpartial(struct Interpreter *interp, struct Obje
 
 static struct Object *name_getter(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.functionclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Function, NULL) == STATUS_ERROR)
 		return NULL;
 
 	struct FunctionData *data = ARRAYOBJECT_GET(argarr, 0)->data;
@@ -122,7 +122,7 @@ static struct Object *name_getter(struct Interpreter *interp, struct Object *arg
 
 static struct Object *name_setter(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.functionclass, interp->builtins.stringclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Function, interp->builtins.String, NULL) == STATUS_ERROR)
 		return NULL;
 
 	struct FunctionData *data = ARRAYOBJECT_GET(argarr, 0)->data;
@@ -148,7 +148,7 @@ int functionobject_setname(struct Interpreter *interp, struct Object *func, char
 
 static struct Object *to_debug_string(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.functionclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Function, NULL) == STATUS_ERROR)
 		return NULL;
 
 	struct Object *func = ARRAYOBJECT_GET(argarr, 0);
@@ -168,10 +168,10 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 
 int functionobject_addmethods(struct Interpreter *interp)
 {
-	if (attribute_add(interp, interp->builtins.functionclass, "name", name_getter, name_setter) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.functionclass, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.functionclass, "partial", partial) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.functionclass, "to_debug_string", to_debug_string) == STATUS_ERROR) return STATUS_ERROR;
+	if (attribute_add(interp, interp->builtins.Function, "name", name_getter, name_setter) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.Function, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.Function, "partial", partial) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.Function, "to_debug_string", to_debug_string) == STATUS_ERROR) return STATUS_ERROR;
 	return STATUS_OK;
 }
 
@@ -195,7 +195,7 @@ struct Object *functionobject_new(struct Interpreter *interp, functionobject_cfu
 	data->partialargs = NULL;
 	data->npartialargs = 0;
 
-	struct Object *obj = classobject_newinstance(interp, interp->builtins.functionclass, data, function_destructor);
+	struct Object *obj = classobject_newinstance(interp, interp->builtins.Function, data, function_destructor);
 	if (!obj) {
 		OBJECT_DECREF(interp, nameobj);
 		free(data);
@@ -206,7 +206,7 @@ struct Object *functionobject_new(struct Interpreter *interp, functionobject_cfu
 
 struct Object *functionobject_call(struct Interpreter *interp, struct Object *func, ...)
 {
-	assert(func->klass == interp->builtins.functionclass);    // TODO: better type check
+	assert(func->klass == interp->builtins.Function);    // TODO: better type check
 
 	struct Object *argarr = arrayobject_newempty(interp);
 	if (!argarr)

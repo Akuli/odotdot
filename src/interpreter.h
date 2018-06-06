@@ -8,22 +8,6 @@
 struct Context;
 struct Object;
 
-struct InterpreterBuiltins {
-	struct Object *arrayclass;
-	struct Object *astnodeclass;
-	struct Object *blockclass;
-	struct Object *classclass;    // the class of class objects
-	struct Object *errorclass;
-	struct Object *functionclass;
-	struct Object *integerclass;
-	struct Object *mappingclass;
-	struct Object *objectclass;
-	struct Object *scopeclass;
-	struct Object *stringclass;
-
-	struct Object *nomemerr;
-};
-
 struct Interpreter {
 	// this is set to argv[0] from main(), useful for error messages
 	char *argv0;
@@ -39,7 +23,21 @@ struct Interpreter {
 	struct AllObjects allobjects;
 
 	// this holds references to built-in classes, functions and stuff
-	struct InterpreterBuiltins builtins;
+	struct {
+		struct Object *Array;
+		struct Object *AstNode;
+		struct Object *Block;
+		struct Object *Class;    // the class of class objects
+		struct Object *Error;
+		struct Object *Function;
+		struct Object *Integer;
+		struct Object *Mapping;
+		struct Object *Object;
+		struct Object *Scope;
+		struct Object *String;
+
+		struct Object *nomemerr;
+	} builtins;
 };
 
 // returns NULL on no mem

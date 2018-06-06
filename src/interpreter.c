@@ -28,16 +28,16 @@ struct Interpreter *interpreter_new(char *argv0)
 
 	interp->err =
 	interp->builtinscope =
-	interp->builtins.arrayclass =
-	interp->builtins.astnodeclass =
-	interp->builtins.blockclass =
-	interp->builtins.classclass =
-	interp->builtins.errorclass =
-	interp->builtins.functionclass =
-	interp->builtins.integerclass =
-	interp->builtins.mappingclass =
-	interp->builtins.objectclass =
-	interp->builtins.stringclass =
+	interp->builtins.Array =
+	interp->builtins.AstNode =
+	interp->builtins.Block =
+	interp->builtins.Class =
+	interp->builtins.Error =
+	interp->builtins.Function =
+	interp->builtins.Integer =
+	interp->builtins.Mapping =
+	interp->builtins.Object =
+	interp->builtins.String =
 
 	interp->builtins.nomemerr =
 	NULL;

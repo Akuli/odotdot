@@ -66,7 +66,7 @@ struct Object *mappingobject_newempty(struct Interpreter *interp)
 		return NULL;
 	}
 
-	struct Object *map = classobject_newinstance(interp, interp->builtins.mappingclass, data, mapping_destructor);
+	struct Object *map = classobject_newinstance(interp, interp->builtins.Mapping, data, mapping_destructor);
 	if (!map) {
 		free(data->buckets);
 		free(data);
@@ -80,7 +80,7 @@ struct Object *mappingobject_newempty(struct Interpreter *interp)
 
 static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.mappingclass, interp->builtins.arrayclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Mapping, interp->builtins.Array, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *map = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *pairs = ARRAYOBJECT_GET(argarr, 1);
@@ -101,7 +101,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 
 	for (size_t i=0; i < ARRAYOBJECT_LEN(pairs); i++) {
 		struct Object *pair = ARRAYOBJECT_GET(pairs, i);
-		if (!classobject_isinstanceof(pair, interp->builtins.arrayclass) || ARRAYOBJECT_LEN(pair) != 2) {
+		if (!classobject_isinstanceof(pair, interp->builtins.Array) || ARRAYOBJECT_LEN(pair) != 2) {
 			errorobject_setwithfmt(interp, "expected a [key value] pair, got %D", pair);
 			return NULL;
 		}
@@ -115,7 +115,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *length_getter(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.mappingclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Mapping, NULL) == STATUS_ERROR)
 		return NULL;
 	return integerobject_newfromlonglong(interp, MAPPINGOBJECT_SIZE(ARRAYOBJECT_GET(argarr, 0)));
 }
@@ -211,7 +211,7 @@ int mappingobject_set(struct Interpreter *interp, struct Object *map, struct Obj
 
 static struct Object *set(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.mappingclass, interp->builtins.objectclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Mapping, interp->builtins.Object, interp->builtins.Object, NULL) == STATUS_ERROR)
 		return NULL;
 	if (mappingobject_set(interp, ARRAYOBJECT_GET(argarr, 0), ARRAYOBJECT_GET(argarr, 1), ARRAYOBJECT_GET(argarr, 2)) == STATUS_ERROR)
 		return NULL;
@@ -243,7 +243,7 @@ int mappingobject_get(struct Interpreter *interp, struct Object *map, struct Obj
 
 static struct Object *get(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.mappingclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Mapping, interp->builtins.Object, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *map = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *key = ARRAYOBJECT_GET(argarr, 1);
@@ -260,7 +260,7 @@ static struct Object *get(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *get_and_delete(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.mappingclass, interp->builtins.objectclass, NULL) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Mapping, interp->builtins.Object, NULL) == STATUS_ERROR)
 		return NULL;
 	struct Object *map = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *key = ARRAYOBJECT_GET(argarr, 1);
@@ -313,12 +313,12 @@ static struct Object *delete(struct Interpreter *interp, struct Object *argarr)
 
 int mappingobject_addmethods(struct Interpreter *interp)
 {
-	if (attribute_add(interp, interp->builtins.mappingclass, "length", length_getter, NULL) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.mappingclass, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.mappingclass, "set", set) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.mappingclass, "get", get) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.mappingclass, "delete", delete) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.mappingclass, "get_and_delete", get_and_delete) == STATUS_ERROR) return STATUS_ERROR;
+	if (attribute_add(interp, interp->builtins.Mapping, "length", length_getter, NULL) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.Mapping, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.Mapping, "set", set) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.Mapping, "get", get) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.Mapping, "delete", delete) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.Mapping, "get_and_delete", get_and_delete) == STATUS_ERROR) return STATUS_ERROR;
 	// TODO: to_debug_string
 	return STATUS_OK;
 }
@@ -374,5 +374,5 @@ static void foreachref(struct Object *map, void *cbdata, classobject_foreachrefc
 
 struct Object *mappingobject_createclass(struct Interpreter *interp)
 {
-	return classobject_new(interp, "Mapping", interp->builtins.objectclass, foreachref);
+	return classobject_new(interp, "Mapping", interp->builtins.Object, foreachref);
 }

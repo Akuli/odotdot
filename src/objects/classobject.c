@@ -34,8 +34,8 @@ struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, str
 	data->getters = NULL;
 	data->foreachref = foreachref;
 
-	// interp->classclass can be NULL, see builtins_setup()
-	struct Object *klass = object_new_noerr(interp, interp->builtins.classclass, data, class_destructor);
+	// interp->Class can be NULL, see builtins_setup()
+	struct Object *klass = object_new_noerr(interp, interp->builtins.Class, data, class_destructor);
 	if (!klass) {
 		OBJECT_DECREF(interp, base);
 		free(data);
@@ -47,10 +47,10 @@ struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, str
 
 struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *base, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb))
 {
-	assert(interp->builtins.classclass);
+	assert(interp->builtins.Class);
 	assert(interp->builtins.nomemerr);
 
-	if (!classobject_isinstanceof(base->klass, interp->builtins.classclass)) {
+	if (!classobject_isinstanceof(base->klass, interp->builtins.Class)) {
 		// TODO: test this
 		errorobject_setwithfmt(interp, "cannot inherit a new class from %D", base);
 		return NULL;
@@ -67,7 +67,7 @@ struct Object *classobject_new(struct Interpreter *interp, char *name, struct Ob
 
 struct Object *classobject_newinstance(struct Interpreter *interp, struct Object *klass, void *data, void (*destructor)(struct Object*))
 {
-	if (!classobject_isinstanceof(klass, interp->builtins.classclass)) {
+	if (!classobject_isinstanceof(klass, interp->builtins.Class)) {
 		// TODO: test this
 		errorobject_setwithfmt(interp, "cannot create an instance of %D", klass);
 		return NULL;
@@ -112,10 +112,10 @@ static void class_foreachref(struct Object *klass, void *cbdata, classobject_for
 }
 
 
-struct Object *classobject_create_classclass_noerr(struct Interpreter *interp)
+struct Object *classobject_create_Class_noerr(struct Interpreter *interp)
 {
 	// TODO: should the name of class objects be implemented as an attribute?
-	return classobject_new_noerr(interp, "Class", interp->builtins.objectclass, class_foreachref);
+	return classobject_new_noerr(interp, "Class", interp->builtins.Object, class_foreachref);
 }
 
 static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
@@ -126,7 +126,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 
 int classobject_addmethods(struct Interpreter *interp)
 {
-	if (method_add(interp, interp->builtins.classclass, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.Class, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
 	// TODO: to_debug_string
 	return STATUS_OK;
 }

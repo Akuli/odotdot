@@ -25,12 +25,12 @@ struct Object *errorobject_createclass_noerr(struct Interpreter *interp)
 {
 	// Error objects can have any attributes
 	// TODO: use a message attribute instead of ->data?
-	return classobject_new_noerr(interp, "Error", interp->builtins.objectclass, error_foreachref);
+	return classobject_new_noerr(interp, "Error", interp->builtins.Object, error_foreachref);
 }
 
 static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.errorclass, interp->builtins.stringclass) == STATUS_ERROR)
+	if (check_args(interp, argarr, interp->builtins.Error, interp->builtins.String) == STATUS_ERROR)
 		return NULL;
 
 	struct Object *err = ARRAYOBJECT_GET(argarr, 0);
@@ -47,7 +47,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 int errorobject_addmethods(struct Interpreter *interp)
 {
 	// TODO: to_debug_string
-	if (method_add(interp, interp->builtins.errorclass, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
+	if (method_add(interp, interp->builtins.Error, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
 	return STATUS_OK;
 }
 
@@ -79,14 +79,14 @@ struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 	for (size_t i=0; i < ustr->len; i++)
 		ustr->val[i] = msg[i];
 
-	struct Object *str = object_new_noerr(interp, interp->builtins.stringclass, ustr, string_destructor);
+	struct Object *str = object_new_noerr(interp, interp->builtins.String, ustr, string_destructor);
 	if (!str) {
 		free(ustr->val);
 		free(ustr);
 		return NULL;
 	}
 
-	struct Object *err = object_new_noerr(interp, interp->builtins.errorclass, str, NULL);
+	struct Object *err = object_new_noerr(interp, interp->builtins.Error, str, NULL);
 	if (!err) {
 		OBJECT_DECREF(interp, str);   // takes care of ustr and ustr->val
 		return NULL;
@@ -104,7 +104,7 @@ int errorobject_setwithfmt(struct Interpreter *interp, char *fmt, ...)
 	if (!msg)
 		return STATUS_ERROR;
 
-	struct Object *err = classobject_newinstance(interp, interp->builtins.errorclass, msg, NULL);
+	struct Object *err = classobject_newinstance(interp, interp->builtins.Error, msg, NULL);
 	// don't decref msg, instead let err hold a reference to it
 	if (!err) {
 		OBJECT_DECREF(interp, msg);
