@@ -13,6 +13,7 @@
 #include "classobject.h"
 #include "errors.h"
 #include "mapping.h"
+#include "null.h"
 #include "string.h"
 
 
@@ -129,7 +130,7 @@ static struct Object *name_setter(struct Interpreter *interp, struct Object *arg
 	OBJECT_DECREF(interp, data->name);
 	data->name = ARRAYOBJECT_GET(argarr, 1);
 	OBJECT_INCREF(interp, data->name);
-	return interpreter_getbuiltin(interp, "null");
+	return nullobject_get(interp);
 }
 
 int functionobject_setname(struct Interpreter *interp, struct Object *func, char *newname)

@@ -13,6 +13,7 @@
 #include "array.h"
 #include "classobject.h"
 #include "mapping.h"
+#include "null.h"
 #include "string.h"
 
 static void error_foreachref(struct Object *obj, void *data, classobject_foreachrefcb cb)
@@ -41,7 +42,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 
 	err->data = ARRAYOBJECT_GET(argarr, 1);
 	OBJECT_INCREF(interp, ARRAYOBJECT_GET(argarr, 1));
-	return interpreter_getbuiltin(interp, "null");
+	return nullobject_get(interp);
 }
 
 int errorobject_addmethods(struct Interpreter *interp)

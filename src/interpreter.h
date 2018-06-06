@@ -32,9 +32,11 @@ struct Interpreter {
 		struct Object *Function;
 		struct Object *Integer;
 		struct Object *Mapping;
-		struct Object *Object;
+		struct Object *Object;   // yes, this works
 		struct Object *Scope;
 		struct Object *String;
+
+		struct Object *null;   // NOT the (void*)0 NULL, see Objects/null.{c,h}
 
 		struct Object *nomemerr;
 	} builtins;

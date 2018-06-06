@@ -11,6 +11,7 @@
 #include "classobject.h"
 #include "errors.h"
 #include "function.h"
+#include "null.h"
 #include "string.h"
 
 ATTRIBUTE_DEFINE_SIMPLE_GETTER(definition_scope, Block)
@@ -24,7 +25,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 	struct Object *block = ARRAYOBJECT_GET(argarr, 0);
 	if (attribute_settoattrdata(interp, block, "definition_scope", ARRAYOBJECT_GET(argarr, 1)) == STATUS_ERROR) return NULL;
 	if (attribute_settoattrdata(interp, block, "ast_statements", ARRAYOBJECT_GET(argarr, 2)) == STATUS_ERROR) return NULL;
-	return interpreter_getbuiltin(interp, "null");
+	return nullobject_get(interp);
 }
 
 int blockobject_run(struct Interpreter *interp, struct Object *block, struct Object *scope)
@@ -55,7 +56,7 @@ static struct Object *run(struct Interpreter *interp, struct Object *argarr)
 	if (check_args(interp, argarr, interp->builtins.Block, interp->builtins.Scope, NULL) == STATUS_ERROR)
 		return NULL;
 	return (blockobject_run(interp, ARRAYOBJECT_GET(argarr, 0), ARRAYOBJECT_GET(argarr, 1)) == STATUS_OK)
-		? interpreter_getbuiltin(interp, "null") : NULL;
+		? nullobject_get(interp) : NULL;
 }
 
 struct Object *blockobject_createclass(struct Interpreter *interp)

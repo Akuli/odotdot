@@ -14,6 +14,7 @@
 #include "errors.h"
 #include "function.h"
 #include "integer.h"
+#include "null.h"
 #include "string.h"
 
 static void array_foreachref(struct Object *arr, void *cbdata, classobject_foreachrefcb cb)
@@ -160,7 +161,7 @@ static struct Object *set(struct Interpreter *interp, struct Object *argarr)
 	data->elems[i] = obj;
 	OBJECT_INCREF(interp, obj);
 
-	return interpreter_getbuiltin(interp, "null");
+	return nullobject_get(interp);
 }
 
 static struct Object *push(struct Interpreter *interp, struct Object *argarr)
@@ -172,7 +173,7 @@ static struct Object *push(struct Interpreter *interp, struct Object *argarr)
 
 	if (arrayobject_push(interp, arr, obj) == STATUS_ERROR)
 		return NULL;
-	return interpreter_getbuiltin(interp, "null");
+	return nullobject_get(interp);
 }
 
 static struct Object *pop(struct Interpreter *interp, struct Object *argarr)

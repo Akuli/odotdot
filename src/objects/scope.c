@@ -11,42 +11,8 @@
 #include "errors.h"
 #include "function.h"
 #include "mapping.h"
+#include "null.h"
 #include "string.h"
-
-
-ATTRIBUTE_DEFINE_SIMPLE_GETTER(parent_scope, Scope)
-ATTRIBUTE_DEFINE_SIMPLE_GETTER(local_vars, Scope)
-
-/* this is a weird thing
-builtins.ö sets the parent scope of the built-in scope to null once
-because it creates null and the built-in scope is created before it runs
-that's why this temporary thing deletes itself after it's used
-*/
-static struct Object *temporary_parent_scope_setter(struct Interpreter *interp, struct Object *argarr)
-{
-	if (check_args(interp, argarr, interp->builtins.Scope, interp->builtins.Object, NULL) == STATUS_ERROR)
-		return NULL;
-
-	struct Object *scope = ARRAYOBJECT_GET(argarr, 0);
-	struct Object *null = ARRAYOBJECT_GET(argarr, 1);
-	assert(scope == interp->builtinscope);
-
-	if (attribute_settoattrdata(interp, scope, "parent_scope", null) == STATUS_ERROR)
-		return NULL;
-
-	// let's wipe this thing out
-	struct ClassObjectData *classdata = scope->klass->data;
-	assert(classdata->setters);
-
-	struct Object *stringobj = stringobject_newfromcharptr(interp, "parent_scope");
-	if (!stringobj)
-		return NULL;
-
-	// the mapping delete method isn't exposed, but that's ok imo
-	struct Object *ret = method_call(interp, classdata->setters, "delete", stringobj, NULL);
-	OBJECT_DECREF(interp, stringobj);
-	return ret;
-}
 
 
 struct Object *scopeobject_newsub(struct Interpreter *interp, struct Object *parent_scope)
@@ -88,6 +54,10 @@ struct Object *scopeobject_newbuiltin(struct Interpreter *interp)
 	return res;
 }
 
+
+ATTRIBUTE_DEFINE_SIMPLE_GETTER(parent_scope, Scope)
+ATTRIBUTE_DEFINE_SIMPLE_GETTER(local_vars, Scope)
+
 static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 {
 	if (check_args(interp, argarr, interp->builtins.Scope, interp->builtins.Scope, NULL) == STATUS_ERROR) return NULL;
@@ -102,7 +72,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 	if (attribute_settoattrdata(interp, scope, "local_vars", local_vars) == STATUS_ERROR) goto error;
 
 	OBJECT_DECREF(interp, local_vars);
-	return interpreter_getbuiltin(interp, "null");
+	return nullobject_get(interp);
 
 error:
 	OBJECT_DECREF(interp, local_vars);
@@ -130,7 +100,7 @@ static struct Object *set_var(struct Interpreter *interp, struct Object *argarr)
 		// yes
 		OBJECT_DECREF(interp, oldval);
 		int status = mappingobject_set(interp, local_vars, varname, val);
-		return status==STATUS_OK ? interpreter_getbuiltin(interp, "null") : NULL;
+		return status==STATUS_OK ? nullobject_get(interp) : NULL;
 	}
 	if (res == -1)
 		return NULL;
@@ -208,7 +178,7 @@ struct Object *scopeobject_createclass(struct Interpreter *interp)
 	if (method_add(interp, klass, "set_var", set_var) == STATUS_ERROR) goto error;
 	if (method_add(interp, klass, "get_var", get_var) == STATUS_ERROR) goto error;
 	if (attribute_add(interp, klass, "local_vars", local_vars_getter, NULL) == STATUS_ERROR) goto error;
-	if (attribute_add(interp, klass, "parent_scope", parent_scope_getter, temporary_parent_scope_setter) == STATUS_ERROR) goto error;
+	if (attribute_add(interp, klass, "parent_scope", parent_scope_getter, NULL) == STATUS_ERROR) goto error;
 	return klass;
 
 error:

@@ -10,6 +10,7 @@
 #include "errors.h"
 #include "function.h"
 #include "integer.h"
+#include "null.h"
 #include "string.h"
 
 static void object_foreachref(struct Object *obj, void *data, classobject_foreachrefcb cb)
@@ -29,7 +30,7 @@ struct Object *objectobject_createclass_noerr(struct Interpreter *interp)
 // setup does nothing by default
 static struct Object *setup(struct Interpreter *interp, struct Object *argarr) {
 	if (check_args(interp, argarr, interp->builtins.Object, NULL) == STATUS_ERROR) return NULL;
-	return interpreter_getbuiltin(interp, "null");
+	return nullobject_get(interp);
 }
 
 static struct Object *to_debug_string(struct Interpreter *interp, struct Object *argarr)

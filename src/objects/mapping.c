@@ -14,6 +14,7 @@
 #include "classobject.h"
 #include "errors.h"
 #include "integer.h"
+#include "null.h"
 #include "string.h"
 
 // hash should be a signed long, nbuckets should be an unsigned long
@@ -109,7 +110,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 			return NULL;
 	}
 
-	return interpreter_getbuiltin(interp, "null");
+	return nullobject_get(interp);
 }
 
 
@@ -215,7 +216,7 @@ static struct Object *set(struct Interpreter *interp, struct Object *argarr)
 		return NULL;
 	if (mappingobject_set(interp, ARRAYOBJECT_GET(argarr, 0), ARRAYOBJECT_GET(argarr, 1), ARRAYOBJECT_GET(argarr, 2)) == STATUS_ERROR)
 		return NULL;
-	return interpreter_getbuiltin(interp, "null");
+	return nullobject_get(interp);
 }
 
 
@@ -307,7 +308,7 @@ static struct Object *delete(struct Interpreter *interp, struct Object *argarr)
 		return NULL;
 
 	OBJECT_DECREF(interp, res);
-	return interpreter_getbuiltin(interp, "null");
+	return nullobject_get(interp);
 }
 
 

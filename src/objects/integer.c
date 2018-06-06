@@ -17,6 +17,7 @@
 #include "classobject.h"
 #include "errors.h"
 #include "function.h"
+#include "null.h"
 #include "string.h"
 
 
@@ -112,7 +113,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 	integer->data = data;
 	integer->destructor = integer_destructor;
 	integer->hash = (unsigned int) *data;
-	return interpreter_getbuiltin(interp, "null");
+	return nullobject_get(interp);
 }
 
 static struct Object *to_string(struct Interpreter *interp, struct Object *argarr)

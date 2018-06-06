@@ -1,11 +1,6 @@
 # FIXME: these suck
 var true = "true";
 var false = "false";
-var null = "null";
-
-# the C code doesn't set this to null because null doesn't exist yet
-# but scope.c has some special stuff that handles this
-{}.definition_scope.parent_scope = null;
 
 # closures ftw
 var if = null;

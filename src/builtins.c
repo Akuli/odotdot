@@ -18,6 +18,7 @@
 #include "objects/function.h"
 #include "objects/integer.h"
 #include "objects/mapping.h"
+#include "objects/null.h"
 #include "objects/object.h"
 #include "objects/scope.h"
 #include "objects/string.h"
@@ -65,9 +66,9 @@ static struct Object *lambda_runner(struct Interpreter *interp, struct Object *a
 		OBJECT_DECREF(interp, localvars);
 		OBJECT_DECREF(interp, scope);
 	}
-	struct Object *returndefault = interpreter_getbuiltin(interp, "null");
-	if (!returndefault)
-		goto error;
+	struct Object *returndefault = nullobject_get(interp);
+	assert(returndefault);   // should never fail
+
 	int status = mappingobject_set(interp, localvars, returnstring, returndefault);
 	OBJECT_DECREF(interp, returndefault);
 	if (status == STATUS_ERROR)
@@ -170,7 +171,7 @@ static struct Object *catch(struct Interpreter *interp, struct Object *argarr)
 	}
 
 	// everything succeeded or the error handling code succeeded
-	return interpreter_getbuiltin(interp, "null");
+	return nullobject_get(interp);
 }
 
 static struct Object *get_class(struct Interpreter *interp, struct Object *argarr)
@@ -230,7 +231,7 @@ static struct Object *print(struct Interpreter *interp, struct Object *argarr)
 	free(utf8);
 	putchar('\n');
 
-	return interpreter_getbuiltin(interp, "null");
+	return nullobject_get(interp);
 }
 
 
@@ -315,6 +316,7 @@ int builtins_setup(struct Interpreter *interp)
 	if (mappingobject_addmethods(interp) == STATUS_ERROR) goto error;
 	if (functionobject_addmethods(interp) == STATUS_ERROR) goto error;
 
+	if (!(interp->builtins.null = nullobject_create(interp))) goto error;
 	if (!(interp->builtins.Array = arrayobject_createclass(interp))) goto error;
 	if (!(interp->builtins.Integer = integerobject_createclass(interp))) goto error;
 	if (!(interp->builtins.AstNode = astnodeobject_createclass(interp))) goto error;
@@ -331,6 +333,7 @@ int builtins_setup(struct Interpreter *interp)
 	if (interpreter_addbuiltin(interp, "Object", interp->builtins.Object) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "Scope", interp->builtins.Scope) == STATUS_ERROR) goto error;
 	if (interpreter_addbuiltin(interp, "String", interp->builtins.String) == STATUS_ERROR) goto error;
+	if (interpreter_addbuiltin(interp, "null", interp->builtins.null) == STATUS_ERROR) goto error;
 
 	if (add_function(interp, "lambda", lambda) == STATUS_ERROR) goto error;
 	if (add_function(interp, "catch", catch) == STATUS_ERROR) goto error;
@@ -402,7 +405,7 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(Object);
 	TEARDOWN(Scope);
 	TEARDOWN(String);
-
+	TEARDOWN(null);
 	TEARDOWN(nomemerr);
 #undef TEARDOWN
 

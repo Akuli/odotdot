@@ -7,6 +7,7 @@
 #include "objects/array.h"
 #include "objects/errors.h"
 #include "objects/function.h"
+#include "objects/null.h"
 
 // returns STATUS_OK or STATUS_ERROR
 // setter and getter can be NULL (but not both, that would do nothing)
@@ -47,7 +48,7 @@ int attribute_set(struct Interpreter *interp, struct Object *obj, char *attr, st
 		if (check_args(interp, argarr, interp->builtins.CLASSNAME, interp->builtins.VALUECLASSNAME, NULL) == STATUS_ERROR) \
 			return NULL; \
 		return attribute_settoattrdata(interp, ARRAYOBJECT_GET(argarr, 0), #ATTRNAME, ARRAYOBJECT_GET(argarr, 1))==STATUS_OK \
-			? interpreter_getbuiltin(interp, "null") : NULL; \
+			? nullobject_get(interp) : NULL; \
 	}
 
 
