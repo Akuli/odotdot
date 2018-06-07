@@ -226,14 +226,11 @@ things that I would like to do some day. It's a mess.
         ```
 
 ## testing
-- tests suck!! :(
+- some tests suck, they are commented out in `ctests/run.c`
     - they started sucking when they required running `stdlib/builtins.ö` but i
       couldn't figure out a good way to run it run without lots of copy/pasta
     - still haven't figured out
     - everything has gotten less and less tested since then...
-    - now the tests run, but lots of stuff is commented out :(
-        - i'm especially interested in getting unicode stuff tested, i recently
-          changed it quite a bit and it might be broken
 - waiting for importing and good exception catching so i can write tests in ö
     - maybe an `include` function would be good enough for now? :D
 - docs should be used as reference when writing the tests, also look through
