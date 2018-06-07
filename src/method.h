@@ -7,10 +7,10 @@
 #include "objects/function.h"
 #include "unicode.h"
 
-// returns STATUS_OK or STATUS_ERROR
+// returns false on error
 // name must be valid UTF-8
 // bad things happen if klass is not a class object
-int method_add(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc cfunc);
+bool method_add(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc cfunc);
 
 // RETURNS A NEW REFERENCE or NULL on error
 // name must be valid utf-8

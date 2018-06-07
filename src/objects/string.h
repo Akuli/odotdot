@@ -2,6 +2,7 @@
 #define OBJECTS_STRING_H
 
 #include <stdarg.h>
+#include <stdbool.h>
 #include "../interpreter.h"    // IWYU pragma: keep
 #include "../objectsystem.h"   // IWYU pragma: keep
 #include "../unicode.h"        // IWYU pragma: keep
@@ -16,8 +17,8 @@
 struct Object *stringobject_createclass_noerr(struct Interpreter *interp);
 
 // should be called when other stuff is set up, see builtins_setup()
-// returns STATUS_OK or STATUS_ERROR
-int stringobject_addmethods(struct Interpreter *interp);
+// returns false on error
+bool stringobject_addmethods(struct Interpreter *interp);
 
 // makes a copy of ustr with unicodestring_copy(), returns NULL on error
 // RETURNS A NEW REFERENCE

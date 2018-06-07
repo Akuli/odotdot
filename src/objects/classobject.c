@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../check.h"
-#include "../common.h"
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"
@@ -80,7 +79,7 @@ struct Object *classobject_newinstance(struct Interpreter *interp, struct Object
 	return instance;
 }
 
-int classobject_isinstanceof(struct Object *obj, struct Object *klass)
+bool classobject_isinstanceof(struct Object *obj, struct Object *klass)
 {
 	struct Object *klass2 = obj->klass;
 	do {
@@ -124,9 +123,9 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 	return NULL;
 }
 
-int classobject_addmethods(struct Interpreter *interp)
+bool classobject_addmethods(struct Interpreter *interp)
 {
-	if (method_add(interp, interp->builtins.Class, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
+	if (!method_add(interp, interp->builtins.Class, "setup", setup)) return false;
 	// TODO: to_debug_string
-	return STATUS_OK;
+	return true;
 }

@@ -8,7 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../check.h"
-#include "../common.h"
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"
@@ -21,13 +20,13 @@
 #include "string.h"
 
 
-// returns STATUS_OK or STATUS_ERROR
-static int parse_ustr(struct Interpreter *interp, struct UnicodeString ustr, long long *res)
+// returns false on error
+static bool parse_ustr(struct Interpreter *interp, struct UnicodeString ustr, long long *res)
 {
 	struct UnicodeString origstr = ustr;
 	if (ustr.len == 0) {
 		errorobject_setwithfmt(interp, "'' is not an integer");
-		return STATUS_ERROR;
+		return false;
 	}
 
 	bool isnegative=(ustr.val[0] == '-');
@@ -45,7 +44,7 @@ static int parse_ustr(struct Interpreter *interp, struct UnicodeString ustr, lon
 
 	if (ustr.len == 0) {
 		errorobject_setwithfmt(interp, "'%U' is not an integer", origstr);
-		return STATUS_ERROR;
+		return false;
 	}
 	if (ustr.len > INTEGEROBJECT_MAXDIGITS) {
 		// FIXME: make sure to get the correct error message
@@ -57,7 +56,7 @@ static int parse_ustr(struct Interpreter *interp, struct UnicodeString ustr, lon
 	for (int i=0; i < (int)ustr.len; i++) {
 		if (ustr.val[i] < '0' || ustr.val[i] > '9') {
 			errorobject_setwithfmt(interp, "'%U' is not an integer", origstr);
-			return STATUS_ERROR;
+			return false;
 		}
 		digits[i] = ustr.val[i] - '0';
 	}
@@ -76,11 +75,11 @@ static int parse_ustr(struct Interpreter *interp, struct UnicodeString ustr, lon
 #undef ABSMAX
 
 	*res = isnegative ? -((long long)(absval-1)) - 1 : (long long)absval;
-	return STATUS_OK;
+	return true;
 
 mustBbetween:
 	errorobject_setwithfmt(interp, "integers must be between %s and %s, but '%U' is not", INTEGEROBJECT_MINSTR, INTEGEROBJECT_MAXSTR, origstr);
-	return STATUS_ERROR;
+	return false;
 }
 
 static void integer_destructor(struct Object *integer)
@@ -92,7 +91,7 @@ static void integer_destructor(struct Object *integer)
 // (new Integer "123") converts a string to an integer
 static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Integer, interp->builtins.String, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Integer, interp->builtins.String, NULL))
 		return NULL;
 
 	struct Object *integer = ARRAYOBJECT_GET(argarr, 0);
@@ -107,7 +106,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 		errorobject_setnomem(interp);
 		return NULL;
 	}
-	if (parse_ustr(interp, *((struct UnicodeString*) string->data), data) == STATUS_ERROR)
+	if (!parse_ustr(interp, *((struct UnicodeString*) string->data), data))
 		return NULL;
 
 	integer->data = data;
@@ -118,7 +117,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *to_string(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Integer, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Integer, NULL))
 		return NULL;
 
 	long long val = *((long long *) ARRAYOBJECT_GET(argarr, 0)->data);
@@ -153,7 +152,7 @@ static struct Object *to_string(struct Interpreter *interp, struct Object *argar
 // FIXME: we need operators
 static struct Object *plus(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Integer, interp->builtins.Integer, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Integer, interp->builtins.Integer, NULL))
 		return NULL;
 
 	long long x = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 0));
@@ -167,10 +166,10 @@ struct Object *integerobject_createclass(struct Interpreter *interp)
 	if (!klass)
 		return NULL;
 
-	if (method_add(interp, klass, "setup", setup) == STATUS_ERROR) goto error;
-	if (method_add(interp, klass, "to_string", to_string) == STATUS_ERROR) goto error;
-	if (method_add(interp, klass, "to_debug_string", to_string) == STATUS_ERROR) goto error;
-	if (method_add(interp, klass, "plus", plus) == STATUS_ERROR) goto error;
+	if (!method_add(interp, klass, "setup", setup)) goto error;
+	if (!method_add(interp, klass, "to_string", to_string)) goto error;
+	if (!method_add(interp, klass, "to_debug_string", to_string)) goto error;
+	if (!method_add(interp, klass, "plus", plus)) goto error;
 	return klass;
 
 error:
@@ -201,7 +200,7 @@ struct Object *integerobject_newfromlonglong(struct Interpreter *interp, long lo
 struct Object *integerobject_newfromustr(struct Interpreter *interp, struct UnicodeString ustr)
 {
 	long long val;
-	if (parse_ustr(interp, ustr, &val) == STATUS_ERROR)
+	if (!parse_ustr(interp, ustr, &val))
 		return NULL;
 	return integerobject_newfromlonglong(interp, val);
 }

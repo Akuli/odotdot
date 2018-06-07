@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "builtins.h"
-#include "common.h"
 #include "gc.h"
 #include "interpreter.h"
 #include "objectsystem.h"
@@ -21,8 +20,8 @@
 #define FILE_CHUNK_SIZE 4096
 
 
-// returns STATUS_OK or STATUS_ERROR
-int read_file_to_huge_string(struct Interpreter *interp, char *filename, FILE *f, char **dest, size_t *destlen)
+// returns false on error
+bool read_file_to_huge_string(struct Interpreter *interp, char *filename, FILE *f, char **dest, size_t *destlen)
 {
 	char *s = NULL;
 	char buf[FILE_CHUNK_SIZE];
@@ -35,7 +34,7 @@ int read_file_to_huge_string(struct Interpreter *interp, char *filename, FILE *f
 			// free(NULL) does nothing
 			free(s);
 			errorobject_setnomem(interp);
-			return STATUS_ERROR;
+			return false;
 		}
 		s = ptr;
 		memcpy(s+totalsize, buf, nread);
@@ -46,12 +45,12 @@ int read_file_to_huge_string(struct Interpreter *interp, char *filename, FILE *f
 		free(s);
 		// TODO: include more stuff in the error message, maybe use errno and strerror stuff
 		errorobject_setwithfmt(interp, "an error occurred while reading '%s'", filename);
-		return STATUS_ERROR;
+		return false;
 	}
 
 	*dest = s;
 	*destlen = totalsize;
-	return STATUS_OK;
+	return true;
 }
 
 
@@ -64,23 +63,28 @@ static void print_and_reset_err(struct Interpreter *interp)
 		return;
 	}
 
-	// no memory must be allocated in this case...
 	if (interp->err == interp->builtins.nomemerr) {
+		// no memory must be allocated in this case...
 		fprintf(stderr, "error: not enough memory\n");
 	} else {
+		// utf8_encode may set another error
+		struct Object *errsave = interp->err;
+		interp->err = NULL;
+
 		char *utf8;
 		size_t utf8len;
-
-		if (utf8_encode(interp, *((struct UnicodeString *) ((struct Object *) interp->err->data)->data), &utf8, &utf8len) == STATUS_ERROR) {
-			fprintf(stderr, "failed to display the error\n");
-			OBJECT_DECREF(interp, interp->err);
-			interp->err = NULL;
-		} else {
+		bool ok = utf8_encode(interp, *((struct UnicodeString *) ((struct Object *) errsave->data)->data), &utf8, &utf8len);
+		OBJECT_DECREF(interp, errsave);
+		if (ok) {
 			fprintf(stderr, "error: ");
 			for (size_t i=0; i < utf8len; i++)
 				fputc(utf8[i], stderr);
 			free(utf8);
 			fputc('\n', stderr);
+			return;
+		} else {
+			fprintf(stderr, "failed to display the error\n");
+			// no return yet, interp->err was set to the utf8_encode error and THAT is cleared below
 		}
 	}
 
@@ -101,19 +105,18 @@ static int run_file(struct Interpreter *interp, struct Object *scope, char *path
 
 	char *hugestr;
 	size_t hugestrlen;
-	int status = read_file_to_huge_string(interp, path, f, &hugestr, &hugestrlen);
+	bool ok = read_file_to_huge_string(interp, path, f, &hugestr, &hugestrlen);
 	fclose(f);
-
-	if (status == STATUS_ERROR) {
+	if (!ok) {
 		print_and_reset_err(interp);
 		return 1;
 	}
 
 	// convert to UnicodeString
 	struct UnicodeString hugeunicode;
-	status = utf8_decode(interp, hugestr, hugestrlen, &hugeunicode);
+	ok = utf8_decode(interp, hugestr, hugestrlen, &hugeunicode);
 	free(hugestr);
-	if (status == STATUS_ERROR) {
+	if (!ok) {
 		print_and_reset_err(interp);
 		return 1;
 	}
@@ -142,9 +145,9 @@ static int run_file(struct Interpreter *interp, struct Object *scope, char *path
 			goto end;
 		}
 
-		int status = arrayobject_push(interp, statements, stmtnode);
+		ok = arrayobject_push(interp, statements, stmtnode);
 		OBJECT_DECREF(interp, stmtnode);
-		if (status == STATUS_ERROR) {
+		if (!ok) {
 			print_and_reset_err(interp);
 			token_freeall(tok1st);
 			returnval = 1;
@@ -155,7 +158,7 @@ static int run_file(struct Interpreter *interp, struct Object *scope, char *path
 
 	// run!
 	for (size_t i=0; i < ARRAYOBJECT_LEN(statements); i++) {
-		if (run_statement(interp, scope, ARRAYOBJECT_GET(statements, i)) == STATUS_ERROR) {
+		if (!run_statement(interp, scope, ARRAYOBJECT_GET(statements, i))) {
 			print_and_reset_err(interp);
 			returnval = 1;
 			goto end;
@@ -184,7 +187,7 @@ int main(int argc, char **argv)
 	}
 
 	int returnval = 0;
-	if (builtins_setup(interp) == STATUS_ERROR) {
+	if (!builtins_setup(interp)) {
 		returnval = 1;
 		goto end;
 	}

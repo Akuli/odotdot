@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../check.h"
-#include "../common.h"
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"
@@ -31,7 +30,7 @@ struct Object *errorobject_createclass_noerr(struct Interpreter *interp)
 
 static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Error, interp->builtins.String) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Error, interp->builtins.String))
 		return NULL;
 
 	struct Object *err = ARRAYOBJECT_GET(argarr, 0);
@@ -45,11 +44,11 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 	return nullobject_get(interp);
 }
 
-int errorobject_addmethods(struct Interpreter *interp)
+bool errorobject_addmethods(struct Interpreter *interp)
 {
 	// TODO: to_debug_string
-	if (method_add(interp, interp->builtins.Error, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
-	return STATUS_OK;
+	if (!method_add(interp, interp->builtins.Error, "setup", setup)) return false;
+	return true;
 }
 
 // TODO: stop copy/pasting this from string.c and actually fix things
@@ -96,21 +95,21 @@ struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 }
 
 
-int errorobject_setwithfmt(struct Interpreter *interp, char *fmt, ...)
+bool errorobject_setwithfmt(struct Interpreter *interp, char *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
 	struct Object *msg = stringobject_newfromvfmt(interp, fmt, ap);
 	va_end(ap);
 	if (!msg)
-		return STATUS_ERROR;
+		return false;
 
 	struct Object *err = classobject_newinstance(interp, interp->builtins.Error, msg, NULL);
 	// don't decref msg, instead let err hold a reference to it
 	if (!err) {
 		OBJECT_DECREF(interp, msg);
-		return STATUS_ERROR;
+		return false;
 	}
 	interp->err = err;
-	return STATUS_OK;
+	return true;
 }

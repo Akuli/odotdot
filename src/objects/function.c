@@ -5,7 +5,6 @@
 #include <string.h>
 #include "../attribute.h"
 #include "../check.h"
-#include "../common.h"
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"
@@ -98,7 +97,7 @@ static struct Object *partial(struct Interpreter *interp, struct Object *argarr)
 		errorobject_setwithfmt(interp, "not enough arguments to Function.partial");
 		return NULL;
 	}
-	if (check_type(interp, interp->builtins.Function, ARRAYOBJECT_GET(argarr, 0)) == STATUS_ERROR)
+	if (!check_type(interp, interp->builtins.Function, ARRAYOBJECT_GET(argarr, 0)))
 		return NULL;
 
 	return create_a_partial(interp, ARRAYOBJECT_GET(argarr, 0),
@@ -113,7 +112,7 @@ struct Object *functionobject_newpartial(struct Interpreter *interp, struct Obje
 
 static struct Object *name_getter(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Function, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Function, NULL))
 		return NULL;
 
 	struct FunctionData *data = ARRAYOBJECT_GET(argarr, 0)->data;
@@ -123,7 +122,7 @@ static struct Object *name_getter(struct Interpreter *interp, struct Object *arg
 
 static struct Object *name_setter(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Function, interp->builtins.String, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Function, interp->builtins.String, NULL))
 		return NULL;
 
 	struct FunctionData *data = ARRAYOBJECT_GET(argarr, 0)->data;
@@ -133,23 +132,23 @@ static struct Object *name_setter(struct Interpreter *interp, struct Object *arg
 	return nullobject_get(interp);
 }
 
-int functionobject_setname(struct Interpreter *interp, struct Object *func, char *newname)
+bool functionobject_setname(struct Interpreter *interp, struct Object *func, char *newname)
 {
 	struct Object *newnameobj = stringobject_newfromcharptr(interp, newname);
 	if (!newnameobj)
-		return STATUS_ERROR;
+		return false;
 
 	struct FunctionData *data = func->data;
 	OBJECT_DECREF(interp, data->name);
 	data->name = newnameobj;
 	// no need to incref, newnameobj is already holding a reference
-	return STATUS_OK;
+	return true;
 }
 
 
 static struct Object *to_debug_string(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Function, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Function, NULL))
 		return NULL;
 
 	struct Object *func = ARRAYOBJECT_GET(argarr, 0);
@@ -167,13 +166,13 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 }
 
 
-int functionobject_addmethods(struct Interpreter *interp)
+bool functionobject_addmethods(struct Interpreter *interp)
 {
-	if (attribute_add(interp, interp->builtins.Function, "name", name_getter, name_setter) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.Function, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.Function, "partial", partial) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.Function, "to_debug_string", to_debug_string) == STATUS_ERROR) return STATUS_ERROR;
-	return STATUS_OK;
+	if (!attribute_add(interp, interp->builtins.Function, "name", name_getter, name_setter)) return false;
+	if (!method_add(interp, interp->builtins.Function, "setup", setup)) return false;
+	if (!method_add(interp, interp->builtins.Function, "partial", partial)) return false;
+	if (!method_add(interp, interp->builtins.Function, "to_debug_string", to_debug_string)) return false;
+	return true;
 }
 
 
@@ -220,7 +219,7 @@ struct Object *functionobject_call(struct Interpreter *interp, struct Object *fu
 		struct Object *arg = va_arg(ap, struct Object *);
 		if (!arg)    // end of argument list, not an error
 			break;
-		if (arrayobject_push(interp, argarr, arg) == STATUS_ERROR) {
+		if (!arrayobject_push(interp, argarr, arg)) {
 			OBJECT_DECREF(interp, argarr);
 			return NULL;
 		}
@@ -245,13 +244,13 @@ struct Object *functionobject_vcall(struct Interpreter *interp, struct Object *f
 			return NULL;
 
 		for (size_t i=0; i < data->npartialargs; i++) {
-			if (arrayobject_push(interp, theargs, data->partialargs[i]) == STATUS_ERROR) {
+			if (!arrayobject_push(interp, theargs, data->partialargs[i])) {
 				OBJECT_DECREF(interp, theargs);
 				return NULL;
 			}
 		}
 		for (size_t i=0; i < ARRAYOBJECT_LEN(argarr); i++) {
-			if (arrayobject_push(interp, theargs, ARRAYOBJECT_GET(argarr, i)) == STATUS_ERROR) {
+			if (!arrayobject_push(interp, theargs, ARRAYOBJECT_GET(argarr, i))) {
 				OBJECT_DECREF(interp, theargs);
 				return NULL;
 			}

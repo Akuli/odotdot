@@ -15,8 +15,8 @@ typedef struct Object* (*functionobject_cfunc)(struct Interpreter *interp, struc
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *functionobject_createclass(struct Interpreter *interp);
 
-// returns STATUS_OK or STATUS_ERROR
-int functionobject_addmethods(struct Interpreter *interp);
+// returns false on error
+bool functionobject_addmethods(struct Interpreter *interp);
 
 // RETURNS A NEW REFERENCE or NULL on error
 // if partialarg is not NULL, it's added as the first argument when the function is called
@@ -37,9 +37,9 @@ struct Object *functionobject_call(struct Interpreter *interp, struct Object *fu
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *functionobject_vcall(struct Interpreter *interp, struct Object *func, struct Object *argarr);
 
-// returns STATUS_OK or STATUS_ERROR
+// returns false on error
 // bad things happen if func is not a Function object
-int functionobject_setname(struct Interpreter *interp, struct Object *func, char *newname);
+bool functionobject_setname(struct Interpreter *interp, struct Object *func, char *newname);
 
 
 #endif   // OBJECTS_FUNCTION_H

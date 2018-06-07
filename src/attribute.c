@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-#include "common.h"
 #include "method.h"
 #include "unicode.h"
 #include "objects/classobject.h"
@@ -23,16 +22,16 @@ static bool init_data(struct Interpreter *interp, struct Object *obj)
 	return true;
 }
 
-int attribute_settoattrdata(struct Interpreter *interp, struct Object *obj, char *attr, struct Object *val)
+bool attribute_settoattrdata(struct Interpreter *interp, struct Object *obj, char *attr, struct Object *val)
 {
 	if (!init_data(interp, obj))
-		return STATUS_ERROR;
+		return false;
 
 	struct Object *stringobj = stringobject_newfromcharptr(interp, attr);
 	if (!stringobj)
-		return STATUS_ERROR;
+		return false;
 
-	int res = mappingobject_set(interp, obj->attrdata, stringobj, val);
+	bool res = mappingobject_set(interp, obj->attrdata, stringobj, val);
 	OBJECT_DECREF(interp, stringobj);
 	return res;
 }
@@ -68,38 +67,38 @@ static bool init_class_mappings(struct Interpreter *interp, struct ClassObjectDa
 	return true;
 }
 
-int attribute_addwithfuncobjs(struct Interpreter *interp, struct Object *klass, char *name, struct Object *getter, struct Object *setter)
+bool attribute_addwithfuncobjs(struct Interpreter *interp, struct Object *klass, char *name, struct Object *getter, struct Object *setter)
 {
 	assert(interp->builtins.Mapping && interp->builtins.Function);   // must not be called tooo early by builtins_setup()
 	assert(setter || getter);
 
 	struct ClassObjectData *data = klass->data;
 	if (!init_class_mappings(interp, data))
-		return STATUS_ERROR;
+		return false;
 
 	struct Object *string = stringobject_newfromcharptr(interp, name);
 	if (!string)
-		return STATUS_ERROR;
+		return false;
 
 	// this is kinda copy/pasta, but... not 2 bad imo
 	if (getter) {
-		if (mappingobject_set(interp, data->getters, string, getter) == STATUS_ERROR) {
+		if (!mappingobject_set(interp, data->getters, string, getter)) {
 			OBJECT_DECREF(interp, string);
-			return STATUS_ERROR;
+			return false;
 		}
 	}
 	if (setter) {
-		if (mappingobject_set(interp, data->setters, string, setter) == STATUS_ERROR) {
+		if (!mappingobject_set(interp, data->setters, string, setter)) {
 			OBJECT_DECREF(interp, string);
-			return STATUS_ERROR;
+			return false;
 		}
 	}
 
 	OBJECT_DECREF(interp, string);
-	return STATUS_OK;
+	return true;
 }
 
-int attribute_add(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc getter, functionobject_cfunc setter)
+bool attribute_add(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc getter, functionobject_cfunc setter)
 {
 	struct Object *getterobj = NULL, *setterobj = NULL;
 
@@ -109,15 +108,15 @@ int attribute_add(struct Interpreter *interp, struct Object *klass, char *name, 
 
 	if (getter) {
 		if (!(getterobj = functionobject_new(interp, getter, prefixedname)))
-			return STATUS_ERROR;
+			return false;
 	}
 	if (setter) {
 		prefixedname[0] = 's';    // "setter of blabla" instead of "getter of blabla"
 		if (!(setterobj = functionobject_new(interp, setter, prefixedname)))
-			return STATUS_ERROR;
+			return false;
 	}
 
-	int res = attribute_addwithfuncobjs(interp, klass, name, getterobj, setterobj);
+	bool res = attribute_addwithfuncobjs(interp, klass, name, getterobj, setterobj);
 	if (getterobj) OBJECT_DECREF(interp, getterobj);
 	if (setterobj) OBJECT_DECREF(interp, setterobj);
 	return res;
@@ -163,7 +162,7 @@ struct Object *attribute_get(struct Interpreter *interp, struct Object *obj, cha
 }
 
 
-int attribute_setwithstringobj(struct Interpreter *interp, struct Object *obj, struct Object *stringobj, struct Object *val)
+bool attribute_setwithstringobj(struct Interpreter *interp, struct Object *obj, struct Object *stringobj, struct Object *val)
 {
 	struct Object *klass = obj->klass;
 	struct ClassObjectData *klassdata;
@@ -171,19 +170,19 @@ int attribute_setwithstringobj(struct Interpreter *interp, struct Object *obj, s
 	do {
 		klassdata = klass->data;
 		if (!init_class_mappings(interp, klassdata))
-			return STATUS_ERROR;
+			return false;
 
 		struct Object *setter;
 		int res = mappingobject_get(interp, klassdata->setters, stringobj, &setter);
 		if (res == -1)
-			return STATUS_ERROR;
+			return false;
 		if (res == 1) {
 			struct Object *res = functionobject_call(interp, setter, obj, val, NULL);
 			OBJECT_DECREF(interp, setter);
 			if (!res)
-				return STATUS_ERROR;
+				return false;
 			OBJECT_DECREF(interp, res);
-			return STATUS_OK;
+			return true;
 		}
 		assert(res == 0);   // not found
 	} while ((klass = klassdata->baseclass));
@@ -191,16 +190,16 @@ int attribute_setwithstringobj(struct Interpreter *interp, struct Object *obj, s
 	// TODO: check if there's a getter for the attribute for better error messages
 	errorobject_setwithfmt(interp, "%s objects don't have an attribute named %D or it's read-only",
 		((struct ClassObjectData *) obj->klass->data)->name, stringobj);
-	return STATUS_ERROR;
+	return false;
 }
 
-int attribute_set(struct Interpreter *interp, struct Object *obj, char *attr, struct Object *val)
+bool attribute_set(struct Interpreter *interp, struct Object *obj, char *attr, struct Object *val)
 {
 	struct Object *stringobj = stringobject_newfromcharptr(interp, attr);
 	if (!stringobj)
-		return STATUS_ERROR;
+		return false;
 
-	int res = attribute_setwithstringobj(interp, obj, stringobj, val);
+	bool res = attribute_setwithstringobj(interp, obj, stringobj, val);
 	OBJECT_DECREF(interp, stringobj);
 	return res;
 }

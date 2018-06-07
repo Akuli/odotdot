@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include "attribute.h"
 #include "check.h"
-#include "common.h"
 #include "equals.h"
 #include "interpreter.h"
 #include "method.h"
@@ -32,6 +31,7 @@ static struct Object *lambda_runner(struct Interpreter *interp, struct Object *a
 	assert(ARRAYOBJECT_LEN(argarr) >= 2);
 	struct Object *argnames = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *block = ARRAYOBJECT_GET(argarr, 1);
+	// argnames and block must have the correct type because lambda runs this correctly
 
 	// these error messages should match check_args() in check.c
 	if (ARRAYOBJECT_LEN(argarr) - 2 < ARRAYOBJECT_LEN(argnames)) {
@@ -57,7 +57,7 @@ static struct Object *lambda_runner(struct Interpreter *interp, struct Object *a
 		OBJECT_DECREF(interp, scope);
 		return NULL;
 	}
-	if (check_type(interp, interp->builtins.Mapping, localvars) == STATUS_ERROR)
+	if (!check_type(interp, interp->builtins.Mapping, localvars))
 		goto error;
 
 	// FIXME: this return variable thing sucks
@@ -69,28 +69,28 @@ static struct Object *lambda_runner(struct Interpreter *interp, struct Object *a
 	struct Object *returndefault = nullobject_get(interp);
 	assert(returndefault);   // should never fail
 
-	int status = mappingobject_set(interp, localvars, returnstring, returndefault);
+	bool ok = mappingobject_set(interp, localvars, returnstring, returndefault);
 	OBJECT_DECREF(interp, returndefault);
-	if (status == STATUS_ERROR)
+	if (!ok)
 		goto error;
 
 	for (size_t i=0; i < ARRAYOBJECT_LEN(argnames); i++) {
-		if (mappingobject_set(interp, localvars, ARRAYOBJECT_GET(argnames, i), ARRAYOBJECT_GET(argarr, i+2)) == STATUS_ERROR)
+		if (!mappingobject_set(interp, localvars, ARRAYOBJECT_GET(argnames, i), ARRAYOBJECT_GET(argarr, i+2)))
 			goto error;
 	}
 
-	status = blockobject_run(interp, block, scope);
-	if (status == STATUS_ERROR)
+	ok = blockobject_run(interp, block, scope);
+	if (!ok)
 		goto error;
 	OBJECT_DECREF(interp, scope);
 
 	struct Object *retval;
-	status = mappingobject_get(interp, localvars, returnstring, &retval);
+	int status = mappingobject_get(interp, localvars, returnstring, &retval);
 	OBJECT_DECREF(interp, localvars);
 	OBJECT_DECREF(interp, returnstring);
 	if (status == 0)
 		errorobject_setwithfmt(interp, "the local return variable was deleted");
-	if (status != 1)
+	if (status == 0 || status == -1)
 		return NULL;
 	return retval;
 
@@ -103,7 +103,7 @@ error:
 
 static struct Object *lambda(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.String, interp->builtins.Block, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.String, interp->builtins.Block, NULL))
 		return NULL;
 
 	struct Object *argnames = stringobject_splitbywhitespace(interp, ARRAYOBJECT_GET(argarr, 0));
@@ -133,40 +133,40 @@ static struct Object *lambda(struct Interpreter *interp, struct Object *argarr)
 }
 
 
-static int run_block(struct Interpreter *interp, struct Object *block)
+static bool run_block(struct Interpreter *interp, struct Object *block)
 {
 	struct Object *defscope = attribute_get(interp, block, "definition_scope");
 	if (!defscope)
-		return STATUS_ERROR;
+		return false;
 
 	struct Object *subscope = scopeobject_newsub(interp, defscope);
 	OBJECT_DECREF(interp, defscope);
 	if (!subscope)
-		return STATUS_ERROR;
+		return false;
 
 	struct Object *res = method_call(interp, block, "run", subscope, NULL);
 	OBJECT_DECREF(interp, subscope);
 	if (!res)
-		return STATUS_ERROR;
+		return false;
 
 	OBJECT_DECREF(interp, res);
-	return STATUS_OK;
+	return true;
 }
 
 static struct Object *catch(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Block, interp->builtins.Block, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Block, interp->builtins.Block, NULL))
 		return NULL;
 	struct Object *trying = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *caught = ARRAYOBJECT_GET(argarr, 1);
 
-	if (run_block(interp, trying) == STATUS_ERROR) {
+	if (!run_block(interp, trying)) {
 		// TODO: make the error available somewhere instead of resetting it here?
 		assert(interp->err);
 		OBJECT_DECREF(interp, interp->err);
 		interp->err = NULL;
 
-		if (run_block(interp, caught) == STATUS_ERROR)
+		if (!run_block(interp, caught))
 			return NULL;
 	}
 
@@ -176,7 +176,7 @@ static struct Object *catch(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *get_class(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Object, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Object, NULL))
 		return NULL;
 
 	struct Object *obj = ARRAYOBJECT_GET(argarr, 0);
@@ -188,14 +188,14 @@ static struct Object *get_class(struct Interpreter *interp, struct Object *argar
 static struct Object *is_instance_of(struct Interpreter *interp, struct Object *argarr)
 {
 	// TODO: shouldn't this be implemented in builtins.ö? classobject_isinstanceof() doesn't do anything fancy
-	if (check_args(interp, argarr, interp->builtins.Object, interp->builtins.Class) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Object, interp->builtins.Class))
 		return NULL;
 	return BOOL(interp, classobject_isinstanceof(ARRAYOBJECT_GET(argarr, 0), ARRAYOBJECT_GET(argarr, 1)));
 }
 
 struct Object *equals_builtin(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Object, interp->builtins.Object, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Object, interp->builtins.Object, NULL))
 		return NULL;
 
 	int res = equals(interp, ARRAYOBJECT_GET(argarr, 0), ARRAYOBJECT_GET(argarr, 1));
@@ -208,7 +208,7 @@ struct Object *equals_builtin(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *same_object(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Object, interp->builtins.Object, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Object, interp->builtins.Object, NULL))
 		return NULL;
 	return BOOL(interp, ARRAYOBJECT_GET(argarr, 0) == ARRAYOBJECT_GET(argarr, 1));
 }
@@ -217,12 +217,12 @@ static struct Object *same_object(struct Interpreter *interp, struct Object *arg
 
 static struct Object *print(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.String, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.String, NULL))
 		return NULL;
 
 	char *utf8;
 	size_t utf8len;
-	if (utf8_encode(interp, *((struct UnicodeString *) ARRAYOBJECT_GET(argarr, 0)->data), &utf8, &utf8len) == STATUS_ERROR)
+	if (!utf8_encode(interp, *((struct UnicodeString *) ARRAYOBJECT_GET(argarr, 0)->data), &utf8, &utf8len))
 		return NULL;
 
 	// TODO: avoid writing 1 byte at a time... seems to be hard with c \0 strings
@@ -241,7 +241,7 @@ static struct Object *new(struct Interpreter *interp, struct Object *argarr)
 		errorobject_setwithfmt(interp, "new needs at least 1 argument, the class");
 		return NULL;
 	}
-	if (check_type(interp, interp->builtins.Class, ARRAYOBJECT_GET(argarr, 0)) == STATUS_ERROR)
+	if (!check_type(interp, interp->builtins.Class, ARRAYOBJECT_GET(argarr, 0)))
 		return NULL;
 	struct Object *klass = ARRAYOBJECT_GET(argarr, 0);
 
@@ -277,18 +277,18 @@ static struct Object *new(struct Interpreter *interp, struct Object *argarr)
 }
 
 
-static int add_function(struct Interpreter *interp, char *name, functionobject_cfunc cfunc)
+static bool add_function(struct Interpreter *interp, char *name, functionobject_cfunc cfunc)
 {
 	struct Object *func = functionobject_new(interp, cfunc, name);
 	if (!func)
-		return STATUS_ERROR;
+		return false;
 
-	int res = interpreter_addbuiltin(interp, name, func);
+	bool ok = interpreter_addbuiltin(interp, name, func);
 	OBJECT_DECREF(interp, func);
-	return res;
+	return ok;
 }
 
-int builtins_setup(struct Interpreter *interp)
+bool builtins_setup(struct Interpreter *interp)
 {
 	if (!(interp->builtins.Object = objectobject_createclass_noerr(interp))) goto nomem;
 	if (!(interp->builtins.Class = classobject_create_Class_noerr(interp))) goto nomem;
@@ -309,12 +309,12 @@ int builtins_setup(struct Interpreter *interp)
 
 	// these classes must exist before methods exist, so they are handled specially
 	// TODO: rename addmethods to addattributes functions? methods are attributes
-	if (classobject_addmethods(interp) == STATUS_ERROR) goto error;
-	if (objectobject_addmethods(interp) == STATUS_ERROR) goto error;
-	if (stringobject_addmethods(interp) == STATUS_ERROR) goto error;
-	if (errorobject_addmethods(interp) == STATUS_ERROR) goto error;
-	if (mappingobject_addmethods(interp) == STATUS_ERROR) goto error;
-	if (functionobject_addmethods(interp) == STATUS_ERROR) goto error;
+	if (!classobject_addmethods(interp)) goto error;
+	if (!objectobject_addmethods(interp)) goto error;
+	if (!stringobject_addmethods(interp)) goto error;
+	if (!errorobject_addmethods(interp)) goto error;
+	if (!mappingobject_addmethods(interp)) goto error;
+	if (!functionobject_addmethods(interp)) goto error;
 
 	if (!(interp->builtins.null = nullobject_create(interp))) goto error;
 	if (!(interp->builtins.Array = arrayobject_createclass(interp))) goto error;
@@ -325,24 +325,24 @@ int builtins_setup(struct Interpreter *interp)
 
 	if (!(interp->builtinscope = scopeobject_newbuiltin(interp))) goto error;
 
-	if (interpreter_addbuiltin(interp, "Array", interp->builtins.Array) == STATUS_ERROR) goto error;
-	if (interpreter_addbuiltin(interp, "Block", interp->builtins.Block) == STATUS_ERROR) goto error;
-	if (interpreter_addbuiltin(interp, "Error", interp->builtins.Error) == STATUS_ERROR) goto error;
-	if (interpreter_addbuiltin(interp, "Integer", interp->builtins.Integer) == STATUS_ERROR) goto error;
-	if (interpreter_addbuiltin(interp, "Mapping", interp->builtins.Mapping) == STATUS_ERROR) goto error;
-	if (interpreter_addbuiltin(interp, "Object", interp->builtins.Object) == STATUS_ERROR) goto error;
-	if (interpreter_addbuiltin(interp, "Scope", interp->builtins.Scope) == STATUS_ERROR) goto error;
-	if (interpreter_addbuiltin(interp, "String", interp->builtins.String) == STATUS_ERROR) goto error;
-	if (interpreter_addbuiltin(interp, "null", interp->builtins.null) == STATUS_ERROR) goto error;
+	if (!interpreter_addbuiltin(interp, "Array", interp->builtins.Array)) goto error;
+	if (!interpreter_addbuiltin(interp, "Block", interp->builtins.Block)) goto error;
+	if (!interpreter_addbuiltin(interp, "Error", interp->builtins.Error)) goto error;
+	if (!interpreter_addbuiltin(interp, "Integer", interp->builtins.Integer)) goto error;
+	if (!interpreter_addbuiltin(interp, "Mapping", interp->builtins.Mapping)) goto error;
+	if (!interpreter_addbuiltin(interp, "Object", interp->builtins.Object)) goto error;
+	if (!interpreter_addbuiltin(interp, "Scope", interp->builtins.Scope)) goto error;
+	if (!interpreter_addbuiltin(interp, "String", interp->builtins.String)) goto error;
+	if (!interpreter_addbuiltin(interp, "null", interp->builtins.null)) goto error;
 
-	if (add_function(interp, "lambda", lambda) == STATUS_ERROR) goto error;
-	if (add_function(interp, "catch", catch) == STATUS_ERROR) goto error;
-	if (add_function(interp, "equals", equals_builtin) == STATUS_ERROR) goto error;
-	if (add_function(interp, "get_class", get_class) == STATUS_ERROR) goto error;
-	if (add_function(interp, "is_instance_of", is_instance_of) == STATUS_ERROR) goto error;
-	if (add_function(interp, "new", new) == STATUS_ERROR) goto error;
-	if (add_function(interp, "print", print) == STATUS_ERROR) goto error;
-	if (add_function(interp, "same_object", same_object) == STATUS_ERROR) goto error;
+	if (!add_function(interp, "lambda", lambda)) goto error;
+	if (!add_function(interp, "catch", catch)) goto error;
+	if (!add_function(interp, "equals", equals_builtin)) goto error;
+	if (!add_function(interp, "get_class", get_class)) goto error;
+	if (!add_function(interp, "is_instance_of", is_instance_of)) goto error;
+	if (!add_function(interp, "new", new)) goto error;
+	if (!add_function(interp, "print", print)) goto error;
+	if (!add_function(interp, "same_object", same_object)) goto error;
 
 	// compile like this:   $ CFLAGS=-DDEBUG_BUILTINS make clean all
 #ifdef DEBUG_BUILTINS
@@ -366,7 +366,7 @@ int builtins_setup(struct Interpreter *interp)
 #endif   // DEBUG_BUILTINS
 
 	assert(!(interp->err));
-	return STATUS_OK;
+	return true;
 
 error:
 	fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
@@ -387,11 +387,11 @@ error:
 
 	OBJECT_DECREF(interp, interp->err);
 	interp->err = NULL;
-	return STATUS_ERROR;
+	return false;
 
 nomem:
 	fprintf(stderr, "%s: not enough memory for setting up builtins\n", interp->argv0);
-	return STATUS_ERROR;
+	return false;
 }
 
 

@@ -19,9 +19,9 @@ struct MappingObjectData {
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *mappingobject_createclass(struct Interpreter *interp);
 
-// returns STATUS_OK or STATUS_ERROR
+// returns false on error
 // methods are stored in a Mapping, so this can't be a part of mappingobject_createclass()
-int mappingobject_addmethods(struct Interpreter *interp);
+bool mappingobject_addmethods(struct Interpreter *interp);
 
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *mappingobject_newempty(struct Interpreter *interp);
@@ -29,9 +29,9 @@ struct Object *mappingobject_newempty(struct Interpreter *interp);
 // returns number of elements in the mapping
 #define MAPPINGOBJECT_SIZE(map) (((struct MappingObjectData *) (map)->data)->size)
 
-// returns STATUS_OK or STATUS_ERROR
+// returns false on error
 // bad things happen if map is not a Mapping
-int mappingobject_set(struct Interpreter *interp, struct Object *map, struct Object *key, struct Object *val);
+bool mappingobject_set(struct Interpreter *interp, struct Object *map, struct Object *key, struct Object *val);
 
 /* return values:
 0	key not found, *val is unchanged
@@ -49,7 +49,7 @@ struct MappingObjectIter {
 
 	// rest of these should be considered implementation details
 	struct MappingObjectData *data;
-	int started;
+	bool started;
 	unsigned long lastbucketno;
 	struct MappingObjectItem *lastitem;
 };
@@ -68,6 +68,6 @@ otherwise these functions never fail
 */
 
 void mappingobject_iterbegin(struct MappingObjectIter *it, struct Object *map);
-int mappingobject_iternext(struct MappingObjectIter *it);   // always returns 1 or 0
+bool mappingobject_iternext(struct MappingObjectIter *it);   // always returns 1 or 0
 
 #endif   // OBJECTS_MAPPING_H

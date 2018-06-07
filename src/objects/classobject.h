@@ -43,7 +43,7 @@ struct Object *classobject_newinstance(struct Interpreter *interp, struct Object
 // like obj->klass == klass, but checks for inheritance
 // never fails if klass is a classobject, bad things happen if it isn't
 // returns 1 or 0
-int classobject_isinstanceof(struct Object *obj, struct Object *klass);
+bool classobject_isinstanceof(struct Object *obj, struct Object *klass);
 
 // use this instead of ((struct ClassobjectData *) obj->klass->data)->foreachref(obj, data, cb)
 // ->foreachref may be NULL, this handles that and inheritance
@@ -53,7 +53,7 @@ void classobject_runforeachref(struct Object *obj, void *data, classobject_forea
 // uses interp->builtins.Object
 struct Object *classobject_create_Class_noerr(struct Interpreter *interp);
 
-// returns STATUS_OK or STATUS_ERROR
-int classobject_addmethods(struct Interpreter *interp);
+// returns false on error
+bool classobject_addmethods(struct Interpreter *interp);
 
 #endif    // OBJECTS_CLASSOBJECT_H

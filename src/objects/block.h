@@ -15,8 +15,8 @@ struct Object *blockobject_createclass(struct Interpreter *interp);
 // bad things happen if definition_scope is not a Scope or astnodearr is not an Array of AstNodes
 struct Object *blockobject_new(struct Interpreter *interp, struct Object *definition_scope, struct Object *astnodearr);
 
-// returns STATUS_OK or STATUS_ERROR
+// returns false on error
 // bad things happen if block is not a Block object or scope is not a Scope object
-int blockobject_run(struct Interpreter *interp, struct Object *block, struct Object *scope);
+bool blockobject_run(struct Interpreter *interp, struct Object *block, struct Object *scope);
 
 #endif    // OBJECTS_BLOCK_H

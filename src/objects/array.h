@@ -26,9 +26,9 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **elems
 #define ARRAYOBJECT_GET(arr, i) (((struct ArrayObjectData *) (arr)->data)->elems[(i)])
 #define ARRAYOBJECT_LEN(arr)    (((struct ArrayObjectData *) (arr)->data)->len)
 
-// returns STATUS_OK or STATUS_ERROR
+// returns false on error
 // bad things happen if arr is not an array object
-int arrayobject_push(struct Interpreter *interp, struct Object *arr, struct Object *elem);
+bool arrayobject_push(struct Interpreter *interp, struct Object *arr, struct Object *elem);
 
 // RETURNS A NEW REFERENCE, or NULL if the array is empty
 // never fails if arr is an array object, bad things happen if it isn't

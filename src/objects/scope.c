@@ -1,9 +1,9 @@
 #include "scope.h"
 #include <assert.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include "../attribute.h"
 #include "../check.h"
-#include "../common.h"
 #include "../method.h"
 #include "../objectsystem.h"
 #include "array.h"
@@ -29,8 +29,8 @@ struct Object *scopeobject_newsub(struct Interpreter *interp, struct Object *par
 		return NULL;
 	}
 
-	if (attribute_settoattrdata(interp, scope, "parent_scope", parent_scope) == STATUS_ERROR) goto error;
-	if (attribute_settoattrdata(interp, scope, "local_vars", local_vars) == STATUS_ERROR) goto error;
+	if (!attribute_settoattrdata(interp, scope, "parent_scope", parent_scope)) goto error;
+	if (!attribute_settoattrdata(interp, scope, "local_vars", local_vars)) goto error;
 
 	OBJECT_DECREF(interp, local_vars);
 	return scope;
@@ -60,7 +60,7 @@ ATTRIBUTE_DEFINE_SIMPLE_GETTER(local_vars, Scope)
 
 static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Scope, interp->builtins.Scope, NULL) == STATUS_ERROR) return NULL;
+	if (!check_args(interp, argarr, interp->builtins.Scope, interp->builtins.Scope, NULL)) return NULL;
 	struct Object *scope = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *parent_scope = ARRAYOBJECT_GET(argarr, 1);
 
@@ -68,8 +68,8 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 	if (!local_vars)
 		return NULL;
 
-	if (attribute_settoattrdata(interp, scope, "parent_scope", parent_scope) == STATUS_ERROR) goto error;
-	if (attribute_settoattrdata(interp, scope, "local_vars", local_vars) == STATUS_ERROR) goto error;
+	if (!attribute_settoattrdata(interp, scope, "parent_scope", parent_scope)) goto error;
+	if (!attribute_settoattrdata(interp, scope, "local_vars", local_vars)) goto error;
 
 	OBJECT_DECREF(interp, local_vars);
 	return nullobject_get(interp);
@@ -82,7 +82,7 @@ error:
 
 static struct Object *set_var(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Scope, interp->builtins.String, interp->builtins.Object, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Scope, interp->builtins.String, interp->builtins.Object, NULL))
 		return NULL;
 	struct Object *scope = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *varname = ARRAYOBJECT_GET(argarr, 1);
@@ -99,8 +99,7 @@ static struct Object *set_var(struct Interpreter *interp, struct Object *argarr)
 	if (res == 1) {
 		// yes
 		OBJECT_DECREF(interp, oldval);
-		int status = mappingobject_set(interp, local_vars, varname, val);
-		return status==STATUS_OK ? nullobject_get(interp) : NULL;
+		return mappingobject_set(interp, local_vars, varname, val) ? nullobject_get(interp) : NULL;
 	}
 	if (res == -1)
 		return NULL;
@@ -130,7 +129,7 @@ static struct Object *set_var(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *get_var(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Scope, interp->builtins.String, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Scope, interp->builtins.String, NULL))
 		return NULL;
 	struct Object *scope = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *varname = ARRAYOBJECT_GET(argarr, 1);
@@ -174,11 +173,11 @@ struct Object *scopeobject_createclass(struct Interpreter *interp)
 	if (!klass)
 		return NULL;
 
-	if (method_add(interp, klass, "setup", setup) == STATUS_ERROR) goto error;
-	if (method_add(interp, klass, "set_var", set_var) == STATUS_ERROR) goto error;
-	if (method_add(interp, klass, "get_var", get_var) == STATUS_ERROR) goto error;
-	if (attribute_add(interp, klass, "local_vars", local_vars_getter, NULL) == STATUS_ERROR) goto error;
-	if (attribute_add(interp, klass, "parent_scope", parent_scope_getter, NULL) == STATUS_ERROR) goto error;
+	if (!method_add(interp, klass, "setup", setup)) goto error;
+	if (!method_add(interp, klass, "set_var", set_var)) goto error;
+	if (!method_add(interp, klass, "get_var", get_var)) goto error;
+	if (!attribute_add(interp, klass, "local_vars", local_vars_getter, NULL)) goto error;
+	if (!attribute_add(interp, klass, "parent_scope", parent_scope_getter, NULL)) goto error;
 	return klass;
 
 error:

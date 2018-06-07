@@ -16,7 +16,7 @@ struct Interpreter {
 	// some builtins are also available here (e.g. String), others (e.g. AstNode) are not
 	struct Object *builtinscope;
 
-	// this must be set when something fails and returns an error marker (e.g. NULL or STATUS_ERROR)
+	// this must be set when something fails and returns an error marker (e.g. NULL or false)
 	// functions named blahblah_noerr() don't set this
 	struct Object *err;
 
@@ -51,8 +51,8 @@ void interpreter_free(struct Interpreter *interp);
 
 // convenience methods, these assert that name is valid UTF-8
 
-// returns STATUS_OK or STATUS_ERROR
-int interpreter_addbuiltin(struct Interpreter *interp, char *name, struct Object *val);
+// returns false on error
+bool interpreter_addbuiltin(struct Interpreter *interp, char *name, struct Object *val);
 
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *interpreter_getbuiltin(struct Interpreter *interp, char *name);

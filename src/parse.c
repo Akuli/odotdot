@@ -5,8 +5,8 @@
 
 #include "parse.h"
 #include <assert.h>
+#include <stdbool.h>
 #include <stdlib.h>
-#include "common.h"
 #include "interpreter.h"
 #include "objectsystem.h"
 #include "tokenizer.h"
@@ -20,7 +20,7 @@
 
 // remember to change this if you add more expressions!
 // this never fails
-static int expression_coming_up(struct Token *curtok)
+static bool expression_coming_up(struct Token *curtok)
 {
 	if (!curtok)
 		return 0;
@@ -96,7 +96,7 @@ static struct Object *parse_getvar(struct Interpreter *interp, struct Token **cu
 	if (!info)
 		return NULL;
 
-	if (unicodestring_copyinto(interp, (*curtok)->str, &(info->varname)) == STATUS_ERROR) {
+	if (!unicodestring_copyinto(interp, (*curtok)->str, &(info->varname))) {
 		free(info);
 		return NULL;
 	}
@@ -278,9 +278,9 @@ static struct Object *parse_array(struct Interpreter *interp, struct Token **cur
 			OBJECT_DECREF(interp, elements);
 			return NULL;
 		}
-		int pushret = arrayobject_push(interp, elements, elem );
+		bool ok = arrayobject_push(interp, elements, elem );
 		OBJECT_DECREF(interp, elem);
-		if (pushret == STATUS_ERROR) {
+		if (!ok) {
 			OBJECT_DECREF(interp, elements);
 			return NULL;
 		}
@@ -319,9 +319,9 @@ struct Object *parse_block(struct Interpreter *interp, struct Token **curtok)
 			OBJECT_DECREF(interp, statements);
 			return NULL;
 		}
-		int pushret = arrayobject_push(interp, statements, stmt);
+		bool ok = arrayobject_push(interp, statements, stmt);
 		OBJECT_DECREF(interp, stmt);
-		if (pushret == STATUS_ERROR) {
+		if (!ok) {
 			OBJECT_DECREF(interp, statements);
 			return NULL;
 		}
@@ -391,7 +391,7 @@ struct Object *parse_expression(struct Interpreter *interp, struct Token **curto
 		// no need to incref, this function is already holding a reference to res
 		getattrinfo->objnode = res;
 
-		if (unicodestring_copyinto(interp, (*curtok)->str, &(getattrinfo->name)) == STATUS_ERROR) {
+		if (!unicodestring_copyinto(interp, (*curtok)->str, &(getattrinfo->name))) {
 			OBJECT_DECREF(interp, res);
 			free(getattrinfo);
 			return NULL;
@@ -428,10 +428,8 @@ static struct Object *parse_var_statement(struct Interpreter *interp, struct Tok
 	assert((*curtok)->kind == TOKEN_ID);
 
 	struct UnicodeString varname;
-	if (unicodestring_copyinto(interp, (*curtok)->str, &varname) == STATUS_ERROR) {
-		// TODO: report no mem error
+	if (!unicodestring_copyinto(interp, (*curtok)->str, &varname))
 		return NULL;
-	}
 	*curtok = (*curtok)->next;
 
 	// TODO: should 'var x;' set x to null? or just be forbidden?
@@ -492,7 +490,7 @@ static struct Object *parse_assignment(struct Interpreter *interp, struct Token 
 		if (!info)
 			goto error;
 
-		if (unicodestring_copyinto(interp, lhsinfo->varname, &(info->varname)) == STATUS_ERROR) {
+		if (!unicodestring_copyinto(interp, lhsinfo->varname, &(info->varname))) {
 			free(info);
 			goto error;
 		}
@@ -512,7 +510,7 @@ static struct Object *parse_assignment(struct Interpreter *interp, struct Token 
 		if (!info)
 			goto error;
 
-		if (unicodestring_copyinto(interp, lhsinfo->name, &(info->attr)) == STATUS_ERROR) {
+		if (!unicodestring_copyinto(interp, lhsinfo->name, &(info->attr))) {
 			free(info);
 			goto error;
 		}

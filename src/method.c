@@ -6,7 +6,6 @@
 #include <string.h>
 #include "attribute.h"
 #include "check.h"
-#include "common.h"
 #include "interpreter.h"
 #include "objects/array.h"
 #include "objects/classobject.h"
@@ -22,12 +21,12 @@
 // when getting the method, the partialled thing is called with the instance as an argument, see objects/classobject.h
 static struct Object *method_getter(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Function, interp->builtins.Object, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Function, interp->builtins.Object, NULL))
 		return NULL;
 	return functionobject_newpartial(interp, ARRAYOBJECT_GET(argarr, 0), ARRAYOBJECT_GET(argarr, 1));
 }
 
-int method_add(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc cfunc)
+bool method_add(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc cfunc)
 {
 	// the instance-specific method returned by the getter will have this name
 	size_t len = strlen(name);
@@ -37,7 +36,7 @@ int method_add(struct Interpreter *interp, struct Object *klass, char *name, fun
 
 	struct Object *func = functionobject_new(interp, cfunc, methodname);
 	if (!func)
-		return STATUS_ERROR;
+		return false;
 
 	// getters are named as in attribute.c
 	char gettername[sizeof("getter of ")-1 + len + 1];
@@ -47,18 +46,18 @@ int method_add(struct Interpreter *interp, struct Object *klass, char *name, fun
 	struct Object *rawgetter = functionobject_new(interp, method_getter, gettername);
 	if (!rawgetter) {
 		OBJECT_DECREF(interp, func);
-		return STATUS_ERROR;
+		return false;
 	}
 
 	struct Object *getter = functionobject_newpartial(interp, rawgetter, func);
 	OBJECT_DECREF(interp, rawgetter);
 	OBJECT_DECREF(interp, func);
 	if (!getter)
-		return STATUS_ERROR;
+		return false;
 
-	int res = attribute_addwithfuncobjs(interp, klass, name, getter, NULL);
+	bool ok = attribute_addwithfuncobjs(interp, klass, name, getter, NULL);
 	OBJECT_DECREF(interp, getter);
-	return res;
+	return ok;
 }
 
 
@@ -81,7 +80,7 @@ struct Object *method_call(struct Interpreter *interp, struct Object *obj, char 
 		struct Object *arg = va_arg(ap, struct Object*);
 		if (!arg)
 			break;   // end of argument list, not an error
-		if (arrayobject_push(interp, argarr, arg) == STATUS_ERROR) {
+		if (!arrayobject_push(interp, argarr, arg)) {
 			OBJECT_DECREF(interp, argarr);
 			OBJECT_DECREF(interp, method);
 			return NULL;

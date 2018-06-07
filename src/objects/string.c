@@ -9,7 +9,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../check.h"
-#include "../common.h"
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"
@@ -41,7 +40,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *to_debug_string(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.String, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.String, NULL))
 		return NULL;
 
 	struct UnicodeString noquotes = *((struct UnicodeString*) ARRAYOBJECT_GET(argarr, 0)->data);
@@ -62,7 +61,7 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 
 static struct Object *concat(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.String, interp->builtins.String, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.String, interp->builtins.String, NULL))
 		return NULL;
 
 	struct UnicodeString u1 = *((struct UnicodeString*) ARRAYOBJECT_GET(argarr, 0)->data);
@@ -80,7 +79,7 @@ static struct Object *concat(struct Interpreter *interp, struct Object *argarr)
 // some day strings will hopefully behave like an immutable array of 1-character strings
 static struct Object *get(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.String, interp->builtins.Integer, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.String, interp->builtins.Integer, NULL))
 		return NULL;
 
 	struct UnicodeString ustr = *((struct UnicodeString*) ARRAYOBJECT_GET(argarr, 0)->data);
@@ -105,13 +104,13 @@ static struct Object *slice(struct Interpreter *interp, struct Object *argarr)
 	long long start, end;
 	if (ARRAYOBJECT_LEN(argarr) == 2) {
 		// (s.slice start)
-		if (check_args(interp, argarr, interp->builtins.String, interp->builtins.Integer, NULL) == STATUS_ERROR)
+		if (!check_args(interp, argarr, interp->builtins.String, interp->builtins.Integer, NULL))
 			return NULL;
 		start = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1));
 		end = ((struct UnicodeString*) ARRAYOBJECT_GET(argarr, 0)->data)->len;
 	} else {
 		// (s.slice start end)
-		if (check_args(interp, argarr, interp->builtins.String, interp->builtins.Integer, interp->builtins.Integer, NULL) == STATUS_ERROR)
+		if (!check_args(interp, argarr, interp->builtins.String, interp->builtins.Integer, interp->builtins.Integer, NULL))
 			return NULL;
 		start = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1));
 		end = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 2));
@@ -166,9 +165,9 @@ struct Object *stringobject_splitbywhitespace(struct Interpreter *interp, struct
 			struct Object *sub = stringobject_newfromustr(interp, subu);
 			if (!sub)
 				goto error;
-			int res = arrayobject_push(interp, result, sub);
+			bool ok = arrayobject_push(interp, result, sub);
 			OBJECT_DECREF(interp, sub);
-			if (res == STATUS_ERROR)
+			if (!ok)
 				goto error;
 
 			// skip 1 or more whitespaces
@@ -188,9 +187,9 @@ struct Object *stringobject_splitbywhitespace(struct Interpreter *interp, struct
 			struct Object *last = stringobject_newfromustr(interp, lastu);
 			if (!last)
 				goto error;
-			int res = arrayobject_push(interp, result, last);
+			bool ok = arrayobject_push(interp, result, last);
 			OBJECT_DECREF(interp, last);
-			if (res == STATUS_ERROR)
+			if (!ok)
 				goto error;
 			break;    // breaks the while loop
 		}
@@ -206,21 +205,21 @@ error:
 
 static struct Object *split_by_whitespace(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.String, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.String, NULL))
 		return NULL;
 	return stringobject_splitbywhitespace(interp, ARRAYOBJECT_GET(argarr, 0));
 }
 
-int stringobject_addmethods(struct Interpreter *interp)
+bool stringobject_addmethods(struct Interpreter *interp)
 {
 	// TODO: create many more string methods
-	if (method_add(interp, interp->builtins.String, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.String, "concat", concat) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.String, "get", get) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.String, "slice", slice) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.String, "split_by_whitespace", split_by_whitespace) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.String, "to_debug_string", to_debug_string) == STATUS_ERROR) return STATUS_ERROR;
-	return STATUS_OK;
+	if (!method_add(interp, interp->builtins.String, "setup", setup)) return false;
+	if (!method_add(interp, interp->builtins.String, "concat", concat)) return false;
+	if (!method_add(interp, interp->builtins.String, "get", get)) return false;
+	if (!method_add(interp, interp->builtins.String, "slice", slice)) return false;
+	if (!method_add(interp, interp->builtins.String, "split_by_whitespace", split_by_whitespace)) return false;
+	if (!method_add(interp, interp->builtins.String, "to_debug_string", to_debug_string)) return false;
+	return true;
 }
 
 
@@ -256,7 +255,7 @@ struct Object *stringobject_newfromcharptr(struct Interpreter *interp, char *ptr
 	if (!data)
 		return NULL;
 
-	if (utf8_decode(interp, ptr, strlen(ptr), data) == STATUS_ERROR) {
+	if (!utf8_decode(interp, ptr, strlen(ptr), data)) {
 		free(data);
 		return NULL;
 	}
@@ -282,7 +281,7 @@ struct Object *stringobject_newfromvfmt(struct Interpreter *interp, char *fmt, v
 	int nparts = 0;
 
 	// setting everything to 0 is much easier than setting to 1
-	int skipfreeval[MAX_PARTS] = {0};    // set skipfreeval[i]=1 to prevent freeing parts[i].val
+	bool skipfreeval[MAX_PARTS] = {0};    // set skipfreeval[i]=true to prevent freeing parts[i].val
 
 	// there are at most MAX_PARTS of these
 	// can't decref right away if the data of the object is still used in this function
@@ -312,13 +311,13 @@ struct Object *stringobject_newfromvfmt(struct Interpreter *interp, char *fmt, v
 
 			else if (*(fmt-1) == 's') {   // c char pointer
 				char *part = va_arg(ap, char*);
-				if (utf8_decode(interp, part, strlen(part), parts + nparts) == STATUS_ERROR)
+				if (!utf8_decode(interp, part, strlen(part), parts + nparts))
 					goto error;
 			}
 
 			else if (*(fmt-1) == 'U') {   // struct UnicodeString
 				parts[nparts] = va_arg(ap, struct UnicodeString);
-				skipfreeval[nparts] = 1;
+				skipfreeval[nparts] = true;
 			}
 
 			else if (*(fmt-1) == 'S' || *(fmt-1) == 'D') {   // to_string or to_debug_string
@@ -336,7 +335,7 @@ struct Object *stringobject_newfromvfmt(struct Interpreter *interp, char *fmt, v
 				*gonnadecrefptr++ = strobj;
 
 				parts[nparts] = *((struct UnicodeString *) strobj->data);
-				skipfreeval[nparts] = 1;
+				skipfreeval[nparts] = true;
 			}
 
 			else if (*(fmt-1) == 'L') {   // long long
@@ -353,7 +352,7 @@ struct Object *stringobject_newfromvfmt(struct Interpreter *interp, char *fmt, v
 				*gonnadecrefptr++ = strobj;
 
 				parts[nparts] = *((struct UnicodeString *) strobj->data);
-				skipfreeval[nparts] = 1;
+				skipfreeval[nparts] = true;
 			}
 
 			else if (*(fmt-1) == '%') {   // literal %
@@ -373,7 +372,7 @@ struct Object *stringobject_newfromvfmt(struct Interpreter *interp, char *fmt, v
 			int len = 0;
 			while (*fmt != '%' && *fmt)
 				part[len++] = *fmt++;
-			if (utf8_decode(interp, part, len, parts + nparts) == STATUS_ERROR)
+			if (!utf8_decode(interp, part, len, parts + nparts))
 				goto error;
 		}
 

@@ -1,7 +1,6 @@
 #include "object.h"
 #include <stddef.h>
 #include "../check.h"
-#include "../common.h"
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"
@@ -29,7 +28,7 @@ struct Object *objectobject_createclass_noerr(struct Interpreter *interp)
 
 // setup does nothing by default
 static struct Object *setup(struct Interpreter *interp, struct Object *argarr) {
-	if (check_args(interp, argarr, interp->builtins.Object, NULL) == STATUS_ERROR) return NULL;
+	if (!check_args(interp, argarr, interp->builtins.Object, NULL)) return NULL;
 	return nullobject_get(interp);
 }
 
@@ -42,9 +41,9 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 	return method_call(interp, ARRAYOBJECT_GET(argarr, 0), "to_string", NULL);
 }
 
-int objectobject_addmethods(struct Interpreter *interp)
+bool objectobject_addmethods(struct Interpreter *interp)
 {
-	if (method_add(interp, interp->builtins.Object, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.Object, "to_debug_string", to_debug_string) == STATUS_ERROR) return STATUS_ERROR;
-	return STATUS_OK;
+	if (method_add(interp, interp->builtins.Object, "setup", setup) == false) return false;
+	if (method_add(interp, interp->builtins.Object, "to_debug_string", to_debug_string) == false) return false;
+	return true;
 }

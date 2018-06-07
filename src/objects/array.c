@@ -5,7 +5,6 @@
 #include <string.h>
 #include "../attribute.h"
 #include "../check.h"
-#include "../common.h"
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"
@@ -82,7 +81,7 @@ static struct Object *joiner(struct Interpreter *interp, struct Object **strings
 
 static struct Object *to_debug_string(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Array, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Array, NULL))
 		return NULL;
 	struct Object *arr = ARRAYOBJECT_GET(argarr, 0);
 
@@ -115,28 +114,28 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 	return res;
 }
 
-static int validate_index(struct Interpreter *interp, struct Object *arr, long long i)
+static bool validate_index(struct Interpreter *interp, struct Object *arr, long long i)
 {
 	if (i < 0) {
 		errorobject_setwithfmt(interp, "%L is not a valid array index", i);
-		return STATUS_ERROR;
+		return false;
 	}
 	if ((unsigned long long) i >= ARRAYOBJECT_LEN(arr)) {
 		errorobject_setwithfmt(interp, "%L is not a valid index for an array of length %L", i, (long long) ARRAYOBJECT_LEN(arr));
-		return STATUS_ERROR;
+		return false;
 	}
-	return STATUS_OK;
+	return true;
 }
 
 static struct Object *get(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Array, interp->builtins.Integer, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Array, interp->builtins.Integer, NULL))
 		return NULL;
 	struct Object *arr = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *index = ARRAYOBJECT_GET(argarr, 1);
 
 	long long i = integerobject_tolonglong(index);
-	if (validate_index(interp, arr, i) == STATUS_ERROR)
+	if (!validate_index(interp, arr, i))
 		return NULL;
 
 	struct Object *res = ARRAYOBJECT_GET(arr, i);
@@ -146,14 +145,14 @@ static struct Object *get(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *set(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Array, interp->builtins.Integer, interp->builtins.Object, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Array, interp->builtins.Integer, interp->builtins.Object, NULL))
 		return NULL;
 	struct Object *arr = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *index = ARRAYOBJECT_GET(argarr, 1);
 	struct Object *obj = ARRAYOBJECT_GET(argarr, 2);
 
 	long long i = integerobject_tolonglong(index);
-	if (validate_index(interp, arr, i) == STATUS_ERROR)
+	if (!validate_index(interp, arr, i))
 		return NULL;
 
 	struct ArrayObjectData *data = arr->data;
@@ -166,19 +165,19 @@ static struct Object *set(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *push(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Array, interp->builtins.Object, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Array, interp->builtins.Object, NULL))
 		return NULL;
 	struct Object *arr = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *obj = ARRAYOBJECT_GET(argarr, 1);
 
-	if (arrayobject_push(interp, arr, obj) == STATUS_ERROR)
+	if (!arrayobject_push(interp, arr, obj))
 		return NULL;
 	return nullobject_get(interp);
 }
 
 static struct Object *pop(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Array, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Array, NULL))
 		return NULL;
 
 	struct Object *res = arrayobject_pop(interp, ARRAYOBJECT_GET(argarr, 0));
@@ -192,12 +191,12 @@ static struct Object *slice(struct Interpreter *interp, struct Object *argarr)
 	long long i, j;
 	if (ARRAYOBJECT_LEN(argarr) == 2) {
 		// (thing.slice i) is same as (thing.slice i thing.length)
-		if (check_args(interp, argarr, interp->builtins.Array, interp->builtins.Integer, NULL) == STATUS_ERROR)
+		if (!check_args(interp, argarr, interp->builtins.Array, interp->builtins.Integer, NULL))
 			return NULL;
 		i = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1));
 		j = ARRAYOBJECT_LEN(ARRAYOBJECT_GET(argarr, 0));
 	} else {
-		if (check_args(interp, argarr, interp->builtins.Array, interp->builtins.Integer, interp->builtins.Integer, NULL) == STATUS_ERROR)
+		if (!check_args(interp, argarr, interp->builtins.Array, interp->builtins.Integer, interp->builtins.Integer, NULL))
 			return NULL;
 		i = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1));
 		j = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 2));
@@ -207,7 +206,7 @@ static struct Object *slice(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *length_getter(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Array, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Array, NULL))
 		return NULL;
 	return integerobject_newfromlonglong(interp, ARRAYOBJECT_LEN(ARRAYOBJECT_GET(argarr, 0)));
 }
@@ -218,14 +217,14 @@ struct Object *arrayobject_createclass(struct Interpreter *interp)
 	if (!klass)
 		return NULL;
 
-	if (attribute_add(interp, klass, "length", length_getter, NULL) == STATUS_ERROR) goto error;
-	if (method_add(interp, klass, "setup", setup) == STATUS_ERROR) goto error;
-	if (method_add(interp, klass, "set", set) == STATUS_ERROR) goto error;
-	if (method_add(interp, klass, "get", get) == STATUS_ERROR) goto error;
-	if (method_add(interp, klass, "push", push) == STATUS_ERROR) goto error;
-	if (method_add(interp, klass, "pop", pop) == STATUS_ERROR) goto error;
-	if (method_add(interp, klass, "slice", slice) == STATUS_ERROR) goto error;
-	if (method_add(interp, klass, "to_debug_string", to_debug_string) == STATUS_ERROR) goto error;
+	if (!attribute_add(interp, klass, "length", length_getter, NULL)) goto error;
+	if (!method_add(interp, klass, "setup", setup)) goto error;
+	if (!method_add(interp, klass, "set", set)) goto error;
+	if (!method_add(interp, klass, "get", get)) goto error;
+	if (!method_add(interp, klass, "push", push)) goto error;
+	if (!method_add(interp, klass, "pop", pop)) goto error;
+	if (!method_add(interp, klass, "slice", slice)) goto error;
+	if (!method_add(interp, klass, "to_debug_string", to_debug_string)) goto error;
 	return klass;
 
 error:
@@ -271,7 +270,7 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **elems
 	return arr;
 }
 
-static int resize(struct Interpreter *interp, struct ArrayObjectData *data)
+static bool resize(struct Interpreter *interp, struct ArrayObjectData *data)
 {
 	// allocating more than this is not possible because realloc takes size_t
 #define NALLOCATED_MAX (SIZE_MAX / sizeof(struct Object*))
@@ -281,32 +280,32 @@ static int resize(struct Interpreter *interp, struct ArrayObjectData *data)
 		// this is not the best possible error message but not too bad IMO
 		// nobody will actually have this happening anyway
 		errorobject_setnomem(interp);
-		return STATUS_ERROR;
+		return false;
 	}
 
 	size_t newnallocated = data->nallocated > NALLOCATED_MAX/2 ? NALLOCATED_MAX : 2*data->nallocated;
 	void *ptr = realloc(data->elems, newnallocated * sizeof(struct Object*));
 	if (!ptr) {
 		errorobject_setnomem(interp);
-		return STATUS_ERROR;
+		return false;
 	}
 
 	data->elems = ptr;
 	data->nallocated = newnallocated;
-	return STATUS_OK;
+	return true;
 }
 
-int arrayobject_push(struct Interpreter *interp, struct Object *arr, struct Object *obj)
+bool arrayobject_push(struct Interpreter *interp, struct Object *arr, struct Object *obj)
 {
 	struct ArrayObjectData *data = arr->data;
 	if (data->len + 1 > data->nallocated) {
-		if (resize(interp, data) == STATUS_ERROR)
-			return STATUS_ERROR;
+		if (!resize(interp, data))
+			return false;
 	}
 
 	OBJECT_INCREF(interp, obj);
 	data->elems[data->len++] = obj;
-	return STATUS_OK;
+	return true;
 }
 
 struct Object *arrayobject_pop(struct Interpreter *interp, struct Object *arr)
@@ -337,7 +336,7 @@ struct Object *arrayobject_slice(struct Interpreter *interp, struct Object *arr,
 		return NULL;
 
 	for (size_t i=start; i < (size_t) end; i++) {
-		if (arrayobject_push(interp, res, ARRAYOBJECT_GET(arr, i)) == STATUS_ERROR) {
+		if (!arrayobject_push(interp, res, ARRAYOBJECT_GET(arr, i))) {
 			OBJECT_DECREF(interp, res);
 			return NULL;
 		}

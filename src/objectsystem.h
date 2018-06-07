@@ -24,7 +24,7 @@ struct Object {
 	void (*destructor)(struct Object *obj);
 
 	// if hashable is 1, this object can be used as a key in Mappings
-	int hashable;    // 1 or 0
+	bool hashable;    // 1 or 0
 	long hash;
 
 	// use with atomicincrdecr.h functions only

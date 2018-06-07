@@ -1,10 +1,10 @@
 #include "run.h"
 #include <assert.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include "attribute.h"
 #include "check.h"
-#include "common.h"
 #include "interpreter.h"
 #include "method.h"
 #include "objectsystem.h"
@@ -61,7 +61,7 @@ static struct Object *run_expression(struct Interpreter *interp, struct Object *
 		struct Object *func = run_expression(interp, scope, INFO_AS(AstCallInfo)->funcnode);
 		if (!func)
 			return NULL;
-		if (check_type(interp, interp->builtins.Function, func) == STATUS_ERROR) {
+		if (!check_type(interp, interp->builtins.Function, func)) {
 			OBJECT_DECREF(interp, func);
 			return NULL;
 		}
@@ -78,9 +78,9 @@ static struct Object *run_expression(struct Interpreter *interp, struct Object *
 				OBJECT_DECREF(interp, func);
 				return NULL;
 			}
-			int ret = arrayobject_push(interp, argarr, arg);
+			bool ret = arrayobject_push(interp, argarr, arg);
 			OBJECT_DECREF(interp, arg);
-			if (ret == STATUS_ERROR) {
+			if (!ret) {
 				OBJECT_DECREF(interp, argarr);
 				OBJECT_DECREF(interp, func);
 				return NULL;
@@ -104,9 +104,9 @@ static struct Object *run_expression(struct Interpreter *interp, struct Object *
 				OBJECT_DECREF(interp, result);
 				return NULL;
 			}
-			int pushret = arrayobject_push(interp, result, elem);
+			bool pushret = arrayobject_push(interp, result, elem);
 			OBJECT_DECREF(interp, elem);
-			if (pushret == STATUS_ERROR) {
+			if (!pushret) {
 				OBJECT_DECREF(interp, result);
 				return NULL;
 			}
@@ -121,7 +121,7 @@ static struct Object *run_expression(struct Interpreter *interp, struct Object *
 	assert(0);
 }
 
-int run_statement(struct Interpreter *interp, struct Object *scope, struct Object *stmtnode)
+bool run_statement(struct Interpreter *interp, struct Object *scope, struct Object *stmtnode)
 {
 	struct AstNodeObjectData *nodedata = stmtnode->data;
 
@@ -129,22 +129,22 @@ int run_statement(struct Interpreter *interp, struct Object *scope, struct Objec
 	if (nodedata->kind == AST_CALL) {
 		struct Object *ret = run_expression(interp, scope, stmtnode);
 		if (!ret)
-			return STATUS_ERROR;
+			return false;
 
 		OBJECT_DECREF(interp, ret);  // ignore the return value
-		return STATUS_OK;
+		return true;
 	}
 
 	if (nodedata->kind == AST_CREATEVAR) {
 		// TODO: optimize ://(///((((
 		struct Object *val = run_expression(interp, scope, INFO_AS(AstCreateOrSetVarInfo)->valnode);
 		if (!val)
-			return STATUS_ERROR;
+			return false;
 
 		struct Object *localvars = attribute_get(interp, scope, "local_vars");
 		if (!localvars) {
 			OBJECT_DECREF(interp, val);
-			return STATUS_ERROR;
+			return false;
 		}
 
 		struct Object *keystr = stringobject_newfromustr(interp, INFO_AS(AstCreateOrSetVarInfo)->varname);
@@ -153,7 +153,7 @@ int run_statement(struct Interpreter *interp, struct Object *scope, struct Objec
 			OBJECT_DECREF(interp, val);
 		}
 
-		int res = mappingobject_set(interp, localvars, keystr, val);
+		bool res = mappingobject_set(interp, localvars, keystr, val);
 		OBJECT_DECREF(interp, keystr);
 		OBJECT_DECREF(interp, localvars);
 		OBJECT_DECREF(interp, val);
@@ -163,12 +163,12 @@ int run_statement(struct Interpreter *interp, struct Object *scope, struct Objec
 	if (nodedata->kind == AST_SETVAR) {
 		struct Object *namestr = stringobject_newfromustr(interp, INFO_AS(AstCreateOrSetVarInfo)->varname);
 		if (!namestr)
-			return STATUS_ERROR;
+			return false;
 
 		struct Object *val = run_expression(interp, scope, INFO_AS(AstCreateOrSetVarInfo)->valnode);
 		if (!val) {
 			OBJECT_DECREF(interp, namestr);
-			return STATUS_ERROR;
+			return false;
 		}
 
 		// TODO: expose Scope.set_var?
@@ -178,30 +178,30 @@ int run_statement(struct Interpreter *interp, struct Object *scope, struct Objec
 
 		if (res) {
 			OBJECT_DECREF(interp, res);
-			return STATUS_OK;
+			return true;
 		}
-		return STATUS_ERROR;
+		return false;
 	}
 
 	if (nodedata->kind == AST_SETATTR) {
 		struct Object *obj = run_expression(interp, scope, INFO_AS(AstSetAttrInfo)->objnode);
 		if (!obj)
-			return STATUS_ERROR;
+			return false;
 
 		struct Object *val = run_expression(interp, scope, INFO_AS(AstSetAttrInfo)->valnode);
 		if (!val) {
 			OBJECT_DECREF(interp, obj);
-			return STATUS_ERROR;
+			return false;
 		}
 
 		struct Object *stringobj = stringobject_newfromustr(interp, INFO_AS(AstSetAttrInfo)->attr);
 		if (!stringobj) {
 			OBJECT_DECREF(interp, val);
 			OBJECT_DECREF(interp, obj);
-			return STATUS_ERROR;
+			return false;
 		}
 
-		int res = attribute_setwithstringobj(interp, obj, stringobj, val);
+		bool res = attribute_setwithstringobj(interp, obj, stringobj, val);
 		OBJECT_DECREF(interp, obj);
 		OBJECT_DECREF(interp, val);
 		OBJECT_DECREF(interp, stringobj);

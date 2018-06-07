@@ -4,7 +4,6 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "common.h"
 #include "unicode.h"
 
 
@@ -16,7 +15,7 @@ static struct Token *new_token(struct Interpreter *interp, struct Token *prev, c
 		return NULL;
 
 	hugestring.len = nchars;    // it's pass-by-value
-	if (unicodestring_copyinto(interp, hugestring, &(tok->str)) == STATUS_ERROR) {
+	if (!unicodestring_copyinto(interp, hugestring, &(tok->str))) {
 		free(tok);
 		return NULL;
 	}
@@ -42,8 +41,8 @@ void token_freeall(struct Token *tok1st)
 }
 
 
-// returns 1 if an integer literal is valid and 0 if it's not
-static int check_integer(struct UnicodeString hugestring, size_t nchars, size_t lineno)
+// returns true iff an integer literal is valid
+static bool check_integer(struct UnicodeString hugestring, size_t nchars, size_t lineno)
 {
 	if (hugestring.val[0] == '-') {
 		// this relies on pass-by-value

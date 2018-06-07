@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include "../attribute.h"
 #include "../check.h"
-#include "../common.h"
 #include "../equals.h"
 #include "../method.h"
 #include "array.h"
@@ -81,7 +80,7 @@ struct Object *mappingobject_newempty(struct Interpreter *interp)
 
 static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Mapping, interp->builtins.Array, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Mapping, interp->builtins.Array, NULL))
 		return NULL;
 	struct Object *map = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *pairs = ARRAYOBJECT_GET(argarr, 1);
@@ -106,7 +105,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 			errorobject_setwithfmt(interp, "expected a [key value] pair, got %D", pair);
 			return NULL;
 		}
-		if (mappingobject_set(interp, map, ARRAYOBJECT_GET(pair, 0), ARRAYOBJECT_GET(pair, 1)) == STATUS_ERROR)
+		if (!mappingobject_set(interp, map, ARRAYOBJECT_GET(pair, 0), ARRAYOBJECT_GET(pair, 1)))
 			return NULL;
 	}
 
@@ -116,13 +115,13 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *length_getter(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Mapping, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Mapping, NULL))
 		return NULL;
 	return integerobject_newfromlonglong(interp, MAPPINGOBJECT_SIZE(ARRAYOBJECT_GET(argarr, 0)));
 }
 
 
-static int make_bigger(struct Interpreter *interp, struct MappingObjectData *data)
+static bool make_bigger(struct Interpreter *interp, struct MappingObjectData *data)
 {
 	assert(data->nbuckets != ULONG_MAX);   // the caller should check this
 
@@ -131,7 +130,7 @@ static int make_bigger(struct Interpreter *interp, struct MappingObjectData *dat
 	struct MappingObjectItem **newbuckets = calloc(newnbuckets, sizeof(struct MappingObjectItem));
 	if (!newbuckets) {
 		errorobject_setnomem(interp);
-		return STATUS_ERROR;
+		return false;
 	}
 
 	for (unsigned long oldi = 0; oldi < data->nbuckets; oldi++) {
@@ -149,14 +148,14 @@ static int make_bigger(struct Interpreter *interp, struct MappingObjectData *dat
 	free(data->buckets);
 	data->buckets = newbuckets;
 	data->nbuckets = newnbuckets;
-	return STATUS_OK;
+	return true;
 }
 
-int mappingobject_set(struct Interpreter *interp, struct Object *map, struct Object *key, struct Object *val)
+bool mappingobject_set(struct Interpreter *interp, struct Object *map, struct Object *key, struct Object *val)
 {
 	if (!(key->hashable)) {
 		errorobject_setwithfmt(interp, "%D is not hashable, so it can't be used as a Mapping key", key);
-		return STATUS_ERROR;
+		return false;
 	}
 
 	struct MappingObjectData *data = map->data;
@@ -164,13 +163,13 @@ int mappingobject_set(struct Interpreter *interp, struct Object *map, struct Obj
 	for (struct MappingObjectItem *olditem = data->buckets[i]; olditem; olditem=olditem->next) {
 		int eqres = equals(interp, olditem->key, key);
 		if (eqres == -1)
-			return STATUS_ERROR;
+			return false;
 		if (eqres == 1) {
 			// the key is already in the mapping, update the value
 			OBJECT_DECREF(interp, olditem->value);
 			olditem->value = val;
 			OBJECT_INCREF(interp, val);
-			return STATUS_OK;
+			return true;
 		}
 		assert(eqres == 0);
 	}
@@ -186,8 +185,8 @@ int mappingobject_set(struct Interpreter *interp, struct Object *map, struct Obj
 	if (data->nbuckets != LONG_MAX) {
 		float loadfactor = ((float) data->size) / data->nbuckets;
 		if (loadfactor > 0.75) {
-			if (make_bigger(interp, data) == STATUS_ERROR)
-				return STATUS_ERROR;
+			if (!make_bigger(interp, data))
+				return false;
 			i = HASH_MODULUS(key->hash, data->nbuckets);
 		}
 	}
@@ -195,7 +194,7 @@ int mappingobject_set(struct Interpreter *interp, struct Object *map, struct Obj
 	struct MappingObjectItem *item = malloc(sizeof(struct MappingObjectItem));
 	if (!item) {
 		errorobject_setnomem(interp);
-		return STATUS_ERROR;
+		return false;
 	}
 	item->key = key;
 	OBJECT_INCREF(interp, key);
@@ -207,14 +206,14 @@ int mappingobject_set(struct Interpreter *interp, struct Object *map, struct Obj
 	item->next = data->buckets[i];    // may be NULL
 	data->buckets[i] = item;
 	data->size++;
-	return STATUS_OK;
+	return true;
 }
 
 static struct Object *set(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Mapping, interp->builtins.Object, interp->builtins.Object, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Mapping, interp->builtins.Object, interp->builtins.Object, NULL))
 		return NULL;
-	if (mappingobject_set(interp, ARRAYOBJECT_GET(argarr, 0), ARRAYOBJECT_GET(argarr, 1), ARRAYOBJECT_GET(argarr, 2)) == STATUS_ERROR)
+	if (!mappingobject_set(interp, ARRAYOBJECT_GET(argarr, 0), ARRAYOBJECT_GET(argarr, 1), ARRAYOBJECT_GET(argarr, 2)))
 		return NULL;
 	return nullobject_get(interp);
 }
@@ -244,7 +243,7 @@ int mappingobject_get(struct Interpreter *interp, struct Object *map, struct Obj
 
 static struct Object *get(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Mapping, interp->builtins.Object, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Mapping, interp->builtins.Object, NULL))
 		return NULL;
 	struct Object *map = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *key = ARRAYOBJECT_GET(argarr, 1);
@@ -261,7 +260,7 @@ static struct Object *get(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *get_and_delete(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.Mapping, interp->builtins.Object, NULL) == STATUS_ERROR)
+	if (!check_args(interp, argarr, interp->builtins.Mapping, interp->builtins.Object, NULL))
 		return NULL;
 	struct Object *map = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *key = ARRAYOBJECT_GET(argarr, 1);
@@ -312,16 +311,16 @@ static struct Object *delete(struct Interpreter *interp, struct Object *argarr)
 }
 
 
-int mappingobject_addmethods(struct Interpreter *interp)
+bool mappingobject_addmethods(struct Interpreter *interp)
 {
-	if (attribute_add(interp, interp->builtins.Mapping, "length", length_getter, NULL) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.Mapping, "setup", setup) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.Mapping, "set", set) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.Mapping, "get", get) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.Mapping, "delete", delete) == STATUS_ERROR) return STATUS_ERROR;
-	if (method_add(interp, interp->builtins.Mapping, "get_and_delete", get_and_delete) == STATUS_ERROR) return STATUS_ERROR;
+	if (!attribute_add(interp, interp->builtins.Mapping, "length", length_getter, NULL)) return false;
+	if (!method_add(interp, interp->builtins.Mapping, "setup", setup)) return false;
+	if (!method_add(interp, interp->builtins.Mapping, "set", set)) return false;
+	if (!method_add(interp, interp->builtins.Mapping, "get", get)) return false;
+	if (!method_add(interp, interp->builtins.Mapping, "delete", delete)) return false;
+	if (!method_add(interp, interp->builtins.Mapping, "get_and_delete", get_and_delete)) return false;
 	// TODO: to_debug_string
-	return STATUS_OK;
+	return true;
 }
 
 
@@ -332,7 +331,7 @@ void mappingobject_iterbegin(struct MappingObjectIter *it, struct Object *map)
 	it->lastbucketno = 0;
 }
 
-int mappingobject_iternext(struct MappingObjectIter *it)
+bool mappingobject_iternext(struct MappingObjectIter *it)
 {
 	if (!(it->started)) {
 		it->lastbucketno = 0;

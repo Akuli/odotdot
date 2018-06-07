@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "common.h"   // i hate this file...........
 #include "objects/errors.h"
 
 /*
@@ -23,18 +22,18 @@ these functions set errors in the following cases:
 	they may contain things like "U+ABCD", but not the actual character
 */
 
-int unicodestring_copyinto(struct Interpreter *interp, struct UnicodeString src, struct UnicodeString *dst)
+bool unicodestring_copyinto(struct Interpreter *interp, struct UnicodeString src, struct UnicodeString *dst)
 {
 	unicode_char *val = malloc(sizeof(unicode_char) * src.len);
 	if (!val) {
 		errorobject_setnomem(interp);
-		return STATUS_ERROR;
+		return false;
 	}
 
 	memcpy(val, src.val, sizeof(unicode_char) * src.len);
 	dst->len = src.len;
 	dst->val = val;
-	return STATUS_OK;
+	return true;
 }
 
 struct UnicodeString *unicodestring_copy(struct Interpreter *interp, struct UnicodeString src)
@@ -44,7 +43,7 @@ struct UnicodeString *unicodestring_copy(struct Interpreter *interp, struct Unic
 		errorobject_setnomem(interp);
 		return NULL;
 	}
-	if (unicodestring_copyinto(interp, src, res) == STATUS_ERROR) {
+	if (!unicodestring_copyinto(interp, src, res)) {
 		free(res);
 		errorobject_setnomem(interp);
 		return NULL;
@@ -94,21 +93,21 @@ invalid_code_point:
 // example: ONES(6) is 111111 in binary
 #define ONES(n) ((1<<(n))-1)
 
-int utf8_encode(struct Interpreter *interp, struct UnicodeString unicode, char **utf8, size_t *utf8len)
+bool utf8_encode(struct Interpreter *interp, struct UnicodeString unicode, char **utf8, size_t *utf8len)
 {
 	// don't set utf8len if this fails
 	size_t utf8len_val = 0;
 	for (size_t i=0; i < unicode.len; i++) {
 		int part = how_many_bytes(interp, unicode.val[i]);
 		if (part == -1)
-			return STATUS_ERROR;
+			return false;
 		utf8len_val += part;
 	}
 
 	char *ptr = malloc(utf8len_val);
 	if (!ptr) {
 		errorobject_setnomem(interp);
-		return STATUS_ERROR;
+		return false;
 	}
 
 	// rest of this will not fail
@@ -142,7 +141,7 @@ int utf8_encode(struct Interpreter *interp, struct UnicodeString unicode, char *
 		}
 		ptr += nbytes;
 	}
-	return STATUS_OK;
+	return true;
 }
 
 
@@ -150,7 +149,7 @@ int utf8_encode(struct Interpreter *interp, struct UnicodeString unicode, char *
 // i don't want to cast a char pointer to unsigned char because i'm not sure if that's standardy
 #define U(x) ((unsigned char)(x))
 
-int utf8_decode(struct Interpreter *interp, char *utf8, size_t utf8len, struct UnicodeString *unicode)
+bool utf8_decode(struct Interpreter *interp, char *utf8, size_t utf8len, struct UnicodeString *unicode)
 {
 	// must leave unicode and unicodelen untouched on error
 	unicode_char *result;
@@ -161,7 +160,7 @@ int utf8_decode(struct Interpreter *interp, char *utf8, size_t utf8len, struct U
 	result = malloc(utf8len*sizeof(unicode_char));
 	if (!result) {
 		errorobject_setnomem(interp);
-		return STATUS_ERROR;
+		return false;
 	}
 
 	while (utf8len > 0) {
@@ -240,12 +239,12 @@ int utf8_decode(struct Interpreter *interp, char *utf8, size_t utf8len, struct U
 	unicode->val = realloc(result, resultlen*sizeof(unicode_char));
 	assert(resultlen ? !!unicode->val : 1);    // realloc(result, 0) may return NULL
 	unicode->len = resultlen;
-	return STATUS_OK;
+	return true;
 
 error:
 	if (result)
 		free(result);
-	return STATUS_ERROR;
+	return false;
 }
 
 #undef U

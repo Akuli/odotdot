@@ -24,18 +24,20 @@ struct UnicodeString {
 struct UnicodeString *unicodestring_copy(struct Interpreter *interp, struct UnicodeString src);
 
 // dst->val must be free()'d
-// returns STATUS_OK or STATUS_ERROR
-int unicodestring_copyinto(struct Interpreter *interp, struct UnicodeString src, struct UnicodeString *dst);
+// returns false on error
+bool unicodestring_copyinto(struct Interpreter *interp, struct UnicodeString src, struct UnicodeString *dst);
 
 
 // convert a Unicode string to a UTF-8 string
 // after calling this, *utf8 may contain \0 bytes
 // if you want a 0-terminated string, create a new string with 1 more byte at end set to 0
-int utf8_encode(struct Interpreter *interp, struct UnicodeString unicode, char **utf8, size_t *utf8len);
+// returns false on error
+bool utf8_encode(struct Interpreter *interp, struct UnicodeString unicode, char **utf8, size_t *utf8len);
 
 // convert a UTF-8 string to a Unicode string
 // if utf8 is \0-terminated, pass strlen(utf8) for utf8len
-int utf8_decode(struct Interpreter *interp, char *utf8, size_t utf8len, struct UnicodeString *unicode);
+// returns false on error
+bool utf8_decode(struct Interpreter *interp, char *utf8, size_t utf8len, struct UnicodeString *unicode);
 
 
 /* i cheated with python

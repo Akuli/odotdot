@@ -5,7 +5,6 @@
 #include <string.h>
 #include "allobjects.h"
 #include "attribute.h"
-#include "common.h"
 #include "method.h"
 #include "objectsystem.h"
 #include "unicode.h"
@@ -51,22 +50,22 @@ void interpreter_free(struct Interpreter *interp)
 	free(interp);
 }
 
-int interpreter_addbuiltin(struct Interpreter *interp, char *name, struct Object *val)
+bool interpreter_addbuiltin(struct Interpreter *interp, char *name, struct Object *val)
 {
 	struct Object *keystr = stringobject_newfromcharptr(interp, name);
 	if (!keystr)
-		return STATUS_ERROR;
+		return false;
 
 	struct Object *localvars = attribute_get(interp, interp->builtinscope, "local_vars");
 	if (!localvars) {
 		OBJECT_DECREF(interp, keystr);
-		return STATUS_ERROR;
+		return false;
 	}
 
-	int ret = mappingobject_set(interp, localvars, keystr, val);
+	bool ok = mappingobject_set(interp, localvars, keystr, val);
 	OBJECT_DECREF(interp, keystr);
 	OBJECT_DECREF(interp, localvars);
-	return ret;
+	return ok;
 }
 
 struct Object *interpreter_getbuiltin(struct Interpreter *interp, char *name)
