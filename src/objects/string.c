@@ -38,6 +38,17 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 	return NULL;
 }
 
+// returns the string itself, for consistency with other types
+static struct Object *to_string(struct Interpreter *interp, struct Object *argarr)
+{
+	if (!check_args(interp, argarr, interp->builtins.String, NULL))
+		return NULL;
+
+	OBJECT_INCREF(interp, ARRAYOBJECT_GET(argarr, 0));
+	return ARRAYOBJECT_GET(argarr, 0);
+}
+
+
 static struct Object *to_debug_string(struct Interpreter *interp, struct Object *argarr)
 {
 	if (!check_args(interp, argarr, interp->builtins.String, NULL))
@@ -218,6 +229,7 @@ bool stringobject_addmethods(struct Interpreter *interp)
 	if (!method_add(interp, interp->builtins.String, "get", get)) return false;
 	if (!method_add(interp, interp->builtins.String, "slice", slice)) return false;
 	if (!method_add(interp, interp->builtins.String, "split_by_whitespace", split_by_whitespace)) return false;
+	if (!method_add(interp, interp->builtins.String, "to_string", to_string)) return false;
 	if (!method_add(interp, interp->builtins.String, "to_debug_string", to_debug_string)) return false;
 	return true;
 }

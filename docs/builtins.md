@@ -291,6 +291,10 @@ Methods:
   separated by one or more Unicode whitespace characters (e.g. spaces, tabs or
   newlines). For example, `(" hello world test ".split_by_whitespace)` returns
   `["hello" "world" "test"]`.
+- `(string.to_string)` returns the `string` unchanged. This is for consistency
+  with the `to_string` methods of other classes; `to_string` is supposed to
+  return a human-readable string representing the object, if any, and the
+  human-readable string representing a string is the string itself.
 - `(string.to_debug_string)` returns the string with quotes around it. This
   overrides [Object](#object)'s `to_debug_string`.
 
