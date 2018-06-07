@@ -1,4 +1,3 @@
-#include <src/common.h>
 #include <src/interpreter.h>
 #include <src/objectsystem.h>
 #include <src/tokenizer.h>
@@ -48,8 +47,8 @@ void test_ast_nodes_and_their_refcount_stuff(void)
 	// the array references intnode and strnode
 	struct AstArrayOrBlockInfo *arrinfo = arrayobject_newempty(testinterp);
 	buttert(arrinfo);
-	buttert(arrayobject_push(testinterp, arrinfo, strnode) == STATUS_OK);
-	buttert(arrayobject_push(testinterp, arrinfo, intnode) == STATUS_OK);
+	buttert(arrayobject_push(testinterp, arrinfo, strnode) == true);
+	buttert(arrayobject_push(testinterp, arrinfo, intnode) == true);
 	OBJECT_DECREF(testinterp, strnode);
 	OBJECT_DECREF(testinterp, intnode);
 	struct Object *arrnode = newnode(RANDOM_CHOICE_LOL(AST_ARRAY, AST_BLOCK), arrinfo);

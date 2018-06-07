@@ -1,15 +1,15 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>    // for the posix-only and "obsolete" gettimeofday()
 #include "utils.h"
 
 #include <src/builtins.h>
-#include <src/common.h>
 #include <src/gc.h>
 #include <src/interpreter.h>
 
 typedef void (*testfunc)(void);
-int verbose;
+bool verbose;
 int ntests;
 
 
@@ -41,9 +41,9 @@ static void run_test(char *name, testfunc func)
 int main(int argc, char **argv)
 {
 	if (argc == 1)
-		verbose = 0;
+		verbose = false;
 	else if (argc == 2 && (strcmp(argv[1], "--verbose") == 0 || strcmp(argv[1], "-v") == 0))
-		verbose = 1;
+		verbose = true;
 	else {
 		fprintf(stderr, "Usage: %s [--verbose|-v]\n", argv[0]);
 		return 1;
@@ -51,7 +51,7 @@ int main(int argc, char **argv)
 	ntests = 0;
 
 	buttert(testinterp = interpreter_new("testargv0"));
-	buttert(builtins_setup(testinterp) == STATUS_OK);
+	buttert(builtins_setup(testinterp));
 
 	RUN_TEST(test_objects_simple);
 	RUN_TEST(test_objects_error);

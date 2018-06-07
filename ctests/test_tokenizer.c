@@ -2,7 +2,6 @@
 #include <stddef.h>
 #include <string.h>
 
-#include <src/common.h>
 #include <src/tokenizer.h>
 #include <src/unicode.h>
 
@@ -13,7 +12,7 @@ static char *unicode_to_utf8_ending_with_0(struct UnicodeString unicode)
 {
 	char *utf8;
 	size_t utf8len;
-	buttert(utf8_encode(testinterp, unicode, &utf8, &utf8len) == STATUS_OK);
+	buttert(utf8_encode(testinterp, unicode, &utf8, &utf8len) == true);
 	buttert((utf8=realloc(utf8, utf8len+1)));
 	utf8[utf8len]=0;
 	return utf8;
@@ -42,7 +41,7 @@ void test_tokenizer_tokenize(void)
 	utf8code[5] = 0;    // must not break anything
 
 	struct UnicodeString code;
-	buttert(utf8_decode(testinterp, utf8code, utf8codelen, &code) == STATUS_OK);
+	buttert(utf8_decode(testinterp, utf8code, utf8codelen, &code) == true);
 
 	struct Token *tok1st = token_ize(testinterp, code);
 	buttert(tok1st);

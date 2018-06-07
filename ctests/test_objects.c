@@ -1,4 +1,3 @@
-#include <src/common.h>
 #include <src/interpreter.h>
 #include <src/method.h>
 #include <src/objects/array.h>
@@ -28,7 +27,7 @@ void cleaner(struct Object *obj)
 void test_objects_simple(void)
 {
 	buttert(cleaner_ran == 0);
-	struct Object *obj = classobject_newinstance(testinterp, testinterp->builtins.objectclass, (void *)0xdeadbeef, cleaner);
+	struct Object *obj = classobject_newinstance(testinterp, testinterp->builtins.Object, (void *)0xdeadbeef, cleaner);
 	buttert(obj);
 	buttert(obj->data == (void *)0xdeadbeef);
 	buttert(cleaner_ran == 0);
@@ -60,7 +59,7 @@ struct Object *callback_arg1, *callback_arg2;
 struct Object *callback(struct Interpreter *interp, struct Object *argarr)
 {
 	buttert(interp == testinterp);
-	buttert(argarr->klass == interp->builtins.arrayclass);
+	buttert(argarr->klass == interp->builtins.Array);
 	buttert(ARRAYOBJECT_LEN(argarr) == 2);
 	buttert(ARRAYOBJECT_GET(argarr, 0) == callback_arg1);
 	buttert(ARRAYOBJECT_GET(argarr, 1) == callback_arg2);
@@ -123,7 +122,7 @@ void test_objects_string_tostring(void)
 	buttert(ret);
 	buttert(ret == s);
 	OBJECT_DECREF(testinterp, ret);
-	OBJECT_DECREF(testinterp, s);    // stringobject_newfromustr() returned a new reference
+	OBJECT_DECREF(testinterp, s);    // stringobject_newfromustr() returned 
 }
 
 void test_objects_string_newfromfmt(void)
@@ -171,7 +170,7 @@ void test_objects_array(void)
 
 	struct Object *arr = arrayobject_new(testinterp, objs, NOBJS - 1);
 	buttert(arr);
-	buttert(arrayobject_push(testinterp, arr, objs[NOBJS-1]) == STATUS_OK);
+	buttert(arrayobject_push(testinterp, arr, objs[NOBJS-1]) == true);
 
 	// now the array should hold references to each object
 	for (size_t i=0; i < NOBJS; i++)
@@ -217,7 +216,7 @@ void test_objects_array_many_elems(void)
 	}
 
 	for (size_t i=0; i < HOW_MANY; i++)
-		buttert(arrayobject_push(testinterp, arr, objs[i]) == STATUS_OK);
+		buttert(arrayobject_push(testinterp, arr, objs[i]) == true);
 	check(arr->data);
 
 	OBJECT_DECREF(testinterp, arr);
@@ -385,14 +384,14 @@ void test_objects_hashes(void)
 {
 	errorobject_setwithfmt(testinterp, "oh %s", "shit");
 
-	OBJECT_INCREF(testinterp, testinterp->builtins.stringclass);
+	OBJECT_INCREF(testinterp, testinterp->builtins.String);
 	struct Object *print = interpreter_getbuiltin(testinterp, "print");
 	struct HashTest tests[] = {
-		{ testinterp->builtins.stringclass, 1 },
+		{ testinterp->builtins.String, 1 },
 		{ testinterp->err, 1 },
 		{ print, 1 },
 		{ integerobject_newfromlonglong(testinterp, -123LL), 1 },
-		{ classobject_newinstance(testinterp, testinterp->builtins.objectclass, NULL, NULL), 1 },
+		{ classobject_newinstance(testinterp, testinterp->builtins.Object, NULL, NULL), 1 },
 		{ stringobject_newfromcharptr(testinterp, "asd"), 1 },
 		{ arrayobject_newempty(testinterp), 0 },
 		{ mappingobject_newempty(testinterp), 0 }

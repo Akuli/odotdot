@@ -1,4 +1,3 @@
-#include <src/common.h>
 #include <src/objectsystem.h>     // IWYU pragma: keep
 #include <src/objects/integer.h>
 #include <src/unicode.h>
@@ -88,7 +87,7 @@ static void check_error(char *msg)
 	struct UnicodeString *errustr = ((struct Object*) testinterp->err->data)->data;
 	char *errstr;
 	size_t errstrlen;
-	buttert(utf8_encode(testinterp, *errustr, &errstr, &errstrlen) == STATUS_OK);
+	buttert(utf8_encode(testinterp, *errustr, &errstr, &errstrlen) == true);
 	buttert((errstr = realloc(errstr, errstrlen+1)));
 	errstr[errstrlen] =0;
 	buttert2(strcmp(errstr, msg) == 0, errstr);
