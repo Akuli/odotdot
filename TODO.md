@@ -249,11 +249,6 @@ things that I would like to do some day. It's a mess.
 - rename the functions? `token_ize()` is consistent with a `Token` prefix, but
   `tokenize()` reads nicer
 
-## common.h
-- this shit should be removed
-- all uses of `STATUS_NOMEM` should be removed
-- `<stdbool.h>` should be used instead of `STATUS_OK` and `STATUS_ERROR`
-
 ## unicode.{c,h}
 - delete UnicodeString?
     - string objects are quite capable anyway
