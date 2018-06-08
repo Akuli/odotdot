@@ -198,9 +198,9 @@ Bugs:
 - There's no way to access the caught [error object](#error) yet.
 - There's no nice way to throw errors yet. Most of my Ö code uses
   `throw "a descriptive message";`, which actually works because there's no
-  `throw` function yet (but the error message is `no variable named 'throw'`.
-  I'll hopefully implement more stuff soon so that you can do e.g.
-  `throw (new ValueError "it's too small");`.
+  `throw` function yet (but unfortunately, the error message is
+  `no variable named 'throw'`). I'll hopefully implement more stuff soon so
+  that you can do e.g. `throw (new ValueError "it's too small");`.
 
 ### assert
 
@@ -521,8 +521,9 @@ These objects are not functions or classes.
 
 A dummy value like e.g. `none` or `nil` in many other programming languages.
 
-Currently this is the string `"null"`. It sucks and I'll hopefully fix it
-later.
+The only instance of null's class is `null`. The class has a name `Null`, and
+it has no methods or other attributes. You can access the class with
+`(get_class null)` if you need that for some reason.
 
 ### true, false
 
