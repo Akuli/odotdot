@@ -85,6 +85,8 @@ struct Object *classobject_new(struct Interpreter *interp, char *name, struct Ob
 	return klass;
 }
 
+
+// TODO: get rid of this? it seems quite dumb
 struct Object *classobject_newinstance(struct Interpreter *interp, struct Object *klass, void *data, void (*destructor)(struct Object*))
 {
 	if (!classobject_isinstanceof(klass, interp->builtins.Class)) {
@@ -105,9 +107,9 @@ bool classobject_isinstanceof(struct Object *obj, struct Object *klass)
 	struct Object *klass2 = obj->klass;
 	do {
 		if (klass2 == klass)
-			return 1;
+			return true;
 	} while ((klass2 = ((struct ClassObjectData*) klass2->data)->baseclass));
-	return 0;
+	return false;
 }
 
 void classobject_runforeachref(struct Object *obj, void *data, classobject_foreachrefcb cb)
