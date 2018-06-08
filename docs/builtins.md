@@ -565,8 +565,7 @@ it has no methods or other attributes. You can access the class with
 
 ### true, false
 
-These are currently defined as the strings `"true"` and `"false"`. It sucks,
-see `null` above.
+These are currently defined as the strings `"true"` and `"false"`. It sucks.
 
 
 [true]: #true-false
