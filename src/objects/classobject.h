@@ -32,10 +32,10 @@ struct ClassObjectData {
 
 // creates a new class
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *base, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb));
+struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *baseclass, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb));
 
 // RETURNS A NEW REFERENCE or NULL on no mem, for builtins_setup() only
-struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, struct Object *base, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb));
+struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, struct Object *baseclass, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb));
 
 // a nicer wrapper for object_new_noerr()
 // RETURNS A NEW REFERENCE or NULL on error (but unlike object_new_noerr, it sets interp->err)

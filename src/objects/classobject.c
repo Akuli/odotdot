@@ -26,7 +26,7 @@ static void class_destructor(struct Object *klass)
 }
 
 
-static struct ClassObjectData *create_data(struct Interpreter *interp, struct Object *base, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb))
+static struct ClassObjectData *create_data(struct Interpreter *interp, struct Object *baseclass, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb))
 {
 	struct ClassObjectData *data = malloc(sizeof(struct ClassObjectData));
 	if (!data)
@@ -34,9 +34,9 @@ static struct ClassObjectData *create_data(struct Interpreter *interp, struct Ob
 
 	data->name.len = 0;
 	data->name.val = NULL;
-	data->baseclass = base;
-	if (base)
-		OBJECT_INCREF(interp, base);
+	data->baseclass = baseclass;
+	if (baseclass)
+		OBJECT_INCREF(interp, baseclass);
 	data->setters = NULL;
 	data->getters = NULL;
 	data->foreachref = foreachref;
@@ -51,9 +51,9 @@ static void free_data(struct Interpreter *interp, struct ClassObjectData *data)
 	free(data);
 }
 
-struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, struct Object *base, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb))
+struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, struct Object *baseclass, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb))
 {
-	struct ClassObjectData *data = create_data(interp, base, foreachref);
+	struct ClassObjectData *data = create_data(interp, baseclass, foreachref);
 	if (!data)
 		return NULL;
 
@@ -78,18 +78,18 @@ bool classobject_setname(struct Interpreter *interp, struct Object *klass, char 
 	return ok;
 }
 
-struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *base, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb))
+struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *baseclass, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb))
 {
 	assert(interp->builtins.Class);
 	assert(interp->builtins.nomemerr);
 
-	if (!classobject_isinstanceof(base->klass, interp->builtins.Class)) {
+	if (!classobject_isinstanceof(baseclass->klass, interp->builtins.Class)) {
 		// TODO: test this
-		errorobject_setwithfmt(interp, "cannot inherit a new class from %D", base);
+		errorobject_setwithfmt(interp, "cannot inherit a new class from %D", baseclass);
 		return NULL;
 	}
 
-	struct Object *klass = classobject_new_noerr(interp, name, base, foreachref);
+	struct Object *klass = classobject_new_noerr(interp, name, baseclass, foreachref);
 	if (!klass) {
 		errorobject_setnomem(interp);
 		return NULL;
@@ -164,14 +164,14 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 		return NULL;
 	struct Object *klass = ARRAYOBJECT_GET(argarr, 0);
 	struct Object *name = ARRAYOBJECT_GET(argarr, 1);
-	struct Object *base = ARRAYOBJECT_GET(argarr, 2);
+	struct Object *baseclass = ARRAYOBJECT_GET(argarr, 2);
 
 	if (klass->data) {
 		errorobject_setwithfmt(interp, "setup was called twice");
 		return NULL;
 	}
 
-	struct ClassObjectData *data = create_data(interp, base, NULL);
+	struct ClassObjectData *data = create_data(interp, baseclass, NULL);
 	if (!data) {
 		errorobject_setnomem(interp);
 		return NULL;
