@@ -68,6 +68,6 @@ otherwise these functions never fail
 */
 
 void mappingobject_iterbegin(struct MappingObjectIter *it, struct Object *map);
-bool mappingobject_iternext(struct MappingObjectIter *it);   // always returns 1 or 0
+bool mappingobject_iternext(struct MappingObjectIter *it);
 
 #endif   // OBJECTS_MAPPING_H
