@@ -3,13 +3,14 @@
 
 #include "../interpreter.h"         // IWYU pragma: keep
 #include "../objectsystem.h"        // IWYU pragma: keep
+#include "../unicode.h"             // IWYU pragma: keep
 
 typedef void (*classobject_foreachrefcb)(struct Object *ref, void *data);
 
 // this is exposed for objectsystem.c
 struct ClassObjectData {
-	// TODO: something better
-	char name[10];
+	// not a String object because it makes creating the String class easier
+	struct UnicodeString name;
 
 	// Object's baseclass is set to NULL
 	// other baseclasses can also be NULL when the class class and Object class
@@ -40,9 +41,14 @@ struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, str
 // RETURNS A NEW REFERENCE or NULL on error (but unlike object_new_noerr, it sets interp->err)
 struct Object *classobject_newinstance(struct Interpreter *interp, struct Object *klass, void *data, void (*destructor)(struct Object*));
 
+// just for builtins_setup()
+// bad things happen if klass is not a class object
+// sets interp->err and returns false on error
+bool classobject_setname(struct Interpreter *interp, struct Object *klass, char *name);
+
 // like obj->klass == klass, but checks for inheritance
 // never fails if klass is a classobject, bad things happen if it isn't
-// returns 1 or 0
+// returns false on error
 bool classobject_isinstanceof(struct Object *obj, struct Object *klass);
 
 // use this instead of ((struct ClassobjectData *) obj->klass->data)->foreachref(obj, data, cb)

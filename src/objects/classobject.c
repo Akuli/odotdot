@@ -17,7 +17,9 @@
 static void class_destructor(struct Object *klass)
 {
 	// class_foreachref takes care of most other things
-	free(klass->data);
+	struct ClassObjectData *data = klass->data;
+	free(data->name.val);    // free(NULL) does nothing
+	free(data);
 }
 
 
@@ -27,8 +29,8 @@ struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, str
 	if (!data)
 		return NULL;
 
-	strncpy(data->name, name, 10);
-	data->name[9] = 0;
+	data->name.len = 0;
+	data->name.val = NULL;
 	data->baseclass = base;
 	if (base)
 		OBJECT_INCREF(interp, base);
@@ -45,6 +47,18 @@ struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, str
 	}
 
 	return klass;
+}
+
+bool classobject_setname(struct Interpreter *interp, struct Object *klass, char *name)
+{
+	struct ClassObjectData *data = klass->data;
+
+	// if utf8_decode fails, the name must be left untouched
+	void *maybegonnafree = data->name.val;
+	bool ok = utf8_decode(interp, name, strlen(name), &data->name);
+	if (ok)
+		free(maybegonnafree);    // free(NULL) does nothing
+	return ok;
 }
 
 struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *base, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb))
@@ -64,6 +78,10 @@ struct Object *classobject_new(struct Interpreter *interp, char *name, struct Ob
 		return NULL;
 	}
 
+	if (!classobject_setname(interp, klass, name)) {
+		OBJECT_DECREF(interp, klass);
+		return NULL;
+	}
 	return klass;
 }
 
@@ -161,7 +179,7 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 	if (!check_args(interp, argarr, interp->builtins.Class, NULL))
 		return NULL;
 	struct ClassObjectData *data = ARRAYOBJECT_GET(argarr, 0)->data;
-	return stringobject_newfromfmt(interp, "<Class '%s'>", data->name);
+	return stringobject_newfromfmt(interp, "<Class '%U'>", data->name);
 }
 
 bool classobject_addmethods(struct Interpreter *interp)
