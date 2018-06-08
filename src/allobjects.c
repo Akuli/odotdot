@@ -38,9 +38,8 @@ void allobjects_free(struct AllObjects ao)
 
 static unsigned long object_hash(struct Object *obj)
 {
-	// the rightmost bits are often used for alignment
-	// let's throw them away for a better distribution
-	return (uintptr_t)((void*)obj) >> 3;
+	// same as the default hash in objectsystem.c
+	return (uintptr_t)((void*)obj) >> 2;
 }
 
 static bool make_bigger(struct AllObjects *ao)
