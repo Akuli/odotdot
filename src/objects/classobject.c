@@ -195,6 +195,7 @@ bool classobject_addmethods(struct Interpreter *interp)
 {
 	if (!method_add(interp, interp->builtins.Class, "setup", setup)) return false;
 	if (!method_add(interp, interp->builtins.Class, "to_debug_string", to_debug_string)) return false;
+	if (!attribute_add(interp, interp->builtins.Class, "name", name_getter, NULL)) return false;
 	if (!attribute_add(interp, interp->builtins.Class, "getters", getters_getter, NULL)) return false;
 	if (!attribute_add(interp, interp->builtins.Class, "setters", setters_getter, NULL)) return false;
 	return true;
