@@ -12,6 +12,7 @@
 #include "array.h"
 #include "errors.h"
 #include "mapping.h"
+#include "null.h"
 #include "string.h"
 
 static void class_destructor(struct Object *klass)
@@ -197,6 +198,22 @@ static struct Object *name_getter(struct Interpreter *interp, struct Object *arg
 	return stringobject_newfromustr(interp, data->name);
 }
 
+static struct Object *baseclass_getter(struct Interpreter *interp, struct Object *argarr)
+{
+	if (!check_args(interp, argarr, interp->builtins.Class, NULL))
+		return NULL;
+
+	struct ClassObjectData *data = ARRAYOBJECT_GET(argarr, 0)->data;
+
+	if (!data->baseclass) {
+		// it's Object
+		// it could be some other class too, but only Object SHOULD have this....
+		return nullobject_get(interp);
+	}
+	OBJECT_INCREF(interp, data->baseclass);
+	return data->baseclass;
+}
+
 static struct Object *getters_getter(struct Interpreter *interp, struct Object *argarr)
 {
 	if (!check_args(interp, argarr, interp->builtins.Class, NULL))
@@ -240,6 +257,7 @@ bool classobject_addmethods(struct Interpreter *interp)
 	if (!method_add(interp, interp->builtins.Class, "setup", setup)) return false;
 	if (!method_add(interp, interp->builtins.Class, "to_debug_string", to_debug_string)) return false;
 	if (!attribute_add(interp, interp->builtins.Class, "name", name_getter, NULL)) return false;
+	if (!attribute_add(interp, interp->builtins.Class, "baseclass", baseclass_getter, NULL)) return false;
 	if (!attribute_add(interp, interp->builtins.Class, "getters", getters_getter, NULL)) return false;
 	if (!attribute_add(interp, interp->builtins.Class, "setters", setters_getter, NULL)) return false;
 	return true;

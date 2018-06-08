@@ -253,6 +253,8 @@ Classes have these attributes:
 - `some_class.name` is the name of the class as a [String](#string). This
   attribute is only for debugging, and it cannot be set after creating the
   class.
+- `some_class.baseclass` is the class that `some_class` inherits from (see
+  the [*] note below). `Object.baseclass` is [null](#null).
 - `some_class.getters` is a mapping with attribute name strings as keys and
   attribute getter functions (see below) as values.
 - `some_class.setters` is a similar mapping as `getters` for setter functions.
@@ -279,11 +281,16 @@ This getter and setter stuff has a few important consequences:
   modifying the `setters` or `getters` of built-in classes should be considered
   an anti-pattern.
 
-[*] Boring detail: a different error for missing attributes may be thrown for
-accessing `setters` or `getters` directly versus using the `.` syntax. For
-example, my Ö interpreter throws
-`SomeClass objects don't have an attribute named "y"` with `x.y` and
-`cannot find key "y"` with `(get_class x).getters.get`.
+[*] Not exactly. Here are the details:
+- Inheritance makes this work a bit differently: the `setters` and `getters` of
+  the base class are checked if the attribute is not found in `some_class`. If
+  it's not in the base class either, the base class of the base class is
+  checked and so on until the attribute is found or there are no more base
+  classes.
+- A different error for missing attributes may be thrown for accessing
+  `setters` or `getters` directly versus using the `.` syntax. For example, my
+  Ö interpreter throws `SomeClass objects don't have an attribute named "y"`
+  with `x.y` and `cannot find key "y"` with `((get_class x).getters.get "y")`.
 
 Classes also have one method:
 - `(some_class.to_debug_string)` returns a string like `<Class "the name">`
