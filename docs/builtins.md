@@ -250,6 +250,9 @@ don't need it, but if you do need it, you can do e.g.
 object.
 
 Classes have these attributes:
+- `some_class.name` is the name of the class as a [String](#string). This
+  attribute is only for debugging, and it cannot be set after creating the
+  class.
 - `some_class.getters` is a mapping with attribute name strings as keys and
   attribute getter functions (see below) as values.
 - `some_class.setters` is a similar mapping as `getters` for setter functions.
@@ -281,6 +284,11 @@ accessing `setters` or `getters` directly versus using the `.` syntax. For
 example, my Ö interpreter throws
 `SomeClass objects don't have an attribute named "y"` with `x.y` and
 `cannot find key "y"` with `(get_class x).getters.get`.
+
+Classes also have one method:
+- `(some_class.to_debug_string)` returns a string like `<Class "the name">`
+  where `the name` is `some_class.name`. See also [Object](#object)'s
+  `to_debug_string` documentation.
 
 ### Object
 

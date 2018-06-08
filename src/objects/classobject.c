@@ -144,6 +144,15 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 	return NULL;
 }
 
+static struct Object *name_getter(struct Interpreter *interp, struct Object *argarr)
+{
+	if (!check_args(interp, argarr, interp->builtins.Class, NULL))
+		return NULL;
+
+	struct ClassObjectData *data = ARRAYOBJECT_GET(argarr, 0)->data;
+	return stringobject_newfromustr(interp, data->name);
+}
+
 static struct Object *getters_getter(struct Interpreter *interp, struct Object *argarr)
 {
 	if (!check_args(interp, argarr, interp->builtins.Class, NULL))
@@ -179,7 +188,7 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 	if (!check_args(interp, argarr, interp->builtins.Class, NULL))
 		return NULL;
 	struct ClassObjectData *data = ARRAYOBJECT_GET(argarr, 0)->data;
-	return stringobject_newfromfmt(interp, "<Class '%U'>", data->name);
+	return stringobject_newfromfmt(interp, "<Class \"%U\">", data->name);
 }
 
 bool classobject_addmethods(struct Interpreter *interp)
