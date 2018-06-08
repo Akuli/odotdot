@@ -266,7 +266,7 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **elems
 	for (size_t i=0; i < nelems; i++)
 		OBJECT_INCREF(interp, elems[i]);
 
-	arr->hashable = 0;
+	arr->hashable = false;
 	return arr;
 }
 

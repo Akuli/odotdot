@@ -73,7 +73,7 @@ struct Object *mappingobject_newempty(struct Interpreter *interp)
 		return NULL;
 	}
 
-	map->hashable = 0;
+	map->hashable = false;
 	return map;
 }
 
@@ -97,7 +97,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 
 	map->data = data;
 	map->destructor = mapping_destructor;
-	map->hashable = 0;
+	map->hashable = false;
 
 	for (size_t i=0; i < ARRAYOBJECT_LEN(pairs); i++) {
 		struct Object *pair = ARRAYOBJECT_GET(pairs, i);

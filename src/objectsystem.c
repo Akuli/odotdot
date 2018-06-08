@@ -25,7 +25,7 @@ struct Object *object_new_noerr(struct Interpreter *interp, struct Object *klass
 	// the rightmost bits are often used for alignment
 	// let's throw them away for a better distribution
 	obj->hash = (uintptr_t)((void*)obj) >> 2;
-	obj->hashable = 1;
+	obj->hashable = true;
 
 	obj->refcount = 1;   // the returned reference
 	obj->gcflag = 0;
