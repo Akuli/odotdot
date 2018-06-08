@@ -18,12 +18,14 @@ static void class_destructor(struct Object *klass)
 {
 	// class_foreachref takes care of most other things
 	struct ClassObjectData *data = klass->data;
-	free(data->name.val);    // free(NULL) does nothing
-	free(data);
+	if (data) {
+		free(data->name.val);    // free(NULL) does nothing
+		free(data);
+	}
 }
 
 
-struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, struct Object *base, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb))
+static struct ClassObjectData *create_data(struct Interpreter *interp, struct Object *base, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb))
 {
 	struct ClassObjectData *data = malloc(sizeof(struct ClassObjectData));
 	if (!data)
@@ -37,15 +39,29 @@ struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, str
 	data->setters = NULL;
 	data->getters = NULL;
 	data->foreachref = foreachref;
+	return data;
+}
+
+// only for error handling, class_destructor() handles other cases
+static void free_data(struct Interpreter *interp, struct ClassObjectData *data)
+{
+	if (data->baseclass)
+		OBJECT_DECREF(interp, data->baseclass);
+	free(data);
+}
+
+struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, struct Object *base, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb))
+{
+	struct ClassObjectData *data = create_data(interp, base, foreachref);
+	if (!data)
+		return NULL;
 
 	// interp->Class can be NULL, see builtins_setup()
 	struct Object *klass = object_new_noerr(interp, interp->builtins.Class, data, class_destructor);
 	if (!klass) {
-		OBJECT_DECREF(interp, base);
-		free(data);
+		free_data(interp, data);
 		return NULL;
 	}
-
 	return klass;
 }
 
@@ -140,10 +156,36 @@ struct Object *classobject_create_Class_noerr(struct Interpreter *interp)
 	return classobject_new_noerr(interp, "Class", interp->builtins.Object, class_foreachref);
 }
 
+
 static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 {
-	errorobject_setwithfmt(interp, "classes can't be created with (new Class) yet");
-	return NULL;
+	if (!check_args(interp, argarr, interp->builtins.Class, interp->builtins.String, interp->builtins.Class, NULL))
+		return NULL;
+	struct Object *klass = ARRAYOBJECT_GET(argarr, 0);
+	struct Object *name = ARRAYOBJECT_GET(argarr, 1);
+	struct Object *base = ARRAYOBJECT_GET(argarr, 2);
+
+	if (klass->data) {
+		errorobject_setwithfmt(interp, "setup was called twice");
+		return NULL;
+	}
+
+	struct ClassObjectData *data = create_data(interp, base, NULL);
+	if (!data) {
+		errorobject_setnomem(interp);
+		return NULL;
+	}
+
+	assert(!data->name.val);   // shouldn't need a free() here
+	if (!unicodestring_copyinto(interp, *((struct UnicodeString *) name->data), &data->name)) {
+		free_data(interp, data);
+		return NULL;
+	}
+
+	klass->data = data;
+	klass->destructor = class_destructor;
+
+	return nullobject_get(interp);
 }
 
 static struct Object *name_getter(struct Interpreter *interp, struct Object *argarr)

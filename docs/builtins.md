@@ -290,6 +290,14 @@ Classes also have one method:
   where `the name` is `some_class.name`. See also [Object](#object)'s
   `to_debug_string` documentation.
 
+New classes can be created like `(new Class name baseclass)` where
+- `Class` is `(get_class String)`, see above,
+- `name` is a string that will become the `.name` attribute, and
+- `baseclass` is another `Class` object to inherit from, usually `Object`.
+
+Right now this is the only way to create custom classes in Ö, but I'll add a
+`class` command that takes care of this in a more user-friendy way soon.
+
 ### Object
 
 This is the baseclass of all other classes; that is, all other classes inherit
