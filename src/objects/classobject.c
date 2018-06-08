@@ -3,13 +3,16 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../attribute.h"
 #include "../check.h"
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"
 #include "../unicode.h"
+#include "array.h"
 #include "errors.h"
 #include "mapping.h"
+#include "string.h"
 
 static void class_destructor(struct Object *klass)
 {
@@ -123,9 +126,49 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 	return NULL;
 }
 
+static struct Object *getters_getter(struct Interpreter *interp, struct Object *argarr)
+{
+	if (!check_args(interp, argarr, interp->builtins.Class, NULL))
+		return NULL;
+
+	struct ClassObjectData *data = ARRAYOBJECT_GET(argarr, 0)->data;
+	if (!data->getters) {
+		if (!(data->getters = mappingobject_newempty(interp)))
+			return NULL;
+	}
+
+	OBJECT_INCREF(interp, data->getters);
+	return data->getters;
+}
+
+static struct Object *setters_getter(struct Interpreter *interp, struct Object *argarr)
+{
+	if (!check_args(interp, argarr, interp->builtins.Class, NULL))
+		return NULL;
+
+	struct ClassObjectData *data = ARRAYOBJECT_GET(argarr, 0)->data;
+	if (!data->setters) {
+		if (!(data->setters = mappingobject_newempty(interp)))
+			return NULL;
+	}
+
+	OBJECT_INCREF(interp, data->setters);
+	return data->setters;
+}
+
+static struct Object *to_debug_string(struct Interpreter *interp, struct Object *argarr)
+{
+	if (!check_args(interp, argarr, interp->builtins.Class, NULL))
+		return NULL;
+	struct ClassObjectData *data = ARRAYOBJECT_GET(argarr, 0)->data;
+	return stringobject_newfromfmt(interp, "<Class '%s'>", data->name);
+}
+
 bool classobject_addmethods(struct Interpreter *interp)
 {
 	if (!method_add(interp, interp->builtins.Class, "setup", setup)) return false;
-	// TODO: to_debug_string
+	if (!method_add(interp, interp->builtins.Class, "to_debug_string", to_debug_string)) return false;
+	if (!attribute_add(interp, interp->builtins.Class, "getters", getters_getter, NULL)) return false;
+	if (!attribute_add(interp, interp->builtins.Class, "setters", setters_getter, NULL)) return false;
 	return true;
 }

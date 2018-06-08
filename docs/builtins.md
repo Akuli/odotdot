@@ -241,10 +241,48 @@ In some languages, there are "primitives" that are not objects and cannot be
 treated like objects. I think that's dumb, so everything you can e.g. assign to
 a variable is an object in Ö.
 
-Classes are also objects and their class is `Class`, but the `Class` class
-doesn't have any attributes or methods yet so there's no more documentation
-about it. The `Class` class isn't in the built-in namespace, but you can access
-it like `var Class = (get_class String);` if you need it for something.
+### Class
+
+Classes are also objects; they are instances of a class named `Class`. The
+`Class` class is not in the built-in namespace because most of the time you
+don't need it, but if you do need it, you can do e.g.
+`var Class = (get_class String);` because the `String` class is a `Class`
+object.
+
+Classes have these attributes:
+- `some_class.getters` is a mapping with attribute name strings as keys and
+  attribute getter functions (see below) as values.
+- `some_class.setters` is a similar mapping as `getters` for setter functions.
+
+When looking up any attribute, the interpreter looks up a getter function from
+the instance's class, and calls it with the instance as the only argument. So,
+`x.y` is equivalent[*] to `(((get_class x).getters.get "y") x)` (that is a
+function call with `((get_class x).getters.get "y")` as the function and `x` as
+the only argument).
+
+Similarly, setting an attribute calls a setter function with two arguments, the
+instance and the new value, so `x.y = z;` is equivalent[*] to
+`((get_class x).setters.get "y") x z;`.
+
+This getter and setter stuff has a few important consequences:
+- All instances of a class have the same attributes.
+- Read-only attributes can be implemented by adding a getter to `.getters` but
+  no setter. For example, all methods and the `length` attribute of
+  [Array](#array) objects work like this.
+- It's possible to add more methods to built-in objects; the mappings that the
+  attributes are stored in are not hidden, and there are no special
+  restrictions for how those mappings can be used. However, as explained above,
+  adding an attribute means adding it to **all** instances of a class, so
+  modifying the `setters` or `getters` of built-in classes should be considered
+  an anti-pattern.
+
+<small>
+[*] Boring detail: a different error for missing attributes may be thrown for
+accessing `setters` or `getters` directly versus using the `.` syntax. For
+example, my Ö interpreter throws
+`SomeClass objects don't have an attribute named "y"` with `x.y` and
+`cannot find key "y"` with `(get_class x).getters.get`.
+</small>
 
 ### Object
 
