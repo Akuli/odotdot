@@ -276,13 +276,11 @@ This getter and setter stuff has a few important consequences:
   modifying the `setters` or `getters` of built-in classes should be considered
   an anti-pattern.
 
-<small>
 [*] Boring detail: a different error for missing attributes may be thrown for
 accessing `setters` or `getters` directly versus using the `.` syntax. For
 example, my Ö interpreter throws
 `SomeClass objects don't have an attribute named "y"` with `x.y` and
 `cannot find key "y"` with `(get_class x).getters.get`.
-</small>
 
 ### Object
 
