@@ -43,7 +43,7 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 
 bool objectobject_addmethods(struct Interpreter *interp)
 {
-	if (method_add(interp, interp->builtins.Object, "setup", setup) == false) return false;
-	if (method_add(interp, interp->builtins.Object, "to_debug_string", to_debug_string) == false) return false;
+	if (!method_add(interp, interp->builtins.Object, "setup", setup)) return false;
+	if (!method_add(interp, interp->builtins.Object, "to_debug_string", to_debug_string)) return false;
 	return true;
 }

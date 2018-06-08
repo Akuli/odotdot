@@ -15,7 +15,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 
 static struct Object *to_debug_string(struct Interpreter *interp, struct Object *argarr)
 {
-	if (check_args(interp, argarr, interp->builtins.null->klass, NULL) == false)
+	if (!check_args(interp, argarr, interp->builtins.null->klass, NULL))
 		return NULL;
 	return stringobject_newfromcharptr(interp, "null");
 }
