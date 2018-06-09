@@ -313,24 +313,6 @@ things that I would like to do some day. It's a mess.
 - rename the functions? `token_ize()` is consistent with a `Token` prefix, but
   `tokenize()` reads nicer
 
-## unicode.{c,h}
-- delete UnicodeString?
-    - string objects are quite capable anyway
-    - but no, UnicodeString shouldn't be deleted
-    - string operations like this with UnicodeString are quite efficient, which
-      is important for tokenizer.c:
-
-        ```c
-        // skip first character
-        ustr.len++;
-        ustr.val--;
-        ```
-
-    - simple is better than complex, and UnicodeStrings are simple when string
-      objects are not needed
-    - the name of class objects is also a UnicodeString because
-      `builtins_setup()` stuff
-
 ## ast.{c,h}
 - add nonzero linenos to expression nodes
     - debugging would be a lot easier
