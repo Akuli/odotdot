@@ -32,19 +32,32 @@ nope:
 	return false;
 }
 
-// TODO: this is used in a loop so we have O(n^2), can that be a problem in performance-critical code?
-static bool check_option(struct Interpreter *interp, struct Object *validopts, struct Object *opt)
+// errors if opts contains keys not in validopts
+// validopts must be an array and opts must be a mapping
+// TODO: this is O(n^2), can that be a problem in performance-critical code?
+static bool check_options(struct Interpreter *interp, struct Object *validopts, struct Object *opts)
 {
-	for (size_t i=0; i < ARRAYOBJECT_LEN(validopts); i++) {
-		int eqres = equals(interp, ARRAYOBJECT_GET(validopts, i), opt);
-		if (eqres == 1)
-			return true;
-		if (eqres == -1)
-			return false;
-	}
+	struct MappingObjectIter iter;
+	mappingobject_iterbegin(&iter, opts);
 
-	errorobject_setwithfmt(interp, "unknown option name %D", opt);
-	return false;
+	while (mappingobject_iternext(&iter)) {
+		bool keyfound = false;
+		for (size_t i=0; i < ARRAYOBJECT_LEN(validopts); i++) {
+			int eqres = equals(interp, iter.key, ARRAYOBJECT_GET(validopts, i));
+			if (eqres == -1)
+				return false;
+			if (eqres == 1) {
+				keyfound = true;
+				break;
+			}
+		}
+
+		if (!keyfound) {
+			errorobject_setwithfmt(interp, "unknown option %D", iter.key);
+			return false;
+		}
+	}
+	return true;
 }
 
 // lambda is like func, but it returns the function instead of setting it to a variable
@@ -66,6 +79,8 @@ static struct Object *runner(struct Interpreter *interp, struct Object *args, st
 		errorobject_setwithfmt(interp, "too many arguments");
 		return NULL;
 	}
+	if (!check_options(interp, optnames, opts))
+		return NULL;
 
 	struct Object *parentscope = attribute_get(interp, block, "definition_scope");
 	if (!parentscope)
@@ -88,11 +103,11 @@ static struct Object *runner(struct Interpreter *interp, struct Object *args, st
 		OBJECT_DECREF(interp, localvars);
 		OBJECT_DECREF(interp, scope);
 	}
-	struct Object *returndefault = nullobject_get(interp);
-	assert(returndefault);   // should never fail
+	struct Object *null = nullobject_get(interp);
+	assert(null);   // should never fail
 
-	bool ok = mappingobject_set(interp, localvars, returnstring, returndefault);
-	OBJECT_DECREF(interp, returndefault);
+	bool ok = mappingobject_set(interp, localvars, returnstring, null);
+	OBJECT_DECREF(interp, null);
 	if (!ok)
 		goto error;
 
@@ -103,12 +118,20 @@ static struct Object *runner(struct Interpreter *interp, struct Object *args, st
 	}
 
 	// ...and options
-	struct MappingObjectIter iter;
-	mappingobject_iterbegin(&iter, opts);
-	while (mappingobject_iternext(&iter)) {
-		if (!check_option(interp, optnames, iter.key))
+	for (size_t i=0; i < ARRAYOBJECT_LEN(optnames); i++) {
+		struct Object *optname = ARRAYOBJECT_GET(optnames, i);
+		struct Object *val;
+
+		int status = mappingobject_get(interp, opts, optname, &val);
+		if (status == -1)
 			goto error;
-		if (!mappingobject_set(interp, localvars, iter.key, iter.value))
+		if (status == 0)    // value not specified, but options are optional ofc :D
+			val = nullobject_get(interp);
+		assert(val);
+
+		bool ok = mappingobject_set(interp, localvars, optname, null);
+		OBJECT_DECREF(interp, val);
+		if (!ok)
 			goto error;
 	}
 
