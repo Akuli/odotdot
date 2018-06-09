@@ -71,8 +71,8 @@ static struct Object *run_expression(struct Interpreter *interp, struct Object *
 			OBJECT_DECREF(interp, func);
 			return NULL;
 		}
-		for (size_t i=0; i < INFO_AS(AstCallInfo)->nargs; i++) {
-			struct Object *arg = run_expression(interp, scope, INFO_AS(AstCallInfo)->argnodes[i]);
+		for (size_t i=0; i < ARRAYOBJECT_LEN(INFO_AS(AstCallInfo)->argnodearr); i++) {
+			struct Object *arg = run_expression(interp, scope, ARRAYOBJECT_GET(INFO_AS(AstCallInfo)->argnodearr, i));
 			if (!arg) {
 				OBJECT_DECREF(interp, argarr);
 				OBJECT_DECREF(interp, func);

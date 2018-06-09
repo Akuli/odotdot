@@ -14,7 +14,6 @@
 static void foreachref(struct Object *node, void *cbdata, classobject_foreachrefcb cb)
 {
 	struct AstNodeObjectData *data = node->data;
-	size_t i;
 	switch (data->kind) {
 #define info_as(X) ((struct X *) data->info)
 	case AST_ARRAY:
@@ -34,8 +33,7 @@ static void foreachref(struct Object *node, void *cbdata, classobject_foreachref
 		break;
 	case AST_CALL:
 		cb(info_as(AstCallInfo)->funcnode, cbdata);
-		for (i = 0; i < info_as(AstCallInfo)->nargs; i++)
-			cb(info_as(AstCallInfo)->argnodes[i], cbdata);
+		cb(info_as(AstCallInfo)->argnodearr, cbdata);
 		break;
 	case AST_INT:
 	case AST_STR:
@@ -73,7 +71,6 @@ static void destructor(struct Object *node)
 		free(data->info);
 		break;
 	case AST_CALL:
-		free(info_as(AstCallInfo)->argnodes);
 		free(data->info);
 		break;
 	case AST_INT:

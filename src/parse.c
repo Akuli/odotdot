@@ -23,14 +23,14 @@
 static bool expression_coming_up(struct Token *curtok)
 {
 	if (!curtok)
-		return 0;
+		return false;
 	if (curtok->kind == TOKEN_STR || curtok->kind == TOKEN_INT || curtok->kind == TOKEN_ID)
-		return 1;
+		return true;
 	if (curtok->kind == TOKEN_OP)
 		return curtok->str.val[0] == '(' ||
 			curtok->str.val[0] == '{' ||
 			curtok->str.val[0] == '[';
-	return 0;
+	return false;
 }
 
 
@@ -113,9 +113,6 @@ static struct Object *parse_getvar(struct Interpreter *interp, struct Token **cu
 }
 
 
-// because i'm lazy, wouldn't be hard to fix
-#define MAX_ARGS 100
-
 // func arg1 arg2;
 // this takes the function as an already-parsed argument
 // this way parse_statement() knows when this should be called
@@ -124,11 +121,12 @@ static struct Object *parse_call(struct Interpreter *interp, struct Token **curt
 	size_t lineno = (*curtok)->lineno;
 
 	struct AstCallInfo *callinfo = malloc(sizeof(struct AstCallInfo));
-	if (!callinfo)
+	if (!callinfo) {
+		errorobject_setnomem(interp);
 		return NULL;
+	}
 
-	callinfo->argnodes = malloc(sizeof(struct Object *) * MAX_ARGS);
-	if (!callinfo->argnodes) {
+	if (!(callinfo->argnodearr = arrayobject_newempty(interp))) {
 		free(callinfo);
 		return NULL;
 	}
@@ -136,43 +134,36 @@ static struct Object *parse_call(struct Interpreter *interp, struct Token **curt
 	callinfo->funcnode = funcnode;
 	OBJECT_INCREF(interp, funcnode);
 
-	for (callinfo->nargs = 0; expression_coming_up(*curtok) && callinfo->nargs < MAX_ARGS; callinfo->nargs++) {
+	while (expression_coming_up(*curtok)) {
 		struct Object *arg = parse_expression(interp, curtok);
 		if(!arg) {
-			for(size_t i=0; i < callinfo->nargs; i++)
-				OBJECT_DECREF(interp, callinfo->argnodes[i]);
 			OBJECT_DECREF(interp, funcnode);
-			free(callinfo->argnodes);
+			OBJECT_DECREF(interp, callinfo->argnodearr);
 			free(callinfo);
 			return NULL;
 		}
 
-		// don't incref or decref arg, parse_expression() returned a reference
-		callinfo->argnodes[callinfo->nargs] = arg;
+		bool ok = arrayobject_push(interp, callinfo->argnodearr, arg);
+		OBJECT_DECREF(interp, arg);
+		if (!ok) {
+			OBJECT_DECREF(interp, funcnode);
+			OBJECT_DECREF(interp, callinfo->argnodearr);
+			free(callinfo);
+			return NULL;
+		}
 	}
-
-	// TODO: report error "more than MAX_ARGS arguments"
-	assert(!expression_coming_up(*curtok));
-
-	// this can't fail because this is freeing memory, not allocating more
-	callinfo->argnodes = realloc(callinfo->argnodes, sizeof(struct Object *) * callinfo->nargs);
-	if (callinfo->nargs)       // 0 bytes of memory *MAY* be represented as NULL
-		assert(callinfo->argnodes);
 
 	struct Object *res = astnodeobject_new(interp, AST_CALL, lineno, callinfo);
 	if (!res) {
-		for(size_t i=0; i < callinfo->nargs; i++)
-			OBJECT_DECREF(interp, callinfo->argnodes[i]);
 		OBJECT_DECREF(interp, funcnode);
-		free(callinfo->argnodes);
+		OBJECT_DECREF(interp, callinfo->argnodearr);
 		free(callinfo);
 		return NULL;
 	}
 	return res;
 }
-#undef MAX_ARGS
 
-// "arg1 `func` arg2"
+// arg1 `func` arg2
 static struct Object *parse_infix_call(struct Interpreter *interp, struct Token **curtok, struct Object *arg1)
 {
 	size_t lineno = (*curtok)->lineno;
@@ -203,29 +194,25 @@ static struct Object *parse_infix_call(struct Interpreter *interp, struct Token 
 		OBJECT_DECREF(interp, func);
 		return NULL;
 	}
-	callinfo->funcnode = func;
-	callinfo->nargs = 2;
 
-	if (!(callinfo->argnodes = malloc(sizeof(struct Object *) * 2))) {
+	callinfo->funcnode = func;
+
+	struct Object *tmp[] = { arg1, arg2 };
+	callinfo->argnodearr = arrayobject_new(interp, tmp, 2);
+	OBJECT_DECREF(interp, arg2);
+	if (!callinfo->argnodearr) {
 		free(callinfo);
-		OBJECT_DECREF(interp, arg2);
 		OBJECT_DECREF(interp, func);
 		return NULL;
 	}
-	callinfo->argnodes[0] = arg1;
-	callinfo->argnodes[1] = arg2;
 
 	struct Object *res = astnodeobject_new(interp, AST_CALL, lineno, callinfo);
 	if (!res) {
-		free(callinfo->argnodes);
+		OBJECT_DECREF(interp, callinfo->argnodearr);
 		free(callinfo);
-		OBJECT_DECREF(interp, arg2);
 		OBJECT_DECREF(interp, func);
 		return NULL;
 	}
-
-	// this function is already holding a reference to arg2 and func, but not arg1
-	OBJECT_INCREF(interp, arg1);
 	return res;
 }
 
