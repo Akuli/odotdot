@@ -158,10 +158,10 @@ struct Object *classobject_create_Class_noerr(struct Interpreter *interp)
 }
 
 
-static struct Object *setup(struct Interpreter *interp, struct Object *args)
+static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Class, interp->builtins.String, interp->builtins.Class, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Class, interp->builtins.String, interp->builtins.Class, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *klass = ARRAYOBJECT_GET(args, 0);
 	struct Object *name = ARRAYOBJECT_GET(args, 1);
 	struct Object *baseclass = ARRAYOBJECT_GET(args, 2);
@@ -189,19 +189,19 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args)
 	return nullobject_get(interp);
 }
 
-static struct Object *name_getter(struct Interpreter *interp, struct Object *args)
+static struct Object *name_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Class, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Class, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct ClassObjectData *data = ARRAYOBJECT_GET(args, 0)->data;
 	return stringobject_newfromustr(interp, data->name);
 }
 
-static struct Object *baseclass_getter(struct Interpreter *interp, struct Object *args)
+static struct Object *baseclass_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Class, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Class, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct ClassObjectData *data = ARRAYOBJECT_GET(args, 0)->data;
 
@@ -214,10 +214,10 @@ static struct Object *baseclass_getter(struct Interpreter *interp, struct Object
 	return data->baseclass;
 }
 
-static struct Object *getters_getter(struct Interpreter *interp, struct Object *args)
+static struct Object *getters_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Class, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Class, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct ClassObjectData *data = ARRAYOBJECT_GET(args, 0)->data;
 	if (!data->getters) {
@@ -229,10 +229,10 @@ static struct Object *getters_getter(struct Interpreter *interp, struct Object *
 	return data->getters;
 }
 
-static struct Object *setters_getter(struct Interpreter *interp, struct Object *args)
+static struct Object *setters_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Class, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Class, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct ClassObjectData *data = ARRAYOBJECT_GET(args, 0)->data;
 	if (!data->setters) {
@@ -244,10 +244,10 @@ static struct Object *setters_getter(struct Interpreter *interp, struct Object *
 	return data->setters;
 }
 
-static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args)
+static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Class, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Class, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 	struct ClassObjectData *data = ARRAYOBJECT_GET(args, 0)->data;
 	return stringobject_newfromfmt(interp, "<Class \"%U\">", data->name);
 }

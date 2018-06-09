@@ -89,10 +89,10 @@ static void integer_destructor(struct Object *integer)
 }
 
 // (new Integer "123") converts a string to an integer
-static struct Object *setup(struct Interpreter *interp, struct Object *args)
+static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Integer, interp->builtins.String, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Integer, interp->builtins.String, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct Object *integer = ARRAYOBJECT_GET(args, 0);
 	struct Object *string = ARRAYOBJECT_GET(args, 1);
@@ -115,10 +115,10 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args)
 	return nullobject_get(interp);
 }
 
-static struct Object *to_string(struct Interpreter *interp, struct Object *args)
+static struct Object *to_string(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Integer, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Integer, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 
 	long long val = *((long long *) ARRAYOBJECT_GET(args, 0)->data);
 	if (val == 0)   // special case
@@ -150,10 +150,10 @@ static struct Object *to_string(struct Interpreter *interp, struct Object *args)
 }
 
 // FIXME: we need operators
-static struct Object *plus(struct Interpreter *interp, struct Object *args)
+static struct Object *plus(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Integer, interp->builtins.Integer, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Integer, interp->builtins.Integer, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 
 	long long x = integerobject_tolonglong(ARRAYOBJECT_GET(args, 0));
 	long long y = integerobject_tolonglong(ARRAYOBJECT_GET(args, 1));

@@ -26,7 +26,7 @@
 
 // lambda is like func, but it returns the function instead of setting it to a variable
 // this is partialled to an argument name array and a block to create lambdas
-static struct Object *lambda_runner(struct Interpreter *interp, struct Object *args)
+static struct Object *lambda_runner(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	assert(ARRAYOBJECT_LEN(args) >= 2);
 	struct Object *argnames = ARRAYOBJECT_GET(args, 0);
@@ -42,6 +42,8 @@ static struct Object *lambda_runner(struct Interpreter *interp, struct Object *a
 		errorobject_setwithfmt(interp, "too many arguments");
 		return NULL;
 	}
+	if (!check_no_opts(interp, opts))
+		return NULL;
 
 	struct Object *parentscope = attribute_get(interp, block, "definition_scope");
 	if (!parentscope)
@@ -101,10 +103,10 @@ error:
 	return NULL;
 }
 
-static struct Object *lambda(struct Interpreter *interp, struct Object *args)
+static struct Object *lambda(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.String, interp->builtins.Block, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.String, interp->builtins.Block, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct Object *argnames = stringobject_splitbywhitespace(interp, ARRAYOBJECT_GET(args, 0));
 	if (!argnames)
@@ -153,10 +155,10 @@ static bool run_block(struct Interpreter *interp, struct Object *block)
 	return true;
 }
 
-static struct Object *catch(struct Interpreter *interp, struct Object *args)
+static struct Object *catch(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Block, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Block, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *trying = ARRAYOBJECT_GET(args, 0);
 	struct Object *caught = ARRAYOBJECT_GET(args, 1);
 
@@ -174,10 +176,10 @@ static struct Object *catch(struct Interpreter *interp, struct Object *args)
 	return nullobject_get(interp);
 }
 
-static struct Object *get_class(struct Interpreter *interp, struct Object *args)
+static struct Object *get_class(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Object, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct Object *obj = ARRAYOBJECT_GET(args, 0);
 	OBJECT_INCREF(interp, obj->klass);
@@ -185,18 +187,18 @@ static struct Object *get_class(struct Interpreter *interp, struct Object *args)
 }
 
 #define BOOL(interp, x) interpreter_getbuiltin((interp), (x) ? "true" : "false")
-static struct Object *is_instance_of(struct Interpreter *interp, struct Object *args)
+static struct Object *is_instance_of(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	// TODO: shouldn't this be implemented in builtins.ö? classobject_isinstanceof() doesn't do anything fancy
-	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Class))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Class)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 	return BOOL(interp, classobject_isinstanceof(ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1)));
 }
 
-struct Object *equals_builtin(struct Interpreter *interp, struct Object *args)
+struct Object *equals_builtin(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 
 	int res = equals(interp, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1));
 	if (res == -1)
@@ -206,19 +208,19 @@ struct Object *equals_builtin(struct Interpreter *interp, struct Object *args)
 	return BOOL(interp, res);
 }
 
-static struct Object *same_object(struct Interpreter *interp, struct Object *args)
+static struct Object *same_object(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 	return BOOL(interp, ARRAYOBJECT_GET(args, 0) == ARRAYOBJECT_GET(args, 1));
 }
 #undef BOOL
 
 
-static struct Object *print(struct Interpreter *interp, struct Object *args)
+static struct Object *print(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.String, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.String, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 
 	char *utf8;
 	size_t utf8len;
@@ -235,14 +237,14 @@ static struct Object *print(struct Interpreter *interp, struct Object *args)
 }
 
 
-static struct Object *new(struct Interpreter *interp, struct Object *args)
+static struct Object *new(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (ARRAYOBJECT_LEN(args) == 0) {
 		errorobject_setwithfmt(interp, "new needs at least 1 argument, the class");
 		return NULL;
 	}
-	if (!check_type(interp, interp->builtins.Class, ARRAYOBJECT_GET(args, 0)))
-		return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+	if (!check_type(interp, interp->builtins.Class, ARRAYOBJECT_GET(args, 0))) return NULL;
 	struct Object *klass = ARRAYOBJECT_GET(args, 0);
 
 	struct Object *obj = classobject_newinstance(interp, klass, NULL, NULL);
@@ -280,10 +282,10 @@ static struct Object *new(struct Interpreter *interp, struct Object *args)
 // every objects may have an attrdata mapping, values of simple attributes go there
 // attrdata is first set to NULL and created when needed
 // see also definition of struct Object
-static struct Object *get_attrdata(struct Interpreter *interp, struct Object *args)
+static struct Object *get_attrdata(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Object, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct Object *obj = ARRAYOBJECT_GET(args, 0);
 	if (!obj->attrdata) {

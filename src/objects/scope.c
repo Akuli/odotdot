@@ -58,9 +58,10 @@ struct Object *scopeobject_newbuiltin(struct Interpreter *interp)
 ATTRIBUTE_DEFINE_SIMPLE_GETTER(parent_scope, Scope)
 ATTRIBUTE_DEFINE_SIMPLE_GETTER(local_vars, Scope)
 
-static struct Object *setup(struct Interpreter *interp, struct Object *args)
+static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Scope, interp->builtins.Scope, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *scope = ARRAYOBJECT_GET(args, 0);
 	struct Object *parent_scope = ARRAYOBJECT_GET(args, 1);
 
@@ -80,10 +81,10 @@ error:
 }
 
 
-static struct Object *set_var(struct Interpreter *interp, struct Object *args)
+static struct Object *set_var(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Scope, interp->builtins.String, interp->builtins.Object, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Scope, interp->builtins.String, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *scope = ARRAYOBJECT_GET(args, 0);
 	struct Object *varname = ARRAYOBJECT_GET(args, 1);
 	struct Object *val = ARRAYOBJECT_GET(args, 2);
@@ -122,15 +123,15 @@ static struct Object *set_var(struct Interpreter *interp, struct Object *args)
 	if (!newargs)
 		return NULL;
 
-	struct Object *ret = set_var(interp, newargs);
+	struct Object *ret = set_var(interp, newargs, opts);
 	OBJECT_DECREF(interp, newargs);
 	return ret;
 }
 
-static struct Object *get_var(struct Interpreter *interp, struct Object *args)
+static struct Object *get_var(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Scope, interp->builtins.String, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Scope, interp->builtins.String, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *scope = ARRAYOBJECT_GET(args, 0);
 	struct Object *varname = ARRAYOBJECT_GET(args, 1);
 
@@ -162,7 +163,7 @@ static struct Object *get_var(struct Interpreter *interp, struct Object *args)
 	if (!newargs)
 		return NULL;
 
-	struct Object *ret = get_var(interp, newargs);
+	struct Object *ret = get_var(interp, newargs, opts);
 	OBJECT_DECREF(interp, newargs);
 	return ret;
 }

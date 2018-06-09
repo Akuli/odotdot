@@ -78,10 +78,10 @@ struct Object *mappingobject_newempty(struct Interpreter *interp)
 }
 
 
-static struct Object *setup(struct Interpreter *interp, struct Object *args)
+static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Mapping, interp->builtins.Array, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Mapping, interp->builtins.Array, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *map = ARRAYOBJECT_GET(args, 0);
 	struct Object *pairs = ARRAYOBJECT_GET(args, 1);
 
@@ -113,10 +113,10 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args)
 }
 
 
-static struct Object *length_getter(struct Interpreter *interp, struct Object *args)
+static struct Object *length_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Mapping, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Mapping, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 	return integerobject_newfromlonglong(interp, MAPPINGOBJECT_SIZE(ARRAYOBJECT_GET(args, 0)));
 }
 
@@ -209,12 +209,11 @@ bool mappingobject_set(struct Interpreter *interp, struct Object *map, struct Ob
 	return true;
 }
 
-static struct Object *set(struct Interpreter *interp, struct Object *args)
+static struct Object *set(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Mapping, interp->builtins.Object, interp->builtins.Object, NULL))
-		return NULL;
-	if (!mappingobject_set(interp, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1), ARRAYOBJECT_GET(args, 2)))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Mapping, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+	if (!mappingobject_set(interp, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1), ARRAYOBJECT_GET(args, 2))) return NULL;
 	return nullobject_get(interp);
 }
 
@@ -241,10 +240,10 @@ int mappingobject_get(struct Interpreter *interp, struct Object *map, struct Obj
 	return 0;
 }
 
-static struct Object *get(struct Interpreter *interp, struct Object *args)
+static struct Object *get(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Mapping, interp->builtins.Object, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Mapping, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *map = ARRAYOBJECT_GET(args, 0);
 	struct Object *key = ARRAYOBJECT_GET(args, 1);
 
@@ -258,10 +257,10 @@ static struct Object *get(struct Interpreter *interp, struct Object *args)
 }
 
 
-static struct Object *get_and_delete(struct Interpreter *interp, struct Object *args)
+static struct Object *get_and_delete(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Mapping, interp->builtins.Object, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Mapping, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *map = ARRAYOBJECT_GET(args, 0);
 	struct Object *key = ARRAYOBJECT_GET(args, 1);
 
@@ -300,9 +299,9 @@ static struct Object *get_and_delete(struct Interpreter *interp, struct Object *
 	return NULL;
 }
 
-static struct Object *delete(struct Interpreter *interp, struct Object *args)
+static struct Object *delete(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	struct Object *res = get_and_delete(interp, args);
+	struct Object *res = get_and_delete(interp, args, opts);
 	if (!res)
 		return NULL;
 

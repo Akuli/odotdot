@@ -32,27 +32,27 @@ struct Object *stringobject_createclass_noerr(struct Interpreter *interp)
 }
 
 
-static struct Object *setup(struct Interpreter *interp, struct Object *args)
+static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	errorobject_setwithfmt(interp, "strings can't be created with (new String), use \"text in quotes\" instead");
 	return NULL;
 }
 
 // returns the string itself, for consistency with other types
-static struct Object *to_string(struct Interpreter *interp, struct Object *args)
+static struct Object *to_string(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.String, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.String, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 
 	OBJECT_INCREF(interp, ARRAYOBJECT_GET(args, 0));
 	return ARRAYOBJECT_GET(args, 0);
 }
 
 
-static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args)
+static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.String, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.String, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct UnicodeString noquotes = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data);
 	struct UnicodeString yesquotes;
@@ -70,10 +70,10 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 	return res;
 }
 
-static struct Object *concat(struct Interpreter *interp, struct Object *args)
+static struct Object *concat(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.String, interp->builtins.String, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.String, interp->builtins.String, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct UnicodeString u1 = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data);
 	struct UnicodeString u2 = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 1)->data);
@@ -88,10 +88,10 @@ static struct Object *concat(struct Interpreter *interp, struct Object *args)
 
 // get and slice are a lot like array methods
 // some day strings will hopefully behave like an immutable array of 1-character strings
-static struct Object *get(struct Interpreter *interp, struct Object *args)
+static struct Object *get(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.String, interp->builtins.Integer, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.String, interp->builtins.Integer, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct UnicodeString ustr = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data);
 	long long i = integerobject_tolonglong(ARRAYOBJECT_GET(args, 1));
@@ -110,8 +110,11 @@ static struct Object *get(struct Interpreter *interp, struct Object *args)
 	return stringobject_newfromustr(interp, ustr);
 }
 
-static struct Object *slice(struct Interpreter *interp, struct Object *args)
+static struct Object *slice(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
+	if (!check_no_opts(interp, opts))
+		return NULL;
+
 	long long start, end;
 	if (ARRAYOBJECT_LEN(args) == 2) {
 		// (s.slice start)
@@ -214,10 +217,10 @@ error:
 	return NULL;
 }
 
-static struct Object *split_by_whitespace(struct Interpreter *interp, struct Object *args)
+static struct Object *split_by_whitespace(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.String, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.String, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 	return stringobject_splitbywhitespace(interp, ARRAYOBJECT_GET(args, 0));
 }
 

@@ -19,10 +19,10 @@
 
 // this is partialled to function objects when creating methods
 // when getting the method, the partialled thing is called with the instance as an argument, see objects/classobject.h
-static struct Object *method_getter(struct Interpreter *interp, struct Object *args)
+static struct Object *method_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Function, interp->builtins.Object, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Function, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 	return functionobject_newpartial(interp, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1));
 }
 

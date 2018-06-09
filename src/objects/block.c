@@ -16,10 +16,10 @@
 ATTRIBUTE_DEFINE_SIMPLE_GETTER(definition_scope, Block)
 ATTRIBUTE_DEFINE_SIMPLE_GETTER(ast_statements, Block)
 
-static struct Object *setup(struct Interpreter *interp, struct Object *args)
+static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Scope, interp->builtins.Array, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Scope, interp->builtins.Array, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct Object *block = ARRAYOBJECT_GET(args, 0);
 	if (!attribute_settoattrdata(interp, block, "definition_scope", ARRAYOBJECT_GET(args, 1))) return NULL;
@@ -50,10 +50,10 @@ error:
 	return false;
 }
 
-static struct Object *run(struct Interpreter *interp, struct Object *args)
+static struct Object *run(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Scope, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Scope, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 	return blockobject_run(interp, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1)) ? nullobject_get(interp) : NULL;
 }
 

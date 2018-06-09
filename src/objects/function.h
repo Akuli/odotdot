@@ -11,8 +11,9 @@
       * NOT modify args or pass it to anything that may modify it
 
 args is an Array object of arguments
+opts is a Mapping of options, keys are strings and values are Objects
 */
-typedef struct Object* (*functionobject_cfunc)(struct Interpreter *interp, struct Object *args);
+typedef struct Object* (*functionobject_cfunc)(struct Interpreter *interp, struct Object *args, struct Object *opts);
 
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *functionobject_createclass(struct Interpreter *interp);

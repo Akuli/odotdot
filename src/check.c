@@ -1,9 +1,12 @@
 #include "check.h"
 #include <stdarg.h>
 #include <stdbool.h>
+#include <string.h>
 #include "objects/array.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
+#include "objects/mapping.h"
+#include "unicode.h"
 
 
 bool check_type(struct Interpreter *interp, struct Object *klass, struct Object *obj)
@@ -42,6 +45,43 @@ bool check_args(struct Interpreter *interp, struct Object *args, ...)
 	for (unsigned int i=0; i < expectnargs; i++) {
 		if (!check_type(interp, classes[i], ARRAYOBJECT_GET(args, i)))
 			return false;
+	}
+
+	return true;
+}
+
+bool check_no_opts(struct Interpreter *interp, struct Object *opts)
+{
+	if (MAPPINGOBJECT_SIZE(opts) != 0) {
+		// join the option names together with commaspaces
+		size_t joinedlen = 0;
+		struct MappingObjectIter iter;
+		mappingobject_iterbegin(&iter, opts);
+		while (mappingobject_iternext(&iter)) {
+			joinedlen += ((struct UnicodeString*) iter.key->data)->len;
+			// add commaspace once for each item except the first
+			if (joinedlen != 0)
+				joinedlen += 2;
+		}
+
+		unicode_char joinedval[joinedlen];
+		unicode_char *ptr = joinedval;
+		mappingobject_iterbegin(&iter, opts);
+		while (mappingobject_iternext(&iter)) {
+			struct UnicodeString *u = iter.key->data;
+			memcpy(ptr, u->val, u->len * sizeof(unicode_char));
+			ptr += u->len;
+			if (ptr != joinedval+joinedlen) {   // not done yet
+				*ptr++ = ',';
+				*ptr++ = ' ';
+			}
+		}
+
+		// phewh... almost done
+		struct UnicodeString joined = { .len = joinedlen, .val = joinedval };
+		errorobject_setwithfmt(interp, "expected no options, got %d option%s: %U",
+			MAPPINGOBJECT_SIZE(opts), MAPPINGOBJECT_SIZE(opts)==1 ? "" : "s", joined);
+		return false;
 	}
 
 	return true;

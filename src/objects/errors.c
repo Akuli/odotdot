@@ -28,10 +28,10 @@ struct Object *errorobject_createclass_noerr(struct Interpreter *interp)
 	return classobject_new_noerr(interp, "Error", interp->builtins.Object, error_foreachref);
 }
 
-static struct Object *setup(struct Interpreter *interp, struct Object *args)
+static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.String))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.String)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct Object *err = ARRAYOBJECT_GET(args, 0);
 	if (err->data) {

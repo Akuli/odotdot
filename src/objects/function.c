@@ -89,8 +89,10 @@ static struct Object *create_a_partial(struct Interpreter *interp, struct Object
 	return obj;
 }
 
-static struct Object *partial(struct Interpreter *interp, struct Object *args)
+static struct Object *partial(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
+	if (!check_no_opts(interp, opts)) return NULL;
+
 	// check the first argument, rest are the args that are being partialled
 	// there can be 0 or more partialled args (0 partialled args allowed for consistency)
 	if (ARRAYOBJECT_LEN(args) == 0) {
@@ -110,20 +112,20 @@ struct Object *functionobject_newpartial(struct Interpreter *interp, struct Obje
 }
 
 
-static struct Object *name_getter(struct Interpreter *interp, struct Object *args)
+static struct Object *name_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Function, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Function, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct FunctionData *data = ARRAYOBJECT_GET(args, 0)->data;
 	OBJECT_INCREF(interp, data->name);
 	return data->name;
 }
 
-static struct Object *name_setter(struct Interpreter *interp, struct Object *args)
+static struct Object *name_setter(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Function, interp->builtins.String, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Function, interp->builtins.String, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct FunctionData *data = ARRAYOBJECT_GET(args, 0)->data;
 	OBJECT_DECREF(interp, data->name);
@@ -146,10 +148,10 @@ bool functionobject_setname(struct Interpreter *interp, struct Object *func, cha
 }
 
 
-static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args)
+static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Function, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Function, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct Object *func = ARRAYOBJECT_GET(args, 0);
 	/* TODO: get rid of the "at" part?
@@ -159,7 +161,7 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 	return stringobject_newfromfmt(interp, "<Function %D at %p>", ((struct FunctionData*) func->data)->name, (void*)func);
 }
 
-static struct Object *setup(struct Interpreter *interp, struct Object *args)
+static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	errorobject_setwithfmt(interp, "functions can't be created with (new Function), use func instead");
 	return NULL;
@@ -259,7 +261,15 @@ struct Object *functionobject_vcall(struct Interpreter *interp, struct Object *f
 		theargs = args;
 	}
 
-	struct Object *res = data->cfunc(interp, theargs);
+	struct Object *opts = mappingobject_newempty(interp);
+	if (!opts) {
+		if (theargs != args)
+			OBJECT_DECREF(interp, theargs);
+		return NULL;
+	}
+
+	struct Object *res = data->cfunc(interp, theargs, opts);
+	OBJECT_DECREF(interp, opts);
 	if (theargs != args)
 		OBJECT_DECREF(interp, theargs);
 	return res;   // may be NULL

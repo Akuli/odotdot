@@ -27,8 +27,9 @@ struct Object *objectobject_createclass_noerr(struct Interpreter *interp)
 
 
 // setup does nothing by default
-static struct Object *setup(struct Interpreter *interp, struct Object *args) {
+static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts) {
 	if (!check_args(interp, args, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 	return nullobject_get(interp);
 }
 

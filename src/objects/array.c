@@ -32,7 +32,7 @@ static void array_destructor(struct Object *arr)
 }
 
 
-static struct Object *setup(struct Interpreter *interp, struct Object *args)
+static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	errorobject_setwithfmt(interp, "arrays can't be created with (new Array), use [ ] instead");
 	return NULL;
@@ -79,10 +79,10 @@ static struct Object *joiner(struct Interpreter *interp, struct Object **strings
 	return res;
 }
 
-static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args)
+static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Array, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Array, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *arr = ARRAYOBJECT_GET(args, 0);
 
 	// this is handeled specially because malloc(0) may return NULL
@@ -127,10 +127,10 @@ static bool validate_index(struct Interpreter *interp, struct Object *arr, long 
 	return true;
 }
 
-static struct Object *get(struct Interpreter *interp, struct Object *args)
+static struct Object *get(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Array, interp->builtins.Integer, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Array, interp->builtins.Integer, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *arr = ARRAYOBJECT_GET(args, 0);
 	struct Object *index = ARRAYOBJECT_GET(args, 1);
 
@@ -143,10 +143,10 @@ static struct Object *get(struct Interpreter *interp, struct Object *args)
 	return res;
 }
 
-static struct Object *set(struct Interpreter *interp, struct Object *args)
+static struct Object *set(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Array, interp->builtins.Integer, interp->builtins.Object, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Array, interp->builtins.Integer, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *arr = ARRAYOBJECT_GET(args, 0);
 	struct Object *index = ARRAYOBJECT_GET(args, 1);
 	struct Object *obj = ARRAYOBJECT_GET(args, 2);
@@ -163,10 +163,10 @@ static struct Object *set(struct Interpreter *interp, struct Object *args)
 	return nullobject_get(interp);
 }
 
-static struct Object *push(struct Interpreter *interp, struct Object *args)
+static struct Object *push(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Array, interp->builtins.Object, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Array, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *arr = ARRAYOBJECT_GET(args, 0);
 	struct Object *obj = ARRAYOBJECT_GET(args, 1);
 
@@ -175,10 +175,10 @@ static struct Object *push(struct Interpreter *interp, struct Object *args)
 	return nullobject_get(interp);
 }
 
-static struct Object *pop(struct Interpreter *interp, struct Object *args)
+static struct Object *pop(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Array, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Array, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct Object *res = arrayobject_pop(interp, ARRAYOBJECT_GET(args, 0));
 	if (!res)
@@ -186,8 +186,11 @@ static struct Object *pop(struct Interpreter *interp, struct Object *args)
 	return res;
 }
 
-static struct Object *slice(struct Interpreter *interp, struct Object *args)
+static struct Object *slice(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
+	if (!check_no_opts(interp, opts))
+		return NULL;
+
 	long long i, j;
 	if (ARRAYOBJECT_LEN(args) == 2) {
 		// (thing.slice i) is same as (thing.slice i thing.length)
@@ -204,10 +207,10 @@ static struct Object *slice(struct Interpreter *interp, struct Object *args)
 	return arrayobject_slice(interp, ARRAYOBJECT_GET(args, 0), i, j);
 }
 
-static struct Object *length_getter(struct Interpreter *interp, struct Object *args)
+static struct Object *length_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Array, NULL))
-		return NULL;
+	if (!check_args(interp, args, interp->builtins.Array, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 	return integerobject_newfromlonglong(interp, ARRAYOBJECT_LEN(ARRAYOBJECT_GET(args, 0)));
 }
 
