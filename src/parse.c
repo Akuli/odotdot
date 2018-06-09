@@ -197,8 +197,7 @@ static struct Object *parse_infix_call(struct Interpreter *interp, struct Token 
 
 	callinfo->funcnode = func;
 
-	struct Object *tmp[] = { arg1, arg2 };
-	callinfo->argnodearr = arrayobject_new(interp, tmp, 2);
+	callinfo->argnodearr = arrayobject_new(interp, (struct Object *[]) { arg1, arg2 }, 2);
 	OBJECT_DECREF(interp, arg2);
 	if (!callinfo->argnodearr) {
 		free(callinfo);
