@@ -177,15 +177,13 @@ is.
 The Ö interpreter does these things on startup:
 
 1. Create [the built-in scope](tutorial.md#scopes). The `parent_scope` should be
-   set to `null`, but `null` is implemented in `stdlib/builtins.ö`, so
-   `parent_scope` must be set to a dummy value for now. The string `"lol"` will
-   do; `builtins.ö` will set it to `null`.
-2. Add some stuff to the built-in scope.
-3. Tokenize, parse and execute `builtins.ö` in the built-in scope. It's best to
+   set to `null`.
+2. Add everything that `builtins.ö` needs to the built-in scope. It's best to
    read `builtins.ö` yourself to see which things it expects to have there
    already and which things it creates.
+3. Tokenize and parse `builtins.ö`, and execute it in the built-in scope.
 4. Create a new subscope of the built-in scope for the file that is being ran.
-5. Run the file in the subscope.
+5. Tokenize and parse the file, and execute it in the subscope.
 
 Some of these things are not as simple as they sound like. For example, the
 first step is creating a `Scope` object, but for that we need to have the
