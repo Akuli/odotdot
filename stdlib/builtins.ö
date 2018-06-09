@@ -1,8 +1,31 @@
-# FIXME: these suck
-var true = "true";
-var false = "false";
+# can't wait until the class builtin exists, bools are needed for creating that
+var Bool = (new (get_class String) "Bool" Object);
+var true = (new Bool);
+var false = (new Bool);
 
 # closure tricks: if_mapping is visible only for the if function
+{
+    var setup_getter = (lambda "this" {
+        return = (lambda "" {
+            throw "cannot create new Bool objects, use true and false instead";
+        });
+        return.name = "setup method";
+    });
+    setup_getter.name = "getter of setup";
+    Bool.getters.set "setup" setup_getter;
+
+    var strings = (new Mapping [[true "true"] [false "false"]]);
+    var to_debug_string_getter = (lambda "this" {
+        return = (lambda "" {
+            return = (strings.get this);
+        });
+        return.name = "to_debug_string method";
+    });
+    to_debug_string_getter.name = "getter of to_debug_string";
+    Bool.getters.set "to_debug_string" to_debug_string_getter;
+
+}.run (new Scope {}.definition_scope);
+
 var if = null;
 {
     # this thing maps if conditions to blocks that are ran on the condition
