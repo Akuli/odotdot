@@ -220,7 +220,7 @@ number and meanings of the arguments depends on which class was passed to
 
 Don't use this function for checking types. For example,
 ``((get_class []) `same_object` Object)`` returns [false], even though
-[all values are Objects](#object). Use [is_instance_of](#is_instance_of)
+[all values are Objects](#classes). Use [is_instance_of](#is_instance_of)
 instead.
 
 ### is_instance_of
