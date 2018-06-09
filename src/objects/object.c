@@ -33,12 +33,10 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 	return nullobject_get(interp);
 }
 
-static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args)
+static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (ARRAYOBJECT_LEN(args) != 1) {
-		errorobject_setwithfmt(interp, "Object.to_debug_string takes exactly 1 argument");
-		return NULL;
-	}
+	check_args(interp, args, interp->builtins.Object, NULL);
+	check_no_opts(interp, opts);
 
 	struct Object *obj = ARRAYOBJECT_GET(args, 0);
 	struct ClassObjectData *classdata = obj->klass->data;

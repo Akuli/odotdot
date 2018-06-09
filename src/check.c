@@ -58,10 +58,10 @@ bool check_no_opts(struct Interpreter *interp, struct Object *opts)
 		struct MappingObjectIter iter;
 		mappingobject_iterbegin(&iter, opts);
 		while (mappingobject_iternext(&iter)) {
-			joinedlen += ((struct UnicodeString*) iter.key->data)->len;
 			// add commaspace once for each item except the first
 			if (joinedlen != 0)
 				joinedlen += 2;
+			joinedlen += ((struct UnicodeString*) iter.key->data)->len;
 		}
 
 		unicode_char joinedval[joinedlen];
@@ -79,8 +79,8 @@ bool check_no_opts(struct Interpreter *interp, struct Object *opts)
 
 		// phewh... almost done
 		struct UnicodeString joined = { .len = joinedlen, .val = joinedval };
-		errorobject_setwithfmt(interp, "expected no options, got %d option%s: %U",
-			MAPPINGOBJECT_SIZE(opts), MAPPINGOBJECT_SIZE(opts)==1 ? "" : "s", joined);
+		errorobject_setwithfmt(interp, "expected no options, got %L option%s: %U",
+			(long long) MAPPINGOBJECT_SIZE(opts), MAPPINGOBJECT_SIZE(opts)==1 ? "" : "s", joined);
 		return false;
 	}
 

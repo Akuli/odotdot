@@ -88,7 +88,15 @@ struct Object *method_call(struct Interpreter *interp, struct Object *obj, char 
 	}
 	va_end(ap);
 
-	struct Object *res = functionobject_vcall(interp, method, args);
+	struct Object *opts = mappingobject_newempty(interp);
+	if (!opts) {
+		OBJECT_DECREF(interp, args);
+		OBJECT_DECREF(interp, method);
+		return NULL;
+	}
+
+	struct Object *res = functionobject_vcall(interp, method, args, opts);
+	OBJECT_DECREF(interp, opts);
 	OBJECT_DECREF(interp, args);
 	OBJECT_DECREF(interp, method);
 	return res;

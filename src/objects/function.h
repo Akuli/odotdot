@@ -38,7 +38,7 @@ struct Object *functionobject_call(struct Interpreter *interp, struct Object *fu
 // named kinda like vprintf
 // bad things happen if func is not a function object
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *functionobject_vcall(struct Interpreter *interp, struct Object *func, struct Object *args);
+struct Object *functionobject_vcall(struct Interpreter *interp, struct Object *func, struct Object *args, struct Object *opts);
 
 // returns false on error
 // bad things happen if func is not a Function object

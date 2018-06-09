@@ -228,12 +228,17 @@ struct Object *functionobject_call(struct Interpreter *interp, struct Object *fu
 	}
 	va_end(ap);
 
-	struct Object *res = functionobject_vcall(interp, func, args);
+	struct Object *opts = mappingobject_newempty(interp);
+	if (!opts)
+		return NULL;
+
+	struct Object *res = functionobject_vcall(interp, func, args, opts);
+	OBJECT_DECREF(interp, opts);
 	OBJECT_DECREF(interp, args);
 	return res;
 }
 
-struct Object *functionobject_vcall(struct Interpreter *interp, struct Object *func, struct Object *args)
+struct Object *functionobject_vcall(struct Interpreter *interp, struct Object *func, struct Object *args, struct Object *opts)
 {
 	struct Object *theargs;
 	struct FunctionData *data = func->data;     // casts implicitly
@@ -261,15 +266,7 @@ struct Object *functionobject_vcall(struct Interpreter *interp, struct Object *f
 		theargs = args;
 	}
 
-	struct Object *opts = mappingobject_newempty(interp);
-	if (!opts) {
-		if (theargs != args)
-			OBJECT_DECREF(interp, theargs);
-		return NULL;
-	}
-
 	struct Object *res = data->cfunc(interp, theargs, opts);
-	OBJECT_DECREF(interp, opts);
 	if (theargs != args)
 		OBJECT_DECREF(interp, theargs);
 	return res;   // may be NULL

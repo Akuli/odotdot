@@ -243,8 +243,8 @@ static struct Object *new(struct Interpreter *interp, struct Object *args, struc
 		errorobject_setwithfmt(interp, "new needs at least 1 argument, the class");
 		return NULL;
 	}
-	if (!check_no_opts(interp, opts)) return NULL;
-	if (!check_type(interp, interp->builtins.Class, ARRAYOBJECT_GET(args, 0))) return NULL;
+	if (!check_type(interp, interp->builtins.Class, ARRAYOBJECT_GET(args, 0)))
+		return NULL;
 	struct Object *klass = ARRAYOBJECT_GET(args, 0);
 
 	struct Object *obj = classobject_newinstance(interp, klass, NULL, NULL);
@@ -265,7 +265,7 @@ static struct Object *new(struct Interpreter *interp, struct Object *args, struc
 		return NULL;
 	}
 
-	struct Object *res = functionobject_vcall(interp, setup, setupargs);
+	struct Object *res = functionobject_vcall(interp, setup, setupargs, opts);
 	OBJECT_DECREF(interp, setupargs);
 	OBJECT_DECREF(interp, setup);
 	if (!res) {

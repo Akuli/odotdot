@@ -87,7 +87,36 @@ static struct Object *run_expression(struct Interpreter *interp, struct Object *
 			}
 		}
 
-		struct Object *res = functionobject_vcall(interp, func, args);
+		struct Object *opts = mappingobject_newempty(interp);
+		if (!opts) {
+			OBJECT_DECREF(interp, args);
+			OBJECT_DECREF(interp, func);
+			return NULL;
+		}
+
+		struct MappingObjectIter iter;
+		mappingobject_iterbegin(&iter, INFO_AS(AstCallInfo)->opts);
+		while (mappingobject_iternext(&iter)) {
+			struct Object *val = run_expression(interp, scope, iter.value);
+			if (!val) {
+				OBJECT_DECREF(interp, opts);
+				OBJECT_DECREF(interp, args);
+				OBJECT_DECREF(interp, func);
+				return NULL;
+			}
+
+			bool ok = mappingobject_set(interp, opts, iter.key, val);
+			OBJECT_DECREF(interp, val);
+			if (!ok) {
+				OBJECT_DECREF(interp, opts);
+				OBJECT_DECREF(interp, args);
+				OBJECT_DECREF(interp, func);
+				return NULL;
+			}
+		}
+
+		struct Object *res = functionobject_vcall(interp, func, args, opts);
+		OBJECT_DECREF(interp, opts);
 		OBJECT_DECREF(interp, args);
 		OBJECT_DECREF(interp, func);
 		return res;
