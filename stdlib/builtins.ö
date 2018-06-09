@@ -89,38 +89,70 @@ func "foreach varname array block" {
 };
 
 
-func "class name initializer_block" {
-    var klass = (new (get_class String) name Object);
+{
+    # objects have an attrdata mapping that attributes can store their values in
+    # it's not useful anywhere else because one can just create attributes using this code
+    # so we hide it from the rest of the world here
+    var get_attrdata = ({}.definition_scope.parent_scope.local_vars.get_and_delete "get_attrdata");
 
-    func "add_method name function" {
-        var getter = (lambda "this" {
-            return = (function.partial this);
-            return.name = (name.concat " method");
-        });
-        getter.name = ("getter of ".concat name);
-        klass.getters.set name getter;
-    };
+    func "class class_name initializer_block" {
+        var klass = (new (get_class String) class_name Object);
 
-    func "method methname_and_argnames block" {
-        # see func for details, some of this is copied from there
-        var splitted = (methname_and_argnames.split_by_whitespace);
-        if (splitted.length `equals` 0) {
-            throw "method's string argument must not be empty";
+        func "attrib name" {
+            # just to make debugging easier
+            if (not (name `is_instance_of` String)) {
+                throw ("attribute name should be a string, not ".concat (name.to_debug_string));
+            };
+
+            var getter = (lambda "this" {
+                # TODO: throw an error with a descriptive message if the name is missing
+                var attrdata = (get_attrdata this);
+                return = (attrdata.get name);
+            });
+            var setter = (lambda "this value" {
+                var attrdata = (get_attrdata this);
+                attrdata.set name value;
+            });
+
+            getter.name = ("getter of ".concat name);
+            setter.name = ("setter of ".concat name);
+            klass.getters.set name getter;
+            klass.setters.set name setter;
         };
 
-        var argnames = "this ";
-        var i = 1;    # skip the method name
-        while { keep_going = ((i `equals` splitted.length) `same_object` false); } {
-            argnames = (argnames.concat (splitted.get i));
-            argnames = (argnames.concat " ");
-            i = (i.plus 1);
+        func "method methname_and_argnames block" {
+            # see func for details, some of this is copied from there
+            var splitted = (methname_and_argnames.split_by_whitespace);
+            if (splitted.length `equals` 0) {
+                throw "method's string argument must not be empty";
+            };
+
+            var argnames = "this ";
+            var i = 1;    # skip the method name
+            while { keep_going = ((i `equals` splitted.length) `same_object` false); } {
+                argnames = (argnames.concat (splitted.get i));
+                argnames = (argnames.concat " ");
+                i = (i.plus 1);
+            };
+
+            var method_name = ((splitted.get 0).concat " method");
+            var function = (lambda argnames block);
+            var getter = (lambda "this" {
+                return = (function.partial this);
+                return.name = method_name;
+            });
+            getter.name = ("getter of ".concat (splitted.get 0));
+            klass.getters.set (splitted.get 0) getter;
         };
-        add_method (splitted.get 0) (lambda argnames block);
+
+        var init_scope = (new Scope initializer_block.definition_scope);
+        init_scope.local_vars.set "attrib" attrib;
+        init_scope.local_vars.set "method" method;
+        initializer_block.run init_scope;
+
+        initializer_block.definition_scope.local_vars.set class_name klass;
     };
 
-    var init_scope = (new Scope initializer_block.definition_scope);
-    init_scope.local_vars.set "method" method;
-    initializer_block.run init_scope;
-
-    initializer_block.definition_scope.local_vars.set name klass;
-};
+    # export class to the built-in namespace, but keep get_attrdata here
+    {}.definition_scope.parent_scope.local_vars.set "class" class;
+}.run (new Scope {}.definition_scope);

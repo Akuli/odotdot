@@ -277,6 +277,26 @@ static struct Object *new(struct Interpreter *interp, struct Object *argarr)
 }
 
 
+// every objects may have an attrdata mapping, values of simple attributes go there
+// attrdata is first set to NULL and created when needed
+// see also definition of struct Object
+static struct Object *get_attrdata(struct Interpreter *interp, struct Object *argarr)
+{
+	if (!check_args(interp, argarr, interp->builtins.Object, NULL))
+		return NULL;
+
+	struct Object *obj = ARRAYOBJECT_GET(argarr, 0);
+	if (!obj->attrdata) {
+		obj->attrdata = mappingobject_newempty(interp);
+		if (!obj->attrdata)
+			return NULL;
+	}
+
+	OBJECT_INCREF(interp, obj->attrdata);
+	return obj->attrdata;
+}
+
+
 static bool add_function(struct Interpreter *interp, char *name, functionobject_cfunc cfunc)
 {
 	struct Object *func = functionobject_new(interp, cfunc, name);
@@ -350,6 +370,7 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!add_function(interp, "new", new)) goto error;
 	if (!add_function(interp, "print", print)) goto error;
 	if (!add_function(interp, "same_object", same_object)) goto error;
+	if (!add_function(interp, "get_attrdata", get_attrdata)) goto error;
 
 	// compile like this:   $ CFLAGS=-DDEBUG_BUILTINS make clean all
 #ifdef DEBUG_BUILTINS

@@ -459,3 +459,26 @@ class "Thing" {
 
 var thing = (new Thing "one" "two");   # prints "one" and "two"
 ```
+
+You can define new attributes with `attrib`. It's only available inside the
+block argument of `class`, just like `method`. It works like this:
+
+```python
+class "Tooter" {
+    attrib "message";
+
+    method "setup message" {
+        this.message = message;
+    };
+
+    method "toot" {
+        print ("Toot toot! ".concat this.message);
+    };
+};
+
+var tooter = (new Tooter "hello there");
+tooter.toot;     # prints "Toot toot! hello there"
+```
+
+The `this` variable is available in methods, and it's set to the instance that
+the methods are called from. In this example, `this` was `tooter`.

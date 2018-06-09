@@ -17,7 +17,7 @@ struct Object {
 
 	// a Mapping where attribute setters and getters can store the values
 	// this is NULL first, and created by attribute.c when needed
-	// not exposed in the language
+	// exposed only for builtins.ö
 	struct Object *attrdata;
 
 	// a function that cleans up obj->data, can be NULL
