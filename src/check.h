@@ -12,20 +12,37 @@ bool check_type(struct Interpreter *interp, struct Object *klass, struct Object 
 
 /* for example, do this in the beginning of a functionobject_cfunc...
 
-        if (!check_args(interp, args, interp->builtins.String, interp->builtins.Integer, interp->builtins.Object, NULL)) return NULL;
-        if (!check_no_opts(interp, opts)) return NULL;
+	if (!check_args(interp, args, interp->builtins.String, interp->builtins.Integer, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 
 ...to make sure that:
-        * the function is being called with 3 arguments and no options
-        * the first argument is a String
-        * the second argument is an Integer
-        * the 3rd argument can be anything because all classes inherit from Object
+	* the function is being called with 3 arguments and no options
+	* the first argument is a String
+	* the second argument is an Integer
+	* the 3rd argument can be anything because all classes inherit from Object
 
 bad things happen if the ... arguments are not class objects or you forget the NULL
 returns false on error
 */
 bool check_args(struct Interpreter *interp, struct Object *args, ...);
 
-bool check_no_opts(struct Interpreter *interp, struct Object *opts);
+/* this...
+
+	struct Object *message, *id;
+	if (!check_opts(interp, opts,
+			interp->builtins.String, "message", &message
+			interp->builtins.Integer, "id", &id,
+			NULL))
+		return NULL;
+
+...makes sure that:
+	* an error is thrown if the function was called with other options than "message" or "id"
+	* message is set to a String object (not a new reference), or NULL if it wasn't given (options are optional!)
+	* id is set to an Integer object or NULL
+*/
+bool check_opts(struct Interpreter *interp, struct Object *opts, ...);
+
+// if you don't need options
+#define check_no_opts(interp, opts) check_opts((interp), (opts), NULL)
 
 #endif   // CHECK_H

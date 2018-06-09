@@ -32,6 +32,10 @@ nope:
 	return false;
 }
 
+
+// FIXME: most of the argument checking code is copy/pasta with check.c
+
+
 // errors if opts contains keys not in validopts
 // validopts must be an array and opts must be a mapping
 // TODO: this is O(n^2), can that be a problem in performance-critical code?
@@ -53,7 +57,7 @@ static bool check_options(struct Interpreter *interp, struct Object *validopts, 
 		}
 
 		if (!keyfound) {
-			errorobject_setwithfmt(interp, "unknown option %D", iter.key);
+			errorobject_setwithfmt(interp, "unexpected option %D", iter.key);
 			return false;
 		}
 	}
