@@ -33,7 +33,7 @@ static void foreachref(struct Object *node, void *cbdata, classobject_foreachref
 		break;
 	case AST_CALL:
 		cb(info_as(AstCallInfo)->funcnode, cbdata);
-		cb(info_as(AstCallInfo)->argnodearr, cbdata);
+		cb(info_as(AstCallInfo)->args, cbdata);
 		break;
 	case AST_INT:
 	case AST_STR:

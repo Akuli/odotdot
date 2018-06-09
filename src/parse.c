@@ -126,7 +126,7 @@ static struct Object *parse_call(struct Interpreter *interp, struct Token **curt
 		return NULL;
 	}
 
-	if (!(callinfo->argnodearr = arrayobject_newempty(interp))) {
+	if (!(callinfo->args = arrayobject_newempty(interp))) {
 		free(callinfo);
 		return NULL;
 	}
@@ -138,16 +138,16 @@ static struct Object *parse_call(struct Interpreter *interp, struct Token **curt
 		struct Object *arg = parse_expression(interp, curtok);
 		if(!arg) {
 			OBJECT_DECREF(interp, funcnode);
-			OBJECT_DECREF(interp, callinfo->argnodearr);
+			OBJECT_DECREF(interp, callinfo->args);
 			free(callinfo);
 			return NULL;
 		}
 
-		bool ok = arrayobject_push(interp, callinfo->argnodearr, arg);
+		bool ok = arrayobject_push(interp, callinfo->args, arg);
 		OBJECT_DECREF(interp, arg);
 		if (!ok) {
 			OBJECT_DECREF(interp, funcnode);
-			OBJECT_DECREF(interp, callinfo->argnodearr);
+			OBJECT_DECREF(interp, callinfo->args);
 			free(callinfo);
 			return NULL;
 		}
@@ -156,7 +156,7 @@ static struct Object *parse_call(struct Interpreter *interp, struct Token **curt
 	struct Object *res = astnodeobject_new(interp, AST_CALL, lineno, callinfo);
 	if (!res) {
 		OBJECT_DECREF(interp, funcnode);
-		OBJECT_DECREF(interp, callinfo->argnodearr);
+		OBJECT_DECREF(interp, callinfo->args);
 		free(callinfo);
 		return NULL;
 	}
@@ -197,9 +197,9 @@ static struct Object *parse_infix_call(struct Interpreter *interp, struct Token 
 
 	callinfo->funcnode = func;
 
-	callinfo->argnodearr = arrayobject_new(interp, (struct Object *[]) { arg1, arg2 }, 2);
+	callinfo->args = arrayobject_new(interp, (struct Object *[]) { arg1, arg2 }, 2);
 	OBJECT_DECREF(interp, arg2);
-	if (!callinfo->argnodearr) {
+	if (!callinfo->args) {
 		free(callinfo);
 		OBJECT_DECREF(interp, func);
 		return NULL;
@@ -207,7 +207,7 @@ static struct Object *parse_infix_call(struct Interpreter *interp, struct Token 
 
 	struct Object *res = astnodeobject_new(interp, AST_CALL, lineno, callinfo);
 	if (!res) {
-		OBJECT_DECREF(interp, callinfo->argnodearr);
+		OBJECT_DECREF(interp, callinfo->args);
 		free(callinfo);
 		OBJECT_DECREF(interp, func);
 		return NULL;
