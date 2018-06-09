@@ -34,6 +34,7 @@ things that I would like to do some day. It's a mess.
     - `catch` can't catch the error object yet, so tests can't check exception
       messages :( can't really write good tests in Ö yet
 - need tracebacks and other stack magic
+    - debugging things like `class` in builtins.ö is hard
     - might be easiest to get the traceback in `Error.new`? that way
       rethrowing would be easy as `throw caught_error;`
         - bad idea because nomemerrs would have no traceback
@@ -64,7 +65,7 @@ things that I would like to do some day. It's a mess.
         - maybe add a flag that allows setting arbitrary attributes?
 
             ```
-            class Module {
+            class "Module" {
                 arbitrary_attributes = true;
                 ...
             };
@@ -76,7 +77,7 @@ things that I would like to do some day. It's a mess.
         - or maybe a special class that does some magic?
 
             ```
-            class Module inherits ArbitraryAttributes {
+            class "Module" inherits ArbitraryAttributes {
                 ...
             };
             ```
@@ -224,6 +225,72 @@ things that I would like to do some day. It's a mess.
             ...
         };
         ```
+- `class`: support attributes with custom getters and setters
+    - maybe something like this inside the `{ }`:
+
+        ```
+        attrib "_thingy_value";
+
+        attrib "thingy" {
+            # get and set would be functions
+            get {
+                return = this._thingy_value;
+            };
+            set "new_value" {
+                if (new_value `sucks` too_much) {
+                    throw "it sucks!";
+                };
+                this._custom_value = new_value
+            };
+        };
+        ```
+
+        many indents
+
+    - or maybe this:
+
+        ```
+        attrib "_thingy_value";
+
+        getter "thingy" {
+            return = this._thingy_value;
+        };
+        setter "thingy new_value" {
+            if (new_value `sucks` too_much) {
+                throw "it sucks!";
+            };
+            this._thingy_value = new_value;
+        };
+        ```
+
+        straight-forward to implement, makes people new to ö think wtf are
+        getter and setter doing
+
+    - how about keyword arguments, with `:` syntax:
+
+        ```
+        attrib "_thingy_value";
+
+        attrib "thingy"
+        get: {
+            return = this._thingy_value;
+        }
+        set: {     # how to pass variable name "new_value" here??
+            this._thingy_value = new_value;
+        };
+        ```
+
+        `;` goes to an unintuitive place, looks like it's missing
+
+        big problem: no nice way to pass the variable name
+
+    boilerplate getters can be simplified with the `{ asd }` means
+    `{ return = asd; }` syntax that is not implemented yet:
+
+    ```
+    get { this._thingy_value }
+    ```
+
 
 ## testing
 - some tests suck, they are commented out in `ctests/run.c`
@@ -249,11 +316,20 @@ things that I would like to do some day. It's a mess.
 ## unicode.{c,h}
 - delete UnicodeString?
     - string objects are quite capable anyway
-    - now errors.h creates a string object without a `stringobject_newblabla()`
-      function because `stringobject_newblabla()` functions use errptr and
-      nomemerr
-        - maybe add `stringobject_newnoerrptr()` or something for creating
-          the `not enough memory` message string?
+    - but no, UnicodeString shouldn't be deleted
+    - string operations like this with UnicodeString are quite efficient, which
+      is important for tokenizer.c:
+
+        ```c
+        // skip first character
+        ustr.len++;
+        ustr.val--;
+        ```
+
+    - simple is better than complex, and UnicodeStrings are simple when string
+      objects are not needed
+    - the name of class objects is also a UnicodeString because
+      `builtins_setup()` stuff
 
 ## ast.{c,h}
 - add nonzero linenos to expression nodes
