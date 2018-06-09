@@ -2,7 +2,7 @@
 var true = "true";
 var false = "false";
 
-# closures ftw
+# closure tricks: if_mapping is visible only for the if function
 var if = null;
 {
     # this thing maps if conditions to blocks that are ran on the condition
@@ -15,7 +15,7 @@ var if = null;
         (if_mapping.get condition).run {}.definition_scope;
     });
 }.run (new Scope {}.definition_scope);
-if.name = "if";   # it was "<lambda>", func will set these automatically
+if.name = "if";        # func will set these automatically
 
 var while = (lambda "condition_block body_block" {
     var scope = (new Scope body_block.definition_scope);
@@ -42,7 +42,6 @@ var func = (lambda "funcname_and_argnames block" {
     # a stupid way to join strings by spaces
     var argnames = "";
     var i = 1;    # skip the function name
-
     while { keep_going = ((i `equals` splitted.length) `same_object` false); } {
         argnames = (argnames.concat (splitted.get i));
         argnames = (argnames.concat " ");
@@ -87,4 +86,41 @@ func "foreach varname array block" {
         block.run scope;
         i = (i.plus 1);
     };
+};
+
+
+func "class name initializer_block" {
+    var klass = (new (get_class String) name Object);
+
+    func "add_method name function" {
+        var getter = (lambda "this" {
+            return = (function.partial this);
+            return.name = (name.concat " method");
+        });
+        getter.name = ("getter of ".concat name);
+        klass.getters.set name getter;
+    };
+
+    func "method methname_and_argnames block" {
+        # see func for details, some of this is copied from there
+        var splitted = (methname_and_argnames.split_by_whitespace);
+        if (splitted.length `equals` 0) {
+            throw "method's string argument must not be empty";
+        };
+
+        var argnames = "this ";
+        var i = 1;    # skip the method name
+        while { keep_going = ((i `equals` splitted.length) `same_object` false); } {
+            argnames = (argnames.concat (splitted.get i));
+            argnames = (argnames.concat " ");
+            i = (i.plus 1);
+        };
+        add_method (splitted.get 0) (lambda argnames block);
+    };
+
+    var init_scope = (new Scope initializer_block.definition_scope);
+    init_scope.local_vars.set "method" method;
+    initializer_block.run init_scope;
+
+    initializer_block.definition_scope.local_vars.set name klass;
 };

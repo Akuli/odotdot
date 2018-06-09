@@ -64,7 +64,7 @@ print some_buggy_variable;
 ...more code...
 ```
 
-**This is bad** because Ö's [print](builtins.md#print) can only take strings,
+**This is bad** because Ö's [print](builtins.md#print) can only print strings,
 so if `some_buggy_variable` is set to something else than a string, e.g. an
 integer or an array, the `print` will fail. Do this instead:
 
@@ -198,6 +198,8 @@ yet. Mappings are created with the `new` function like this:
 ```python
 var thingy = (new Mapping [["key 1" "value 1"] ["key 2" "value 2"]]);
 ```
+
+Here `Mapping` is a class, and the `new` function creates a new instance of it.
 
 The messy part is just an array of `[key value]` arrays. You can put anything
 into an array, even other arrays.
@@ -377,3 +379,83 @@ This is quite awesome IMO. Our `fake_if` implemented purely in the language
 itself, but it's still called exactly like the built-in `if`. Many "built-in"
 functions are actually implemented in Ö; see
 [stdlib/builtins.ö](../stdlib/builtins.ö) for their source code.
+
+
+## Defining Classes
+
+Let's look at an example of a custom class in Ö.
+
+```python
+class "Foo" {
+    method "setup" {
+        print "creating a new Foo instance";
+    };
+
+    method "toot bar" {
+        print ("tooting with ".concat bar);
+    };
+};
+
+
+var f = (new Foo);      # prints "creating a new Foo instance"
+f.toot "asd";           # prints "tooting with asd"
+```
+
+As you should have guessed by now, `class` is just a function...
+
+```python
+debug class;      # prints <Function "class" at 0xblablabla>
+```
+
+...and `Foo` is just a `Class` object, just like e.g. `Mapping`:
+
+```python
+debug Mapping;  # prints <Class "Mapping">
+debug Foo;      # prints <Class "Foo">
+```
+
+`class "Foo" { ... };` creates a new subscope of `{ ... }.definition_scope` and
+runs the block in it. The block may contain any code; it's just executed. So,
+this...
+
+```python
+class "Bar" {
+    print "hello";
+};
+```
+
+...prints hello and gives you a class with no methods.
+
+In the block, we used a function called `method`. It behaved a lot like `func`,
+and we used it to add a `toot` method to our class. However, this doesn't
+work...
+
+```python
+debug method;       # error: no variable named 'method'
+```
+
+...but this works:
+
+```python
+class "Baz" {
+    debug method;   # prints <Function "debug" at 0xblablabla>
+};
+```
+
+`method` is a function that is inserted to the subscope that the block is
+running in.
+
+In the `Foo` example, we defined the `setup` method like
+`method "setup" { ... };`. If it takes arguments, those arguments must be
+passed to `new`:
+
+```python
+class "Thing" {
+    method "setup x y" {
+        debug x;
+        debug y;
+    };
+};
+
+var thing = (new Thing "one" "two");   # prints "one" and "two"
+```

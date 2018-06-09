@@ -230,16 +230,24 @@ instead.
 For example, ``("hello" `is_instance_of` String)`` returns [true], and
 ``(123 `is_instance_of` Array)`` returns [false].
 
+### class
+
+This function creates a new class. See
+[defining classes in the tutorial](tutorial.md#defining-classes).
+
 
 ## Classes
 
-Every object has a class in Ö, and the class defines the methods that the
-object has. For example, the class of `[1 2 3]` is [Array](#array), and the
-Array class defines a method named `push` so you can do `the_array.push 4;`.
+Every object has a class in Ö, and the class defines the attributes that the
+object has. Methods are just attributes whose values are functions, so the same
+thing applies to methods as well. For example, the class of `[1 2 3]` is
+[Array](#array), and the Array class defines a method named `push` so you can
+do `the_array.push 4;`.
 
 In some languages, there are "primitives" that are not objects and cannot be
 treated like objects. I think that's dumb, so everything you can e.g. assign to
-a variable is an object in Ö.
+a variable is an object in Ö, including everything from integers and strings to
+functions and classes.
 
 ### Class
 
@@ -297,13 +305,10 @@ Classes also have one method:
   where `the name` is `some_class.name`. See also [Object](#object)'s
   `to_debug_string` documentation.
 
-New classes can be created like `(new Class name baseclass)` where
-- `Class` is `(get_class String)`, see above,
-- `name` is a string that will become the `.name` attribute, and
-- `baseclass` is another `Class` object to inherit from, usually `Object`.
-
-Right now this is the only way to create custom classes in Ö, but I'll add a
-`class` command that takes care of this in a more user-friendy way soon.
+Usually new classes are created with [class](#class), but you can also create
+them with `(new Class name baseclass)`, where `Class` is `(get_class String)`
+(see above), `name` will become the `.name` attribute and `baseclass` is
+another `Class` object to inherit from (usually [Object](#object)).
 
 ### Object
 
