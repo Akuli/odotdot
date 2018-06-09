@@ -332,6 +332,17 @@ Many objects also have a `to_string` method that should return a human-readable
 string, but not all objects have a human-readable string representations, even
 though all objects *must* have a programmer-readable string representation.
 
+### Bool
+
+There are two `Bool` objects, `true` and `false`. Creating more Bools wouldn't
+make sense, so `(new Bool)` always throws an error. This means that
+``(x `is_instance_of` Bool)`` means that either ``(x `same_object` true)`` or
+``(x `same_object` false)``.
+
+Methods:
+- `(true.to_debug_string)` returns `"true"` and `(false.to_debug_string)`
+  returns `"false"`. This overrides [Object](#object)'s `to_debug_string`.
+
 ### String
 
 New strings cannot be created with `(new String)`; use *string literals* like
@@ -589,13 +600,9 @@ The only instance of null's class is `null`. The class has a name `Null`, and
 it has no methods or other attributes. You can access the class with
 `(get_class null)` if you need that for some reason.
 
-### true, false
 
-These are currently defined as the strings `"true"` and `"false"`. It sucks.
-
-
-[true]: #true-false
-[false]: #true-false
+[true]: #bool
+[false]: #bool
 [scope]: tutorial.md#scopes
 [subscope]: tutorial.md#scopes
 [built-in scope]: tutorial.md#scopes
