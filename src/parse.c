@@ -114,7 +114,7 @@ static struct Object *parse_getvar(struct Interpreter *interp, struct Token **cu
 }
 
 
-// func arg1 arg2;
+// func arg1 arg2 opt1:val1 opt2:val2;
 // this takes the function as an already-parsed argument
 // this way parse_statement() knows when this should be called
 static struct Object *parse_call(struct Interpreter *interp, struct Token **curtok, struct Object *funcnode)
@@ -141,23 +141,36 @@ static struct Object *parse_call(struct Interpreter *interp, struct Token **curt
 	OBJECT_INCREF(interp, funcnode);
 
 	while (expression_coming_up(*curtok)) {
-		struct Object *arg = parse_expression(interp, curtok);
-		if(!arg) {
-			OBJECT_DECREF(interp, funcnode);
-			OBJECT_DECREF(interp, callinfo->args);
-			OBJECT_DECREF(interp, callinfo->opts);
-			free(callinfo);
-			return NULL;
-		}
+		if ((*curtok)->kind == TOKEN_ID && (*curtok)->next &&
+			(*curtok)->next->kind == TOKEN_OP && (*curtok)->next->str.len == 1 && (*curtok)->next->str.val[0] == ':')
+		{
+			// opt:val
+			struct Object *optstr = stringobject_newfromustr(interp, (*curtok)->str);
+			if (!optstr)
+				goto error;
+			*curtok = (*curtok)->next->next;    // skip opt and :
 
-		bool ok = arrayobject_push(interp, callinfo->args, arg);
-		OBJECT_DECREF(interp, arg);
-		if (!ok) {
-			OBJECT_DECREF(interp, funcnode);
-			OBJECT_DECREF(interp, callinfo->args);
-			OBJECT_DECREF(interp, callinfo->opts);
-			free(callinfo);
-			return NULL;
+			struct Object *valnode = parse_expression(interp, curtok);
+			if (!valnode) {
+				OBJECT_DECREF(interp, optstr);
+				goto error;
+			}
+
+			bool ok = mappingobject_set(interp, callinfo->opts, optstr, valnode);
+			OBJECT_DECREF(interp, optstr);
+			OBJECT_DECREF(interp, valnode);
+			if (!ok)
+				goto error;
+
+		} else {
+			struct Object *arg = parse_expression(interp, curtok);
+			if(!arg)
+				goto error;
+
+			bool ok = arrayobject_push(interp, callinfo->args, arg);
+			OBJECT_DECREF(interp, arg);
+			if (!ok)
+				goto error;
 		}
 	}
 
@@ -170,6 +183,13 @@ static struct Object *parse_call(struct Interpreter *interp, struct Token **curt
 		return NULL;
 	}
 	return res;
+
+error:
+	OBJECT_DECREF(interp, funcnode);
+	OBJECT_DECREF(interp, callinfo->args);
+	OBJECT_DECREF(interp, callinfo->opts);
+	free(callinfo);
+	return NULL;
 }
 
 // arg1 `func` arg2
