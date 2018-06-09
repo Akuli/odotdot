@@ -375,7 +375,7 @@ fake_if (1 `equals` 1) {
 };
 ```
 
-This is quite awesome IMO. Our `fake_if` implemented purely in the language
+This is quite awesome IMO. Our `fake_if` is implemented purely in the language
 itself, but it's still called exactly like the built-in `if`. Many "built-in"
 functions are actually implemented in Ö; see
 [stdlib/builtins.ö](../stdlib/builtins.ö) for their source code.
