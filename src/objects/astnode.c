@@ -34,6 +34,7 @@ static void foreachref(struct Object *node, void *cbdata, classobject_foreachref
 	case AST_CALL:
 		cb(info_as(AstCallInfo)->funcnode, cbdata);
 		cb(info_as(AstCallInfo)->args, cbdata);
+		cb(info_as(AstCallInfo)->opts, cbdata);
 		break;
 	case AST_INT:
 	case AST_STR:

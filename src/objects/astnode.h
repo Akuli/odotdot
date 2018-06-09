@@ -55,8 +55,9 @@ struct AstSetAttrInfo { struct Object *objnode; struct UnicodeString attr; struc
 
 // expressions that can also be statements
 
-// args is an Array object
-struct AstCallInfo { struct Object *funcnode; struct Object *args; };
+// args is an Array object that contains AstNodes
+// opts is a Mapping with String keys and AstNode values
+struct AstCallInfo { struct Object *funcnode; struct Object *args; struct Object *opts; };
 #define AST_CALL '('
 
 

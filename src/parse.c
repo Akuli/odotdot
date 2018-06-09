@@ -16,6 +16,7 @@
 #include "objects/classobject.h"
 #include "objects/errors.h"
 #include "objects/integer.h"
+#include "objects/mapping.h"
 #include "objects/string.h"
 
 // remember to change this if you add more expressions!
@@ -130,6 +131,11 @@ static struct Object *parse_call(struct Interpreter *interp, struct Token **curt
 		free(callinfo);
 		return NULL;
 	}
+	if (!(callinfo->opts = mappingobject_newempty(interp))) {
+		OBJECT_DECREF(interp, callinfo->args);
+		free(callinfo);
+		return NULL;
+	}
 
 	callinfo->funcnode = funcnode;
 	OBJECT_INCREF(interp, funcnode);
@@ -139,6 +145,7 @@ static struct Object *parse_call(struct Interpreter *interp, struct Token **curt
 		if(!arg) {
 			OBJECT_DECREF(interp, funcnode);
 			OBJECT_DECREF(interp, callinfo->args);
+			OBJECT_DECREF(interp, callinfo->opts);
 			free(callinfo);
 			return NULL;
 		}
@@ -148,6 +155,7 @@ static struct Object *parse_call(struct Interpreter *interp, struct Token **curt
 		if (!ok) {
 			OBJECT_DECREF(interp, funcnode);
 			OBJECT_DECREF(interp, callinfo->args);
+			OBJECT_DECREF(interp, callinfo->opts);
 			free(callinfo);
 			return NULL;
 		}
@@ -157,6 +165,7 @@ static struct Object *parse_call(struct Interpreter *interp, struct Token **curt
 	if (!res) {
 		OBJECT_DECREF(interp, funcnode);
 		OBJECT_DECREF(interp, callinfo->args);
+		OBJECT_DECREF(interp, callinfo->opts);
 		free(callinfo);
 		return NULL;
 	}
@@ -195,11 +204,20 @@ static struct Object *parse_infix_call(struct Interpreter *interp, struct Token 
 		return NULL;
 	}
 
+	// infix calls don't support options, so this is left empty
+	if (!(callinfo->opts = mappingobject_newempty(interp))) {
+		free(callinfo);
+		OBJECT_DECREF(interp, arg2);
+		OBJECT_DECREF(interp, func);
+		return NULL;
+	}
+
 	callinfo->funcnode = func;
 
 	callinfo->args = arrayobject_new(interp, (struct Object *[]) { arg1, arg2 }, 2);
 	OBJECT_DECREF(interp, arg2);
 	if (!callinfo->args) {
+		OBJECT_DECREF(interp, callinfo->opts);
 		free(callinfo);
 		OBJECT_DECREF(interp, func);
 		return NULL;
@@ -208,6 +226,7 @@ static struct Object *parse_infix_call(struct Interpreter *interp, struct Token 
 	struct Object *res = astnodeobject_new(interp, AST_CALL, lineno, callinfo);
 	if (!res) {
 		OBJECT_DECREF(interp, callinfo->args);
+		OBJECT_DECREF(interp, callinfo->opts);
 		free(callinfo);
 		OBJECT_DECREF(interp, func);
 		return NULL;
