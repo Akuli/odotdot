@@ -26,19 +26,19 @@
 
 // lambda is like func, but it returns the function instead of setting it to a variable
 // this is partialled to an argument name array and a block to create lambdas
-static struct Object *lambda_runner(struct Interpreter *interp, struct Object *argarr)
+static struct Object *lambda_runner(struct Interpreter *interp, struct Object *args)
 {
-	assert(ARRAYOBJECT_LEN(argarr) >= 2);
-	struct Object *argnames = ARRAYOBJECT_GET(argarr, 0);
-	struct Object *block = ARRAYOBJECT_GET(argarr, 1);
+	assert(ARRAYOBJECT_LEN(args) >= 2);
+	struct Object *argnames = ARRAYOBJECT_GET(args, 0);
+	struct Object *block = ARRAYOBJECT_GET(args, 1);
 	// argnames and block must have the correct type because lambda runs this correctly
 
 	// these error messages should match check_args() in check.c
-	if (ARRAYOBJECT_LEN(argarr) - 2 < ARRAYOBJECT_LEN(argnames)) {
+	if (ARRAYOBJECT_LEN(args) - 2 < ARRAYOBJECT_LEN(argnames)) {
 		errorobject_setwithfmt(interp, "not enough arguments");
 		return NULL;
 	}
-	if (ARRAYOBJECT_LEN(argarr) - 2 > ARRAYOBJECT_LEN(argnames)) {
+	if (ARRAYOBJECT_LEN(args) - 2 > ARRAYOBJECT_LEN(argnames)) {
 		errorobject_setwithfmt(interp, "too many arguments");
 		return NULL;
 	}
@@ -75,7 +75,7 @@ static struct Object *lambda_runner(struct Interpreter *interp, struct Object *a
 		goto error;
 
 	for (size_t i=0; i < ARRAYOBJECT_LEN(argnames); i++) {
-		if (!mappingobject_set(interp, localvars, ARRAYOBJECT_GET(argnames, i), ARRAYOBJECT_GET(argarr, i+2)))
+		if (!mappingobject_set(interp, localvars, ARRAYOBJECT_GET(argnames, i), ARRAYOBJECT_GET(args, i+2)))
 			goto error;
 	}
 
@@ -101,15 +101,15 @@ error:
 	return NULL;
 }
 
-static struct Object *lambda(struct Interpreter *interp, struct Object *argarr)
+static struct Object *lambda(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.String, interp->builtins.Block, NULL))
+	if (!check_args(interp, args, interp->builtins.String, interp->builtins.Block, NULL))
 		return NULL;
 
-	struct Object *argnames = stringobject_splitbywhitespace(interp, ARRAYOBJECT_GET(argarr, 0));
+	struct Object *argnames = stringobject_splitbywhitespace(interp, ARRAYOBJECT_GET(args, 0));
 	if (!argnames)
 		return NULL;
-	struct Object *block = ARRAYOBJECT_GET(argarr, 1);
+	struct Object *block = ARRAYOBJECT_GET(args, 1);
 
 	// it's possible to micro-optimize this by not creating a new runner every time
 	// but i don't think it would make a huge difference
@@ -153,12 +153,12 @@ static bool run_block(struct Interpreter *interp, struct Object *block)
 	return true;
 }
 
-static struct Object *catch(struct Interpreter *interp, struct Object *argarr)
+static struct Object *catch(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Block, interp->builtins.Block, NULL))
+	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Block, NULL))
 		return NULL;
-	struct Object *trying = ARRAYOBJECT_GET(argarr, 0);
-	struct Object *caught = ARRAYOBJECT_GET(argarr, 1);
+	struct Object *trying = ARRAYOBJECT_GET(args, 0);
+	struct Object *caught = ARRAYOBJECT_GET(args, 1);
 
 	if (!run_block(interp, trying)) {
 		// TODO: make the error available somewhere instead of resetting it here?
@@ -174,31 +174,31 @@ static struct Object *catch(struct Interpreter *interp, struct Object *argarr)
 	return nullobject_get(interp);
 }
 
-static struct Object *get_class(struct Interpreter *interp, struct Object *argarr)
+static struct Object *get_class(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Object, NULL))
+	if (!check_args(interp, args, interp->builtins.Object, NULL))
 		return NULL;
 
-	struct Object *obj = ARRAYOBJECT_GET(argarr, 0);
+	struct Object *obj = ARRAYOBJECT_GET(args, 0);
 	OBJECT_INCREF(interp, obj->klass);
 	return obj->klass;
 }
 
 #define BOOL(interp, x) interpreter_getbuiltin((interp), (x) ? "true" : "false")
-static struct Object *is_instance_of(struct Interpreter *interp, struct Object *argarr)
+static struct Object *is_instance_of(struct Interpreter *interp, struct Object *args)
 {
 	// TODO: shouldn't this be implemented in builtins.ö? classobject_isinstanceof() doesn't do anything fancy
-	if (!check_args(interp, argarr, interp->builtins.Object, interp->builtins.Class))
+	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Class))
 		return NULL;
-	return BOOL(interp, classobject_isinstanceof(ARRAYOBJECT_GET(argarr, 0), ARRAYOBJECT_GET(argarr, 1)));
+	return BOOL(interp, classobject_isinstanceof(ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1)));
 }
 
-struct Object *equals_builtin(struct Interpreter *interp, struct Object *argarr)
+struct Object *equals_builtin(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Object, interp->builtins.Object, NULL))
+	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL))
 		return NULL;
 
-	int res = equals(interp, ARRAYOBJECT_GET(argarr, 0), ARRAYOBJECT_GET(argarr, 1));
+	int res = equals(interp, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1));
 	if (res == -1)
 		return NULL;
 
@@ -206,23 +206,23 @@ struct Object *equals_builtin(struct Interpreter *interp, struct Object *argarr)
 	return BOOL(interp, res);
 }
 
-static struct Object *same_object(struct Interpreter *interp, struct Object *argarr)
+static struct Object *same_object(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Object, interp->builtins.Object, NULL))
+	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL))
 		return NULL;
-	return BOOL(interp, ARRAYOBJECT_GET(argarr, 0) == ARRAYOBJECT_GET(argarr, 1));
+	return BOOL(interp, ARRAYOBJECT_GET(args, 0) == ARRAYOBJECT_GET(args, 1));
 }
 #undef BOOL
 
 
-static struct Object *print(struct Interpreter *interp, struct Object *argarr)
+static struct Object *print(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.String, NULL))
+	if (!check_args(interp, args, interp->builtins.String, NULL))
 		return NULL;
 
 	char *utf8;
 	size_t utf8len;
-	if (!utf8_encode(interp, *((struct UnicodeString *) ARRAYOBJECT_GET(argarr, 0)->data), &utf8, &utf8len))
+	if (!utf8_encode(interp, *((struct UnicodeString *) ARRAYOBJECT_GET(args, 0)->data), &utf8, &utf8len))
 		return NULL;
 
 	// TODO: avoid writing 1 byte at a time... seems to be hard with c \0 strings
@@ -235,21 +235,21 @@ static struct Object *print(struct Interpreter *interp, struct Object *argarr)
 }
 
 
-static struct Object *new(struct Interpreter *interp, struct Object *argarr)
+static struct Object *new(struct Interpreter *interp, struct Object *args)
 {
-	if (ARRAYOBJECT_LEN(argarr) == 0) {
+	if (ARRAYOBJECT_LEN(args) == 0) {
 		errorobject_setwithfmt(interp, "new needs at least 1 argument, the class");
 		return NULL;
 	}
-	if (!check_type(interp, interp->builtins.Class, ARRAYOBJECT_GET(argarr, 0)))
+	if (!check_type(interp, interp->builtins.Class, ARRAYOBJECT_GET(args, 0)))
 		return NULL;
-	struct Object *klass = ARRAYOBJECT_GET(argarr, 0);
+	struct Object *klass = ARRAYOBJECT_GET(args, 0);
 
 	struct Object *obj = classobject_newinstance(interp, klass, NULL, NULL);
 	if (!obj)
 		return NULL;
 
-	struct Object *setupargs = arrayobject_slice(interp, argarr, 1, ARRAYOBJECT_LEN(argarr));
+	struct Object *setupargs = arrayobject_slice(interp, args, 1, ARRAYOBJECT_LEN(args));
 	if (!setupargs) {
 		OBJECT_DECREF(interp, obj);
 		return NULL;
@@ -280,12 +280,12 @@ static struct Object *new(struct Interpreter *interp, struct Object *argarr)
 // every objects may have an attrdata mapping, values of simple attributes go there
 // attrdata is first set to NULL and created when needed
 // see also definition of struct Object
-static struct Object *get_attrdata(struct Interpreter *interp, struct Object *argarr)
+static struct Object *get_attrdata(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Object, NULL))
+	if (!check_args(interp, args, interp->builtins.Object, NULL))
 		return NULL;
 
-	struct Object *obj = ARRAYOBJECT_GET(argarr, 0);
+	struct Object *obj = ARRAYOBJECT_GET(args, 0);
 	if (!obj->attrdata) {
 		obj->attrdata = mappingobject_newempty(interp);
 		if (!obj->attrdata)

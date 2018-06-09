@@ -8,9 +8,11 @@
 /* should
       * RETURN A NEW REFERENCE on success
       * set an error (see objects/errors.h) and return NULL on failure
-      * NOT modify argarr or pass it to anything that may modify it
+      * NOT modify args or pass it to anything that may modify it
+
+args is an Array object of arguments
 */
-typedef struct Object* (*functionobject_cfunc)(struct Interpreter *interp, struct Object *argarr);
+typedef struct Object* (*functionobject_cfunc)(struct Interpreter *interp, struct Object *args);
 
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *functionobject_createclass(struct Interpreter *interp);
@@ -35,7 +37,7 @@ struct Object *functionobject_call(struct Interpreter *interp, struct Object *fu
 // named kinda like vprintf
 // bad things happen if func is not a function object
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *functionobject_vcall(struct Interpreter *interp, struct Object *func, struct Object *argarr);
+struct Object *functionobject_vcall(struct Interpreter *interp, struct Object *func, struct Object *args);
 
 // returns false on error
 // bad things happen if func is not a Function object

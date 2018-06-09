@@ -78,12 +78,12 @@ struct Object *mappingobject_newempty(struct Interpreter *interp)
 }
 
 
-static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
+static struct Object *setup(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Mapping, interp->builtins.Array, NULL))
+	if (!check_args(interp, args, interp->builtins.Mapping, interp->builtins.Array, NULL))
 		return NULL;
-	struct Object *map = ARRAYOBJECT_GET(argarr, 0);
-	struct Object *pairs = ARRAYOBJECT_GET(argarr, 1);
+	struct Object *map = ARRAYOBJECT_GET(args, 0);
+	struct Object *pairs = ARRAYOBJECT_GET(args, 1);
 
 	if (map->data) {
 		errorobject_setwithfmt(interp, "setup was called twice");
@@ -113,11 +113,11 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 }
 
 
-static struct Object *length_getter(struct Interpreter *interp, struct Object *argarr)
+static struct Object *length_getter(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Mapping, NULL))
+	if (!check_args(interp, args, interp->builtins.Mapping, NULL))
 		return NULL;
-	return integerobject_newfromlonglong(interp, MAPPINGOBJECT_SIZE(ARRAYOBJECT_GET(argarr, 0)));
+	return integerobject_newfromlonglong(interp, MAPPINGOBJECT_SIZE(ARRAYOBJECT_GET(args, 0)));
 }
 
 
@@ -209,11 +209,11 @@ bool mappingobject_set(struct Interpreter *interp, struct Object *map, struct Ob
 	return true;
 }
 
-static struct Object *set(struct Interpreter *interp, struct Object *argarr)
+static struct Object *set(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Mapping, interp->builtins.Object, interp->builtins.Object, NULL))
+	if (!check_args(interp, args, interp->builtins.Mapping, interp->builtins.Object, interp->builtins.Object, NULL))
 		return NULL;
-	if (!mappingobject_set(interp, ARRAYOBJECT_GET(argarr, 0), ARRAYOBJECT_GET(argarr, 1), ARRAYOBJECT_GET(argarr, 2)))
+	if (!mappingobject_set(interp, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1), ARRAYOBJECT_GET(args, 2)))
 		return NULL;
 	return nullobject_get(interp);
 }
@@ -241,12 +241,12 @@ int mappingobject_get(struct Interpreter *interp, struct Object *map, struct Obj
 	return 0;
 }
 
-static struct Object *get(struct Interpreter *interp, struct Object *argarr)
+static struct Object *get(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Mapping, interp->builtins.Object, NULL))
+	if (!check_args(interp, args, interp->builtins.Mapping, interp->builtins.Object, NULL))
 		return NULL;
-	struct Object *map = ARRAYOBJECT_GET(argarr, 0);
-	struct Object *key = ARRAYOBJECT_GET(argarr, 1);
+	struct Object *map = ARRAYOBJECT_GET(args, 0);
+	struct Object *key = ARRAYOBJECT_GET(args, 1);
 
 	struct Object *val;
 	int status = mappingobject_get(interp, map, key, &val);
@@ -258,12 +258,12 @@ static struct Object *get(struct Interpreter *interp, struct Object *argarr)
 }
 
 
-static struct Object *get_and_delete(struct Interpreter *interp, struct Object *argarr)
+static struct Object *get_and_delete(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Mapping, interp->builtins.Object, NULL))
+	if (!check_args(interp, args, interp->builtins.Mapping, interp->builtins.Object, NULL))
 		return NULL;
-	struct Object *map = ARRAYOBJECT_GET(argarr, 0);
-	struct Object *key = ARRAYOBJECT_GET(argarr, 1);
+	struct Object *map = ARRAYOBJECT_GET(args, 0);
+	struct Object *key = ARRAYOBJECT_GET(args, 1);
 
 	if (!(key->hashable)) {
 		errorobject_setwithfmt(interp, "%D is not hashable, so it can't be used as a Mapping key", key);
@@ -300,9 +300,9 @@ static struct Object *get_and_delete(struct Interpreter *interp, struct Object *
 	return NULL;
 }
 
-static struct Object *delete(struct Interpreter *interp, struct Object *argarr)
+static struct Object *delete(struct Interpreter *interp, struct Object *args)
 {
-	struct Object *res = get_and_delete(interp, argarr);
+	struct Object *res = get_and_delete(interp, args);
 	if (!res)
 		return NULL;
 

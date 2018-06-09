@@ -89,13 +89,13 @@ static void integer_destructor(struct Object *integer)
 }
 
 // (new Integer "123") converts a string to an integer
-static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
+static struct Object *setup(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Integer, interp->builtins.String, NULL))
+	if (!check_args(interp, args, interp->builtins.Integer, interp->builtins.String, NULL))
 		return NULL;
 
-	struct Object *integer = ARRAYOBJECT_GET(argarr, 0);
-	struct Object *string = ARRAYOBJECT_GET(argarr, 1);
+	struct Object *integer = ARRAYOBJECT_GET(args, 0);
+	struct Object *string = ARRAYOBJECT_GET(args, 1);
 	if (integer->data) {
 		errorobject_setwithfmt(interp, "setup was called twice");
 		return NULL;
@@ -115,12 +115,12 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 	return nullobject_get(interp);
 }
 
-static struct Object *to_string(struct Interpreter *interp, struct Object *argarr)
+static struct Object *to_string(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Integer, NULL))
+	if (!check_args(interp, args, interp->builtins.Integer, NULL))
 		return NULL;
 
-	long long val = *((long long *) ARRAYOBJECT_GET(argarr, 0)->data);
+	long long val = *((long long *) ARRAYOBJECT_GET(args, 0)->data);
 	if (val == 0)   // special case
 		return stringobject_newfromcharptr(interp, "0");
 
@@ -150,13 +150,13 @@ static struct Object *to_string(struct Interpreter *interp, struct Object *argar
 }
 
 // FIXME: we need operators
-static struct Object *plus(struct Interpreter *interp, struct Object *argarr)
+static struct Object *plus(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Integer, interp->builtins.Integer, NULL))
+	if (!check_args(interp, args, interp->builtins.Integer, interp->builtins.Integer, NULL))
 		return NULL;
 
-	long long x = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 0));
-	long long y = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1));
+	long long x = integerobject_tolonglong(ARRAYOBJECT_GET(args, 0));
+	long long y = integerobject_tolonglong(ARRAYOBJECT_GET(args, 1));
 	return integerobject_newfromlonglong(interp, x + y);
 }
 

@@ -35,19 +35,19 @@ bool attribute_set(struct Interpreter *interp, struct Object *obj, char *attr, s
 // because writing unnecessary getters and setters by hand sucks, java users know it
 // these are meant to be placed outside other functions
 #define ATTRIBUTE_DEFINE_SIMPLE_GETTER(ATTRNAME, CLASSNAME) \
-	static struct Object* ATTRNAME##_getter(struct Interpreter *interp, struct Object *argarr) \
+	static struct Object* ATTRNAME##_getter(struct Interpreter *interp, struct Object *args) \
 	{ \
-		if (!check_args(interp, argarr, interp->builtins.CLASSNAME, NULL)) \
+		if (!check_args(interp, args, interp->builtins.CLASSNAME, NULL)) \
 			return NULL; \
-		return attribute_getfromattrdata(interp, ARRAYOBJECT_GET(argarr, 0), #ATTRNAME); \
+		return attribute_getfromattrdata(interp, ARRAYOBJECT_GET(args, 0), #ATTRNAME); \
 	}
 
 #define ATTRIBUTE_DEFINE_SIMPLE_SETTER(ATTRNAME, CLASSNAME, VALUECLASSNAME) \
-	static struct Object* ATTRNAME##_setter(struct Interpreter *interp, struct Object *argarr) \
+	static struct Object* ATTRNAME##_setter(struct Interpreter *interp, struct Object *args) \
 	{ \
-		if (!check_args(interp, argarr, interp->builtins.CLASSNAME, interp->builtins.VALUECLASSNAME, NULL)) \
+		if (!check_args(interp, args, interp->builtins.CLASSNAME, interp->builtins.VALUECLASSNAME, NULL)) \
 			return NULL; \
-		return attribute_settoattrdata(interp, ARRAYOBJECT_GET(argarr, 0), #ATTRNAME, ARRAYOBJECT_GET(argarr, 1)) \
+		return attribute_settoattrdata(interp, ARRAYOBJECT_GET(args, 0), #ATTRNAME, ARRAYOBJECT_GET(args, 1)) \
 			? nullobject_get(interp) : NULL; \
 	}
 

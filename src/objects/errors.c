@@ -28,19 +28,19 @@ struct Object *errorobject_createclass_noerr(struct Interpreter *interp)
 	return classobject_new_noerr(interp, "Error", interp->builtins.Object, error_foreachref);
 }
 
-static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
+static struct Object *setup(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Error, interp->builtins.String))
+	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.String))
 		return NULL;
 
-	struct Object *err = ARRAYOBJECT_GET(argarr, 0);
+	struct Object *err = ARRAYOBJECT_GET(args, 0);
 	if (err->data) {
 		errorobject_setwithfmt(interp, "setup was called twice");
 		return NULL;
 	}
 
-	err->data = ARRAYOBJECT_GET(argarr, 1);
-	OBJECT_INCREF(interp, ARRAYOBJECT_GET(argarr, 1));
+	err->data = ARRAYOBJECT_GET(args, 1);
+	OBJECT_INCREF(interp, ARRAYOBJECT_GET(args, 1));
 	return nullobject_get(interp);
 }
 

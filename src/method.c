@@ -19,11 +19,11 @@
 
 // this is partialled to function objects when creating methods
 // when getting the method, the partialled thing is called with the instance as an argument, see objects/classobject.h
-static struct Object *method_getter(struct Interpreter *interp, struct Object *argarr)
+static struct Object *method_getter(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Function, interp->builtins.Object, NULL))
+	if (!check_args(interp, args, interp->builtins.Function, interp->builtins.Object, NULL))
 		return NULL;
-	return functionobject_newpartial(interp, ARRAYOBJECT_GET(argarr, 0), ARRAYOBJECT_GET(argarr, 1));
+	return functionobject_newpartial(interp, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1));
 }
 
 bool method_add(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc cfunc)
@@ -67,8 +67,8 @@ struct Object *method_call(struct Interpreter *interp, struct Object *obj, char 
 	if (!method)
 		return NULL;
 
-	struct Object *argarr = arrayobject_newempty(interp);
-	if (!argarr) {
+	struct Object *args = arrayobject_newempty(interp);
+	if (!args) {
 		OBJECT_DECREF(interp, method);
 		return NULL;
 	}
@@ -80,16 +80,16 @@ struct Object *method_call(struct Interpreter *interp, struct Object *obj, char 
 		struct Object *arg = va_arg(ap, struct Object*);
 		if (!arg)
 			break;   // end of argument list, not an error
-		if (!arrayobject_push(interp, argarr, arg)) {
-			OBJECT_DECREF(interp, argarr);
+		if (!arrayobject_push(interp, args, arg)) {
+			OBJECT_DECREF(interp, args);
 			OBJECT_DECREF(interp, method);
 			return NULL;
 		}
 	}
 	va_end(ap);
 
-	struct Object *res = functionobject_vcall(interp, method, argarr);
-	OBJECT_DECREF(interp, argarr);
+	struct Object *res = functionobject_vcall(interp, method, args);
+	OBJECT_DECREF(interp, args);
 	OBJECT_DECREF(interp, method);
 	return res;
 }

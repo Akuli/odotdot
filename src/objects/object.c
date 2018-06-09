@@ -27,19 +27,19 @@ struct Object *objectobject_createclass_noerr(struct Interpreter *interp)
 
 
 // setup does nothing by default
-static struct Object *setup(struct Interpreter *interp, struct Object *argarr) {
-	if (!check_args(interp, argarr, interp->builtins.Object, NULL)) return NULL;
+static struct Object *setup(struct Interpreter *interp, struct Object *args) {
+	if (!check_args(interp, args, interp->builtins.Object, NULL)) return NULL;
 	return nullobject_get(interp);
 }
 
-static struct Object *to_debug_string(struct Interpreter *interp, struct Object *argarr)
+static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args)
 {
-	if (ARRAYOBJECT_LEN(argarr) != 1) {
+	if (ARRAYOBJECT_LEN(args) != 1) {
 		errorobject_setwithfmt(interp, "Object.to_debug_string takes exactly 1 argument");
 		return NULL;
 	}
 
-	struct Object *obj = ARRAYOBJECT_GET(argarr, 0);
+	struct Object *obj = ARRAYOBJECT_GET(args, 0);
 	struct ClassObjectData *classdata = obj->klass->data;
 	return stringobject_newfromfmt(interp, "<%U at %p>", classdata->name, (void*)obj);
 }

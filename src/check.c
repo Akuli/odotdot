@@ -17,10 +17,10 @@ bool check_type(struct Interpreter *interp, struct Object *klass, struct Object 
 }
 
 #define NARGS_MAX 20    // sane
-bool check_args(struct Interpreter *interp, struct Object *argarr, ...)
+bool check_args(struct Interpreter *interp, struct Object *args, ...)
 {
 	va_list ap;
-	va_start(ap, argarr);
+	va_start(ap, args);
 
 	unsigned int expectnargs;   // expected number of arguments
 	struct Object *classes[NARGS_MAX];
@@ -34,13 +34,13 @@ bool check_args(struct Interpreter *interp, struct Object *argarr, ...)
 
 	// TODO: test these
 	// TODO: include the function name in the error?
-	if (ARRAYOBJECT_LEN(argarr) != expectnargs) {
-		errorobject_setwithfmt(interp, "%s arguments", ARRAYOBJECT_LEN(argarr) > expectnargs ? "too many" : "not enough");
+	if (ARRAYOBJECT_LEN(args) != expectnargs) {
+		errorobject_setwithfmt(interp, "%s arguments", ARRAYOBJECT_LEN(args) > expectnargs ? "too many" : "not enough");
 		return false;
 	}
 
 	for (unsigned int i=0; i < expectnargs; i++) {
-		if (!check_type(interp, classes[i], ARRAYOBJECT_GET(argarr, i)))
+		if (!check_type(interp, classes[i], ARRAYOBJECT_GET(args, i)))
 			return false;
 	}
 

@@ -12,7 +12,7 @@ bool check_type(struct Interpreter *interp, struct Object *klass, struct Object 
 
 /* for example, do this in the beginning of a functionobject_cfunc...
 
-        if (!check_args(interp, argarr, interp->builtins.String, interp->builtins.Integer, interp->builtins.Object, NULL))
+        if (!check_args(interp, args, interp->builtins.String, interp->builtins.Integer, interp->builtins.Object, NULL))
                 return NULL;
 
 ...to make sure that:
@@ -24,6 +24,6 @@ bool check_type(struct Interpreter *interp, struct Object *klass, struct Object 
 bad things happen if the ... arguments are not class objects or you forget the NULL
 returns false on error
 */
-bool check_args(struct Interpreter *interp, struct Object *argarr, ...);
+bool check_args(struct Interpreter *interp, struct Object *args, ...);
 
 #endif   // CHECK_H

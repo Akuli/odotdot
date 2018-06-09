@@ -7,15 +7,15 @@
 #include "errors.h"
 #include "string.h"
 
-static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
+static struct Object *setup(struct Interpreter *interp, struct Object *args)
 {
 	errorobject_setwithfmt(interp, "new null objects cannot be created");
 	return NULL;
 }
 
-static struct Object *to_debug_string(struct Interpreter *interp, struct Object *argarr)
+static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.null->klass, NULL))
+	if (!check_args(interp, args, interp->builtins.null->klass, NULL))
 		return NULL;
 	return stringobject_newfromcharptr(interp, "null");
 }

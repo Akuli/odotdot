@@ -32,29 +32,29 @@ struct Object *stringobject_createclass_noerr(struct Interpreter *interp)
 }
 
 
-static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
+static struct Object *setup(struct Interpreter *interp, struct Object *args)
 {
 	errorobject_setwithfmt(interp, "strings can't be created with (new String), use \"text in quotes\" instead");
 	return NULL;
 }
 
 // returns the string itself, for consistency with other types
-static struct Object *to_string(struct Interpreter *interp, struct Object *argarr)
+static struct Object *to_string(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.String, NULL))
+	if (!check_args(interp, args, interp->builtins.String, NULL))
 		return NULL;
 
-	OBJECT_INCREF(interp, ARRAYOBJECT_GET(argarr, 0));
-	return ARRAYOBJECT_GET(argarr, 0);
+	OBJECT_INCREF(interp, ARRAYOBJECT_GET(args, 0));
+	return ARRAYOBJECT_GET(args, 0);
 }
 
 
-static struct Object *to_debug_string(struct Interpreter *interp, struct Object *argarr)
+static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.String, NULL))
+	if (!check_args(interp, args, interp->builtins.String, NULL))
 		return NULL;
 
-	struct UnicodeString noquotes = *((struct UnicodeString*) ARRAYOBJECT_GET(argarr, 0)->data);
+	struct UnicodeString noquotes = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data);
 	struct UnicodeString yesquotes;
 	yesquotes.len = noquotes.len + 2;
 	yesquotes.val = malloc(sizeof(unicode_char) * yesquotes.len);
@@ -70,13 +70,13 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 	return res;
 }
 
-static struct Object *concat(struct Interpreter *interp, struct Object *argarr)
+static struct Object *concat(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.String, interp->builtins.String, NULL))
+	if (!check_args(interp, args, interp->builtins.String, interp->builtins.String, NULL))
 		return NULL;
 
-	struct UnicodeString u1 = *((struct UnicodeString*) ARRAYOBJECT_GET(argarr, 0)->data);
-	struct UnicodeString u2 = *((struct UnicodeString*) ARRAYOBJECT_GET(argarr, 1)->data);
+	struct UnicodeString u1 = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data);
+	struct UnicodeString u2 = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 1)->data);
 
 	unicode_char uval[u1.len + u2.len];     // this wörks because C99 magic
 	memcpy(uval, u1.val, u1.len * sizeof(unicode_char));
@@ -88,13 +88,13 @@ static struct Object *concat(struct Interpreter *interp, struct Object *argarr)
 
 // get and slice are a lot like array methods
 // some day strings will hopefully behave like an immutable array of 1-character strings
-static struct Object *get(struct Interpreter *interp, struct Object *argarr)
+static struct Object *get(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.String, interp->builtins.Integer, NULL))
+	if (!check_args(interp, args, interp->builtins.String, interp->builtins.Integer, NULL))
 		return NULL;
 
-	struct UnicodeString ustr = *((struct UnicodeString*) ARRAYOBJECT_GET(argarr, 0)->data);
-	long long i = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1));
+	struct UnicodeString ustr = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data);
+	long long i = integerobject_tolonglong(ARRAYOBJECT_GET(args, 1));
 
 	if (i < 0) {
 		errorobject_setwithfmt(interp, "%L is not a valid array index", i);
@@ -110,24 +110,24 @@ static struct Object *get(struct Interpreter *interp, struct Object *argarr)
 	return stringobject_newfromustr(interp, ustr);
 }
 
-static struct Object *slice(struct Interpreter *interp, struct Object *argarr)
+static struct Object *slice(struct Interpreter *interp, struct Object *args)
 {
 	long long start, end;
-	if (ARRAYOBJECT_LEN(argarr) == 2) {
+	if (ARRAYOBJECT_LEN(args) == 2) {
 		// (s.slice start)
-		if (!check_args(interp, argarr, interp->builtins.String, interp->builtins.Integer, NULL))
+		if (!check_args(interp, args, interp->builtins.String, interp->builtins.Integer, NULL))
 			return NULL;
-		start = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1));
-		end = ((struct UnicodeString*) ARRAYOBJECT_GET(argarr, 0)->data)->len;
+		start = integerobject_tolonglong(ARRAYOBJECT_GET(args, 1));
+		end = ((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data)->len;
 	} else {
 		// (s.slice start end)
-		if (!check_args(interp, argarr, interp->builtins.String, interp->builtins.Integer, interp->builtins.Integer, NULL))
+		if (!check_args(interp, args, interp->builtins.String, interp->builtins.Integer, interp->builtins.Integer, NULL))
 			return NULL;
-		start = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 1));
-		end = integerobject_tolonglong(ARRAYOBJECT_GET(argarr, 2));
+		start = integerobject_tolonglong(ARRAYOBJECT_GET(args, 1));
+		end = integerobject_tolonglong(ARRAYOBJECT_GET(args, 2));
 	}
 
-	struct UnicodeString ustr = *((struct UnicodeString*) ARRAYOBJECT_GET(argarr, 0)->data);
+	struct UnicodeString ustr = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data);
 
 	if (start < 0)
 		start = 0;
@@ -140,7 +140,7 @@ static struct Object *slice(struct Interpreter *interp, struct Object *argarr)
 		return stringobject_newfromcharptr(interp, "");
 
 	if (start == 0 && (size_t) end == ustr.len) {
-		struct Object *s = ARRAYOBJECT_GET(argarr, 0);
+		struct Object *s = ARRAYOBJECT_GET(args, 0);
 		OBJECT_INCREF(interp, s);
 		return s;
 	}
@@ -214,11 +214,11 @@ error:
 	return NULL;
 }
 
-static struct Object *split_by_whitespace(struct Interpreter *interp, struct Object *argarr)
+static struct Object *split_by_whitespace(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.String, NULL))
+	if (!check_args(interp, args, interp->builtins.String, NULL))
 		return NULL;
-	return stringobject_splitbywhitespace(interp, ARRAYOBJECT_GET(argarr, 0));
+	return stringobject_splitbywhitespace(interp, ARRAYOBJECT_GET(args, 0));
 }
 
 bool stringobject_addmethods(struct Interpreter *interp)

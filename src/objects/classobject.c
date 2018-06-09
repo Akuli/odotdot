@@ -158,13 +158,13 @@ struct Object *classobject_create_Class_noerr(struct Interpreter *interp)
 }
 
 
-static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
+static struct Object *setup(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Class, interp->builtins.String, interp->builtins.Class, NULL))
+	if (!check_args(interp, args, interp->builtins.Class, interp->builtins.String, interp->builtins.Class, NULL))
 		return NULL;
-	struct Object *klass = ARRAYOBJECT_GET(argarr, 0);
-	struct Object *name = ARRAYOBJECT_GET(argarr, 1);
-	struct Object *baseclass = ARRAYOBJECT_GET(argarr, 2);
+	struct Object *klass = ARRAYOBJECT_GET(args, 0);
+	struct Object *name = ARRAYOBJECT_GET(args, 1);
+	struct Object *baseclass = ARRAYOBJECT_GET(args, 2);
 
 	if (klass->data) {
 		errorobject_setwithfmt(interp, "setup was called twice");
@@ -189,21 +189,21 @@ static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
 	return nullobject_get(interp);
 }
 
-static struct Object *name_getter(struct Interpreter *interp, struct Object *argarr)
+static struct Object *name_getter(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Class, NULL))
+	if (!check_args(interp, args, interp->builtins.Class, NULL))
 		return NULL;
 
-	struct ClassObjectData *data = ARRAYOBJECT_GET(argarr, 0)->data;
+	struct ClassObjectData *data = ARRAYOBJECT_GET(args, 0)->data;
 	return stringobject_newfromustr(interp, data->name);
 }
 
-static struct Object *baseclass_getter(struct Interpreter *interp, struct Object *argarr)
+static struct Object *baseclass_getter(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Class, NULL))
+	if (!check_args(interp, args, interp->builtins.Class, NULL))
 		return NULL;
 
-	struct ClassObjectData *data = ARRAYOBJECT_GET(argarr, 0)->data;
+	struct ClassObjectData *data = ARRAYOBJECT_GET(args, 0)->data;
 
 	if (!data->baseclass) {
 		// it's Object
@@ -214,12 +214,12 @@ static struct Object *baseclass_getter(struct Interpreter *interp, struct Object
 	return data->baseclass;
 }
 
-static struct Object *getters_getter(struct Interpreter *interp, struct Object *argarr)
+static struct Object *getters_getter(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Class, NULL))
+	if (!check_args(interp, args, interp->builtins.Class, NULL))
 		return NULL;
 
-	struct ClassObjectData *data = ARRAYOBJECT_GET(argarr, 0)->data;
+	struct ClassObjectData *data = ARRAYOBJECT_GET(args, 0)->data;
 	if (!data->getters) {
 		if (!(data->getters = mappingobject_newempty(interp)))
 			return NULL;
@@ -229,12 +229,12 @@ static struct Object *getters_getter(struct Interpreter *interp, struct Object *
 	return data->getters;
 }
 
-static struct Object *setters_getter(struct Interpreter *interp, struct Object *argarr)
+static struct Object *setters_getter(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Class, NULL))
+	if (!check_args(interp, args, interp->builtins.Class, NULL))
 		return NULL;
 
-	struct ClassObjectData *data = ARRAYOBJECT_GET(argarr, 0)->data;
+	struct ClassObjectData *data = ARRAYOBJECT_GET(args, 0)->data;
 	if (!data->setters) {
 		if (!(data->setters = mappingobject_newempty(interp)))
 			return NULL;
@@ -244,11 +244,11 @@ static struct Object *setters_getter(struct Interpreter *interp, struct Object *
 	return data->setters;
 }
 
-static struct Object *to_debug_string(struct Interpreter *interp, struct Object *argarr)
+static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Class, NULL))
+	if (!check_args(interp, args, interp->builtins.Class, NULL))
 		return NULL;
-	struct ClassObjectData *data = ARRAYOBJECT_GET(argarr, 0)->data;
+	struct ClassObjectData *data = ARRAYOBJECT_GET(args, 0)->data;
 	return stringobject_newfromfmt(interp, "<Class \"%U\">", data->name);
 }
 

@@ -66,29 +66,29 @@ static struct Object *run_expression(struct Interpreter *interp, struct Object *
 			return NULL;
 		}
 
-		struct Object *argarr = arrayobject_newempty(interp);
-		if (!argarr) {
+		struct Object *args = arrayobject_newempty(interp);
+		if (!args) {
 			OBJECT_DECREF(interp, func);
 			return NULL;
 		}
 		for (size_t i=0; i < ARRAYOBJECT_LEN(INFO_AS(AstCallInfo)->args); i++) {
 			struct Object *arg = run_expression(interp, scope, ARRAYOBJECT_GET(INFO_AS(AstCallInfo)->args, i));
 			if (!arg) {
-				OBJECT_DECREF(interp, argarr);
+				OBJECT_DECREF(interp, args);
 				OBJECT_DECREF(interp, func);
 				return NULL;
 			}
-			bool ret = arrayobject_push(interp, argarr, arg);
+			bool ret = arrayobject_push(interp, args, arg);
 			OBJECT_DECREF(interp, arg);
 			if (!ret) {
-				OBJECT_DECREF(interp, argarr);
+				OBJECT_DECREF(interp, args);
 				OBJECT_DECREF(interp, func);
 				return NULL;
 			}
 		}
 
-		struct Object *res = functionobject_vcall(interp, func, argarr);
-		OBJECT_DECREF(interp, argarr);
+		struct Object *res = functionobject_vcall(interp, func, args);
+		OBJECT_DECREF(interp, args);
 		OBJECT_DECREF(interp, func);
 		return res;
 	}

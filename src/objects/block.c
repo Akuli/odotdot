@@ -16,14 +16,14 @@
 ATTRIBUTE_DEFINE_SIMPLE_GETTER(definition_scope, Block)
 ATTRIBUTE_DEFINE_SIMPLE_GETTER(ast_statements, Block)
 
-static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
+static struct Object *setup(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Block, interp->builtins.Scope, interp->builtins.Array, NULL))
+	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Scope, interp->builtins.Array, NULL))
 		return NULL;
 
-	struct Object *block = ARRAYOBJECT_GET(argarr, 0);
-	if (!attribute_settoattrdata(interp, block, "definition_scope", ARRAYOBJECT_GET(argarr, 1))) return NULL;
-	if (!attribute_settoattrdata(interp, block, "ast_statements", ARRAYOBJECT_GET(argarr, 2))) return NULL;
+	struct Object *block = ARRAYOBJECT_GET(args, 0);
+	if (!attribute_settoattrdata(interp, block, "definition_scope", ARRAYOBJECT_GET(args, 1))) return NULL;
+	if (!attribute_settoattrdata(interp, block, "ast_statements", ARRAYOBJECT_GET(args, 2))) return NULL;
 	return nullobject_get(interp);
 }
 
@@ -50,11 +50,11 @@ error:
 	return false;
 }
 
-static struct Object *run(struct Interpreter *interp, struct Object *argarr)
+static struct Object *run(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Block, interp->builtins.Scope, NULL))
+	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Scope, NULL))
 		return NULL;
-	return blockobject_run(interp, ARRAYOBJECT_GET(argarr, 0), ARRAYOBJECT_GET(argarr, 1)) ? nullobject_get(interp) : NULL;
+	return blockobject_run(interp, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1)) ? nullobject_get(interp) : NULL;
 }
 
 struct Object *blockobject_createclass(struct Interpreter *interp)

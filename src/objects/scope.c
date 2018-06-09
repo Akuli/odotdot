@@ -58,11 +58,11 @@ struct Object *scopeobject_newbuiltin(struct Interpreter *interp)
 ATTRIBUTE_DEFINE_SIMPLE_GETTER(parent_scope, Scope)
 ATTRIBUTE_DEFINE_SIMPLE_GETTER(local_vars, Scope)
 
-static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
+static struct Object *setup(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Scope, interp->builtins.Scope, NULL)) return NULL;
-	struct Object *scope = ARRAYOBJECT_GET(argarr, 0);
-	struct Object *parent_scope = ARRAYOBJECT_GET(argarr, 1);
+	if (!check_args(interp, args, interp->builtins.Scope, interp->builtins.Scope, NULL)) return NULL;
+	struct Object *scope = ARRAYOBJECT_GET(args, 0);
+	struct Object *parent_scope = ARRAYOBJECT_GET(args, 1);
 
 	struct Object *local_vars = mappingobject_newempty(interp);
 	if (!local_vars)
@@ -80,13 +80,13 @@ error:
 }
 
 
-static struct Object *set_var(struct Interpreter *interp, struct Object *argarr)
+static struct Object *set_var(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Scope, interp->builtins.String, interp->builtins.Object, NULL))
+	if (!check_args(interp, args, interp->builtins.Scope, interp->builtins.String, interp->builtins.Object, NULL))
 		return NULL;
-	struct Object *scope = ARRAYOBJECT_GET(argarr, 0);
-	struct Object *varname = ARRAYOBJECT_GET(argarr, 1);
-	struct Object *val = ARRAYOBJECT_GET(argarr, 2);
+	struct Object *scope = ARRAYOBJECT_GET(args, 0);
+	struct Object *varname = ARRAYOBJECT_GET(args, 1);
+	struct Object *val = ARRAYOBJECT_GET(args, 2);
 
 	struct Object *local_vars = attribute_get(interp, scope, "local_vars");
 	if (!local_vars)
@@ -117,22 +117,22 @@ static struct Object *set_var(struct Interpreter *interp, struct Object *argarr)
 	if (!parent_scope)
 		return NULL;
 	struct Object *tmp[] = { parent_scope, varname, val };
-	struct Object *newargarr = arrayobject_new(interp, tmp, 3);
+	struct Object *newargs = arrayobject_new(interp, tmp, 3);
 	OBJECT_DECREF(interp, parent_scope);
-	if (!newargarr)
+	if (!newargs)
 		return NULL;
 
-	struct Object *ret = set_var(interp, newargarr);
-	OBJECT_DECREF(interp, newargarr);
+	struct Object *ret = set_var(interp, newargs);
+	OBJECT_DECREF(interp, newargs);
 	return ret;
 }
 
-static struct Object *get_var(struct Interpreter *interp, struct Object *argarr)
+static struct Object *get_var(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Scope, interp->builtins.String, NULL))
+	if (!check_args(interp, args, interp->builtins.Scope, interp->builtins.String, NULL))
 		return NULL;
-	struct Object *scope = ARRAYOBJECT_GET(argarr, 0);
-	struct Object *varname = ARRAYOBJECT_GET(argarr, 1);
+	struct Object *scope = ARRAYOBJECT_GET(args, 0);
+	struct Object *varname = ARRAYOBJECT_GET(args, 1);
 
 	// is the variable defined here?
 	// TODO: better error message for missing variables
@@ -157,13 +157,13 @@ static struct Object *get_var(struct Interpreter *interp, struct Object *argarr)
 	if (!parent_scope)
 		return NULL;
 	struct Object *tmp[] = { parent_scope, varname };
-	struct Object *newargarr = arrayobject_new(interp, tmp, 2);
+	struct Object *newargs = arrayobject_new(interp, tmp, 2);
 	OBJECT_DECREF(interp, parent_scope);
-	if (!newargarr)
+	if (!newargs)
 		return NULL;
 
-	struct Object *ret = get_var(interp, newargarr);
-	OBJECT_DECREF(interp, newargarr);
+	struct Object *ret = get_var(interp, newargs);
+	OBJECT_DECREF(interp, newargs);
 	return ret;
 }
 

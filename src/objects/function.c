@@ -89,19 +89,19 @@ static struct Object *create_a_partial(struct Interpreter *interp, struct Object
 	return obj;
 }
 
-static struct Object *partial(struct Interpreter *interp, struct Object *argarr)
+static struct Object *partial(struct Interpreter *interp, struct Object *args)
 {
 	// check the first argument, rest are the args that are being partialled
 	// there can be 0 or more partialled args (0 partialled args allowed for consistency)
-	if (ARRAYOBJECT_LEN(argarr) == 0) {
+	if (ARRAYOBJECT_LEN(args) == 0) {
 		errorobject_setwithfmt(interp, "not enough arguments to Function.partial");
 		return NULL;
 	}
-	if (!check_type(interp, interp->builtins.Function, ARRAYOBJECT_GET(argarr, 0)))
+	if (!check_type(interp, interp->builtins.Function, ARRAYOBJECT_GET(args, 0)))
 		return NULL;
 
-	return create_a_partial(interp, ARRAYOBJECT_GET(argarr, 0),
-		((struct ArrayObjectData *) argarr->data)->elems + 1, ARRAYOBJECT_LEN(argarr) - 1);
+	return create_a_partial(interp, ARRAYOBJECT_GET(args, 0),
+		((struct ArrayObjectData *) args->data)->elems + 1, ARRAYOBJECT_LEN(args) - 1);
 }
 
 struct Object *functionobject_newpartial(struct Interpreter *interp, struct Object *func, struct Object *partialarg)
@@ -110,24 +110,24 @@ struct Object *functionobject_newpartial(struct Interpreter *interp, struct Obje
 }
 
 
-static struct Object *name_getter(struct Interpreter *interp, struct Object *argarr)
+static struct Object *name_getter(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Function, NULL))
+	if (!check_args(interp, args, interp->builtins.Function, NULL))
 		return NULL;
 
-	struct FunctionData *data = ARRAYOBJECT_GET(argarr, 0)->data;
+	struct FunctionData *data = ARRAYOBJECT_GET(args, 0)->data;
 	OBJECT_INCREF(interp, data->name);
 	return data->name;
 }
 
-static struct Object *name_setter(struct Interpreter *interp, struct Object *argarr)
+static struct Object *name_setter(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Function, interp->builtins.String, NULL))
+	if (!check_args(interp, args, interp->builtins.Function, interp->builtins.String, NULL))
 		return NULL;
 
-	struct FunctionData *data = ARRAYOBJECT_GET(argarr, 0)->data;
+	struct FunctionData *data = ARRAYOBJECT_GET(args, 0)->data;
 	OBJECT_DECREF(interp, data->name);
-	data->name = ARRAYOBJECT_GET(argarr, 1);
+	data->name = ARRAYOBJECT_GET(args, 1);
 	OBJECT_INCREF(interp, data->name);
 	return nullobject_get(interp);
 }
@@ -146,12 +146,12 @@ bool functionobject_setname(struct Interpreter *interp, struct Object *func, cha
 }
 
 
-static struct Object *to_debug_string(struct Interpreter *interp, struct Object *argarr)
+static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args)
 {
-	if (!check_args(interp, argarr, interp->builtins.Function, NULL))
+	if (!check_args(interp, args, interp->builtins.Function, NULL))
 		return NULL;
 
-	struct Object *func = ARRAYOBJECT_GET(argarr, 0);
+	struct Object *func = ARRAYOBJECT_GET(args, 0);
 	/* TODO: get rid of the "at" part?
 		good because hexadecimal is confusing to people not familiar with it
 		bad because right now partials are not named differently from the original functions
@@ -159,7 +159,7 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 	return stringobject_newfromfmt(interp, "<Function %D at %p>", ((struct FunctionData*) func->data)->name, (void*)func);
 }
 
-static struct Object *setup(struct Interpreter *interp, struct Object *argarr)
+static struct Object *setup(struct Interpreter *interp, struct Object *args)
 {
 	errorobject_setwithfmt(interp, "functions can't be created with (new Function), use func instead");
 	return NULL;
@@ -208,8 +208,8 @@ struct Object *functionobject_call(struct Interpreter *interp, struct Object *fu
 {
 	assert(func->klass == interp->builtins.Function);    // TODO: better type check
 
-	struct Object *argarr = arrayobject_newempty(interp);
-	if (!argarr)
+	struct Object *args = arrayobject_newempty(interp);
+	if (!args)
 		return NULL;
 
 	va_list ap;
@@ -219,19 +219,19 @@ struct Object *functionobject_call(struct Interpreter *interp, struct Object *fu
 		struct Object *arg = va_arg(ap, struct Object *);
 		if (!arg)    // end of argument list, not an error
 			break;
-		if (!arrayobject_push(interp, argarr, arg)) {
-			OBJECT_DECREF(interp, argarr);
+		if (!arrayobject_push(interp, args, arg)) {
+			OBJECT_DECREF(interp, args);
 			return NULL;
 		}
 	}
 	va_end(ap);
 
-	struct Object *res = functionobject_vcall(interp, func, argarr);
-	OBJECT_DECREF(interp, argarr);
+	struct Object *res = functionobject_vcall(interp, func, args);
+	OBJECT_DECREF(interp, args);
 	return res;
 }
 
-struct Object *functionobject_vcall(struct Interpreter *interp, struct Object *func, struct Object *argarr)
+struct Object *functionobject_vcall(struct Interpreter *interp, struct Object *func, struct Object *args)
 {
 	struct Object *theargs;
 	struct FunctionData *data = func->data;     // casts implicitly
@@ -249,18 +249,18 @@ struct Object *functionobject_vcall(struct Interpreter *interp, struct Object *f
 				return NULL;
 			}
 		}
-		for (size_t i=0; i < ARRAYOBJECT_LEN(argarr); i++) {
-			if (!arrayobject_push(interp, theargs, ARRAYOBJECT_GET(argarr, i))) {
+		for (size_t i=0; i < ARRAYOBJECT_LEN(args); i++) {
+			if (!arrayobject_push(interp, theargs, ARRAYOBJECT_GET(args, i))) {
 				OBJECT_DECREF(interp, theargs);
 				return NULL;
 			}
 		}
 	} else {
-		theargs = argarr;
+		theargs = args;
 	}
 
 	struct Object *res = data->cfunc(interp, theargs);
-	if (theargs != argarr)
+	if (theargs != args)
 		OBJECT_DECREF(interp, theargs);
 	return res;   // may be NULL
 }
