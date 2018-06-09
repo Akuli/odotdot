@@ -38,7 +38,10 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 		errorobject_setwithfmt(interp, "Object.to_debug_string takes exactly 1 argument");
 		return NULL;
 	}
-	return method_call(interp, ARRAYOBJECT_GET(argarr, 0), "to_string", NULL);
+
+	struct Object *obj = ARRAYOBJECT_GET(argarr, 0);
+	struct ClassObjectData *classdata = obj->klass->data;
+	return stringobject_newfromfmt(interp, "<%U at %p>", classdata->name, (void*)obj);
 }
 
 bool objectobject_addmethods(struct Interpreter *interp)
