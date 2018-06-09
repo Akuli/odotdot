@@ -1,6 +1,6 @@
-# this is kind of boring because not much else can be done yet
-var keep_going = true;
-while { keep_going } {
-    print "hello";
-    keep_going = false;
+var i = 0;
+
+while { keep_going = (not (i `equals` 10)); } {
+    print (i.to_string);
+    i = (i.plus 1);
 };
