@@ -135,7 +135,7 @@ things that I would like to do some day. It's a mess.
             - javascript way, looks ugly
 
                 ```
-                func "show_text" "options?" {
+                func "show_text options?" {   # ? would be some kind of optional argument thing
                     ...something ugly...
                 };
 
@@ -145,8 +145,6 @@ things that I would like to do some day. It's a mess.
                 # red text on blue
                 show_text "asd" (new Mapping [ ["foreground" "red"] ["background" "blue"] ]);
                 ```
-
-                many many things featured here are not implemented yet... sorry
 
             - java way, also ugly
 
@@ -185,6 +183,9 @@ things that I would like to do some day. It's a mess.
                 thing = (new Mapping [["a" 1] ["b" 2] ["c" 3]]);
                 thing = (new Mapping a:1 b:2 c:3);
                 ```
+
+                everything here looks very promising to me, i think i'll go
+                with this :)
 
             - could be also done with `=` instead of `:`, like in python
 
@@ -225,6 +226,7 @@ things that I would like to do some day. It's a mess.
             ...
         };
         ```
+
 - `class`: support attributes with custom getters and setters
     - maybe something like this inside the `{ }`:
 
