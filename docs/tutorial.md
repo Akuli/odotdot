@@ -381,6 +381,63 @@ functions are actually implemented in Ö; see
 [stdlib/builtins.ö](../stdlib/builtins.ö) for their source code.
 
 
+## Options
+
+Functions can also take options. They are like arguments, but every option has
+a name associated with it. Options are also *optional*, so you don't need to
+specify them when calling the function.
+
+Here's an example:
+
+```python
+func "thingy message twice:" {   # twice is an option
+    if (twice `equals` null) {
+        # the twice option wasn't given
+        twice = false;
+    };
+
+    print message;
+    if (twice) {
+        print message;
+    };
+};
+
+thingy "hello";              # prints hello
+thingy "hello" twice:true;   # prints hello two times
+```
+
+The `twice:` in `"thingy message twice:"` looks a lot like the beginning of
+`twice:true`, and that's why we add `:` at the end of an argument name to make
+it an option.
+
+Let's add support for an `else:` option to our `fake_if`.
+
+```python
+func "fake_if condition block else:" {
+    var mapping = (new Mapping [
+        [true {
+            block.run (new Scope block.definition_scope);
+        }]
+        [false {
+            if (not (else `equals` null)) {
+                else.run (new Scope else.definition_scope);
+            };
+        }]
+    ]);
+
+    (mapping.get condition).run {}.definition_scope;
+};
+
+fake_if (1 `equals` 2) {
+    print "yay";
+} else: {
+    print "nay";    # this runs because 1 is not equal to 2
+};
+```
+
+The built-in `if` also has a similar `else:` option.
+
+
 ## Defining Classes
 
 Let's look at an example of a custom class in Ö.

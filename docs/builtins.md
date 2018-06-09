@@ -22,6 +22,11 @@ the first part of the split result are argument names, and there may be 0 or
 more of them. The resulting [Function object](#function) is then set to
 `block`'s [definition scope] with the name from the string.
 
+Argument names ending with `:` are option names, so `thing:` defines an option
+named `thing`. The function may be defined when calling the function like
+`the_function thing:"hello";`, or if it's left out, `thing` will be `null` in
+the block.
+
 When called, the function creates a new subscope of `block`'s
 [definition scope], and inserts the values of the arguments there as local
 variables. A `return` variable is also added with an initial value of `null`;
@@ -29,8 +34,8 @@ its value is returned when the function exits. Note that `return` is just a
 variable, so `return = 123;` doesn't exit the function immediately like
 returning a value does in most other programming languages.
 
-If the function is called with the wrong number of arguments, an error is
-thrown.
+If the function is called with the wrong number of arguments or with unknown
+options, an error is thrown.
 
 Annoying and missing features:
 - The `return = value;` syntax sucks. I think it really should be a function
