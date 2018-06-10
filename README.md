@@ -35,8 +35,7 @@ print msg;
     Hellö Wörld!
 
 See [the tutorial](docs/tutorial.md) for more. There's also
-[an examples directory](examples/), but at the time of updating this README,
-most examples don't actually work yet. Some day they should work...
+[an examples directory](examples/) and [more documentation](docs/).
 
 ## FAQ
 
