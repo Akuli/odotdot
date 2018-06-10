@@ -11,21 +11,22 @@ class "Tooter" {
 };
 
 
-# TODO: add this here when inheritance works
-#var FancyTooter = (class inheriting Tooter {
-#    var fancytoot = (meth {
-#        print "*** Extra Fanciness ***";
-#        this.toot;
-#    });
-#});
+class "FancyTooter"
+    inherits: Tooter
+{
+    method "fancytoot" {
+        print "*** Extra Fanciness ***";
+        this.toot;
+    };
+};
 
 
 var t = (new Tooter "Toot Toot!");
 print "tooting:";
 t.toot;
 
-#print "----------";
-#
-#var t2 = (new FancyTooter "Toot Toot!");
-#print "tooting the fancy toot:";
-#t2.fancytoot;
+print "----------";
+
+var t2 = (new FancyTooter "Toot Toot!");
+print "tooting the fancy toot:";
+t2.fancytoot;
