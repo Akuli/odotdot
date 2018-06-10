@@ -59,6 +59,7 @@ static void string_destructor(struct Object *str)
         free(data);
 }
 
+#define MESSAGE "not enough memory"
 struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 {
 	// message string is created here because string constructors use interp->nomemerr and interp->err
@@ -67,8 +68,7 @@ struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 	if (!ustr)
 		return NULL;
 
-	char msg[] = "not enough memory";
-	ustr->len = strlen(msg);
+	ustr->len = sizeof(MESSAGE) - 1;
 	ustr->val = malloc(sizeof(unicode_char) * ustr->len);
 	if (!(ustr->val)) {
 		free(ustr);
@@ -77,7 +77,7 @@ struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 
 	// can't use memcpy because different types
 	for (size_t i=0; i < ustr->len; i++)
-		ustr->val[i] = msg[i];
+		ustr->val[i] = MESSAGE[i];
 
 	struct Object *str = object_new_noerr(interp, interp->builtins.String, ustr, string_destructor);
 	if (!str) {
@@ -93,6 +93,7 @@ struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 	}
 	return err;
 }
+#undef MESSAGE
 
 
 bool errorobject_setwithfmt(struct Interpreter *interp, char *fmt, ...)
