@@ -1,6 +1,7 @@
 #include "errors.h"
 #include <assert.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,17 +45,52 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 	return nullobject_get(interp);
 }
 
+
+// Error is subclassable, so it's possible to define a subclass of Error that overrides setup without calling Error's setup
+static bool check_data(struct Interpreter *interp, struct Object *err)
+{
+	if (!err->data) {
+		errorobject_setwithfmt(interp, "Error's setup method wasn't called");
+		return false;
+	}
+	return true;
+}
+
+
+static struct Object *message_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	struct Object *err = ARRAYOBJECT_GET(args, 0);
+	if (!check_data(interp, err)) return NULL;
+
+	struct Object *msg = err->data;
+	OBJECT_INCREF(interp, msg);
+	return msg;
+}
+
+static struct Object *message_setter(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.String, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	struct Object *err = ARRAYOBJECT_GET(args, 0);
+	if (!check_data(interp, err)) return NULL;
+	struct Object *msg = ARRAYOBJECT_GET(args, 1);
+
+	OBJECT_DECREF(interp, (struct Object*) err->data);
+	err->data = msg;
+	OBJECT_INCREF(interp, msg);
+	return nullobject_get(interp);
+}
+
 static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *err = ARRAYOBJECT_GET(args, 0);
-
-	// Error is subclassable, so it's possible to define a subclass of Error that overrides setup without calling Error's setup
-	if (!err->data) {
-		errorobject_setwithfmt(interp, "Error's setup method wasn't called");
-		return NULL;
-	}
+	if (!check_data(interp, err)) return NULL;
 
 	struct ClassObjectData *classdata = err->klass->data;
 	return stringobject_newfromfmt(interp, "<%U: %D>", classdata->name, (struct Object*)err->data);
@@ -62,10 +98,12 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 
 bool errorobject_addmethods(struct Interpreter *interp)
 {
+	if (!attribute_add(interp, interp->builtins.Error, "message", message_getter, message_setter)) return false;
 	if (!method_add(interp, interp->builtins.Error, "setup", setup)) return false;
 	if (!method_add(interp, interp->builtins.Error, "to_debug_string", to_debug_string)) return false;
 	return true;
 }
+
 
 // TODO: stop copy/pasting this from string.c and actually fix things
 static void string_destructor(struct Object *str)
