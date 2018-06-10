@@ -84,7 +84,7 @@ static bool check_inheritable(struct Interpreter *interp, struct Object *basecla
 {
 	struct ClassObjectData *data = baseclass->data;
 	if (!data->inheritable) {
-		errorobject_setwithfmt(interp, "cannot inherit from non-inheritable class %U", data->name);
+		errorobject_setwithfmt(interp, "TypeError", "cannot inherit from non-inheritable class %U", data->name);
 		return false;
 	}
 	return true;
@@ -117,7 +117,7 @@ struct Object *classobject_newinstance(struct Interpreter *interp, struct Object
 {
 	if (!classobject_isinstanceof(klass, interp->builtins.Class)) {
 		// TODO: test this
-		errorobject_setwithfmt(interp, "cannot create an instance of %D", klass);
+		errorobject_setwithfmt(interp, "TypeError", "cannot create an instance of %D", klass);
 		return NULL;
 	}
 	struct Object *instance = object_new_noerr(interp, klass, data, destructor);
@@ -214,7 +214,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 		OBJECT_DECREF(interp, inheritableobj);
 
 		if (!yess && !noo) {
-			errorobject_setwithfmt(interp, "inheritable must be true or false, not %D", inheritableobj);
+			errorobject_setwithfmt(interp, "TypeError", "inheritable must be a Bool, not %D", inheritableobj);
 			return NULL;
 		}
 		inheritable = yess;
@@ -223,7 +223,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 	// phewhhh.... check done
 
 	if (klass->data) {
-		errorobject_setwithfmt(interp, "setup was called twice");
+		errorobject_setwithfmt(interp, "AssertError", "setup was called twice");
 		return NULL;
 	}
 

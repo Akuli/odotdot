@@ -1,7 +1,22 @@
+var Class = (get_class String);
+
 # can't wait until the class builtin exists, bools are needed for creating that
-var Bool = (new (get_class String) "Bool" Object);
+var Bool = (new Class "Bool" Object);
 var true = (new Bool);
 var false = (new Bool);
+
+# errors are defined as early as possible because rest of the code may throw them
+var ArgError = (new Class "ArgError" Error);
+var AssertError = (new Class "AssertError" Error);
+var AttribError = (new Class "AttribError" Error);
+var KeyError = (new Class "KeyError" Error);
+var MathError = (new Class "MathError" Error);
+var TypeError = (new Class "TypeError" Error);
+var ValueError = (new Class "ValueError" Error);
+var VariableError = (new Class "VariableError" Error);
+
+{}.definition_scope.local_vars.delete "Class";
+
 
 # closure tricks: blah_getters are not visible outside this scope
 {

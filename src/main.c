@@ -12,6 +12,7 @@
 #include "tokenizer.h"
 #include "unicode.h"
 #include "objects/array.h"
+#include "objects/classobject.h"
 #include "objects/errors.h"
 #include "objects/function.h"
 #include "objects/scope.h"
@@ -43,8 +44,9 @@ bool read_file_to_huge_string(struct Interpreter *interp, char *filename, FILE *
 
 	if (!feof(f)) {
 		free(s);
+		// TODO: use a more appropriate error class if/when it will be available
 		// TODO: include more stuff in the error message, maybe use errno and strerror stuff
-		errorobject_setwithfmt(interp, "an error occurred while reading '%s'", filename);
+		errorobject_setwithfmt(interp, "ValueError", "an error occurred while reading '%s'", filename);
 		return false;
 	}
 
@@ -53,6 +55,19 @@ bool read_file_to_huge_string(struct Interpreter *interp, char *filename, FILE *
 	return true;
 }
 
+
+static bool print_ustr(struct Interpreter *interp, struct UnicodeString u, FILE *f)
+{
+	char *utf8;
+	size_t utf8len;
+	if (!utf8_encode(interp, u, &utf8, &utf8len))
+		return false;
+
+	for (size_t i=0; i < utf8len; i++)
+		fputc(utf8[i], f);
+	free(utf8);
+	return true;
+}
 
 // TODO: print a stack trace and use stderr instead of stdout
 static void print_and_reset_err(struct Interpreter *interp)
@@ -65,29 +80,28 @@ static void print_and_reset_err(struct Interpreter *interp)
 
 	if (interp->err == interp->builtins.nomemerr) {
 		// no memory must be allocated in this case...
-		fprintf(stderr, "error: not enough memory\n");
+		fprintf(stderr, "MemError: not enough memory\n");
 	} else {
 		// utf8_encode may set another error
 		struct Object *errsave = interp->err;
 		interp->err = NULL;
 
-		char *utf8;
-		size_t utf8len;
-		bool ok = utf8_encode(interp, *((struct UnicodeString *) ((struct Object *) errsave->data)->data), &utf8, &utf8len);
-		OBJECT_DECREF(interp, errsave);
-		if (ok) {
-			fprintf(stderr, "error: ");
-			for (size_t i=0; i < utf8len; i++)
-				fputc(utf8[i], stderr);
-			free(utf8);
-			fputc('\n', stderr);
-			return;
-		} else {
+		if (!print_ustr(interp, ((struct ClassObjectData*) errsave->klass->data)->name, stderr)) {
 			fprintf(stderr, "failed to display the error\n");
-			// no return yet, interp->err was set to the utf8_encode error and THAT is cleared below
+			goto end;    // interp->err was set to the utf8_encode error and THAT is cleared
 		}
+		fputc(':', stderr);
+		fputc(' ', stderr);
+		if (!print_ustr(interp, *((struct UnicodeString*) ((struct Object*) errsave->data)->data), stderr)) {
+			fprintf(stderr, "\nfailed to display the error\n");
+			goto end;
+		}
+		OBJECT_DECREF(interp, errsave);
+		fputc('\n', stderr);
+		return;
 	}
 
+end:
 	OBJECT_DECREF(interp, interp->err);
 	interp->err = NULL;
 }

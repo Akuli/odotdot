@@ -37,7 +37,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 
 	struct Object *err = ARRAYOBJECT_GET(args, 0);
 	if (err->data) {
-		errorobject_setwithfmt(interp, "setup was called twice");
+		errorobject_setwithfmt(interp, "AssertError", "setup was called twice");
 		return NULL;
 	}
 
@@ -51,7 +51,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 static bool check_data(struct Interpreter *interp, struct Object *err)
 {
 	if (!err->data) {
-		errorobject_setwithfmt(interp, "Error's setup method wasn't called");
+		errorobject_setwithfmt(interp, "AssertError", "Error's setup method wasn't called");
 		return false;
 	}
 	return true;
@@ -155,21 +155,30 @@ struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 }
 
 
-bool errorobject_setwithfmt(struct Interpreter *interp, char *fmt, ...)
+void errorobject_setwithfmt(struct Interpreter *interp, char *classname, char *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
 	struct Object *msg = stringobject_newfromvfmt(interp, fmt, ap);
 	va_end(ap);
 	if (!msg)
-		return false;
+		return;
 
-	struct Object *err = classobject_newinstance(interp, interp->builtins.Error, msg, NULL);
+	struct Object *klass = interpreter_getbuiltin(interp, classname);
+	if (!klass) {
+		OBJECT_DECREF(interp, msg);
+		return;
+	}
+
+	// builtins.ö must not define any errors that can't be constructed like this
+	struct Object *err = classobject_newinstance(interp, klass, msg, NULL);
+	OBJECT_DECREF(interp, klass);
 	// don't decref msg, instead let err hold a reference to it
 	if (!err) {
 		OBJECT_DECREF(interp, msg);
-		return false;
+		return;
 	}
+
+	assert(!interp->err);
 	interp->err = err;
-	return true;
 }

@@ -86,7 +86,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 	struct Object *pairs = ARRAYOBJECT_GET(args, 1);
 
 	if (map->data) {
-		errorobject_setwithfmt(interp, "setup was called twice");
+		errorobject_setwithfmt(interp, "AssertError", "setup was called twice");
 		return NULL;
 	}
 	struct MappingObjectData *data = create_empty_data();
@@ -102,7 +102,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 	for (size_t i=0; i < ARRAYOBJECT_LEN(pairs); i++) {
 		struct Object *pair = ARRAYOBJECT_GET(pairs, i);
 		if (!classobject_isinstanceof(pair, interp->builtins.Array) || ARRAYOBJECT_LEN(pair) != 2) {
-			errorobject_setwithfmt(interp, "expected a [key value] pair, got %D", pair);
+			errorobject_setwithfmt(interp, "ValueError", "expected a [key value] pair, got %D", pair);
 			return NULL;
 		}
 		if (!mappingobject_set(interp, map, ARRAYOBJECT_GET(pair, 0), ARRAYOBJECT_GET(pair, 1)))
@@ -151,12 +151,20 @@ static bool make_bigger(struct Interpreter *interp, struct MappingObjectData *da
 	return true;
 }
 
-bool mappingobject_set(struct Interpreter *interp, struct Object *map, struct Object *key, struct Object *val)
+bool hashable_check(struct Interpreter *interp, struct Object *key)
 {
 	if (!(key->hashable)) {
-		errorobject_setwithfmt(interp, "%D is not hashable, so it can't be used as a Mapping key", key);
+		struct ClassObjectData *keyclassdata = key->klass->data;
+		errorobject_setwithfmt(interp, "TypeError", "%U objects are not hashable, so %D can't be used as a Mapping key", keyclassdata->name, key);
 		return false;
 	}
+	return true;
+}
+
+bool mappingobject_set(struct Interpreter *interp, struct Object *map, struct Object *key, struct Object *val)
+{
+	if (!hashable_check(interp, key))
+		return false;
 
 	struct MappingObjectData *data = map->data;
 	unsigned long i = HASH_MODULUS(key->hash, data->nbuckets);
@@ -220,10 +228,8 @@ static struct Object *set(struct Interpreter *interp, struct Object *args, struc
 
 int mappingobject_get(struct Interpreter *interp, struct Object *map, struct Object *key, struct Object **val)
 {
-	if (!(key->hashable)) {
-		errorobject_setwithfmt(interp, "%D is not hashable, so it can't be used as a Mapping key", key);
-		return -1;
-	}
+	if (!hashable_check(interp, key))
+		return false;
 
 	struct MappingObjectData *data = map->data;
 	for (struct MappingObjectItem *item = data->buckets[HASH_MODULUS(key->hash, data->nbuckets)]; item; item=item->next) {
@@ -250,7 +256,7 @@ static struct Object *get(struct Interpreter *interp, struct Object *args, struc
 	struct Object *val;
 	int status = mappingobject_get(interp, map, key, &val);
 	if (status == 0)
-		errorobject_setwithfmt(interp, "cannot find key %D", key);
+		errorobject_setwithfmt(interp, "KeyError", "cannot find key %D", key);
 	if (status != 1)
 		return NULL;
 	return val;
@@ -264,10 +270,8 @@ static struct Object *get_and_delete(struct Interpreter *interp, struct Object *
 	struct Object *map = ARRAYOBJECT_GET(args, 0);
 	struct Object *key = ARRAYOBJECT_GET(args, 1);
 
-	if (!(key->hashable)) {
-		errorobject_setwithfmt(interp, "%D is not hashable, so it can't be used as a Mapping key", key);
+	if (!hashable_check(interp, key))
 		return NULL;
-	}
 
 	struct MappingObjectData *data = map->data;
 	unsigned long i = HASH_MODULUS(key->hash, data->nbuckets);
@@ -295,7 +299,7 @@ static struct Object *get_and_delete(struct Interpreter *interp, struct Object *
 	}
 
 	// empty buckets or nothing but hash collisions
-	errorobject_setwithfmt(interp, "cannot find key %D", key);
+	errorobject_setwithfmt(interp, "KeyError", "cannot find key %D", key);
 	return NULL;
 }
 

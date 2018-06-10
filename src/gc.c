@@ -37,7 +37,7 @@ void gc_run(struct Interpreter *interp)
 		struct Object *obj = iter.obj;
 		if (obj->refcount != obj->gcflag) {
 			if (!gotproblems) {
-				fprintf(stderr, "%s: reference counting gotproblems\n", interp->argv0);
+				fprintf(stderr, "%s: reference counting problems\n", interp->argv0);
 				gotproblems=true;
 			}
 			fprintf(stderr, "   refcount of %p (class=%p) is %d too %s\n",

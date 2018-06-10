@@ -16,7 +16,7 @@ bool check_type(struct Interpreter *interp, struct Object *klass, struct Object 
 {
 	if (!classobject_isinstanceof(obj, klass)) {
 		struct UnicodeString name = ((struct ClassObjectData*) klass->data)->name;
-		errorobject_setwithfmt(interp, "expected an instance of %U, got %D", name, obj);
+		errorobject_setwithfmt(interp, "TypeError", "expected an instance of %U, got %D", name, obj);
 		return false;
 	}
 	return true;
@@ -26,7 +26,7 @@ bool check_args_with_array(struct Interpreter *interp, struct Object *args, stru
 {
 	// TODO: include the function name in the error?
 	if (ARRAYOBJECT_LEN(args) != ARRAYOBJECT_LEN(types)) {
-		errorobject_setwithfmt(interp, "%s arguments", ARRAYOBJECT_LEN(args)>ARRAYOBJECT_LEN(types) ? "too many" : "not enough");
+		errorobject_setwithfmt(interp, "ArgError", "%s arguments", ARRAYOBJECT_LEN(args)>ARRAYOBJECT_LEN(types) ? "too many" : "not enough");
 		return false;
 	}
 
@@ -75,7 +75,7 @@ bool check_opts_with_mapping(struct Interpreter *interp, struct Object *opts, st
 				return false;
 		} else {
 			if (status == 0)    // not found
-				errorobject_setwithfmt(interp, "unexpected option %D", iter.key);
+				errorobject_setwithfmt(interp, "ArgError", "unexpected option %D", iter.key);
 			return false;
 		}
 	}

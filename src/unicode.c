@@ -60,7 +60,7 @@ static void error_printf(struct Interpreter *interp, char *fmt, ...)
 	vsnprintf(msg, 100, fmt, ap);
 	va_end(ap);
 	msg[99] = 0;
-	errorobject_setwithfmt(interp, "%s", msg);
+	errorobject_setwithfmt(interp, "ValueError", "%s", msg);
 }
 
 

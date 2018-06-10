@@ -142,8 +142,8 @@ static struct Object *runner(struct Interpreter *interp, struct Object *args, st
 	int status = mappingobject_get(interp, localvars, returnstring, &retval);
 	OBJECT_DECREF(interp, localvars);
 	OBJECT_DECREF(interp, returnstring);
-	if (status == 0)
-		errorobject_setwithfmt(interp, "the local return variable was deleted");
+	if (status == 0)   // FIXME: ValueError feels wrong for this
+		errorobject_setwithfmt(interp, "ValueError", "the local return variable was deleted");
 	if (status == 0 || status == -1)
 		return NULL;
 	return retval;
@@ -169,7 +169,7 @@ static bool check_identifier(struct Interpreter *interp, struct UnicodeString u)
 	return true;
 
 nope:
-	errorobject_setwithfmt(interp, "\"%U\" is not a valid argument name", u);
+	errorobject_setwithfmt(interp, "ValueError", "\"%U\" is not a valid argument name", u);
 	return false;
 }
 
@@ -208,8 +208,8 @@ static bool parse_arg_and_opt_names(struct Interpreter *interp, struct Object *s
 				goto error;
 		} else {
 			if (opts) {
-				// TODO: better error message?
-				errorobject_setwithfmt(interp, "argument \"%U\" should be before options", u);
+				// TODO: should any order be allowed when defining the function? it's allowed when calling
+				errorobject_setwithfmt(interp, "ArgError", "argument \"%U\" should be before options", u);
 				goto error;
 			}
 			if (!check_identifier(interp, u))

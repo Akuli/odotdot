@@ -180,7 +180,7 @@ static struct Object *print(struct Interpreter *interp, struct Object *args, str
 static struct Object *new(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (ARRAYOBJECT_LEN(args) == 0) {
-		errorobject_setwithfmt(interp, "new needs at least 1 argument, the class");
+		errorobject_setwithfmt(interp, "ArgError", "new needs at least 1 argument, the class");
 		return NULL;
 	}
 	if (!check_type(interp, interp->builtins.Class, ARRAYOBJECT_GET(args, 0)))
