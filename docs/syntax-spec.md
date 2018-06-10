@@ -69,7 +69,7 @@ Here's a list of *all* supported kinds of tokens:
   `0`. I'm not sure if this is a good thing or if the Ö interpreter does it
   right now (I'm tired and I don't feel like trying it out). I might change
   this later.
-- Operators are `{`, `}`, `[`, `]`, `(`, `)`, `=`, `;`, `.`  or `` ` ``.
+- *Operators* are `{`, `}`, `[`, `]`, `(`, `)`, `=`, `;`, `:`, `.`  or `` ` ``.
 - `var` is parsed with similar rules as identifiers, but it's best for the
   tokenizer to output `var` tokens as non-identifiers. This way `thing.var`
   will cause errors when parsing to AST. Note that e.g. `var_statement` and
@@ -134,26 +134,31 @@ Here's a list of all supported kinds of expressions:
 - Function call expressions: `(function arg1 arg2 arg3)` calls the function
   with the given arguments and returns whatever the function returned. The
   function and the arguments can be any expressions, and you can have any
-  number of arguments you want.
+  number of arguments you want. The argument list can also contain options
+  given like `name:value` where `name` is an identifier and `value` is an
+  expression. Giving two or more options with same names is a syntax error.
+  Unlike in e.g. C, options and arguments must be evaluated in order, from left
+  to right.
 - Infixed function call expressions: ``(arg1 `function` arg2)`` is equivalent
   to `(function arg1 arg2)`. Here `func`, `arg1` and `arg2` can be any
-  expressions. There must be exactly 2 arguments.
+  expressions. There must be exactly 2 arguments and no options.
 - Blocks: `{ statement1; statement2; }` returns a block object. You can have
   any number of [statements](#statements) inside the block you want. `{ }` is a
   block that does nothing, and `{ expression }` without a `;` is equivalent to
-  `{ return expression; }`.
+  `{ return expression; }`. However, `{ statement; expression }` is a syntax
+  error.
   TODO: the Ö interpreter doesn't support the `{ expression }` syntax yet :(
 
 Here's a list of statements:
 - Function calls: `function arg1 arg2 arg3;` is like the
   `(function arg1 arg2 arg3)` [expression](#expressions), but the return value
-  is ignored.
+  is ignored. Arguments and options are treated the same way.
 - Infixed function calls: ``arg1 `function` arg2;`` is equivalent to
   `function arg1 arg2;`.
 - Variable creation: `var a = b;` sets the variable `a` to `b` **locally**.
   `a` can be any identifier, and `b` can be any expression.
 - Assignments: `a = b;` is like `var a = b;`, but it sets the variable
-  **wherever it's defined**. See [scope stuff in the tutorail](tutorial.md#scopes)
+  **wherever it's defined**. See [scope stuff in the tutorial](tutorial.md#scopes)
   for details.
 - Setting attributes: `a.b = c;` sets the `b` attribute of `a` to `c`. `b` must
   be an identifier, and `a` and `c` can be any expressions.

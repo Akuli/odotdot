@@ -23,9 +23,12 @@ more of them. The resulting [Function object](#function) is then set to
 `block`'s [definition scope] with the name from the string.
 
 Argument names ending with `:` are option names, so `thing:` defines an option
-named `thing`. The function may be defined when calling the function like
-`the_function thing:"hello";`, or if it's left out, `thing` will be `null` in
-the block.
+named `thing`. The option may be specified when calling the function like
+`the_function thing:"hello";`, and `the_function;` without specifying `thing`
+is equivalent to `the_function thing:null;`. Option names must be after
+argument names when defining the function, but not
+when calling the function; `func "name arg1 opt: arg2" { ... };` throws an
+error.
 
 When called, the function creates a new subscope of `block`'s
 [definition scope], and inserts the values of the arguments there as local
