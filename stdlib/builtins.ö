@@ -3,7 +3,7 @@ var Bool = (new (get_class String) "Bool" Object);
 var true = (new Bool);
 var false = (new Bool);
 
-# closure tricks: if_mapping is visible only for the if function
+# closure tricks: blah_getters are not visible outside this scope
 {
     var setup_getter = (lambda "this" {
         return = (lambda "" {
