@@ -26,20 +26,6 @@ var false = (new Bool);
 
 }.run (new Scope {}.definition_scope);
 
-var if = null;
-{
-    # this thing maps if conditions to blocks that are ran on the condition
-    var if_mapping = (new Mapping [
-        [true { block.run (new Scope block.definition_scope); }]
-        [false {}]
-    ]);
-
-    if = (lambda "condition block" {
-        (if_mapping.get condition).run {}.definition_scope;
-    });
-}.run (new Scope {}.definition_scope);
-if.name = "if";        # func will set these automatically
-
 var while = (lambda "condition_block body_block" {
     var scope = (new Scope body_block.definition_scope);
     scope.local_vars.set "keep_going" null;

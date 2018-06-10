@@ -26,23 +26,32 @@ returns false on error
 */
 bool check_args(struct Interpreter *interp, struct Object *args, ...);
 
+// check_args calls this
+// types must be an Array object that contains classes, bad things happen otherwise
+bool check_args_with_array(struct Interpreter *interp, struct Object *args, struct Object *types);
+
 /* this...
 
-	struct Object *message, *id;
-	if (!check_opts(interp, opts,
-			interp->builtins.String, "message", &message
-			interp->builtins.Integer, "id", &id,
-			NULL))
+	if (!check_opts(interp, opts, "message", interp->builtins.String, "id", interp->builtins.Integer, NULL))
 		return NULL;
 
 ...makes sure that:
-	* an error is thrown if the function was called with other options than "message" or "id"
-	* message is set to a String object (not a new reference), or NULL if it wasn't given (options are optional!)
-	* id is set to an Integer object or NULL
+	* the function was called with other options than "message" or "id"
+	* id is an Integer if it was given
+	* message is a String if it was given
 */
 bool check_opts(struct Interpreter *interp, struct Object *opts, ...);
 
 // if you don't need options
 #define check_no_opts(interp, opts) check_opts((interp), (opts), NULL)
+
+/* check_opts calls this
+
+bad things happen if:
+	* opts and types are not Mappings
+	* keys of opts or types are not Strings
+	* values of types are not classes
+*/
+bool check_opts_with_mapping(struct Interpreter *interp, struct Object *opts, struct Object *types);
 
 #endif   // CHECK_H

@@ -15,57 +15,8 @@
 #include "unicode.h"
 
 
-static bool check_identifier(struct Interpreter *interp, struct UnicodeString u)
-{
-	if (u.len == 0)
-		goto nope;
-	if (!unicode_isidentifier1st(u.val[0]))
-		goto nope;
-	for (size_t i=1; i < u.len; i++) {
-		if (!unicode_isidentifiernot1st(u.val[i]))
-			goto nope;
-	}
-	return true;
-
-nope:
-	errorobject_setwithfmt(interp, "\"%U\" is not a valid argument name", u);
-	return false;
-}
-
-
-// FIXME: most of the argument checking code is copy/pasta with check.c
-
-
-// errors if opts contains keys not in validopts
-// validopts must be an array and opts must be a mapping
-// TODO: this is O(n^2), can that be a problem in performance-critical code?
-static bool check_options(struct Interpreter *interp, struct Object *validopts, struct Object *opts)
-{
-	struct MappingObjectIter iter;
-	mappingobject_iterbegin(&iter, opts);
-
-	while (mappingobject_iternext(&iter)) {
-		bool keyfound = false;
-		for (size_t i=0; i < ARRAYOBJECT_LEN(validopts); i++) {
-			int eqres = equals(interp, iter.key, ARRAYOBJECT_GET(validopts, i));
-			if (eqres == -1)
-				return false;
-			if (eqres == 1) {
-				keyfound = true;
-				break;
-			}
-		}
-
-		if (!keyfound) {
-			errorobject_setwithfmt(interp, "unexpected option %D", iter.key);
-			return false;
-		}
-	}
-	return true;
-}
-
 // lambda is like func, but it returns the function instead of setting it to a variable
-// this is partialled to an argument name array and a block to create lambdas
+// this is partialled to argument and option name arrays and a block to create lambdas
 static struct Object *runner(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	assert(ARRAYOBJECT_LEN(args) >= 3);
@@ -74,30 +25,67 @@ static struct Object *runner(struct Interpreter *interp, struct Object *args, st
 	struct Object *block = ARRAYOBJECT_GET(args, 2);
 	// argnames, optnames and block must have the correct type because this can be only ran by lambdabuiltin()
 
-	// these error messages should match check_args() in check.c
-	if (ARRAYOBJECT_LEN(args) - 3 < ARRAYOBJECT_LEN(argnames)) {
-		errorobject_setwithfmt(interp, "not enough arguments");
-		return NULL;
-	}
-	if (ARRAYOBJECT_LEN(args) - 3 > ARRAYOBJECT_LEN(argnames)) {
-		errorobject_setwithfmt(interp, "too many arguments");
-		return NULL;
-	}
-	if (!check_options(interp, optnames, opts))
+	struct Object *theargs = arrayobject_slice(interp, args, 3, ARRAYOBJECT_LEN(args));
+	if (!theargs)
 		return NULL;
 
-	struct Object *parentscope = attribute_get(interp, block, "definition_scope");
-	if (!parentscope)
+	// create mappings for check_args_with_array and check_opts_with_mapping
+	// TODO: partial these in lambdabuiltin(), allocating more memory every time the function runs is bad
+	struct Object *argtypes = arrayobject_newempty(interp);
+	if (!argtypes) {
+		OBJECT_DECREF(interp, theargs);
 		return NULL;
+	}
+	for (size_t i=0; i < ARRAYOBJECT_LEN(argnames); i++) {
+		// everything is an Object, so this disables type checking (lol)
+		if (!arrayobject_push(interp, argtypes, interp->builtins.Object)) {
+			OBJECT_DECREF(interp, argtypes);
+			OBJECT_DECREF(interp, theargs);
+			return NULL;
+		}
+	}
+
+	struct Object *opttypes = mappingobject_newempty(interp);
+	if (!opttypes) {
+		OBJECT_DECREF(interp, argtypes);
+		OBJECT_DECREF(interp, theargs);
+		return NULL;
+	}
+	for (size_t i=0; i < ARRAYOBJECT_LEN(optnames); i++) {
+		// everything is an Object, so this disables type checking (lol)
+		if (!mappingobject_set(interp, opttypes, ARRAYOBJECT_GET(optnames, i), interp->builtins.Object)) {
+			OBJECT_DECREF(interp, opttypes);
+			OBJECT_DECREF(interp, argtypes);
+			OBJECT_DECREF(interp, theargs);
+			return NULL;
+		}
+	}
+
+	bool ok = check_args_with_array(interp, theargs, argtypes) && check_opts_with_mapping(interp, opts, opttypes);
+	OBJECT_DECREF(interp, opttypes);
+	OBJECT_DECREF(interp, argtypes);
+	if (!ok) {
+		OBJECT_DECREF(interp, theargs);
+		return NULL;
+	}
+
+	struct Object *parentscope = attribute_get(interp, block, "definition_scope");
+	if (!parentscope) {
+		OBJECT_DECREF(interp, theargs);
+		return NULL;
+	}
 
 	struct Object *scope = scopeobject_newsub(interp, parentscope);
 	OBJECT_DECREF(interp, parentscope);
-	if (!scope)
+	if (!scope) {
+		OBJECT_DECREF(interp, theargs);
 		return NULL;
+	}
 
 	struct Object *localvars = attribute_get(interp, scope, "local_vars");
 	if (!localvars) {
 		OBJECT_DECREF(interp, scope);
+		OBJECT_DECREF(interp, theargs);
 		return NULL;
 	}
 
@@ -106,20 +94,26 @@ static struct Object *runner(struct Interpreter *interp, struct Object *args, st
 	if (!returnstring) {
 		OBJECT_DECREF(interp, localvars);
 		OBJECT_DECREF(interp, scope);
+		OBJECT_DECREF(interp, theargs);
 	}
 	struct Object *null = nullobject_get(interp);
 	assert(null);   // should never fail
 
-	bool ok = mappingobject_set(interp, localvars, returnstring, null);
+	ok = mappingobject_set(interp, localvars, returnstring, null);
 	OBJECT_DECREF(interp, null);
-	if (!ok)
+	if (!ok) {
+		OBJECT_DECREF(interp, theargs);
 		goto error;
+	}
 
 	// add values of arguments...
 	for (size_t i=0; i < ARRAYOBJECT_LEN(argnames); i++) {
-		if (!mappingobject_set(interp, localvars, ARRAYOBJECT_GET(argnames, i), ARRAYOBJECT_GET(args, i+3)))
+		if (!mappingobject_set(interp, localvars, ARRAYOBJECT_GET(argnames, i), ARRAYOBJECT_GET(theargs, i))) {
+			OBJECT_DECREF(interp, theargs);
 			goto error;
+		}
 	}
+	OBJECT_DECREF(interp, theargs);
 
 	// ...and options
 	for (size_t i=0; i < ARRAYOBJECT_LEN(optnames); i++) {
@@ -158,7 +152,26 @@ error:
 	OBJECT_DECREF(interp, localvars);
 	OBJECT_DECREF(interp, scope);
 	OBJECT_DECREF(interp, returnstring);
+	OBJECT_DECREF(interp, theargs);
 	return NULL;
+}
+
+
+static bool check_identifier(struct Interpreter *interp, struct UnicodeString u)
+{
+	if (u.len == 0)
+		goto nope;
+	if (!unicode_isidentifier1st(u.val[0]))
+		goto nope;
+	for (size_t i=1; i < u.len; i++) {
+		if (!unicode_isidentifiernot1st(u.val[i]))
+			goto nope;
+	}
+	return true;
+
+nope:
+	errorobject_setwithfmt(interp, "\"%U\" is not a valid argument name", u);
+	return false;
 }
 
 // parses a string like "argument1 argument2 some_option: another_option:"

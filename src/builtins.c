@@ -45,6 +45,55 @@ static bool run_block(struct Interpreter *interp, struct Object *block)
 	return true;
 }
 
+
+// FIXME: avoid allocating more memory in this, i think that makes this slow
+static struct Object *if_(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	// bool is created in builtins.ö
+	struct Object *boolclass = interpreter_getbuiltin(interp, "Bool");
+	if (!boolclass)
+		return NULL;
+
+	bool ok = check_args(interp, args, boolclass, interp->builtins.Block, NULL);
+	OBJECT_DECREF(interp, boolclass);
+	if (!ok) return NULL;
+	if (!check_opts(interp, opts, "else", interp->builtins.Block, NULL)) return NULL;
+
+	struct Object *cond = ARRAYOBJECT_GET(args, 0);
+	struct Object *block = ARRAYOBJECT_GET(args, 1);
+
+	// TODO: create a utility function that does this?
+	struct Object *elsestr = stringobject_newfromcharptr(interp, "else");
+	if (!elsestr)
+		return NULL;
+	struct Object *elseblock = NULL;
+	int status = mappingobject_get(interp, opts, elsestr, &elseblock);
+	OBJECT_DECREF(interp, elsestr);
+	if (status == -1)
+		return NULL;
+
+	struct Object *truee = interpreter_getbuiltin(interp, "true");
+	if (!truee) {
+		if (elseblock)
+			OBJECT_DECREF(interp, elseblock);
+		return NULL;
+	}
+
+	bool doit = (cond == truee);
+	OBJECT_DECREF(interp, truee);
+
+	if (doit)
+		ok = run_block(interp, block);
+	else if (elseblock)
+		ok = run_block(interp, elseblock);
+	else
+		ok = true;
+
+	if (elseblock)
+		OBJECT_DECREF(interp, elseblock);
+	return ok ? nullobject_get(interp) : NULL;
+}
+
 static struct Object *catch(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Block, NULL)) return NULL;
@@ -65,6 +114,7 @@ static struct Object *catch(struct Interpreter *interp, struct Object *args, str
 	// everything succeeded or the error handling code succeeded
 	return nullobject_get(interp);
 }
+
 
 static struct Object *get_class(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
@@ -254,6 +304,7 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!interpreter_addbuiltin(interp, "String", interp->builtins.String)) goto error;
 	if (!interpreter_addbuiltin(interp, "null", interp->builtins.null)) goto error;
 
+	if (!add_function(interp, "if", if_)) goto error;
 	if (!add_function(interp, "lambda", lambdabuiltin)) goto error;
 	if (!add_function(interp, "catch", catch)) goto error;
 	if (!add_function(interp, "equals", equals_builtin)) goto error;
