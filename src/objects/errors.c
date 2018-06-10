@@ -54,9 +54,9 @@ bool errorobject_addmethods(struct Interpreter *interp)
 // TODO: stop copy/pasting this from string.c and actually fix things
 static void string_destructor(struct Object *str)
 {
-        struct UnicodeString *data = str->data;
-        free(data->val);
-        free(data);
+	struct UnicodeString *data = str->data;
+	free(data->val);
+	free(data);
 }
 
 struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
