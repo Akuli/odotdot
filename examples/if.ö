@@ -4,4 +4,6 @@ if true {
 
 if false {
     print "something is badly wrong";
+} else: {    # the : is important, see options in the tutorial
+    print "yes, everything's ok";
 };
