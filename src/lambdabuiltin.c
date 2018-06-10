@@ -127,7 +127,7 @@ static struct Object *runner(struct Interpreter *interp, struct Object *args, st
 			val = nullobject_get(interp);
 		assert(val);
 
-		bool ok = mappingobject_set(interp, localvars, optname, null);
+		bool ok = mappingobject_set(interp, localvars, optname, val);
 		OBJECT_DECREF(interp, val);
 		if (!ok)
 			goto error;
@@ -152,7 +152,6 @@ error:
 	OBJECT_DECREF(interp, localvars);
 	OBJECT_DECREF(interp, scope);
 	OBJECT_DECREF(interp, returnstring);
-	OBJECT_DECREF(interp, theargs);
 	return NULL;
 }
 

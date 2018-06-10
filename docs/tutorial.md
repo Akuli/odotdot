@@ -397,7 +397,7 @@ func "thingy message twice:" {   # twice is an option
     };
 
     print message;
-    if (twice) {
+    if twice {
         print message;
     };
 };
@@ -410,32 +410,39 @@ The `twice:` in `"thingy message twice:"` looks a lot like the beginning of
 `twice:true`, and that's why we add `:` at the end of an argument name to make
 it an option.
 
-Let's add support for an `else:` option to our `fake_if`.
+Let's make a `better_fake_if` function that's like the `safe_if` we wrote
+earlier, but with support for an `else:` option.
 
 ```python
-func "fake_if condition block else:" {
+# this is copied from the previous example
+func "fake_if condition block" {
     var mapping = (new Mapping [
-        [true {
-            block.run (new Scope block.definition_scope);
-        }]
-        [false {
-            if (not (else `equals` null)) {
-                else.run (new Scope else.definition_scope);
-            };
-        }]
+        [true { block.run (new Scope block.definition_scope); }]
+        [false { }]
     ]);
 
     (mapping.get condition).run {}.definition_scope;
 };
 
-fake_if (1 `equals` 2) {
+func "better_fake_if condition block else:" {
+    fake_if condition {
+        block.run (new Scope block.definition_scope);
+    };
+    fake_if (not condition) {
+        fake_if (not (else `equals` null)) {
+            else.run (new Scope else.definition_scope);
+        };
+    };
+};
+
+better_fake_if (1 `equals` 2) {
     print "yay";
 } else: {
     print "nay";    # this runs because 1 is not equal to 2
 };
 ```
 
-The built-in `if` also has a similar `else:` option.
+The built-in `if` has a similar `else:` option.
 
 
 ## Defining Classes
