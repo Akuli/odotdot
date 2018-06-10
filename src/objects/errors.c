@@ -44,10 +44,26 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 	return nullobject_get(interp);
 }
 
+static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+	struct Object *err = ARRAYOBJECT_GET(args, 0);
+
+	// Error is subclassable, so it's possible to define a subclass of Error that overrides setup without calling Error's setup
+	if (!err->data) {
+		errorobject_setwithfmt(interp, "Error's setup method wasn't called");
+		return NULL;
+	}
+
+	struct ClassObjectData *classdata = err->klass->data;
+	return stringobject_newfromfmt(interp, "<%U: %D>", classdata->name, (struct Object*)err->data);
+}
+
 bool errorobject_addmethods(struct Interpreter *interp)
 {
-	// TODO: to_debug_string
 	if (!method_add(interp, interp->builtins.Error, "setup", setup)) return false;
+	if (!method_add(interp, interp->builtins.Error, "to_debug_string", to_debug_string)) return false;
 	return true;
 }
 
