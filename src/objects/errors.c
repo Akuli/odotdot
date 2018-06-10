@@ -30,7 +30,7 @@ struct Object *errorobject_createclass_noerr(struct Interpreter *interp)
 
 static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.String)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.String, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct Object *err = ARRAYOBJECT_GET(args, 0);
@@ -59,15 +59,15 @@ static void string_destructor(struct Object *str)
         free(data);
 }
 
-#define MESSAGE "not enough memory"
 struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 {
-	// message string is created here because string constructors use interp->nomemerr and interp->err
+	// message string is created here because string constructors use interp->builtins.nomemerr and interp->err
 	// string objects are simple, the data is just a UnicodeString pointer
 	struct UnicodeString *ustr = malloc(sizeof(struct UnicodeString));
 	if (!ustr)
 		return NULL;
 
+#define MESSAGE "not enough memory"
 	ustr->len = sizeof(MESSAGE) - 1;
 	ustr->val = malloc(sizeof(unicode_char) * ustr->len);
 	if (!(ustr->val)) {
@@ -78,6 +78,7 @@ struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 	// can't use memcpy because different types
 	for (size_t i=0; i < ustr->len; i++)
 		ustr->val[i] = MESSAGE[i];
+#undef MESSAGE
 
 	struct Object *str = object_new_noerr(interp, interp->builtins.String, ustr, string_destructor);
 	if (!str) {
@@ -86,14 +87,17 @@ struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 		return NULL;
 	}
 
-	struct Object *err = object_new_noerr(interp, interp->builtins.Error, str, NULL);
-	if (!err) {
+	// the MemError class is not stored anywhere else, builtins_setup() looks it up from interp->builtins.nomemerr
+	struct Object *klass = classobject_new_noerr(interp, "MemError", interp->builtins.Error, NULL);
+	if (!klass) {
 		OBJECT_DECREF(interp, str);   // takes care of ustr and ustr->val
 		return NULL;
 	}
-	return err;
+
+	struct Object *err = object_new_noerr(interp, klass, str, NULL);
+	OBJECT_DECREF(interp, klass);
+	return err;    // may be NULL
 }
-#undef MESSAGE
 
 
 bool errorobject_setwithfmt(struct Interpreter *interp, char *fmt, ...)

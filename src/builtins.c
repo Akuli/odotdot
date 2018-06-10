@@ -130,7 +130,7 @@ static struct Object *get_class(struct Interpreter *interp, struct Object *args,
 static struct Object *is_instance_of(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	// TODO: shouldn't this be implemented in builtins.ö? classobject_isinstanceof() doesn't do anything fancy
-	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Class)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Class, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 	return BOOL(interp, classobject_isinstanceof(ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1)));
 }
@@ -281,9 +281,11 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!classobject_setname(interp, interp->builtins.Class, "Class")) goto error;
 	if (!classobject_setname(interp, interp->builtins.Object, "Object")) goto error;
 	if (!classobject_setname(interp, interp->builtins.String, "String")) goto error;
-	if (!classobject_setname(interp, interp->builtins.Error, "Error")) goto error;
 	if (!classobject_setname(interp, interp->builtins.Mapping, "Mapping")) goto error;
 	if (!classobject_setname(interp, interp->builtins.Function, "Function")) goto error;
+
+	if (!classobject_setname(interp, interp->builtins.Error, "Error")) goto error;
+	if (!classobject_setname(interp, interp->builtins.nomemerr->klass, "MemError")) goto error;
 
 	if (!(interp->builtins.null = nullobject_create(interp))) goto error;
 	if (!(interp->builtins.Array = arrayobject_createclass(interp))) goto error;
@@ -296,13 +298,15 @@ bool builtins_setup(struct Interpreter *interp)
 
 	if (!interpreter_addbuiltin(interp, "Array", interp->builtins.Array)) goto error;
 	if (!interpreter_addbuiltin(interp, "Block", interp->builtins.Block)) goto error;
-	if (!interpreter_addbuiltin(interp, "Error", interp->builtins.Error)) goto error;
 	if (!interpreter_addbuiltin(interp, "Integer", interp->builtins.Integer)) goto error;
 	if (!interpreter_addbuiltin(interp, "Mapping", interp->builtins.Mapping)) goto error;
 	if (!interpreter_addbuiltin(interp, "Object", interp->builtins.Object)) goto error;
 	if (!interpreter_addbuiltin(interp, "Scope", interp->builtins.Scope)) goto error;
 	if (!interpreter_addbuiltin(interp, "String", interp->builtins.String)) goto error;
 	if (!interpreter_addbuiltin(interp, "null", interp->builtins.null)) goto error;
+
+	if (!interpreter_addbuiltin(interp, "Error", interp->builtins.Error)) goto error;
+	if (!interpreter_addbuiltin(interp, "MemError", interp->builtins.nomemerr->klass)) goto error;
 
 	if (!add_function(interp, "if", if_)) goto error;
 	if (!add_function(interp, "lambda", lambdabuiltin)) goto error;
