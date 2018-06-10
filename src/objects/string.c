@@ -28,7 +28,7 @@ static void string_destructor(struct Object *s)
 
 struct Object *stringobject_createclass_noerr(struct Interpreter *interp)
 {
-	return classobject_new_noerr(interp, "String", interp->builtins.Object, NULL);
+	return classobject_new_noerr(interp, "String", interp->builtins.Object, NULL, false);
 }
 
 

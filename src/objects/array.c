@@ -216,7 +216,7 @@ static struct Object *length_getter(struct Interpreter *interp, struct Object *a
 
 struct Object *arrayobject_createclass(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, "Array", interp->builtins.Object, array_foreachref);
+	struct Object *klass = classobject_new(interp, "Array", interp->builtins.Object, array_foreachref, false);
 	if (!klass)
 		return NULL;
 

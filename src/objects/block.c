@@ -59,7 +59,7 @@ static struct Object *run(struct Interpreter *interp, struct Object *args, struc
 
 struct Object *blockobject_createclass(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, "Block", interp->builtins.Object, NULL);
+	struct Object *klass = classobject_new(interp, "Block", interp->builtins.Object, NULL, false);
 	if (!klass)
 		return NULL;
 

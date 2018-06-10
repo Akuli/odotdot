@@ -1,6 +1,7 @@
 #ifndef OBJECTS_CLASSOBJECT_H
 #define OBJECTS_CLASSOBJECT_H
 
+#include <stdbool.h>
 #include "../interpreter.h"         // IWYU pragma: keep
 #include "../objectsystem.h"        // IWYU pragma: keep
 #include "../unicode.h"             // IWYU pragma: keep
@@ -23,6 +24,11 @@ struct ClassObjectData {
 	struct Object *setters;   // setters are called with 2 arguments, instance and value, they return null
 	struct Object *getters;   // getters are called with 1 argument, the instance
 
+	// uninheritable classes break if they are inherited
+	// for example, an Array subclass might forget to call Array's setup method
+	// but array.c isn't prepared to that, so Array is not inheritable
+	bool inheritable;
+
 	// calls cb(ref, data) for each ref object that this object (obj) refers to
 	// this is used for garbage collecting
 	// can be NULL
@@ -32,10 +38,10 @@ struct ClassObjectData {
 
 // creates a new class
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *baseclass, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb));
+struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *baseclass, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb), bool inheritable);
 
 // RETURNS A NEW REFERENCE or NULL on no mem, for builtins_setup() only
-struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, struct Object *baseclass, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb));
+struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, struct Object *baseclass, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb), bool inheritable);
 
 // a nicer wrapper for object_new_noerr()
 // RETURNS A NEW REFERENCE or NULL on error (but unlike object_new_noerr, it sets interp->err)

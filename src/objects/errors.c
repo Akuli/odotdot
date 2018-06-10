@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../attribute.h"
 #include "../check.h"
 #include "../interpreter.h"
 #include "../method.h"
@@ -26,7 +27,7 @@ struct Object *errorobject_createclass_noerr(struct Interpreter *interp)
 {
 	// Error objects can have any attributes
 	// TODO: use a message attribute instead of ->data?
-	return classobject_new_noerr(interp, "Error", interp->builtins.Object, error_foreachref);
+	return classobject_new_noerr(interp, "Error", interp->builtins.Object, error_foreachref, true);
 }
 
 static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
@@ -142,7 +143,7 @@ struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 	}
 
 	// the MemError class is not stored anywhere else, builtins_setup() looks it up from interp->builtins.nomemerr
-	struct Object *klass = classobject_new_noerr(interp, "MemError", interp->builtins.Error, NULL);
+	struct Object *klass = classobject_new_noerr(interp, "MemError", interp->builtins.Error, NULL, false);
 	if (!klass) {
 		OBJECT_DECREF(interp, str);   // takes care of ustr and ustr->val
 		return NULL;

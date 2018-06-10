@@ -104,12 +104,15 @@ func "foreach varname array block" {
     # so we hide it from the rest of the world here
     var get_attrdata = ({}.definition_scope.parent_scope.local_vars.get_and_delete "get_attrdata");
 
-    func "class class_name initializer_block inherits:" {
+    func "class class_name initializer_block inherits: inheritable:" {
         if (inherits `same_object` null) {
             inherits = Object;
         };
+        if (inheritable `same_object` null) {
+            inheritable = false;
+        };
 
-        var klass = (new (get_class String) class_name inherits);
+        var klass = (new (get_class String) class_name inherits inheritable:inheritable);
 
         func "attrib name" {
             # just to make debugging easier

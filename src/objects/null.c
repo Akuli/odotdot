@@ -22,7 +22,7 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 
 struct Object *nullobject_create(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, "Null", interp->builtins.Object, NULL);
+	struct Object *klass = classobject_new(interp, "Null", interp->builtins.Object, NULL, false);
 	if (!klass)
 		return NULL;
 

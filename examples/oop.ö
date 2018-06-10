@@ -1,4 +1,6 @@
-class "Tooter" {
+class "Tooter"
+    inheritable: true
+{
     attrib "asd";
 
     method "setup asd" {

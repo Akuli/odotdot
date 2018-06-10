@@ -1,5 +1,6 @@
 #include "classobject.h"
 #include <assert.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,7 +27,7 @@ static void class_destructor(struct Object *klass)
 }
 
 
-static struct ClassObjectData *create_data(struct Interpreter *interp, struct Object *baseclass, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb))
+static struct ClassObjectData *create_data(struct Interpreter *interp, struct Object *baseclass, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb), bool inheritable)
 {
 	struct ClassObjectData *data = malloc(sizeof(struct ClassObjectData));
 	if (!data)
@@ -39,6 +40,7 @@ static struct ClassObjectData *create_data(struct Interpreter *interp, struct Ob
 		OBJECT_INCREF(interp, baseclass);
 	data->setters = NULL;
 	data->getters = NULL;
+	data->inheritable = inheritable;
 	data->foreachref = foreachref;
 	return data;
 }
@@ -51,9 +53,9 @@ static void free_data(struct Interpreter *interp, struct ClassObjectData *data)
 	free(data);
 }
 
-struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, struct Object *baseclass, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb))
+struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, struct Object *baseclass, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb), bool inheritable)
 {
-	struct ClassObjectData *data = create_data(interp, baseclass, foreachref);
+	struct ClassObjectData *data = create_data(interp, baseclass, foreachref, inheritable);
 	if (!data)
 		return NULL;
 
@@ -78,18 +80,25 @@ bool classobject_setname(struct Interpreter *interp, struct Object *klass, char 
 	return ok;
 }
 
-struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *baseclass, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb))
+static bool check_inheritable(struct Interpreter *interp, struct Object *baseclass)
+{
+	struct ClassObjectData *data = baseclass->data;
+	if (!data->inheritable) {
+		errorobject_setwithfmt(interp, "cannot inherit from non-inheritable class %U", data->name);
+		return false;
+	}
+	return true;
+}
+
+struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *baseclass, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb), bool inheritable)
 {
 	assert(interp->builtins.Class);
 	assert(interp->builtins.nomemerr);
 
-	if (!classobject_isinstanceof(baseclass->klass, interp->builtins.Class)) {
-		// TODO: test this
-		errorobject_setwithfmt(interp, "cannot inherit a new class from %D", baseclass);
+	if (!check_inheritable(interp, baseclass))
 		return NULL;
-	}
 
-	struct Object *klass = classobject_new_noerr(interp, name, baseclass, foreachref);
+	struct Object *klass = classobject_new_noerr(interp, name, baseclass, foreachref, inheritable);
 	if (!klass) {
 		errorobject_setnomem(interp);
 		return NULL;
@@ -145,6 +154,8 @@ void classobject_runforeachref(struct Object *obj, void *data, classobject_forea
 static void class_foreachref(struct Object *klass, void *cbdata, classobject_foreachrefcb cb)
 {
 	struct ClassObjectData *data = klass->data;
+	if (!data)     // setup method failed
+		return;
 	if (data->baseclass) cb(data->baseclass, cbdata);
 	if (data->setters) cb(data->setters, cbdata);
 	if (data->getters) cb(data->getters, cbdata);
@@ -154,24 +165,69 @@ static void class_foreachref(struct Object *klass, void *cbdata, classobject_for
 struct Object *classobject_create_Class_noerr(struct Interpreter *interp)
 {
 	// TODO: should the name of class objects be implemented as an attribute?
-	return classobject_new_noerr(interp, "Class", interp->builtins.Object, class_foreachref);
+	return classobject_new_noerr(interp, "Class", interp->builtins.Object, class_foreachref, false);
 }
 
 
 static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Class, interp->builtins.String, interp->builtins.Class, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
+	if (!check_opts(interp, opts, "inheritable", interp->builtins.Object, NULL)) return NULL;
 	struct Object *klass = ARRAYOBJECT_GET(args, 0);
 	struct Object *name = ARRAYOBJECT_GET(args, 1);
 	struct Object *baseclass = ARRAYOBJECT_GET(args, 2);
+
+	if (!check_inheritable(interp, baseclass))
+		return NULL;
+
+	// check if the class is supposed to be inheritable
+	// TODO: add some utility function! this is awful
+	struct Object *inheritableobj;
+	struct Object *tmp = stringobject_newfromcharptr(interp, "inheritable");
+	if (!tmp)
+		return NULL;
+	int status = mappingobject_get(interp, opts, tmp, &inheritableobj);
+	OBJECT_DECREF(interp, tmp);
+
+	bool inheritable;
+	if (status == 0)
+		inheritable = false;
+	else if (status == -1)
+		return NULL;
+	else {
+		struct Object *yes = interpreter_getbuiltin(interp, "true");
+		if (!yes) {
+			OBJECT_DECREF(interp, inheritableobj);
+			return NULL;
+		}
+		struct Object *no = interpreter_getbuiltin(interp, "false");
+		if (!no) {
+			OBJECT_DECREF(interp, yes);
+			OBJECT_DECREF(interp, inheritableobj);
+			return NULL;
+		}
+
+		bool yess = (inheritableobj == yes);
+		bool noo = (inheritableobj == no);
+		OBJECT_DECREF(interp, yes);
+		OBJECT_DECREF(interp, no);
+		OBJECT_DECREF(interp, inheritableobj);
+
+		if (!yess && !noo) {
+			errorobject_setwithfmt(interp, "inheritable must be true or false, not %D", inheritableobj);
+			return NULL;
+		}
+		inheritable = yess;
+	}
+
+	// phewhhh.... check done
 
 	if (klass->data) {
 		errorobject_setwithfmt(interp, "setup was called twice");
 		return NULL;
 	}
 
-	struct ClassObjectData *data = create_data(interp, baseclass, NULL);
+	struct ClassObjectData *data = create_data(interp, baseclass, NULL, inheritable);
 	if (!data) {
 		errorobject_setnomem(interp);
 		return NULL;

@@ -547,20 +547,9 @@ tooter.toot;     # prints "Toot toot! hello there"
 The `this` variable is available in methods, and it's set to the instance that
 the methods are called from. In this example, `this` was `tooter`.
 
-You can also do inheritance with an `inherits:` option to `class`:
-
-```python
-class "FancyTooter"
-    inherits: Tooter
-{
-    # the setup method and message attribute are inherited from Tooter
-    method "toot" {
-        print ("*** Really Fancy Toot! ".concat this.message);
-    };
-};
-
-(new FancyTooter "hello there").toot;
-```
+You can also do inheritance by giving an `inheritable: true` option to `class`
+when defining the base class and `inherit: TheBaseClass` for the subclass. See
+[examples/oop.ö](../examples/oop.ö) for a complete example.
 
 Multiple inheritance is not supported, only one class can be inherited. There's
-also no way to call the `toot` method of the superclass yet :(
+also no way to call a superclass method yet :(
