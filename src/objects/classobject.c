@@ -128,13 +128,12 @@ struct Object *classobject_newinstance(struct Interpreter *interp, struct Object
 	return instance;
 }
 
-bool classobject_isinstanceof(struct Object *obj, struct Object *klass)
+bool classobject_issubclassof(struct Object *sub, struct Object *super)
 {
-	struct Object *klass2 = obj->klass;
 	do {
-		if (klass2 == klass)
+		if (sub == super)
 			return true;
-	} while ((klass2 = ((struct ClassObjectData*) klass2->data)->baseclass));
+	} while ((sub = ((struct ClassObjectData*) sub->data)->baseclass));
 	return false;
 }
 

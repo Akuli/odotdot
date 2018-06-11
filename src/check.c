@@ -26,7 +26,9 @@ bool check_args_with_array(struct Interpreter *interp, struct Object *args, stru
 {
 	// TODO: include the function name in the error?
 	if (ARRAYOBJECT_LEN(args) != ARRAYOBJECT_LEN(types)) {
-		errorobject_setwithfmt(interp, "ArgError", "%s arguments", ARRAYOBJECT_LEN(args)>ARRAYOBJECT_LEN(types) ? "too many" : "not enough");
+		errorobject_setwithfmt(interp, "ArgError", "%s arguments: expected %L, got %L",
+			ARRAYOBJECT_LEN(args)>ARRAYOBJECT_LEN(types) ? "too many" : "not enough",
+			(long long) ARRAYOBJECT_LEN(types), (long long) ARRAYOBJECT_LEN(args));
 		return false;
 	}
 

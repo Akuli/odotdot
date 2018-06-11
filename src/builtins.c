@@ -25,26 +25,16 @@
 #include "unicode.h"
 
 
-static bool run_block(struct Interpreter *interp, struct Object *block)
+static struct Object *subscope_of_defscope(struct Interpreter *interp, struct Object *block)
 {
 	struct Object *defscope = attribute_get(interp, block, "definition_scope");
 	if (!defscope)
-		return false;
+		return NULL;
 
 	struct Object *subscope = scopeobject_newsub(interp, defscope);
 	OBJECT_DECREF(interp, defscope);
-	if (!subscope)
-		return false;
-
-	struct Object *res = method_call(interp, block, "run", subscope, NULL);
-	OBJECT_DECREF(interp, subscope);
-	if (!res)
-		return false;
-
-	OBJECT_DECREF(interp, res);
-	return true;
+	return subscope;
 }
-
 
 // FIXME: avoid allocating more memory in this, i think that makes this slow
 static struct Object *if_(struct Interpreter *interp, struct Object *args, struct Object *opts)
@@ -60,7 +50,7 @@ static struct Object *if_(struct Interpreter *interp, struct Object *args, struc
 	if (!check_opts(interp, opts, "else", interp->builtins.Block, NULL)) return NULL;
 
 	struct Object *cond = ARRAYOBJECT_GET(args, 0);
-	struct Object *block = ARRAYOBJECT_GET(args, 1);
+	struct Object *ifblock = ARRAYOBJECT_GET(args, 1);
 
 	// TODO: create a utility function that does this?
 	struct Object *elsestr = stringobject_newfromcharptr(interp, "else");
@@ -82,37 +72,86 @@ static struct Object *if_(struct Interpreter *interp, struct Object *args, struc
 	bool doit = (cond == truee);
 	OBJECT_DECREF(interp, truee);
 
-	if (doit)
-		ok = run_block(interp, block);
-	else if (elseblock)
-		ok = run_block(interp, elseblock);
-	else
-		ok = true;
+	if (doit) {
+		struct Object *scope = subscope_of_defscope(interp, ifblock);
+		if (!scope)
+			goto error;
+		bool ok = blockobject_run(interp, ifblock, scope);
+		OBJECT_DECREF(interp, scope);
+		if (!ok)
+			goto error;
+	} else if (elseblock) {
+		struct Object *scope = subscope_of_defscope(interp, elseblock);
+		if (!scope)
+			goto error;
+		bool ok = blockobject_run(interp, elseblock, scope);
+		OBJECT_DECREF(interp, scope);
+		if (!ok)
+			goto error;
+	}
 
 	if (elseblock)
 		OBJECT_DECREF(interp, elseblock);
-	return ok ? nullobject_get(interp) : NULL;
+	return nullobject_get(interp);
+
+error:
+	if (elseblock)
+		OBJECT_DECREF(interp, elseblock);
+	return NULL;
 }
 
+// catch { ... } SomeError "varname" { ... };
 static struct Object *catch(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Block, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Class, interp->builtins.String, interp->builtins.Block, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;   // TODO: finally option?
 	struct Object *trying = ARRAYOBJECT_GET(args, 0);
-	struct Object *caught = ARRAYOBJECT_GET(args, 1);
+	struct Object *errclass = ARRAYOBJECT_GET(args, 1);
+	struct Object *varname = ARRAYOBJECT_GET(args, 2);
+	struct Object *caught = ARRAYOBJECT_GET(args, 3);
 
-	if (!run_block(interp, trying)) {
-		// TODO: make the error available somewhere instead of resetting it here?
-		assert(interp->err);
-		OBJECT_DECREF(interp, interp->err);
-		interp->err = NULL;
-
-		if (!run_block(interp, caught))
-			return NULL;
+	if (!classobject_issubclassof(errclass, interp->builtins.Error)) {
+		errorobject_setwithfmt(interp, "TypeError", "cannot catch %U, it doesn't inherit from Error", ((struct ClassObjectData*)errclass->data)->name);
+		return NULL;
 	}
 
-	// everything succeeded or the error handling code succeeded
-	return nullobject_get(interp);
+	struct Object *scope = subscope_of_defscope(interp, trying);
+	bool ok = blockobject_run(interp, trying, scope);
+	OBJECT_DECREF(interp, scope);
+	if (ok)
+		return nullobject_get(interp);
+
+	if (!classobject_isinstanceof(interp->err, errclass))
+		return NULL;
+
+	assert(interp->err);
+	struct Object *err = interp->err;
+	interp->err = NULL;
+
+	scope = subscope_of_defscope(interp, caught);
+	if (!scope) {
+		OBJECT_DECREF(interp, err);
+		return NULL;
+	}
+
+	struct Object *localvars = attribute_get(interp, scope, "local_vars");
+	if (!localvars) {
+		OBJECT_DECREF(interp, scope);
+		OBJECT_DECREF(interp, err);
+		return NULL;
+	}
+
+	ok = mappingobject_set(interp, localvars, varname, err);
+	OBJECT_DECREF(interp, err);
+	OBJECT_DECREF(interp, localvars);
+	if (!ok) {
+		OBJECT_DECREF(interp, scope);
+		return NULL;
+	}
+
+	ok = blockobject_run(interp, caught, scope);
+	OBJECT_DECREF(interp, scope);
+	return ok ? nullobject_get(interp) : NULL;
 }
 
 

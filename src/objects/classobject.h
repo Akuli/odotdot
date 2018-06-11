@@ -52,10 +52,13 @@ struct Object *classobject_newinstance(struct Interpreter *interp, struct Object
 // sets interp->err and returns false on error
 bool classobject_setname(struct Interpreter *interp, struct Object *klass, char *name);
 
-// like obj->klass == klass, but checks for inheritance
-// never fails if klass is a classobject, bad things happen if it isn't
-// returns false on error
-bool classobject_isinstanceof(struct Object *obj, struct Object *klass);
+// checks if instances of sub are instances of super
+// like sub == super, but checks for inheritance
+// bad things happen if sub or super is not a class object, otherwise never fails
+bool classobject_issubclassof(struct Object *sub, struct Object *super);
+
+// convenience ftw
+#define classobject_isinstanceof(obj, objklass) classobject_issubclassof((obj)->klass, (objklass))
 
 // use this instead of ((struct ClassobjectData *) obj->klass->data)->foreachref(obj, data, cb)
 // ->foreachref may be NULL, this handles that and inheritance
