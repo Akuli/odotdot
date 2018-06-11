@@ -27,17 +27,17 @@ ctestsrunner: $(CTESTS_SRC) $(OBJ)
 	$(CC) -I. $(CFLAGS) $(CTESTS_SRC) $(OBJ) -o ctestsrunner
 
 .PHONY: test
-test: ö ctestsrunner
-	./ctestsrunner
-	for file in ötests/test_*.ö; do ./ö "$$file" && printf . ; done
+test: ö# ctestsrunner
+	#./ctestsrunner
+	(for file in ötests/test_*.ö; do ./ö "$$file" && printf . || exit 1; done)
 	@echo
 	@echo "ok"
 
 .PHONY: testverbose
-testverbose: ö ctestsrunner
-	./ctestsrunner --verbose
+testverbose: ö# ctestsrunner
+	#./ctestsrunner --verbose
 	@echo
-	for file in ötests/test_*.ö; do printf '%-40s  ' "$$file"; ./ö "$$file" && echo "ok" || echo "returned $$?"; done
+	(for file in ötests/test_*.ö; do printf '%-40s  ' "$$file"; ./ö "$$file" && echo "ok" || (echo "returned $$?"; exit 1); done)
 	@echo
 	@echo "---------------------------"
 	@echo "all ötests pass"

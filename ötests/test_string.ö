@@ -1,16 +1,28 @@
-var split_by_ws_tests = [
-    [" asd toot " ["asd" "toot"]]
-    ["  asd  toot  " ["asd" "toot"]]
-    ["  asd  toot" ["asd" "toot"]]
-    ["asd  toot  " ["asd" "toot"]]
-    ["asd  toot" ["asd" "toot"]]
-    ["  " []]
-    [" " []]
-    ["" []]
-];
+func "test what how" {
+    how.run (new Scope how.definition_scope);
+};
 
-foreach "test" split_by_ws_tests {
-    var input = (test::get 0);
-    var expected_output = (test::get 1);
-    assert ((input::split_by_whitespace) `equals` expected_output);
+test "equals" {
+    assert ("" `equals` "");
+    assert ("ab" `equals` "ab");
+    assert (("a".concat "b") `equals` "ab");   # probably not relying on an optimization
+};
+
+test "split_by_whitespace" {
+    var tests = [
+        [" asd toot " ["asd" "toot"]]
+        ["  asd  toot  " ["asd" "toot"]]
+        ["  asd  toot" ["asd" "toot"]]
+        ["asd  toot  " ["asd" "toot"]]
+        ["asd  toot" ["asd" "toot"]]
+        ["  " []]
+        [" " []]
+        ["" []]
+    ];
+
+    foreach "test" tests {
+        var input = (test.get 0);
+        var expected_output = (test.get 1);
+        assert ((input.split_by_whitespace) `equals` expected_output);
+    };
 };

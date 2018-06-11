@@ -1,35 +1,54 @@
-var throws = (array_func {
-    var block = (arguments::get 0);
-    var threw = false;
-
-    {
-        block::run (new Scope block.definition_scope);
-    } `catch` {
+func "test what how" {
+    how.run (new Scope how.definition_scope);
+};
+func "throws errorclass body" {
+    var threw = null;
+    catch {
+        body.run (new Scope body.definition_scope);
+        threw = false;
+    } errorclass {
         threw = true;
     };
     assert threw;
-});
-
-throws {
-    "asd";
 };
 
-throws {
-    new Integer "99999999999999999999";
+
+test "equals" {
+    assert (1 `equals` 1);
+    assert (not (1 `equals` -1));
 };
 
-var should_work = (array_func {
-    var string = (arguments::get 0);
-    var integer = (arguments::get 1);
+test "new and to_string" {
+    var tests = [
+        ["123" 123]
+        ["0" 0]
+        ["-1" -1]
+        ["-123" -123]
+    ];
 
-    # TODO: the interpreter has separate code for reeeeeally long strings, so also check adding many zeros to front
-    assert ((new Integer string) `equals` integer);
+    foreach "pair" tests {
+        var string = (pair.get 0);
+        var integer = (pair.get 1);
+        assert ((integer.to_string) `equals` string);
+        assert ((integer.to_debug_string) `equals` string);
+        assert ((new Integer string) `equals` integer);
+    };
+};
 
-    assert ((integer::to_string) `equals` string);
-    assert ((integer::to_debug_string) `equals` string);
-});
+test "limits" {
+    var should_work = [
+        ["-9223372036854775808" -9223372036854775808]
+        [ "9223372036854775807"  9223372036854775807]
+    ];
 
-should_work "-9223372036854775808" -9223372036854775808;
-throws { new Integer "-9223372036854775809"; };
-should_work "9223372036854775807" 9223372036854775807;
-throws { new Integer "9223372036854775808"; };
+    foreach "pair" should_work {
+        var string = (pair.get 0);
+        var integer = (pair.get 1);
+        assert ((new Integer string) `equals` integer);
+        assert ((integer.to_string) `equals` string);
+        assert ((integer.to_debug_string) `equals` string);
+    };
+
+    throws ValueError { new Integer "-9223372036854775809"; };
+    throws ValueError { new Integer "9223372036854775808"; };
+};

@@ -1,0 +1,104 @@
+func "test what how" {
+    how.run (new Scope how.definition_scope);
+};
+func "throws errorclass body" {
+    var threw = null;
+    catch {
+        body.run (new Scope body.definition_scope);
+        threw = false;
+    } errorclass {
+        threw = true;
+    };
+    assert threw;
+};
+
+
+test "Error.message" {
+    var error = (new TypeError "asd asd");
+    assert (error.message `equals` "asd asd");
+    var asd_debug_string = (error.to_debug_string);
+
+    error.message = "toot";
+    assert (error.message `equals` "toot");
+    assert (not ((error.to_debug_string) `equals` asd_debug_string));
+
+    throws TypeError {
+        error.message = 123;
+    };
+};
+
+
+class "SuperError" inherits:Error inheritable:true { };
+class "Error1" inherits:SuperError { };
+class "Error2" inherits:SuperError { };
+
+
+test "throw" {
+    throws TypeError { throw "asd"; };
+    throws ArgError { throw 1 2 3; };
+    throws ArgError { throw (new TypeError "asd") stupid_option:123; };
+
+    # these must be checked with 2 exceptions
+    # if throw is failing unexpectedly, it might throw TypeError or ArgError
+    # but not both
+    throws TypeError { throw (new TypeError "asd"); };
+    throws ArgError { throw (new ArgError "asd"); };
+};
+
+test "catch" {
+    # success case
+    var ran = false;
+    catch {
+    } Error1 {
+        ran = true;
+    };
+    assert (not ran);
+
+    # catching by superclass
+    var ran = false;
+    catch {
+        throw (new Error1 "lol");
+    } SuperError {
+        ran = true;
+    };
+    assert ran;
+
+    # not catching by subclass
+    throws SuperError {
+        catch {
+            throw (new SuperError "lol");
+        } Error1 { };
+    };
+
+    # catch block throws
+    throws Error2 {
+        catch {
+            throw (new Error1 "lol");
+        } Error1 {
+            throw (new Error2 "lol");
+        };
+    };
+
+    # throw and catch must not copy exception objects
+    var ran = false;
+    var e1 = (new TypeError "asd");
+    catch {
+        throw e1;
+    } [TypeError "e2"] {
+        assert (e1 `same_object` e2);
+        ran = true;
+    };
+    assert ran;
+
+    # the "what to catch" argument of catch is handled specially, it's not just a type check
+    # so make sure that works
+    throws TypeError { catch {} "lol" {}; };
+    throws TypeError { catch {} String {}; };   # String is not an error class
+    throws TypeError { catch {} [Error1 123] {}; };   # String is not an error class
+    throws TypeError { catch {} [123 "hi"] {}; };   # String is not an error class
+    throws ValueError { catch {} [] {}; };
+    throws ValueError { catch {} [Error1] {}; };
+    throws ValueError { catch {} [Error1 "lol" 123] {}; };
+};
+
+print "ok";
