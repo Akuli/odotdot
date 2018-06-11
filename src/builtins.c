@@ -100,6 +100,17 @@ error:
 	return NULL;
 }
 
+static struct Object *throw(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	assert(!interp->err);
+	interp->err = ARRAYOBJECT_GET(args, 0);
+	OBJECT_INCREF(interp, interp->err);
+	return NULL;
+}
+
 // catch { ... } SomeError "varname" { ... };
 static struct Object *catch(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
@@ -348,6 +359,7 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!interpreter_addbuiltin(interp, "MemError", interp->builtins.nomemerr->klass)) goto error;
 
 	if (!add_function(interp, "if", if_)) goto error;
+	if (!add_function(interp, "throw", throw)) goto error;
 	if (!add_function(interp, "lambda", lambdabuiltin)) goto error;
 	if (!add_function(interp, "catch", catch)) goto error;
 	if (!add_function(interp, "equals", equals_builtin)) goto error;
