@@ -22,7 +22,7 @@ var VariableError = (new Class "VariableError" Error);
 {
     var setup_getter = (lambda "this" {
         return = (lambda "" {
-            throw "cannot create new Bool objects, use true and false instead";
+            throw (new TypeError "cannot create new Bool objects, use true and false instead");
         });
         return.name = "setup method";
     });
@@ -74,7 +74,7 @@ while.name = "while";
 var func = (lambda "funcname_and_argnames block" {
     var splitted = (funcname_and_argnames.split_by_whitespace);
     if (splitted.length `equals` 0) {
-        throw "func's string argument must not be empty";
+        throw (new ValueError "func's string argument must not be empty");
     };
 
     # a stupid way to join strings by spaces
@@ -106,7 +106,7 @@ func "not x" {
 
 func "assert condition" {
     if (not condition) {
-        throw "assertion failed";
+        throw (new AssertError "assertion failed");
     };
 };
 
@@ -146,7 +146,7 @@ func "foreach varname array block" {
         func "attrib name" {
             # just to make debugging easier
             if (not (name `is_instance_of` String)) {
-                throw ("attribute name should be a string, not ".concat (name.to_debug_string));
+                throw (new TypeError ("expected a string, got ".concat (name.to_debug_string)));
             };
 
             var getter = (lambda "this" {
@@ -169,7 +169,7 @@ func "foreach varname array block" {
             # see func for details, some of this is copied from there
             var splitted = (methname_and_argnames.split_by_whitespace);
             if (splitted.length `equals` 0) {
-                throw "method's string argument must not be empty";
+                throw (new ValueError "method's string argument must not be empty");
             };
 
             var argnames = "this ";
