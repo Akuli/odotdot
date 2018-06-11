@@ -243,18 +243,7 @@ functions and classes.
 
 ### Error and its subclasses
 
-Attributes of `Error`:
-- `error.message` is the message as a human-readable string. This can be set
-  after creating the error object, but setting it to something else than a
-  [String](#string) throws [TypeError].
-
-Methods of `Error`:
-- `(error.to_debug_string)` returns a string like `<SomeError: "the message">`
-  where `the message` is `error.message` and `SomeError` is the name of the
-  error's class. See also [Object](#object)'s `to_debug_string` documentation.
-
-Subclasses of `Error` are documented [here](errors.md), and they have the same
-attributes and methods as `Error` has.
+See [the documentation about errors](errors.md).
 
 ### Class
 

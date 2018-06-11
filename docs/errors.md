@@ -9,22 +9,8 @@ print 123;
 
 ...you get something like `TypeError: expected an instance of String, got 123`.
 
-
-## Throwing
-
-You can also display a similar error by creating an instance of the `TypeError`
-class and calling the `throw` function; for example, this code produces a
-similar error:
-
-```python
-throw (new TypeError "expected an instance of String, got 123");
-```
-
-The [built-in] `throw` function takes exactly 1 argument, the error, and no
-options.
-
-All of the classes in the following list are in the [built-in scope], and their
-[setup methods] take 1 argument, the error message string.
+All of the error classes in the following list are in the [built-in scope], and
+their [setup methods] take 1 argument, the error message string.
 
 - `Error` is a base class for other error classes. Don't create `Error` objects
   directly like this:
@@ -58,6 +44,34 @@ All of the classes in the following list are in the [built-in scope], and their
   not a valid integer value.
 - `VariableError` is thrown when a variable is not found. Usually it's best to
   avoid getting this error instead of catching it.
+
+Attributes of `Error`:
+- `error.message` is the message as a human-readable string. This can be set
+  after creating the error object, but setting it to something else than a
+  [String](builtins.md#string) throws `TypeError`.
+
+Methods of `Error`:
+- `(error.to_debug_string)` returns a string like `<SomeError: "the message">`
+  where `the message` is `error.message` and `SomeError` is the name of the
+  error's class. See also [Object](builtins.md#object)'s `to_debug_string`
+  documentation.
+
+Note that all of the above classes have the attributes and methods that `Error`
+has because they are subclasses of `Error`.
+
+
+## Throwing
+
+You can display errors by creating an instance of an error class and calling
+the `throw` function. For example, this code produces an error similar to the
+one we got from `print 123;`:
+
+```python
+throw (new TypeError "expected an instance of String, got 123");
+```
+
+The [built-in] `throw` function takes exactly 1 argument, the error, and no
+options.
 
 
 ## Catching
