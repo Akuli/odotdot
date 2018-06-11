@@ -77,11 +77,9 @@ options.
 ## Catching
 
 The [built-in] `catch` function is called like
-`catch block1 varname errorclass block2;`, where
-- `block1` and `block2` are [Block](builtins.ö#block) objects,
-- `varname` is a [String](builtins.ö#string) and
-- `errorclass` is a class that inherits from `Error`, e.g. one of the classes
-  above.
+`catch block1 errorclass block2;`, where `block1` and `block2` are
+[Block](builtins.ö#block) objects and `errorclass` is a class that inherits
+from `Error`, e.g. one of the classes above.
 
 `catch` tries to run `block1`, and if doing that throws an error that matches
 `errorclass`, `block2` runs as well. For example:
@@ -89,7 +87,18 @@ The [built-in] `catch` function is called like
 ```python
 catch {
     print 123;
-} TypeError "e" {
+} TypeError {
+    print "cannot print Integers";
+};
+```
+
+If you want to catch the error instance in a variable, pass a
+`[errorclass varname]` [array](builtins.md#array) instead of `errorclass`:
+
+```python
+catch {
+    print 123;
+} [TypeError "e"] {
     debug e;      # prints <TypeError: "expected an instance of String, got 123">
 };
 ```
@@ -104,6 +113,11 @@ If `block1` raises an error that does *not* match `errorclass`, the `catch`
 call doesn't do anything to that error; that is, the error gets handled as if
 `catch` wasn't used at all in the first place, and `block2` doesn't run. If
 `block2` throws *any* error, `catch` doesn't do anything to that either.
+
+If the `errorclass` or `[errorclass varname]` pair is invalid, `catch` throws
+an error without running either of the blocks. If the `[errorclass varname]`
+array contains the wrong number of elements, a `ValueError` is thrown;
+otherwise the thrown error is a `TypeError`.
 
 
 ## Custom Errors

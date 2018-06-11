@@ -111,15 +111,33 @@ static struct Object *throw(struct Interpreter *interp, struct Object *args, str
 	return NULL;
 }
 
-// catch { ... } SomeError "varname" { ... };
+// catch { ... } errspec { ... };
+// errspec can be an error class or an [errorclass varname] array
 static struct Object *catch(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Class, interp->builtins.String, interp->builtins.Block, NULL)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Object, interp->builtins.Block, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;   // TODO: finally option?
 	struct Object *trying = ARRAYOBJECT_GET(args, 0);
-	struct Object *errclass = ARRAYOBJECT_GET(args, 1);
-	struct Object *varname = ARRAYOBJECT_GET(args, 2);
-	struct Object *caught = ARRAYOBJECT_GET(args, 3);
+	struct Object *errspec = ARRAYOBJECT_GET(args, 1);
+	struct Object *caught = ARRAYOBJECT_GET(args, 2);
+
+	struct Object *errclass, *varname;
+	if (classobject_isinstanceof(errspec, interp->builtins.Class)) {
+		errclass = errspec;
+		varname = NULL;
+	} else if (classobject_isinstanceof(errspec, interp->builtins.Array)) {
+		if (ARRAYOBJECT_LEN(errspec) != 2) {
+			errorobject_setwithfmt(interp, "ValueError", "expected a pair like [errorclass varname], got %D", errspec);
+			return NULL;
+		}
+		errclass = ARRAYOBJECT_GET(errspec, 0);
+		varname = ARRAYOBJECT_GET(errspec, 1);
+		if (!check_type(interp, interp->builtins.Class, errclass)) return NULL;
+		if (!check_type(interp, interp->builtins.String, varname)) return NULL;
+	} else {
+		errorobject_setwithfmt(interp, "TypeError", "expected a subclass of Error or an [errorclass varname] array, got %D", errspec);
+		return NULL;
+	}
 
 	if (!classobject_issubclassof(errclass, interp->builtins.Error)) {
 		errorobject_setwithfmt(interp, "TypeError", "cannot catch %U, it doesn't inherit from Error", ((struct ClassObjectData*)errclass->data)->name);
@@ -145,19 +163,23 @@ static struct Object *catch(struct Interpreter *interp, struct Object *args, str
 		return NULL;
 	}
 
-	struct Object *localvars = attribute_get(interp, scope, "local_vars");
-	if (!localvars) {
-		OBJECT_DECREF(interp, scope);
-		OBJECT_DECREF(interp, err);
-		return NULL;
-	}
+	if (varname) {
+		struct Object *localvars = attribute_get(interp, scope, "local_vars");
+		if (!localvars) {
+			OBJECT_DECREF(interp, err);
+			OBJECT_DECREF(interp, scope);
+			return NULL;
+		}
 
-	ok = mappingobject_set(interp, localvars, varname, err);
-	OBJECT_DECREF(interp, err);
-	OBJECT_DECREF(interp, localvars);
-	if (!ok) {
-		OBJECT_DECREF(interp, scope);
-		return NULL;
+		bool ok = mappingobject_set(interp, localvars, varname, err);
+		OBJECT_DECREF(interp, err);
+		OBJECT_DECREF(interp, localvars);
+		if (!ok) {
+			OBJECT_DECREF(interp, scope);
+			return NULL;
+		}
+	} else {
+		OBJECT_DECREF(interp, err);
 	}
 
 	ok = blockobject_run(interp, caught, scope);

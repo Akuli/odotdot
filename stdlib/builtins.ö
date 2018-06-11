@@ -43,7 +43,7 @@ var VariableError = (new Class "VariableError" Error);
         return = (lambda "key fallback" {
             catch {
                 return = (this.get key);
-            } KeyError "e" {
+            } KeyError {
                 return = fallback;
             };
         });
