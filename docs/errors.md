@@ -113,7 +113,7 @@ Creating new errors is easy. Just inherit from `Error`, like this:
 ```python
 class "ArticleNotFoundError" inherits:Error { };
 
-func "get_article name" {
+func "get_article article_name" {
     ...
 
     if (not found_article) {
