@@ -26,9 +26,9 @@ Argument names ending with `:` are option names, so `thing:` defines an option
 named `thing`. The option may be specified when calling the function like
 `the_function thing:"hello";`, and `the_function;` without specifying `thing`
 is equivalent to `the_function thing:null;`. Option names must be after
-argument names when defining the function, but not
-when calling the function; `func "name arg1 opt: arg2" { ... };` throws an
-error.
+argument names when defining the function, but not when calling the function;
+`func "name arg1 opt: arg2" { ... };` throws [ValueError], but
+`class "Someclass" inherits:AnotherClass { ... };` works.
 
 When called, the function creates a new subscope of `block`'s
 [definition scope], and inserts the values of the arguments there as local
@@ -37,15 +37,10 @@ its value is returned when the function exits. Note that `return` is just a
 variable, so `return = 123;` doesn't exit the function immediately like
 returning a value does in most other programming languages.
 
-If the function is called with the wrong number of arguments or with unknown
-options, an error is thrown.
-
 Annoying and missing features:
 - The `return = value;` syntax sucks. I think it really should be a function
   call like `return value;` instead, and that should exit the function right
   away.
-- Functions don't have a `name` attribute or a nice `to_debug_string` yet, so
-  debugging is painful.
 
 **See Also:** There's more info about functions in the [Function](#function)
 class documentation. The functions created by `func` are `Function` objects.
@@ -63,7 +58,7 @@ function name in the string argument.
 `if condition block;` runs the block if `condition` is [true].
 
 If `condition` is [true], `block` will be ran in a new [subscope] of its
-[definition scope]. An error is thrown if the `condition` is not [true] or
+[definition scope]. [TypeError] is thrown if the `condition` is not [true] or
 [false] or the block is not a [Block](#block) object.
 
 I'm sorry, there's no way to do `else` yet :( If you need an else, do this:
@@ -81,7 +76,7 @@ if (not something) {
 
 `(not x)` returns [false] if `x` is [true], or [true] if `x` is [false].
 
-If `x` is not [true] or [false], `(not x)` throws an error.
+If `x` is not [true] or [false], `(not x)` throws [TypeError].
 
 ### equals
 
@@ -194,25 +189,14 @@ foreach "character" ["a" "b" "c"] {
 };
 ```
 
-### catch
+### catch and throw
 
-``block1 `catch` block2;`` tries to run `block1`, and runs `block2` if `block1`
-throws an error.
-
-Both blocks are ran in new subscopes of their
-[definition scopes][definition scope].
-
-Bugs:
-- There's no way to access the caught [error object](#error) yet.
-- There's no nice way to throw errors yet. Most of my Ö code uses
-  `throw "a descriptive message";`, which actually works because there's no
-  `throw` function yet (but unfortunately, the error message is
-  `no variable named 'throw'`). I'll hopefully implement more stuff soon so
-  that you can do e.g. `throw (new ValueError "it's too small");`.
+See [the documentation about errors](errors.md).
 
 ### assert
 
-`assert x;` is equivalent to `if (not x) { throw "assertion failed"; };`.
+`assert x;` is equivalent to
+`if (not x) { throw (new AssertError "assertion failed"); };`.
 
 ### new
 
@@ -598,6 +582,9 @@ The `Function` class is not in the built-in namespace, but you can access it
 like `var Function = (get_class print)` if you need to. New functions cannot be
 created with `(new Function)`; use [func](#func) instead.
 
+If a function is called with the wrong number of arguments or with unknown
+options, [ArgError] is thrown.
+
 Attributes:
 - `function.name` is a human-readable string for debugging. It can be e.g.
   `"print"` or `"to_string method"`. You can set the `.name` of any function to
@@ -638,4 +625,6 @@ it has no methods or other attributes. You can access the class with
 [integer literals]: syntax-spec.md#tokenizing
 [hash table]: https://en.wikipedia.org/wiki/Hash_table
 
+[ArgError]: errors.md
 [TypeError]: errors.md
+[ValueError]: errors.md

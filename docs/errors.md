@@ -9,6 +9,9 @@ print 123;
 
 ...you get something like `TypeError: expected an instance of String, got 123`.
 
+
+## Throwing
+
 You can also display a similar error by creating an instance of the `TypeError`
 class and calling the `throw` function; for example, this code produces a
 similar error:
@@ -16,6 +19,9 @@ similar error:
 ```python
 throw (new TypeError "expected an instance of String, got 123");
 ```
+
+The [built-in] `throw` function takes exactly 1 argument, the error, and no
+options.
 
 All of the classes in the following list are in the [built-in scope], and their
 [setup methods] take 1 argument, the error message string.
@@ -54,10 +60,36 @@ All of the classes in the following list are in the [built-in scope], and their
   avoid getting this error instead of catching it.
 
 
-## Catching Errors
+## Catching
 
-This sucks and will hopefully be fixed soon. See the documentation of
-[the catch function](builtins.md#catch).
+The [built-in] `catch` function is called like
+`catch block1 varname errorclass block2;`, where
+- `block1` and `block2` are [Block](builtins.ö#block) objects,
+- `varname` is a [String](builtins.ö#string) and
+- `errorclass` is a class that inherits from `Error`, e.g. one of the classes
+  above.
+
+`catch` tries to run `block1`, and if doing that throws an error that matches
+`errorclass`, `block2` runs as well. For example:
+
+```python
+catch {
+    print 123;
+} TypeError "e" {
+    debug e;      # prints <TypeError: "expected an instance of String, got 123">
+};
+```
+
+The matching is checked with [is_instance_of](builtins.md#is_instance_of), and
+the blocks are ran in a new subscope new subscopes of their
+[definition scopes][definition scope]. The variable named by `varname` (`e` in
+the above example) is set as a local variable to the scope that `block2` runs
+in before running `block2`.
+
+If `block1` raises an error that does *not* match `errorclass`, the `catch`
+call doesn't do anything to that error; that is, the error gets handled as if
+`catch` wasn't used at all in the first place, and `block2` doesn't run. If
+`block2` throws *any* error, `catch` doesn't do anything to that either.
 
 
 ## Custom Errors
@@ -87,4 +119,6 @@ unexpectedly throws `ValueError` somewhere else, that won't get caught.
 
 
 [built-in scope]: tutorial.md#scopes
+[built-in]: tutorial.md#scopes
+[definition scope]: tutorial.md#scopes
 [setup methods]: tutorial.md#defining-classes
