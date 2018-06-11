@@ -1,0 +1,64 @@
+func "test what how" {
+    how.run (new Scope how.definition_scope);
+};
+func "throws errorclass body" {
+    var threw = null;
+    catch {
+        body.run (new Scope body.definition_scope);
+        threw = false;
+    } errorclass {
+        threw = true;
+    };
+    assert threw;
+};
+
+
+test "equals and length" {
+    var m1 = (new Mapping []);
+    var m2 = (new Mapping []);
+    assert (m1.length `equals` 0);
+    assert (m2.length `equals` 0);
+    assert (m1 `equals` m2);
+
+    m1.set "a" "b";
+    assert (m1.length `equals` 1);
+    assert (m2.length `equals` 0);
+    assert (not (m1 `equals` m2));
+
+    m2.set "a" "b";
+    assert (m1.length `equals` 1);
+    assert (m2.length `equals` 1);
+    assert (m1 `equals` m2);
+
+    m2.set "a" "c";
+    assert (m1.length `equals` 1);
+    assert (m2.length `equals` 1);
+    assert (not (m1 `equals` m2));
+
+    m2.set "a" "b";
+    assert (m1.length `equals` 1);
+    assert (m2.length `equals` 1);
+    assert (m1 `equals` m2);
+
+    m2.set "c" "d";
+    assert (m1.length `equals` 1);
+    assert (m2.length `equals` 2);
+    assert (not (m1 `equals` m2));
+};
+
+test "unhashable keys" {
+    var unhashable = [ [] (new Mapping []) ];
+
+    foreach "bad" unhashable {
+        throws TypeError { new Mapping [[ bad 123 ]]; };
+        new Mapping [[ 123 bad ]];    # it must be a valid value though
+
+        var m = (new Mapping []);
+        throws TypeError { m.set bad 123; };
+        assert (m.length `equals` 0);
+        throws TypeError { m.get bad; };
+        throws TypeError { m.delete bad; };
+        throws TypeError { m.get_and_delete bad; };
+        assert (m.length `equals` 0);
+    };
+};

@@ -229,7 +229,7 @@ static struct Object *set(struct Interpreter *interp, struct Object *args, struc
 int mappingobject_get(struct Interpreter *interp, struct Object *map, struct Object *key, struct Object **val)
 {
 	if (!hashable_check(interp, key))
-		return false;
+		return -1;
 
 	struct MappingObjectData *data = map->data;
 	for (struct MappingObjectItem *item = data->buckets[HASH_MODULUS(key->hash, data->nbuckets)]; item; item=item->next) {
