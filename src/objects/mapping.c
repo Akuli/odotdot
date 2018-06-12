@@ -80,10 +80,18 @@ struct Object *mappingobject_newempty(struct Interpreter *interp)
 
 static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Mapping, interp->builtins.Array, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-	struct Object *map = ARRAYOBJECT_GET(args, 0);
-	struct Object *pairs = ARRAYOBJECT_GET(args, 1);
+	struct Object *map, *pairs;
+	if (ARRAYOBJECT_LEN(args) == 1) {
+		// (new Mapping)
+		if (!check_args(interp, args, interp->builtins.Mapping, NULL)) return NULL;
+		map = ARRAYOBJECT_GET(args, 0);
+		pairs = NULL;
+	} else {
+		// (new Mapping pairs)
+		if (!check_args(interp, args, interp->builtins.Mapping, interp->builtins.Array, NULL)) return NULL;
+		map = ARRAYOBJECT_GET(args, 0);
+		pairs = ARRAYOBJECT_GET(args, 1);
+	}
 
 	if (map->data) {
 		errorobject_setwithfmt(interp, "AssertError", "setup was called twice");
@@ -99,13 +107,29 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 	map->destructor = mapping_destructor;
 	map->hashable = false;
 
-	for (size_t i=0; i < ARRAYOBJECT_LEN(pairs); i++) {
-		struct Object *pair = ARRAYOBJECT_GET(pairs, i);
-		if (!classobject_isinstanceof(pair, interp->builtins.Array) || ARRAYOBJECT_LEN(pair) != 2) {
-			errorobject_setwithfmt(interp, "ValueError", "expected a [key value] pair, got %D", pair);
-			return NULL;
+	// TODO: throw an error if there are duplicates?
+
+	if (pairs) {
+		for (size_t i=0; i < ARRAYOBJECT_LEN(pairs); i++) {
+			struct Object *pair = ARRAYOBJECT_GET(pairs, i);
+			if (!classobject_isinstanceof(pair, interp->builtins.Array)) {
+				errorobject_setwithfmt(interp, "TypeError", "expected a [key value] pair, got %D", pair);
+				return NULL;
+			}
+			if (ARRAYOBJECT_LEN(pair) != 2) {
+				errorobject_setwithfmt(interp, "ValueError", "expected a [key value] pair, got %D", pair);
+				return NULL;
+			}
+			if (!mappingobject_set(interp, map, ARRAYOBJECT_GET(pair, 0), ARRAYOBJECT_GET(pair, 1)))
+				return NULL;
 		}
-		if (!mappingobject_set(interp, map, ARRAYOBJECT_GET(pair, 0), ARRAYOBJECT_GET(pair, 1)))
+	}
+
+	// add opts to the mapping
+	struct MappingObjectIter iter;
+	mappingobject_iterbegin(&iter, opts);
+	while (mappingobject_iternext(&iter)) {
+		if (!mappingobject_set(interp, map, iter.key, iter.value))
 			return NULL;
 	}
 

@@ -464,18 +464,21 @@ Annoyances:
 Mapping objects *map* keys to values; that is, looking up the value
 corresponding to a key is easy and fast.
 
-Use `(new Mapping pair_array)` to create a new mapping where `pair_array` is an
-array of `[key value]` arrays. For example:
+New Mappings can be created in a few different ways:
+1. `(new Mapping)` creates an empty mapping.
+2. `(new Mapping pair_array)` takes an array of `[key value]` pair arrays and
+   adds the keys and values to the mapping.
+3. [Options][options] can be used to add values with string keys to the mapping.
+
+For example, the following two lines are equivalent:
 
 ```python
-var ordering_words = (new Mapping [[1 "first"] [2 "second"] [3 "third"]]);
-print (ordering_words.get 2);   # prints "second"
+var ordering_words = (new Mapping [["first" 1] ["second" 2] ["third" 3]]);   # uses 2.
+var ordering_words = (new Mapping first:1 second:2 third:3);       # uses 1. and 3.
 ```
 
-Use `(new Mapping [])` to create an empty mapping.
-
 The values in the mapping can be any objects, but the keys can't. `Mapping` is
-implemented as a [hash table], so the keys they need to be hashable.
+implemented as a [hash table], so the keys need to be hashable.
 
 Most objects are hashable in Ö, but [Arrays](#array) and Mappings are not. If
 they were, the hash value would need to change as the content of the array or
@@ -613,6 +616,7 @@ it has no methods or other attributes. You can access the class with
 [string literals]: syntax-spec.md#tokenizing
 [integer literals]: syntax-spec.md#tokenizing
 [hash table]: https://en.wikipedia.org/wiki/Hash_table
+[options]: tutorial.md#options
 
 [ArgError]: errors.md
 [TypeError]: errors.md

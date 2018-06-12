@@ -14,8 +14,8 @@ func "throws errorclass body" {
 
 
 test "equals and length" {
-    var m1 = (new Mapping []);
-    var m2 = (new Mapping []);
+    var m1 = (new Mapping);
+    var m2 = (new Mapping);
     assert (m1.length `equals` 0);
     assert (m2.length `equals` 0);
     assert (m1 `equals` m2);
@@ -44,6 +44,17 @@ test "equals and length" {
     assert (m1.length `equals` 1);
     assert (m2.length `equals` 2);
     assert (not (m1 `equals` m2));
+};
+
+test "constructors" {
+    assert ((new Mapping).length `equals` 0);
+    assert ((new Mapping) `equals` (new Mapping []));
+    assert ((new Mapping a:1 b:2) `equals` (new Mapping [["a" 1] ["b" 2]]));
+    assert ((new Mapping a:1 b:2) `equals` (new Mapping [["a" 1]] b:2));
+
+    throws ArgError { new Mapping [1 2] [3 4]; };
+    throws TypeError { new Mapping "lol"; };
+    throws ValueError { new Mapping [[1 2 3]]; };
 };
 
 test "unhashable keys" {
