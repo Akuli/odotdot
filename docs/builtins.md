@@ -468,7 +468,8 @@ New Mappings can be created in a few different ways:
 1. `(new Mapping)` creates an empty mapping.
 2. `(new Mapping pair_array)` takes an array of `[key value]` pair arrays and
    adds the keys and values to the mapping.
-3. [Options][options] can be used to add values with string keys to the mapping.
+3. [Options][options] can be used together with 1. or 2. to add values with
+   string keys to the mapping.
 
 For example, the following two lines are equivalent:
 
