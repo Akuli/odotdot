@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../attribute.h"
 #include "../check.h"
 #include "../interpreter.h"
 #include "../method.h"
@@ -49,6 +50,14 @@ static struct Object *to_string(struct Interpreter *interp, struct Object *args,
 	return ARRAYOBJECT_GET(args, 0);
 }
 
+
+static struct Object *length_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.String, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	return integerobject_newfromlonglong(interp, ((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data)->len);
+}
 
 static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
@@ -228,6 +237,7 @@ static struct Object *split_by_whitespace(struct Interpreter *interp, struct Obj
 bool stringobject_addmethods(struct Interpreter *interp)
 {
 	// TODO: create many more string methods
+	if (!attribute_add(interp, interp->builtins.String, "length", length_getter, NULL)) return false;
 	if (!method_add(interp, interp->builtins.String, "setup", setup)) return false;
 	if (!method_add(interp, interp->builtins.String, "concat", concat)) return false;
 	if (!method_add(interp, interp->builtins.String, "get", get)) return false;

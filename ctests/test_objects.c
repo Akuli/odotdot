@@ -31,28 +31,13 @@ void test_objects_simple(void)
 	buttert(obj);
 	buttert(obj->data == (void *)0xdeadbeef);
 	buttert(cleaner_ran == 0);
+	OBJECT_INCREF(testinterp, obj);
+	OBJECT_DECREF(testinterp, obj);
+	buttert(cleaner_ran == 0);
 	OBJECT_DECREF(testinterp, obj);
 	buttert(cleaner_ran == 1);
 }
 
-void test_objects_error(void)
-{
-	errorobject_setwithfmt(testinterp, "oh %s", "shit");
-	buttert(testinterp->err);
-	struct UnicodeString *msg = ((struct Object*) testinterp->err->data)->data;
-	buttert(msg);
-	buttert(msg->len = 7);
-	buttert(
-		msg->val[0] == 'o' &&
-		msg->val[1] == 'h' &&
-		msg->val[2] == ' ' &&
-		msg->val[3] == 's' &&
-		msg->val[4] == 'h' &&
-		msg->val[5] == 'i' &&
-		msg->val[6] == 't');
-	OBJECT_DECREF(testinterp, testinterp->err);
-	testinterp->err = NULL;
-}
 
 struct Object *callback_arg1, *callback_arg2;
 
@@ -114,17 +99,6 @@ void test_objects_string(void)
 	}
 }
 
-void test_objects_string_tostring(void)
-{
-	struct Object *s = stringobject_newfromcharptr(testinterp, "Öö");
-	buttert(s);
-	struct Object *ret = method_call(testinterp, s, "to_string", NULL);
-	buttert(ret);
-	buttert(ret == s);
-	OBJECT_DECREF(testinterp, ret);
-	OBJECT_DECREF(testinterp, s);    // stringobject_newfromustr() returned 
-}
-
 void test_objects_string_newfromfmt(void)
 {
 	unicode_char bval = 'b';
@@ -156,36 +130,6 @@ void test_objects_string_newfromfmt(void)
 		s->val[11] == '%' &&
 		s->val[12] == '-');
 	OBJECT_DECREF(testinterp, res);
-}
-
-void test_objects_array(void)
-{
-	struct Object *objs[] = {
-		stringobject_newfromcharptr(testinterp, "a"),
-		stringobject_newfromcharptr(testinterp, "b"),
-		stringobject_newfromcharptr(testinterp, "c") };
-#define NOBJS (sizeof(objs) / sizeof(objs[0]))
-	for (size_t i=0; i < NOBJS; i++)
-		buttert(objs[i]);
-
-	struct Object *arr = arrayobject_new(testinterp, objs, NOBJS - 1);
-	buttert(arr);
-	buttert(arrayobject_push(testinterp, arr, objs[NOBJS-1]) == true);
-
-	// now the array should hold references to each object
-	for (size_t i=0; i < NOBJS; i++)
-		OBJECT_DECREF(testinterp, objs[i]);
-
-	struct ArrayObjectData *data = arr->data;
-	buttert(data->len == NOBJS);
-	for (size_t i=0; i < NOBJS; i++) {
-#undef NOBJS
-		buttert(data->elems[i] == objs[i]);
-		struct UnicodeString *ustr = ((struct Object *) data->elems[i])->data;
-		buttert(ustr->len == 1);
-		buttert(ustr->val[0] == 'a' + i);
-	}
-	OBJECT_DECREF(testinterp, arr);
 }
 
 #define HOW_MANY 1000
@@ -304,50 +248,6 @@ void test_objects_mapping_iter(void)
 		buttert(found[i]);
 
 	OBJECT_DECREF(testinterp, map);
-}
-
-
-struct HashTest {
-	struct Object *obj;
-	int shouldBhashable;
-};
-
-void test_objects_hashes(void)
-{
-	errorobject_setwithfmt(testinterp, "oh %s", "shit");
-
-	OBJECT_INCREF(testinterp, testinterp->builtins.String);
-	struct Object *print = interpreter_getbuiltin(testinterp, "print");
-	struct HashTest tests[] = {
-		{ testinterp->builtins.String, 1 },
-		{ testinterp->err, 1 },
-		{ print, 1 },
-		{ integerobject_newfromlonglong(testinterp, -123LL), 1 },
-		{ classobject_newinstance(testinterp, testinterp->builtins.Object, NULL, NULL), 1 },
-		{ stringobject_newfromcharptr(testinterp, "asd"), 1 },
-		{ arrayobject_newempty(testinterp), 0 },
-		{ mappingobject_newempty(testinterp), 0 }
-	};
-	// no need to decref, the reference to testinterp->err is "moved" to tests
-	testinterp->err = NULL;
-
-	for (unsigned int i=0; i < sizeof(tests) / sizeof(tests[0]); i++) {
-		struct HashTest test = tests[i];
-		buttert(test.obj);
-		buttert(test.shouldBhashable == !!test.shouldBhashable);
-		if (test.shouldBhashable) {
-			buttert(test.obj->hashable == 1);
-
-			// just to make sure that the hash is accessed and valgrind complains if it's not set
-			// if you're really unlucky, this fails when things actually work
-			buttert(test.obj->hash != 123456);
-		} else {
-			buttert(test.obj->hashable == 0);
-			// don't access test.obj.hash here
-		}
-
-		OBJECT_DECREF(testinterp, test.obj);
-	}
 }
 
 

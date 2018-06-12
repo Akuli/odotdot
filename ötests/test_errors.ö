@@ -13,7 +13,7 @@ func "throws errorclass body" {
 };
 
 
-test "Error.message" {
+test "message attribute" {
     var error = (new TypeError "asd asd");
     assert (error.message `equals` "asd asd");
     var asd_debug_string = (error.to_debug_string);
@@ -100,5 +100,3 @@ test "catch" {
     throws ValueError { catch {} [Error1] {}; };
     throws ValueError { catch {} [Error1 "lol" 123] {}; };
 };
-
-print "ok";

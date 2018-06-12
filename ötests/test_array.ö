@@ -1,0 +1,85 @@
+func "test what how" {
+    how.run (new Scope how.definition_scope);
+};
+func "throws errorclass body" {
+    var threw = null;
+    catch {
+        body.run (new Scope body.definition_scope);
+        threw = false;
+    } errorclass {
+        threw = true;
+    };
+    assert threw;
+};
+
+
+test "nested arrays" {
+    # nothing very special here
+    # just want to make sure that nested [ ] get parsed correctly
+    var nested = ["a" ["b" "c" ] [["d" "e"]]];
+    assert (nested.length `equals` 3);
+    assert ((nested.get 0) `equals` "a");
+    assert ((nested.get 1) `equals` ["b" "c"]);
+    assert ((nested.get 2).length `equals` 1);
+    assert (((nested.get 2).get 0) `equals` ["d" "e"]);
+};
+
+test "foreach" {
+    var res = [];
+    foreach "number" [1 2 3] {
+        res.push number;
+    };
+    assert (res `equals` [1 2 3]);
+
+    res = [];
+    throws KeyError {
+        foreach "number" [1 2 3] {
+            res.push number;
+            throw (new KeyError "oh no");
+        };
+    };
+    # the push should have ran once, before the first error
+    assert (res `equals` [1]);
+};
+
+test "basic stuff" {
+    # [] must create a new array every time
+    func "lol" { return = []; };
+    assert (not ((lol) `same_object` (lol)));
+    (lol).push "TOOT";
+    assert ((lol).length `equals` 0);
+
+    var array = ["a" "b" "c"];
+    assert (array.length `equals` 3);
+    throws AttribError { array.length = 100; };
+
+    assert ((array.get 0) `equals` "a");
+    assert ((array.get 2) `equals` "c");
+    throws ValueError { array.get -1; };
+    throws ValueError { array.get 3; };
+
+    assert (array `equals` ["a" "b" "c"]);
+    assert (["a" "b" "c"] `equals` array);
+
+    foreach "nope" [["a" "b"] ["a" "b" "c" "d"] ["a" "b" "x"]] {
+        assert (not (array `equals` nope));
+        assert (not (nope `equals` array));
+    };
+
+    array.push "d";
+    assert (array `equals` ["a" "b" "c" "d"]);
+
+    assert ((array.pop) `equals` "d");
+    assert (array `equals` ["a" "b" "c"]);
+
+    array.set 0 "x";
+    assert (array `equals` ["x" "b" "c"]);
+    array.set 2 "y";
+    assert (array `equals` ["x" "b" "y"]);
+    throws ValueError { array.set -1 "z"; };
+    throws ValueError { array.set 3 "z"; };
+    assert (array `equals` ["x" "b" "y"]);
+
+    assert ((array.slice 1 2) `equals` ["b"]);
+    assert ((array.slice -123 123) `equals` array);    # out-of-bounds indexes are ok
+};

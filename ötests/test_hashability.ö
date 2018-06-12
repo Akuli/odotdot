@@ -1,0 +1,57 @@
+func "test what how" {
+    how.run (new Scope how.definition_scope);
+};
+func "throws errorclass body" {
+    var threw = null;
+    catch {
+        body.run (new Scope body.definition_scope);
+        threw = false;
+    } errorclass {
+        threw = true;
+    };
+    assert threw;
+};
+
+
+class "Thingy" { };
+
+
+var hashables = [
+    # pretty much everything, many different kinds of objects
+    "lol"
+    123
+    String
+    Thingy
+    (new Thingy)
+    {print "Hi";}
+    {print "Hi";}.definition_scope
+    ({print "Hi";}.ast_statements.get 0)
+    null
+    true
+    false
+];
+
+# some exceptions
+var non_hashables = [
+    # arrays constructed in different ways
+    []
+    {}.ast_statements
+
+    # mappings constructed in different ways
+    (new Mapping)
+    {}.definition_scope.local_vars
+];
+
+
+test "hashables and not-hashables as mapping keys" {
+    foreach "hashable" hashables {
+        var m = (new Mapping [ [hashable 123] ]);
+        assert ((m.get hashable) `equals` 123);
+    };
+
+    foreach "non_hashable" non_hashables {
+        throws TypeError {
+            new Mapping [ [non_hashable 123] ];
+        };
+    };
+};

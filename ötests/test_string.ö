@@ -1,11 +1,43 @@
 func "test what how" {
     how.run (new Scope how.definition_scope);
 };
+func "throws errorclass body" {
+    var threw = null;
+    catch {
+        body.run (new Scope body.definition_scope);
+        threw = false;
+    } errorclass {
+        threw = true;
+    };
+    assert threw;
+};
 
-test "equals" {
+
+test "concat and equals" {
     assert ("" `equals` "");
     assert ("ab" `equals` "ab");
     assert (("a".concat "b") `equals` "ab");   # probably not relying on an optimization
+};
+
+test "to_string" {
+    foreach "string" ["" "asd" "tootttö ö"] {
+        # should use equals instead of same_object
+        # but what implementation would really be so insane that these would be different objects...
+        assert ((string.to_string) `same_object` string);
+    };
+};
+
+test "array-like methods" {
+    assert ("abc".length `equals` 3);
+    throws AttribError { "abc".length = 100; };
+
+    assert (("abc".get 0) `equals` "a");
+    assert (("abc".get 2) `equals` "c");
+    throws ValueError { "abc".get -1; };
+    throws ValueError { "abc".get 3; };
+
+    assert (("abc".slice 1 2) `equals` "b");
+    assert (("abc".slice -123 123) `equals` "abc");
 };
 
 test "split_by_whitespace" {
