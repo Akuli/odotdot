@@ -13,6 +13,27 @@ func "throws errorclass body" {
 };
 
 
+test "basic stuff" {
+    var m = (new Mapping);
+    assert (m.length `equals` 0);
+
+    throws KeyError { m.get "a"; };
+    assert (m.length `equals` 0);
+
+    var value = [];
+    m.set "a" value;
+    assert (m.length `equals` 1);
+    assert ((m.get "a") `same_object` value);
+
+    m.delete "a";
+    assert (m.length `equals` 0);
+
+    m.set "b" value;
+    assert (m.length `equals` 1);
+    assert ((m.get_and_delete "b") `same_object` value);
+    assert (m.length `equals` 0);
+};
+
 test "equals and length" {
     var m1 = (new Mapping);
     var m2 = (new Mapping);
@@ -67,7 +88,7 @@ test "unhashable keys" {
         var m = (new Mapping []);
         throws TypeError { m.set bad 123; };
         assert (m.length `equals` 0);
-        throws TypeError { m.get bad; };
+        throws TypeError { m.get bad; };   # not a KeyError
         throws TypeError { m.delete bad; };
         throws TypeError { m.get_and_delete bad; };
         assert (m.length `equals` 0);
