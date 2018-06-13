@@ -87,9 +87,7 @@ bool check_opts_with_mapping(struct Interpreter *interp, struct Object *opts, st
 
 bool check_opts(struct Interpreter *interp, struct Object *opts, ...)
 {
-	struct Object *types = mappingobject_newempty(interp);
-	if (!types)
-		return false;
+	struct Object *types = NULL;   // optimization for checking that there are no options
 
 	va_list ap;
 	va_start(ap, opts);
@@ -108,6 +106,12 @@ bool check_opts(struct Interpreter *interp, struct Object *opts, ...)
 		struct Object *klass = va_arg(ap, struct Object *);
 		assert(klass);
 
+		if (!types) {
+			types = mappingobject_newempty(interp);
+			if (!types)
+				return false;
+		}
+
 		bool ok = mappingobject_set(interp, types, nameobj, klass);
 		OBJECT_DECREF(interp, nameobj);
 		if (!ok) {
@@ -116,6 +120,19 @@ bool check_opts(struct Interpreter *interp, struct Object *opts, ...)
 		}
 	}
 	va_end(ap);
+
+	if (!types) {
+		// throw an error if there are any options
+		if (MAPPINGOBJECT_SIZE(opts) == 0)
+			return true;
+
+		// choose 1 option randomly for consistency with check_opts_with_mapping
+		struct MappingObjectIter iter;
+		mappingobject_iterbegin(&iter, opts);
+		mappingobject_iternext(&iter);
+		errorobject_setwithfmt(interp, "ArgError", "unexpected option %D", iter.key);
+		return false;
+	}
 
 	bool ok = check_opts_with_mapping(interp, opts, types);
 	OBJECT_DECREF(interp, types);
