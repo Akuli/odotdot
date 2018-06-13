@@ -41,13 +41,14 @@ void test_objects_simple(void)
 
 struct Object *callback_arg1, *callback_arg2;
 
-struct Object *callback(struct Interpreter *interp, struct Object *argarr)
+struct Object *callback(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
+	buttert(MAPPINGOBJECT_SIZE(opts) == 0);
 	buttert(interp == testinterp);
-	buttert(argarr->klass == interp->builtins.Array);
-	buttert(ARRAYOBJECT_LEN(argarr) == 2);
-	buttert(ARRAYOBJECT_GET(argarr, 0) == callback_arg1);
-	buttert(ARRAYOBJECT_GET(argarr, 1) == callback_arg2);
+	buttert(args->klass == interp->builtins.Array);
+	buttert(ARRAYOBJECT_LEN(args) == 2);
+	buttert(ARRAYOBJECT_GET(args, 0) == callback_arg1);
+	buttert(ARRAYOBJECT_GET(args, 1) == callback_arg2);
 	return (struct Object*) 0x123abc;
 }
 

@@ -54,21 +54,14 @@ int main(int argc, char **argv)
 	buttert(builtins_setup(testinterp));
 
 	RUN_TEST(test_objects_simple);
-	RUN_TEST(test_objects_error);
 	RUN_TEST(test_objects_function);
 	RUN_TEST(test_objects_string);
-	RUN_TEST(test_objects_string_tostring);
 	RUN_TEST(test_objects_string_newfromfmt);
-	RUN_TEST(test_objects_array);
 	RUN_TEST(test_objects_array_many_elems);
-	//RUN_TEST(test_objects_mapping);
-	//RUN_TEST(test_objects_mapping_huge);
-	//RUN_TEST(test_objects_mapping_iter);
-	RUN_TEST(test_objects_hashes);
+	RUN_TEST(test_objects_mapping_huge);
+	RUN_TEST(test_objects_mapping_iter);
 
 	RUN_TEST(test_integer_basic_stuff);
-	//RUN_TEST(test_integer_huge_tiny);
-	//RUN_TEST(test_integer_errors);
 
 	RUN_TEST(test_ast_nodes_and_their_refcount_stuff);
 	RUN_TEST(test_ast_strings);
@@ -80,9 +73,10 @@ int main(int argc, char **argv)
 
 	RUN_TEST(test_tokenizer_tokenize);
 
+	// FIXME: these get into an infinite loop because ctests are ran without builtins.ö
 	void unicode_test_setup(void); unicode_test_setup();
 	//RUN_TEST(test_utf8_encode);
-	RUN_TEST(test_utf8_decode);
+	//RUN_TEST(test_utf8_decode);
 
 	builtins_teardown(testinterp);
 	gc_run(testinterp);

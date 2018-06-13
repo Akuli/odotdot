@@ -13,19 +13,6 @@
 #error INTEGEROBJECT_MAX is broken
 #endif
 
-static struct Object *cstring2integerobj(char *cstr)
-{
-	struct UnicodeString u;
-	u.len = strlen(cstr);
-	u.val = bmalloc(u.len * sizeof(unicode_char));
-	for (size_t i=0; i<u.len; i++)
-		u.val[i]=*cstr++;
-
-	struct Object *asd = integerobject_newfromustr(testinterp, u);
-	buttert(asd);
-	return asd;
-}
-
 void test_integer_basic_stuff(void)
 {
 	buttert(strlen(INTEGEROBJECT_MINSTR) <= INTEGEROBJECT_MAXDIGITS);

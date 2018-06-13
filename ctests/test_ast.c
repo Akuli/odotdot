@@ -5,8 +5,9 @@
 #include <src/objects/array.h>
 #include <src/objects/astnode.h>
 #include <src/objects/classobject.h>
-#include <src/objects/string.h>
 #include <src/objects/integer.h>
+#include <src/objects/mapping.h>
+#include <src/objects/string.h>
 #include <src/parse.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -79,9 +80,10 @@ void test_ast_nodes_and_their_refcount_stuff(void)
 	// this references setattrnode
 	struct AstCallInfo *callinfo = bmalloc(sizeof(struct AstCallInfo));
 	callinfo->funcnode = setattrnode;
-	callinfo->nargs = 0;    // it's best to test special cases and corner cases :D
-	callinfo->argnodes = bmalloc(123);   // anything free()able will do
+	buttert((callinfo->args = arrayobject_newempty(testinterp)));
+	buttert((callinfo->opts = mappingobject_newempty(testinterp)));
 	struct Object *callnode = newnode(AST_CALL, callinfo);
+	buttert(callnode);
 
 	OBJECT_DECREF(testinterp, callnode);      // should free everything
 }
@@ -229,11 +231,11 @@ void test_ast_function_call_statement(void)
 	struct AstNodeObjectData *calldata = call->data;
 	struct AstCallInfo *callinfo = calldata->info;
 	buttert(calldata->kind == AST_CALL);
-	buttert(callinfo->nargs == 2);
+	buttert(ARRAYOBJECT_LEN(callinfo->args) == 2);
 
 	check_getvar(callinfo->funcnode, "a");
-	check_getvar(callinfo->argnodes[0], "b");
-	check_getvar(callinfo->argnodes[1], "c");
+	check_getvar(ARRAYOBJECT_GET(callinfo->args, 0), "b");
+	check_getvar(ARRAYOBJECT_GET(callinfo->args, 1), "c");
 
 	OBJECT_DECREF(testinterp, call);
 }
