@@ -12,6 +12,9 @@ func "throws errorclass body" {
     assert threw;
 };
 
+var MANY_ZEROS = "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
+var MANY_ASDS = "asdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasd";
+
 
 test "equals" {
     assert (1 `equals` 1);
@@ -20,18 +23,28 @@ test "equals" {
 
 test "new and to_string" {
     var tests = [
-        ["123" 123]
-        ["0" 0]
-        ["-1" -1]
-        ["-123" -123]
+        # [string integer to_string_must_match]
+        ["123" 123 true]
+        ["0" 0 true]
+        ["-0" 0 false]
+        ["-1" -1 true]
+        ["-123" -123 true]
+        ["0123" 123 false]
+        [(MANY_ZEROS.concat "123") 123 false]
+        ["-0123" -123 false]
+        [(("-".concat MANY_ZEROS).concat "123") -123 false]
     ];
 
     foreach "pair" tests {
         var string = (pair.get 0);
         var integer = (pair.get 1);
-        assert ((integer.to_string) `equals` string);
-        assert ((integer.to_debug_string) `equals` string);
+        var to_string_must_match = (pair.get 2);
+
         assert ((new Integer string) `equals` integer);
+        if to_string_must_match {
+            assert ((integer.to_string) `equals` string);
+            assert ((integer.to_debug_string) `equals` string);
+        };
     };
 };
 
@@ -51,4 +64,11 @@ test "limits" {
 
     throws ValueError { new Integer "-9223372036854775809"; };
     throws ValueError { new Integer "9223372036854775808"; };
+};
+
+test "to_string errors" {
+    foreach "bad" ["1+2" "0000-123" "0-123" "--123" "+123" "++123" "+-123" "-+123" "asdasdasd"
+                   "123asd" "asd123" "-asd123" MANY_ASDS] {
+        throws ValueError { new Integer bad; };
+    };
 };
