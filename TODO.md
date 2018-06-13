@@ -28,11 +28,6 @@ things that I would like to do some day. It's a mess.
           evaluating `b * c` first in math and many other programming languages
         - real mathematicians (tm) write `a + bc` to avoid this problem, but
           `ab` mean `a` times `b` in ö so parentheses would be ö's solution
-- error handling issues
-    - the `throw` function isn't actually implemented yet, but calling it
-      throws an exception anyway because nonexisting variables cause errors :D
-    - `catch` can't catch the error object yet, so tests can't check exception
-      messages :( can't really write good tests in Ö yet
 - need tracebacks and other stack magic
     - debugging things like `class` in builtins.ö is hard
     - might be easiest to get the traceback in `Error.new`? that way
@@ -148,6 +143,53 @@ things that I would like to do some day. It's a mess.
     get { this._thingy_value }
     ```
 
+- loop functions
+    - right now these are implemented with recursion, and it sucks
+    - break and continue should be implemented with exceptions
+        - btw... `return x;` could be also implemented with an exception
+        - nested loop breaking must work, so must attach an ID of each loop to
+          the exception objects
+        - could be declared as an atomicincrdecr.h long in `struct Interpreter`
+
+    - maybe should provide a built-in for:
+
+        ```
+        for { init; } { cond } { incr; } {
+            ...
+        };
+        ```
+
+        and everything could be implemented with it:
+
+        ```
+        func "while cond body" {
+            for {} cond {} body;
+        };
+        ```
+
+    - or maybe a built-in `loop_forever` and everything else with that?
+        - `loop_forever` would need to provide continue and break
+            - funny corner cases with continue works with `for` loops:
+
+                this...
+
+                ```
+                for { init; } { cond } { incr; } {
+                    stuff;
+                };
+                ```
+
+                ...is NOT the same as this:
+
+                ```
+                init;
+                while { cond } {
+                    stuff;
+                    incr;
+                };
+                ```
+                because `incr` must run after `stuff` continues
+
 
 ## testing
 - some tests suck, they are commented out in `ctests/run.c`
@@ -155,12 +197,11 @@ things that I would like to do some day. It's a mess.
       couldn't figure out a good way to run it run without lots of copy/pasta
     - still haven't figured out
     - everything has gotten less and less tested since then...
-- waiting for importing and good exception catching so i can write tests in ö
-    - maybe an `include` function would be good enough for now? :D
-- docs should be used as reference when writing the tests, also look through
-  the source and try to find funny corner cases
-- writing the tests will be a HUUUGE amount of work, need to ask friends to do
-  that
+- there are lots of ötests already... which is good
+- need to go through the docs and test every case documented
+    - also look through the source and try to find funny corner cases
+- ask friends for help? writing tests is a lot of work
+    - although not as much work as i expected, ö is quite nice to work with :)
 
 ## tokenizer.{c,h}
 - tokenizing an empty file fails
