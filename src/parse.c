@@ -316,7 +316,7 @@ static struct Object *parse_array(struct Interpreter *interp, struct Token **cur
 	assert((*curtok)->str.len == 1 && (*curtok)->str.val[0] == ']');
 	*curtok = (*curtok)->next;   // skip ']'
 
-e	struct Object *res = astnodeobject_new(interp, AST_ARRAY, lineno, elements);
+	struct Object *res = astnodeobject_new(interp, AST_ARRAY, lineno, elements);
 	if (!res) {
 		OBJECT_DECREF(interp, elements);
 		return NULL;
