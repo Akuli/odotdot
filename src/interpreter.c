@@ -24,6 +24,7 @@ struct Interpreter *interpreter_new(char *argv0)
 	}
 
 	interp->argv0 = argv0;
+	interp->stackptr = interp->stack;   // make it point to the 1st element
 
 	interp->err =
 	interp->builtinscope =

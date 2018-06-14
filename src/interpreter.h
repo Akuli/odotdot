@@ -2,11 +2,13 @@
 #define INTERPRETER_H
 
 #include "allobjects.h"
+#include "stack.h"
 
 // these are defined in other files that need to include this file
 // stupid IWYU doesn't get this.....
 struct Context;
 struct Object;
+struct StackFrame;
 
 struct Interpreter {
 	// this is set to argv[0] from main(), useful for error messages
@@ -37,9 +39,11 @@ struct Interpreter {
 		struct Object *String;
 
 		struct Object *null;   // NOT the (void*)0 NULL, see Objects/null.{c,h}
-
 		struct Object *nomemerr;
 	} builtins;
+
+	struct StackFrame stack[STACK_MAX];
+	struct StackFrame *stackptr;   // pointer to the top of the stack
 };
 
 // returns NULL on no mem
