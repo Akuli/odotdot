@@ -37,7 +37,7 @@ test: ö ctestsrunner
 testverbose: ö ctestsrunner
 	./ctestsrunner --verbose
 	@echo
-	(for file in ötests/test_*.ö; do printf '%-40s  ' "$$file"; ./ö "$$file" && echo "ok" || (echo "returned $$?"; exit 1); done)
+	(for file in ötests/test_*.ö; do printf '%-40s  ' "$$file"; ./ö "$$file" && echo "ok" || (echo "returned $$?"; exit 1) || exit 1; done)
 	@echo
 	@echo "---------------------------"
 	@echo "all ötests pass"
