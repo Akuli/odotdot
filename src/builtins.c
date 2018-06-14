@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "attribute.h"
 #include "check.h"
 #include "equals.h"
@@ -22,6 +23,7 @@
 #include "objects/object.h"
 #include "objects/scope.h"
 #include "objects/string.h"
+#include "stack.h"
 #include "unicode.h"
 
 
@@ -248,6 +250,53 @@ static struct Object *print(struct Interpreter *interp, struct Object *args, str
 	return nullobject_get(interp);
 }
 
+// returns a list of [filename lineno] sublists
+// see stack.c and stack.h
+static struct Object *get_stack(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	struct Object *result = arrayobject_newempty(interp);
+	if (!result)
+		return NULL;
+
+	for (struct StackFrame *f = interp->stack; f != interp->stackptr; f++) {
+		// TODO: is utf8 always the best possible file system encoding?
+		struct UnicodeString u;
+		if (!utf8_decode(interp, f->filename, strlen(f->filename), &u))
+			goto error;
+
+		struct Object *name = stringobject_newfromustr(interp, u);
+		free(u.val);
+		if (!name)
+			goto error;
+
+		struct Object *lineno = integerobject_newfromlonglong(interp, f->lineno);
+		if (!lineno) {
+			OBJECT_DECREF(interp, name);
+			goto error;
+		}
+
+		struct Object *pair = arrayobject_new(interp, (struct Object *[]) { name, lineno }, 2);
+		OBJECT_DECREF(interp, name);
+		OBJECT_DECREF(interp, lineno);
+		if (!pair)
+			goto error;
+
+		bool ok = arrayobject_push(interp, result, pair);
+		OBJECT_DECREF(interp, pair);
+		if (!ok)
+			goto error;
+	}
+
+	return result;
+
+error:
+	OBJECT_DECREF(interp, result);
+	return NULL;
+}
+
 
 static struct Object *new(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
@@ -391,6 +440,7 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!add_function(interp, "print", print)) goto error;
 	if (!add_function(interp, "same_object", same_object)) goto error;
 	if (!add_function(interp, "get_attrdata", get_attrdata)) goto error;
+	if (!add_function(interp, "get_stack", get_stack)) goto error;
 
 	// compile like this:   $ CFLAGS=-DDEBUG_BUILTINS make clean all
 #ifdef DEBUG_BUILTINS
