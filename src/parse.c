@@ -55,7 +55,7 @@ static struct Object *parse_string(struct Interpreter *interp, struct Token **cu
 	if (!info)
 		return NULL;
 
-	struct Object *res = astnodeobject_new(interp, AST_STR, 0, info);
+	struct Object *res = astnodeobject_new(interp, AST_STR, (*curtok)->lineno, info);
 	if (!res) {
 		OBJECT_DECREF(interp, info);
 		return NULL;
@@ -76,7 +76,7 @@ static struct Object *parse_int(struct Interpreter *interp, struct Token **curto
 	if (!info)
 		return NULL;
 
-	struct Object *res = astnodeobject_new(interp, AST_INT, 0, info);
+	struct Object *res = astnodeobject_new(interp, AST_INT, (*curtok)->lineno, info);
 	if(!res) {
 		OBJECT_DECREF(interp, info);
 		return NULL;
@@ -102,7 +102,7 @@ static struct Object *parse_getvar(struct Interpreter *interp, struct Token **cu
 		return NULL;
 	}
 
-	struct Object *res = astnodeobject_new(interp, AST_GETVAR, 0, info);
+	struct Object *res = astnodeobject_new(interp, AST_GETVAR, (*curtok)->lineno, info);
 	if (!res) {
 		free(info->varname.val);
 		free(info);
@@ -290,6 +290,7 @@ static struct Object *parse_array(struct Interpreter *interp, struct Token **cur
 	assert((*curtok)->kind == TOKEN_OP);
 	assert((*curtok)->str.len == 1);
 	assert((*curtok)->str.val[0] == '[');
+	size_t lineno = (*curtok)->lineno;
 	*curtok = (*curtok)->next;
 	assert(*curtok);    // TODO: report error "unexpected end of file"
 
@@ -315,7 +316,7 @@ static struct Object *parse_array(struct Interpreter *interp, struct Token **cur
 	assert((*curtok)->str.len == 1 && (*curtok)->str.val[0] == ']');
 	*curtok = (*curtok)->next;   // skip ']'
 
-	struct Object *res = astnodeobject_new(interp, AST_ARRAY, 0, elements);
+e	struct Object *res = astnodeobject_new(interp, AST_ARRAY, lineno, elements);
 	if (!res) {
 		OBJECT_DECREF(interp, elements);
 		return NULL;
@@ -330,6 +331,7 @@ struct Object *parse_block(struct Interpreter *interp, struct Token **curtok)
 	assert((*curtok)->kind == TOKEN_OP);
 	assert((*curtok)->str.len == 1);
 	assert((*curtok)->str.val[0] == '{');
+	size_t lineno = (*curtok)->lineno;
 	*curtok = (*curtok)->next;
 	assert(*curtok);    // TODO: report error "unexpected end of file"
 
@@ -356,7 +358,7 @@ struct Object *parse_block(struct Interpreter *interp, struct Token **curtok)
 	assert((*curtok)->str.len == 1 && (*curtok)->str.val[0] == '}');
 	*curtok = (*curtok)->next;   // skip ']'
 
-	struct Object *res = astnodeobject_new(interp, AST_BLOCK, 0, statements);
+	struct Object *res = astnodeobject_new(interp, AST_BLOCK, lineno, statements);
 	if (!res) {
 		OBJECT_DECREF(interp, statements);
 		return NULL;
@@ -402,7 +404,8 @@ struct Object *parse_expression(struct Interpreter *interp, struct Token **curto
 
 	// attributes
 	while ((*curtok) && (*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == '.') {
-		*curtok = (*curtok)->next;   // skip '.' or '.'
+		size_t lineno = (*curtok)->lineno;
+		*curtok = (*curtok)->next;   // skip '.'
 		assert((*curtok));     // TODO: report error "expected an attribute name, but the file ended"
 		assert((*curtok)->kind == TOKEN_ID);   // TODO: report error "invalid attribute name 'bla bla'"
 
@@ -423,7 +426,7 @@ struct Object *parse_expression(struct Interpreter *interp, struct Token **curto
 		}
 		*curtok = (*curtok)->next;
 
-		struct Object *getattr = astnodeobject_new(interp, AST_GETATTR, 0, getattrinfo);
+		struct Object *getattr = astnodeobject_new(interp, AST_GETATTR, lineno, getattrinfo);
 		if(!getattr) {
 			free(getattrinfo->name.val);
 			free(getattrinfo);

@@ -8,7 +8,7 @@
 
 struct AstNodeObjectData {
 	char kind;
-	size_t lineno;    // 0 means expression, starts at 1
+	size_t lineno;   // starts at 1
 	void *info;
 };
 
