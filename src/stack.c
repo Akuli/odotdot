@@ -25,8 +25,7 @@ bool stack_push(struct Interpreter *interp, char *filename, size_t lineno, struc
 		errorobject_setnomem(interp);
 		return NULL;
 	}
-	memcpy(tmp, filename, len);
-	tmp[len] = 0;
+	memcpy(tmp, filename, len+1);
 
 	struct StackFrame f = { .filename = tmp, .lineno = lineno, .scope = scope };
 	if (scope)

@@ -151,7 +151,7 @@ static int run_file(struct Interpreter *interp, struct Object *scope, char *path
 
 	struct Token *curtok = tok1st;
 	while (curtok) {
-		struct Object *stmtnode = parse_statement(interp, &curtok);
+		struct Object *stmtnode = parse_statement(interp, path, &curtok);
 		if (!stmtnode) {
 			print_and_reset_err(interp);
 			token_freeall(tok1st);

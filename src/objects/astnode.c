@@ -1,6 +1,7 @@
 #include "astnode.h"
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 #include "../interpreter.h"
 #include "../objectsystem.h"
 #include "../tokenizer.h"
@@ -85,6 +86,7 @@ static void destructor(struct Object *node)
 		assert(0);  // unknown kind
 	}
 
+	free(data->filename);
 	free(data);
 }
 
@@ -95,19 +97,29 @@ struct Object *astnodeobject_createclass(struct Interpreter *interp)
 	return classobject_new(interp, "AstNode", interp->builtins.Object, foreachref, false);
 }
 
-struct Object *astnodeobject_new(struct Interpreter *interp, char kind, size_t lineno, void *info)
+struct Object *astnodeobject_new(struct Interpreter *interp, char kind, char *filename, size_t lineno, void *info)
 {
 	struct AstNodeObjectData *data = malloc(sizeof(struct AstNodeObjectData));
 	if (!data) {
 		errorobject_setnomem(interp);
 		return NULL;
 	}
+
+	size_t len = strlen(filename);
+	if (!(data->filename = malloc(len+1))) {
+		free(data);
+		errorobject_setnomem(interp);
+		return NULL;
+	}
+	memcpy(data->filename, filename, len+1);
+
 	data->kind = kind;
 	data->lineno = lineno;
 	data->info = info;
 
 	struct Object *obj = classobject_newinstance(interp, interp->builtins.AstNode, data, destructor);
 	if (!obj) {
+		free(data->filename);
 		free(data);
 		return NULL;
 	}
