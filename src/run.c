@@ -17,7 +17,6 @@
 #include "objects/scope.h"
 #include "objects/string.h"
 #include "parse.h"
-#include "stack.h"
 
 // RETURNS A NEW REFERENCE
 static struct Object *run_expression(struct Interpreter *interp, struct Object *scope, struct Object *exprnode)
