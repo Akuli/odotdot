@@ -88,12 +88,14 @@ static void print_and_reset_err(struct Interpreter *interp)
 
 		if (!print_ustr(interp, ((struct ClassObjectData*) errsave->klass->data)->name, stderr)) {
 			fprintf(stderr, "failed to display the error\n");
+			OBJECT_DECREF(interp, errsave);
 			goto end;    // interp->err was set to the utf8_encode error and THAT is cleared
 		}
 		fputc(':', stderr);
 		fputc(' ', stderr);
 		if (!print_ustr(interp, *((struct UnicodeString*) ((struct Object*) errsave->data)->data), stderr)) {
 			fprintf(stderr, "\nfailed to display the error\n");
+			OBJECT_DECREF(interp, errsave);
 			goto end;
 		}
 		OBJECT_DECREF(interp, errsave);
