@@ -155,6 +155,13 @@ struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 }
 
 
+void errorobject_throw(struct Interpreter *interp, struct Object *err)
+{
+	assert(!interp->err);
+	interp->err = err;
+	OBJECT_INCREF(interp, err);
+}
+
 void errorobject_setwithfmt(struct Interpreter *interp, char *classname, char *fmt, ...)
 {
 	va_list ap;
@@ -179,6 +186,6 @@ void errorobject_setwithfmt(struct Interpreter *interp, char *classname, char *f
 		return;
 	}
 
-	assert(!interp->err);
-	interp->err = err;
+	errorobject_throw(interp, err);
+	OBJECT_DECREF(interp, err);
 }

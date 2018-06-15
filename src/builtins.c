@@ -107,9 +107,7 @@ static struct Object *throw(struct Interpreter *interp, struct Object *args, str
 	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	assert(!interp->err);
-	interp->err = ARRAYOBJECT_GET(args, 0);
-	OBJECT_INCREF(interp, interp->err);
+	errorobject_throw(interp, ARRAYOBJECT_GET(args, 0));
 	return NULL;
 }
 
@@ -152,10 +150,11 @@ static struct Object *catch(struct Interpreter *interp, struct Object *args, str
 	if (ok)
 		return nullobject_get(interp);
 
+	assert(interp->err);
+
 	if (!classobject_isinstanceof(interp->err, errclass))
 		return NULL;
 
-	assert(interp->err);
 	struct Object *err = interp->err;
 	interp->err = NULL;
 
