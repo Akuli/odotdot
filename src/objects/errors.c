@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "../attribute.h"
@@ -188,4 +189,43 @@ void errorobject_throwfmt(struct Interpreter *interp, char *classname, char *fmt
 
 	errorobject_throw(interp, err);
 	OBJECT_DECREF(interp, err);
+}
+
+
+static bool print_ustr(struct Interpreter *interp, struct UnicodeString u)
+{
+	char *utf8;
+	size_t utf8len;
+	if (!utf8_encode(interp, u, &utf8, &utf8len))
+		return false;
+
+	for (size_t i = 0; i < utf8len; i++)
+		fputc(utf8[i], stderr);
+	free(utf8);
+	return true;
+}
+
+void errorobject_printsimple(struct Interpreter *interp, struct Object *err)
+{
+	assert(!interp->err);
+
+	if (err == interp->builtins.nomemerr) {
+		// no more memory can be allocated
+		fprintf(stderr, "MemError: not enough memory\n");
+		return;
+	}
+
+	if (!print_ustr(interp, ((struct ClassObjectData *) err->klass->data)->name))
+		goto cantprint;
+	fputs(": ", stderr);
+	if (!print_ustr( interp, *((struct UnicodeString *) err->data) ))
+		goto cantprint;
+	fputc('\n', stderr);
+	return;
+
+cantprint:
+	fprintf(stderr, "\n%s: %s while printing an error\n",
+		interp->err==interp->builtins.nomemerr ? "ran out of memory" : "another error occurred");
+	OBJECT_DECREF(interp, interp->err);
+	interp->err = NULL;
 }

@@ -74,38 +74,11 @@ static bool print_ustr(struct Interpreter *interp, struct UnicodeString u, FILE 
 // TODO: print a stack trace and use stderr instead of stdout
 static void print_and_reset_err(struct Interpreter *interp)
 {
-	if (!(interp->err)) {
-		// no error to print, nothing to reset
-		fprintf(stderr, "%s: interp->err wasn't set correctly\n", interp->argv0);
-		return;
-	}
-
-	if (interp->err == interp->builtins.nomemerr) {
-		// no memory must be allocated in this case...
-		fprintf(stderr, "MemError: not enough memory\n");
-	} else {
-		// utf8_encode may set another error
-		struct Object *errsave = interp->err;
-		interp->err = NULL;
-
-		if (!print_ustr(interp, ((struct ClassObjectData*) errsave->klass->data)->name, stderr)) {
-			fprintf(stderr, "failed to display the error\n");
-			goto end;    // interp->err was set to the utf8_encode error and THAT is cleared
-		}
-		fputc(':', stderr);
-		fputc(' ', stderr);
-		if (!print_ustr(interp, *((struct UnicodeString*) ((struct Object*) errsave->data)->data), stderr)) {
-			fprintf(stderr, "\nfailed to display the error\n");
-			goto end;
-		}
-		OBJECT_DECREF(interp, errsave);
-		fputc('\n', stderr);
-		return;
-	}
-
-end:
-	OBJECT_DECREF(interp, interp->err);
+	assert(interp->err);
+	struct Object *errsave = interp->err;
 	interp->err = NULL;
+	errorobject_printsimple(interp, errsave);
+	OBJECT_DECREF(interp, errsave);
 }
 
 

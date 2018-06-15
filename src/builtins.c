@@ -430,24 +430,11 @@ bool builtins_setup(struct Interpreter *interp)
 	return true;
 
 error:
-	fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
-	assert(0);
-
-	struct Object *print = interpreter_getbuiltin(interp, "print");
-	if (print) {
-		struct Object *err = interp->err;
-		interp->err = NULL;
-		struct Object *printres = functionobject_call(interp, print, (struct Object *) err->data, NULL);
-		OBJECT_DECREF(interp, err);
-		if (printres)
-			OBJECT_DECREF(interp, printres);
-		else     // print failed, interp->err is decreffed below
-			OBJECT_DECREF(interp, interp->err);
-		OBJECT_DECREF(interp, print);
-	}
-
-	OBJECT_DECREF(interp, interp->err);
+	assert(interp->err);
+	struct Object *errsave = interp->err;
 	interp->err = NULL;
+	errorobject_printsimple(interp, errsave);
+	OBJECT_DECREF(interp, errsave);
 	return false;
 
 nomem:
