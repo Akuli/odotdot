@@ -12,11 +12,13 @@
 #include "tokenizer.h"
 #include "unicode.h"
 #include "objects/array.h"
+#include "objects/astnode.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
 #include "objects/function.h"
 #include "objects/scope.h"
 #include "parse.h"
+#include "stack.h"
 
 #define FILE_CHUNK_SIZE 4096
 
@@ -172,7 +174,15 @@ static int run_file(struct Interpreter *interp, struct Object *scope, char *path
 
 	// run!
 	for (size_t i=0; i < ARRAYOBJECT_LEN(statements); i++) {
-		if (!run_statement(interp, scope, ARRAYOBJECT_GET(statements, i))) {
+		struct AstNodeObjectData *astdata = ARRAYOBJECT_GET(statements, i)->data;
+		if (!stack_push(interp, path, astdata->lineno, scope)) {
+			print_and_reset_err(interp);
+			returnval = 1;
+			goto end;
+		}
+		ok = run_statement(interp, scope, ARRAYOBJECT_GET(statements, i));
+		stack_pop(interp);
+		if (!ok) {
 			print_and_reset_err(interp);
 			returnval = 1;
 			goto end;
