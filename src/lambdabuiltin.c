@@ -143,7 +143,7 @@ static struct Object *runner(struct Interpreter *interp, struct Object *args, st
 	OBJECT_DECREF(interp, localvars);
 	OBJECT_DECREF(interp, returnstring);
 	if (status == 0)   // FIXME: ValueError feels wrong for this
-		errorobject_setwithfmt(interp, "ValueError", "the local return variable was deleted");
+		errorobject_throwfmt(interp, "ValueError", "the local return variable was deleted");
 	if (status == 0 || status == -1)
 		return NULL;
 	return retval;
@@ -169,7 +169,7 @@ static bool check_identifier(struct Interpreter *interp, struct UnicodeString u)
 	return true;
 
 nope:
-	errorobject_setwithfmt(interp, "ValueError", "\"%U\" is not a valid argument name", u);
+	errorobject_throwfmt(interp, "ValueError", "\"%U\" is not a valid argument name", u);
 	return false;
 }
 
@@ -209,7 +209,7 @@ static bool parse_arg_and_opt_names(struct Interpreter *interp, struct Object *s
 		} else {
 			if (opts) {
 				// TODO: should any order be allowed when defining the function? it's allowed when calling
-				errorobject_setwithfmt(interp, "ArgError", "argument \"%U\" should be before options", u);
+				errorobject_throwfmt(interp, "ArgError", "argument \"%U\" should be before options", u);
 				goto error;
 			}
 			if (!check_identifier(interp, u))

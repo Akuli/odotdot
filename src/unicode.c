@@ -60,7 +60,7 @@ static void error_printf(struct Interpreter *interp, char *fmt, ...)
 	vsnprintf(msg, 100, fmt, ap);
 	va_end(ap);
 	msg[99] = 0;
-	errorobject_setwithfmt(interp, "ValueError", "%s", msg);
+	errorobject_throwfmt(interp, "ValueError", "%s", msg);
 }
 
 
@@ -84,7 +84,7 @@ static int how_many_bytes(struct Interpreter *interp, unicode_char codepnt)
 
 invalid_code_point:
 	// unsigned long is at least 32 bits, so unicode_char should fit in it
-	// errorobject_setwithfmt doesn't support %lX
+	// errorobject_throwfmt doesn't support %lX
 	error_printf(interp, "invalid Unicode code point U+%lX", (unsigned long)codepnt);
 	return -1;
 }

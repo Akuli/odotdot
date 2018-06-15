@@ -48,7 +48,7 @@ bool read_file_to_huge_string(struct Interpreter *interp, char *filename, FILE *
 		free(s);
 		// TODO: use a more appropriate error class if/when it will be available
 		// TODO: include more stuff in the error message, maybe use errno and strerror stuff
-		errorobject_setwithfmt(interp, "ValueError", "an error occurred while reading '%s'", filename);
+		errorobject_throwfmt(interp, "ValueError", "an error occurred while reading '%s'", filename);
 		return false;
 	}
 

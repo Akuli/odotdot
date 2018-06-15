@@ -127,7 +127,7 @@ static struct Object *catch(struct Interpreter *interp, struct Object *args, str
 		varname = NULL;
 	} else if (classobject_isinstanceof(errspec, interp->builtins.Array)) {
 		if (ARRAYOBJECT_LEN(errspec) != 2) {
-			errorobject_setwithfmt(interp, "ValueError", "expected a pair like [errorclass varname], got %D", errspec);
+			errorobject_throwfmt(interp, "ValueError", "expected a pair like [errorclass varname], got %D", errspec);
 			return NULL;
 		}
 		errclass = ARRAYOBJECT_GET(errspec, 0);
@@ -135,12 +135,12 @@ static struct Object *catch(struct Interpreter *interp, struct Object *args, str
 		if (!check_type(interp, interp->builtins.Class, errclass)) return NULL;
 		if (!check_type(interp, interp->builtins.String, varname)) return NULL;
 	} else {
-		errorobject_setwithfmt(interp, "TypeError", "expected a subclass of Error or an [errorclass varname] array, got %D", errspec);
+		errorobject_throwfmt(interp, "TypeError", "expected a subclass of Error or an [errorclass varname] array, got %D", errspec);
 		return NULL;
 	}
 
 	if (!classobject_issubclassof(errclass, interp->builtins.Error)) {
-		errorobject_setwithfmt(interp, "TypeError", "cannot catch %U, it doesn't inherit from Error", ((struct ClassObjectData*)errclass->data)->name);
+		errorobject_throwfmt(interp, "TypeError", "cannot catch %U, it doesn't inherit from Error", ((struct ClassObjectData*)errclass->data)->name);
 		return NULL;
 	}
 
@@ -263,7 +263,7 @@ static struct Object *get_stack(struct Interpreter *interp, struct Object *args,
 static struct Object *new(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (ARRAYOBJECT_LEN(args) == 0) {
-		errorobject_setwithfmt(interp, "ArgError", "new needs at least 1 argument, the class");
+		errorobject_throwfmt(interp, "ArgError", "new needs at least 1 argument, the class");
 		return NULL;
 	}
 	if (!check_type(interp, interp->builtins.Class, ARRAYOBJECT_GET(args, 0)))

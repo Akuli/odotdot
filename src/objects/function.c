@@ -96,7 +96,7 @@ static struct Object *partial(struct Interpreter *interp, struct Object *args, s
 	// check the first argument, rest are the args that are being partialled
 	// there can be 0 or more partialled args (0 partialled args allowed for consistency)
 	if (ARRAYOBJECT_LEN(args) == 0) {
-		errorobject_setwithfmt(interp, "ArgError", "not enough arguments to Function.partial");
+		errorobject_throwfmt(interp, "ArgError", "not enough arguments to Function.partial");
 		return NULL;
 	}
 	if (!check_type(interp, interp->builtins.Function, ARRAYOBJECT_GET(args, 0)))
@@ -164,7 +164,7 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	// FIXME: ValueError feels wrong for this
-	errorobject_setwithfmt(interp, "ValueError", "functions can't be created with (new Function), use func instead");
+	errorobject_throwfmt(interp, "ValueError", "functions can't be created with (new Function), use func instead");
 	return NULL;
 }
 

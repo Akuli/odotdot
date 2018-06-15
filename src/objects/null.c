@@ -10,7 +10,7 @@
 static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	// FIXME: ValueError sucks for this
-	errorobject_setwithfmt(interp, "ValueError", "new null objects cannot be created");
+	errorobject_throwfmt(interp, "ValueError", "new null objects cannot be created");
 	return NULL;
 }
 

@@ -11,9 +11,9 @@
 bool stack_push(struct Interpreter *interp, char *filename, size_t lineno, struct Object *scope)
 {
 	if (interp->stackptr - interp->stack == STACK_MAX) {
-		// errorobject_setwithfmt must not push more frames to the stack!
+		// errorobject_throwfmt must not push more frames to the stack!
 		// FIXME: ValueError is very wrong for this
-		errorobject_setwithfmt(interp, "ValueError", "too much recursion");
+		errorobject_throwfmt(interp, "ValueError", "too much recursion");
 		return false;
 	}
 

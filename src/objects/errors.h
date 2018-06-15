@@ -20,12 +20,8 @@ struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp);
 void errorobject_throw(struct Interpreter *interp, struct Object *err);
 
 // the ultimate convenience function
-// sets interp->err to an error with a string created with stringobject_newfromfmt
-// it was named errorobject_seterrfromfmtstring but that was way too long to type
-// i thought about errorobject_sethandy, but that wouldn't be very descriptive
-// if this fails, interp->err is set to an error describing that failure, so there's no need to check that
-// that's why this thing returns void
-void errorobject_setwithfmt(struct Interpreter *interp, char *classname, char *fmt, ...);
+// throws an error with a string created with stringobject_newfromfmt
+void errorobject_throwfmt(struct Interpreter *interp, char *classname, char *fmt, ...);
 
 // never fails
 #define errorobject_setnomem(interp) do { \

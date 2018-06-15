@@ -36,7 +36,7 @@ struct Object *stringobject_createclass_noerr(struct Interpreter *interp)
 static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	// FIXME: ValueError feels wrong
-	errorobject_setwithfmt(interp, "ValueError", "strings can't be created with (new String), use \"text in quotes\" instead");
+	errorobject_throwfmt(interp, "ValueError", "strings can't be created with (new String), use \"text in quotes\" instead");
 	return NULL;
 }
 
@@ -107,11 +107,11 @@ static struct Object *get(struct Interpreter *interp, struct Object *args, struc
 	long long i = integerobject_tolonglong(ARRAYOBJECT_GET(args, 1));
 
 	if (i < 0) {
-		errorobject_setwithfmt(interp, "ValueError", "%L is not a valid string index", i);
+		errorobject_throwfmt(interp, "ValueError", "%L is not a valid string index", i);
 		return NULL;
 	}
 	if ((unsigned long long) i >= ustr.len) {
-		errorobject_setwithfmt(interp, "ValueError", "%L is not a valid index for a string of length %L", i, (long long) ustr.len);
+		errorobject_throwfmt(interp, "ValueError", "%L is not a valid index for a string of length %L", i, (long long) ustr.len);
 		return NULL;
 	}
 

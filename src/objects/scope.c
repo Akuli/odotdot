@@ -109,7 +109,7 @@ static struct Object *set_var(struct Interpreter *interp, struct Object *args, s
 	// but do we have a parent scope?
 	if (scope == interp->builtinscope) {
 		// no, all scopes were already checked
-		errorobject_setwithfmt(interp, "VariableError", "no variable named %D", varname);
+		errorobject_throwfmt(interp, "VariableError", "no variable named %D", varname);
 		return NULL;
 	}
 
@@ -150,7 +150,7 @@ static struct Object *get_var(struct Interpreter *interp, struct Object *args, s
 	assert(res == 0);   // not found
 
 	if (scope == interp->builtinscope) {
-		errorobject_setwithfmt(interp, "VariableError", "no variable named %D", varname);
+		errorobject_throwfmt(interp, "VariableError", "no variable named %D", varname);
 		return NULL;
 	}
 

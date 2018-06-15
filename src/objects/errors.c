@@ -37,7 +37,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 
 	struct Object *err = ARRAYOBJECT_GET(args, 0);
 	if (err->data) {
-		errorobject_setwithfmt(interp, "AssertError", "setup was called twice");
+		errorobject_throwfmt(interp, "AssertError", "setup was called twice");
 		return NULL;
 	}
 
@@ -51,7 +51,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 static bool check_data(struct Interpreter *interp, struct Object *err)
 {
 	if (!err->data) {
-		errorobject_setwithfmt(interp, "AssertError", "Error's setup method wasn't called");
+		errorobject_throwfmt(interp, "AssertError", "Error's setup method wasn't called");
 		return false;
 	}
 	return true;
@@ -162,7 +162,7 @@ void errorobject_throw(struct Interpreter *interp, struct Object *err)
 	OBJECT_INCREF(interp, err);
 }
 
-void errorobject_setwithfmt(struct Interpreter *interp, char *classname, char *fmt, ...)
+void errorobject_throwfmt(struct Interpreter *interp, char *classname, char *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);

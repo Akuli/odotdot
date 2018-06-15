@@ -35,7 +35,7 @@ static void array_destructor(struct Object *arr)
 static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	// FIXME: ValueError feels wrong, but there are no better alternatives right now
-	errorobject_setwithfmt(interp, "ValueError", "arrays can't be created with (new Array), use [ ] instead");
+	errorobject_throwfmt(interp, "ValueError", "arrays can't be created with (new Array), use [ ] instead");
 	return NULL;
 }
 
@@ -118,11 +118,11 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 static bool validate_index(struct Interpreter *interp, struct Object *arr, long long i)
 {
 	if (i < 0) {
-		errorobject_setwithfmt(interp, "ValueError", "%L is not a valid array index", i);
+		errorobject_throwfmt(interp, "ValueError", "%L is not a valid array index", i);
 		return false;
 	}
 	if ((unsigned long long) i >= ARRAYOBJECT_LEN(arr)) {
-		errorobject_setwithfmt(interp, "ValueError", "%L is not a valid index for an array of length %L", i, (long long) ARRAYOBJECT_LEN(arr));
+		errorobject_throwfmt(interp, "ValueError", "%L is not a valid index for an array of length %L", i, (long long) ARRAYOBJECT_LEN(arr));
 		return false;
 	}
 	return true;
@@ -183,7 +183,7 @@ static struct Object *pop(struct Interpreter *interp, struct Object *args, struc
 
 	struct Object *res = arrayobject_pop(interp, ARRAYOBJECT_GET(args, 0));
 	if (!res)
-		errorobject_setwithfmt(interp, "ValueError", "cannot pop from an empty array");
+		errorobject_throwfmt(interp, "ValueError", "cannot pop from an empty array");
 	return res;
 }
 

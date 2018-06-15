@@ -16,7 +16,7 @@ ATTRIBUTE_DEFINE_SIMPLE_GETTER(lineno, StackFrame)
 
 static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	errorobject_setwithfmt(interp, "TypeError", "cannot create new StackFrame objects");
+	errorobject_throwfmt(interp, "TypeError", "cannot create new StackFrame objects");
 	return NULL;
 }
 
