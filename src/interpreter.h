@@ -36,6 +36,7 @@ struct Interpreter {
 		struct Object *Mapping;
 		struct Object *Object;   // yes, this works
 		struct Object *Scope;
+		struct Object *StackFrame;
 		struct Object *String;
 
 		struct Object *null;   // NOT the (void*)0 NULL, see Objects/null.{c,h}

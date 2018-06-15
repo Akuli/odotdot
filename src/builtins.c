@@ -22,8 +22,8 @@
 #include "objects/null.h"
 #include "objects/object.h"
 #include "objects/scope.h"
+#include "objects/stackframe.h"
 #include "objects/string.h"
-#include "stack.h"
 #include "unicode.h"
 
 
@@ -257,44 +257,7 @@ static struct Object *get_stack(struct Interpreter *interp, struct Object *args,
 	if (!check_args(interp, args, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct Object *result = arrayobject_newempty(interp);
-	if (!result)
-		return NULL;
-
-	for (struct StackFrame *f = interp->stack; f != interp->stackptr; f++) {
-		// TODO: is utf8 always the best possible file system encoding?
-		struct UnicodeString u;
-		if (!utf8_decode(interp, f->filename, strlen(f->filename), &u))
-			goto error;
-
-		struct Object *name = stringobject_newfromustr(interp, u);
-		free(u.val);
-		if (!name)
-			goto error;
-
-		struct Object *lineno = integerobject_newfromlonglong(interp, f->lineno);
-		if (!lineno) {
-			OBJECT_DECREF(interp, name);
-			goto error;
-		}
-
-		struct Object *pair = arrayobject_new(interp, (struct Object *[]) { name, lineno }, 2);
-		OBJECT_DECREF(interp, name);
-		OBJECT_DECREF(interp, lineno);
-		if (!pair)
-			goto error;
-
-		bool ok = arrayobject_push(interp, result, pair);
-		OBJECT_DECREF(interp, pair);
-		if (!ok)
-			goto error;
-	}
-
-	return result;
-
-error:
-	OBJECT_DECREF(interp, result);
-	return NULL;
+	return stackframeobject_getstack(interp);
 }
 
 
@@ -391,7 +354,7 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!(interp->builtins.Mapping = mappingobject_createclass(interp))) goto error;
 
 	// these classes must exist before methods exist, so they are handled specially
-	// TODO: rename addmethods to addattributes functions? methods are attributes
+	// TODO: rename addmethods to addattrib(ute)s functions? methods are attributes
 	if (!classobject_addmethods(interp)) goto error;
 	if (!objectobject_addmethods(interp)) goto error;
 	if (!stringobject_addmethods(interp)) goto error;
@@ -414,6 +377,7 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!(interp->builtins.AstNode = astnodeobject_createclass(interp))) goto error;
 	if (!(interp->builtins.Scope = scopeobject_createclass(interp))) goto error;
 	if (!(interp->builtins.Block = blockobject_createclass(interp))) goto error;
+	if (!(interp->builtins.StackFrame = stackframeobject_createclass(interp))) goto error;
 
 	if (!(interp->builtinscope = scopeobject_newbuiltin(interp))) goto error;
 
@@ -506,6 +470,7 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(Mapping);
 	TEARDOWN(Object);
 	TEARDOWN(Scope);
+	TEARDOWN(StackFrame);
 	TEARDOWN(String);
 	TEARDOWN(null);
 	TEARDOWN(nomemerr);

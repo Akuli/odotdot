@@ -37,6 +37,7 @@ struct Interpreter *interpreter_new(char *argv0)
 	interp->builtins.Integer =
 	interp->builtins.Mapping =
 	interp->builtins.Object =
+	interp->builtins.StackFrame =
 	interp->builtins.String =
 	interp->builtins.null =
 	interp->builtins.nomemerr =
