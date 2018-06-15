@@ -62,7 +62,7 @@ struct Object *mappingobject_newempty(struct Interpreter *interp)
 {
 	struct MappingObjectData *data = create_empty_data();
 	if (!data) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 
@@ -99,7 +99,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 	}
 	struct MappingObjectData *data = create_empty_data();
 	if (!data) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 
@@ -153,7 +153,7 @@ static bool make_bigger(struct Interpreter *interp, struct MappingObjectData *da
 
 	struct MappingObjectItem **newbuckets = calloc(newnbuckets, sizeof(struct MappingObjectItem));
 	if (!newbuckets) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return false;
 	}
 
@@ -225,7 +225,7 @@ bool mappingobject_set(struct Interpreter *interp, struct Object *map, struct Ob
 
 	struct MappingObjectItem *item = malloc(sizeof(struct MappingObjectItem));
 	if (!item) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return false;
 	}
 	item->key = key;

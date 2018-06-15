@@ -36,7 +36,7 @@ bool read_file_to_huge_string(struct Interpreter *interp, char *filename, FILE *
 		if (!ptr) {
 			// free(NULL) does nothing
 			free(s);
-			errorobject_setnomem(interp);
+			errorobject_thrownomem(interp);
 			return false;
 		}
 		s = ptr;

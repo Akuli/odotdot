@@ -103,7 +103,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 
 	long long *data = malloc(sizeof(long long));
 	if (!data) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 	if (!parse_ustr(interp, *((struct UnicodeString*) string->data), data))
@@ -183,7 +183,7 @@ struct Object *integerobject_newfromlonglong(struct Interpreter *interp, long lo
 
 	long long *data = malloc(sizeof(long long));
 	if (!data) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 	*data = val;

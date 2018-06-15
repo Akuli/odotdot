@@ -100,7 +100,7 @@ struct Object *classobject_new(struct Interpreter *interp, char *name, struct Ob
 
 	struct Object *klass = classobject_new_noerr(interp, name, baseclass, foreachref, inheritable);
 	if (!klass) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 
@@ -122,7 +122,7 @@ struct Object *classobject_newinstance(struct Interpreter *interp, struct Object
 	}
 	struct Object *instance = object_new_noerr(interp, klass, data, destructor);
 	if (!instance) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 	return instance;
@@ -228,7 +228,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 
 	struct ClassObjectData *data = create_data(interp, baseclass, NULL, inheritable);
 	if (!data) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 

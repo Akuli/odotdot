@@ -123,7 +123,7 @@ static struct Object *parse_call(struct Interpreter *interp, char *filename, str
 
 	struct AstCallInfo *callinfo = malloc(sizeof(struct AstCallInfo));
 	if (!callinfo) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 

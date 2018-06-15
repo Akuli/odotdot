@@ -26,7 +26,7 @@ bool unicodestring_copyinto(struct Interpreter *interp, struct UnicodeString src
 {
 	unicode_char *val = malloc(sizeof(unicode_char) * src.len);
 	if (!val) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return false;
 	}
 
@@ -40,12 +40,12 @@ struct UnicodeString *unicodestring_copy(struct Interpreter *interp, struct Unic
 {
 	struct UnicodeString *res = malloc(sizeof(struct UnicodeString));
 	if (!res) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 	if (!unicodestring_copyinto(interp, src, res)) {
 		free(res);
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 	return res;
@@ -106,7 +106,7 @@ bool utf8_encode(struct Interpreter *interp, struct UnicodeString unicode, char 
 
 	char *ptr = malloc(utf8len_val);
 	if (!ptr) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return false;
 	}
 
@@ -159,7 +159,7 @@ bool utf8_decode(struct Interpreter *interp, char *utf8, size_t utf8len, struct 
 	// this is realloc'd later to the correct size, feels better than many reallocs
 	result = malloc(utf8len*sizeof(unicode_char));
 	if (!result) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return false;
 	}
 

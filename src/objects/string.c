@@ -69,7 +69,7 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 	yesquotes.len = noquotes.len + 2;
 	yesquotes.val = malloc(sizeof(unicode_char) * yesquotes.len);
 	if (!yesquotes.val) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 	yesquotes.val[0] = yesquotes.val[yesquotes.len - 1] = '"';
@@ -433,7 +433,7 @@ struct Object *stringobject_newfromvfmt(struct Interpreter *interp, char *fmt, v
 	return res;
 
 nomem:
-	errorobject_setnomem(interp);
+	errorobject_thrownomem(interp);
 	// "fall through" to error
 
 error:

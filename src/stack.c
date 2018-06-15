@@ -22,7 +22,7 @@ bool stack_push(struct Interpreter *interp, char *filename, size_t lineno, struc
 	size_t len = strlen(filename);
 	char *tmp = malloc(len+1);
 	if (!tmp) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 	memcpy(tmp, filename, len+1);

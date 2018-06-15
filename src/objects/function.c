@@ -55,7 +55,7 @@ static struct Object *create_a_partial(struct Interpreter *interp, struct Object
 	struct FunctionData *data = func->data;
 	struct FunctionData *newdata = malloc(sizeof(struct FunctionData));
 	if (!newdata) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 
@@ -63,7 +63,7 @@ static struct Object *create_a_partial(struct Interpreter *interp, struct Object
 	newdata->npartialargs = data->npartialargs + npartialargs;
 	newdata->partialargs = malloc(sizeof(struct Object*) * newdata->npartialargs);
 	if (!newdata->partialargs) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		free(newdata);
 		return NULL;
 	}
@@ -183,7 +183,7 @@ struct Object *functionobject_new(struct Interpreter *interp, functionobject_cfu
 {
 	struct FunctionData *data = malloc(sizeof(struct FunctionData));
 	if (!data) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 

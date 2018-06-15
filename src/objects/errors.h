@@ -28,7 +28,7 @@ void errorobject_throwfmt(struct Interpreter *interp, char *classname, char *fmt
 void errorobject_printsimple(struct Interpreter *interp, struct Object *err);
 
 // never fails
-#define errorobject_setnomem(interp) do { \
+#define errorobject_thrownomem(interp) do { \
 		OBJECT_INCREF((interp), (interp)->builtins.nomemerr); \
 		(interp)->err = (interp)->builtins.nomemerr; \
 	} while (0)

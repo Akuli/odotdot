@@ -61,7 +61,7 @@ static struct Object *joiner(struct Interpreter *interp, struct Object **strings
 
 	ustr.val = malloc(sizeof(unicode_char) * ustr.len);
 	if (!ustr.val) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 
@@ -93,7 +93,7 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 	// TODO: check for overflow with * or use calloc?
 	struct Object **strings = malloc(sizeof(struct Object*) * ARRAYOBJECT_LEN(arr));
 	if (!strings) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 
@@ -240,7 +240,7 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **elems
 {
 	struct ArrayObjectData *data = malloc(sizeof(struct ArrayObjectData));
 	if (!data) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 
@@ -252,7 +252,7 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **elems
 
 	data->elems = malloc(data->nallocated * sizeof(struct Object*));
 	if (nelems > 0 && !(data->elems)) {   // malloc(0) MAY be NULL
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		free(data);
 		return NULL;
 	}
@@ -283,14 +283,14 @@ static bool resize(struct Interpreter *interp, struct ArrayObjectData *data)
 		// a very big array
 		// this is not the best possible error message but not too bad IMO
 		// nobody will actually have this happening anyway
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return false;
 	}
 
 	size_t newnallocated = data->nallocated > NALLOCATED_MAX/2 ? NALLOCATED_MAX : 2*data->nallocated;
 	void *ptr = realloc(data->elems, newnallocated * sizeof(struct Object*));
 	if (!ptr) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return false;
 	}
 

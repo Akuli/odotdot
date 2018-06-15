@@ -101,14 +101,14 @@ struct Object *astnodeobject_new(struct Interpreter *interp, char kind, char *fi
 {
 	struct AstNodeObjectData *data = malloc(sizeof(struct AstNodeObjectData));
 	if (!data) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 
 	size_t len = strlen(filename);
 	if (!(data->filename = malloc(len+1))) {
 		free(data);
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 	memcpy(data->filename, filename, len+1);
