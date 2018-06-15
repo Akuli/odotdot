@@ -1,4 +1,3 @@
-// TODO: add subclasses of Error
 #ifndef OBJECTS_ERRORS_H
 #define OBJECTS_ERRORS_H
 
