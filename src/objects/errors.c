@@ -224,8 +224,7 @@ void errorobject_printsimple(struct Interpreter *interp, struct Object *err)
 	return;
 
 cantprint:
-	fprintf(stderr, "\n%s: %s while printing an error\n",
-		interp->err==interp->builtins.nomemerr ? "ran out of memory" : "another error occurred");
+	fprintf(stderr, "\n%s: %s while printing an error\n", interp->argv0, interp->err==interp->builtins.nomemerr?"ran out of memory":"another error occurred");
 	OBJECT_DECREF(interp, interp->err);
 	interp->err = NULL;
 }

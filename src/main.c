@@ -58,19 +58,6 @@ bool read_file_to_huge_string(struct Interpreter *interp, char *filename, FILE *
 }
 
 
-static bool print_ustr(struct Interpreter *interp, struct UnicodeString u, FILE *f)
-{
-	char *utf8;
-	size_t utf8len;
-	if (!utf8_encode(interp, u, &utf8, &utf8len))
-		return false;
-
-	for (size_t i=0; i < utf8len; i++)
-		fputc(utf8[i], f);
-	free(utf8);
-	return true;
-}
-
 // TODO: print a stack trace and use stderr instead of stdout
 static void print_and_reset_err(struct Interpreter *interp)
 {
