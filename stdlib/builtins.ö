@@ -201,3 +201,40 @@ func "foreach varname array block" {
     # export class to the built-in namespace, but keep get_attrdata here
     {}.definition_scope.parent_scope.local_vars.set "class" class;
 }.run (new Scope {}.definition_scope);
+
+
+# src/builtins.c defines a get_stack function that returns a list of [filename lineno] sublists
+# this thing wraps them in StackFrame objects
+{
+    class "StackFrame" {
+        attrib "filename";    # a string
+        attrib "lineno";      # an Integer
+
+        method "to_string" {
+            return = ((("file ".concat this.filename).concat ", line ").concat (this.lineno.to_string));
+        };
+
+        method "to_debug_string" {
+            return = (("<StackFrame: ".concat (this.to_string)).concat ">");
+        };
+    };
+
+    var raw_get_stack = ({}.definition_scope.parent_scope.local_vars.get_and_delete "get_stack");
+
+    func "get_stack" {
+        var raw_stack = (raw_get_stack);
+        raw_stack.pop;    # ignore the stack frame that represents this get_stack function
+
+        return = [];
+        foreach "infolist" raw_stack {
+            assert (infolist.length `equals` 2);
+            var frame = (new StackFrame);
+            frame.filename = (infolist.get 0);
+            frame.lineno = (infolist.get 1);
+            return.push frame;
+        };
+    };
+
+    # export get_stack to the built-in scope
+    {}.definition_scope.parent_scope.local_vars.set "get_stack" get_stack;
+}.run (new Scope {}.definition_scope);
