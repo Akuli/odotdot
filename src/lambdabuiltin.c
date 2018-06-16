@@ -89,23 +89,6 @@ static struct Object *runner(struct Interpreter *interp, struct Object *args, st
 		return NULL;
 	}
 
-	// FIXME: this return variable thing sucks
-	struct Object *returnstring = stringobject_newfromcharptr(interp, "return");
-	if (!returnstring) {
-		OBJECT_DECREF(interp, localvars);
-		OBJECT_DECREF(interp, scope);
-		OBJECT_DECREF(interp, theargs);
-	}
-	struct Object *null = nullobject_get(interp);
-	assert(null);   // should never fail
-
-	ok = mappingobject_set(interp, localvars, returnstring, null);
-	OBJECT_DECREF(interp, null);
-	if (!ok) {
-		OBJECT_DECREF(interp, theargs);
-		goto error;
-	}
-
 	// add values of arguments...
 	for (size_t i=0; i < ARRAYOBJECT_LEN(argnames); i++) {
 		if (!mappingobject_set(interp, localvars, ARRAYOBJECT_GET(argnames, i), ARRAYOBJECT_GET(theargs, i))) {
@@ -133,25 +116,14 @@ static struct Object *runner(struct Interpreter *interp, struct Object *args, st
 			goto error;
 	}
 
-	ok = blockobject_run(interp, block, scope);
-	if (!ok)
-		goto error;
-	OBJECT_DECREF(interp, scope);
-
-	struct Object *retval;
-	int status = mappingobject_get(interp, localvars, returnstring, &retval);
+	struct Object *retval = blockobject_runwithreturn(interp, block, scope);
 	OBJECT_DECREF(interp, localvars);
-	OBJECT_DECREF(interp, returnstring);
-	if (status == 0)   // FIXME: ValueError feels wrong for this
-		errorobject_throwfmt(interp, "ValueError", "the local return variable was deleted");
-	if (status == 0 || status == -1)
-		return NULL;
+	OBJECT_DECREF(interp, scope);
 	return retval;
 
 error:
 	OBJECT_DECREF(interp, localvars);
 	OBJECT_DECREF(interp, scope);
-	OBJECT_DECREF(interp, returnstring);
 	return NULL;
 }
 

@@ -12,7 +12,6 @@ func "throws errorclass body" {
     assert threw;
 };
 
-
 test "nested arrays" {
     # nothing very special here
     # just want to make sure that nested [ ] get parsed correctly
@@ -44,7 +43,7 @@ test "foreach" {
 
 test "basic stuff" {
     # [] must create a new array every time
-    func "lol" { return = []; };
+    func "lol" { return []; };
     assert (not ((lol) `same_object` (lol)));
     (lol).push "TOOT";
     assert ((lol).length `equals` 0);
