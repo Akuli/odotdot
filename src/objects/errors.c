@@ -297,6 +297,32 @@ struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 }
 
 
+struct Object *errorobject_new(struct Interpreter *interp, struct Object *errorclass, struct Object *messagestring)
+{
+	struct ErrorData *data = malloc(sizeof(struct ErrorData));
+	if (!data) {
+		errorobject_thrownomem(interp);
+		return NULL;
+	}
+
+	data->message = messagestring;
+	OBJECT_INCREF(interp, messagestring);
+	data->stack = interp->builtins.null;
+	OBJECT_INCREF(interp, interp->builtins.null);
+
+	// builtins.ö must not define any errors that can't be constructed like this
+	struct Object *err = classobject_newinstance(interp, errorclass, data, error_destructor);
+	if (!err) {
+		OBJECT_DECREF(interp, data->message);
+		OBJECT_DECREF(interp, data->stack);
+		free(data);
+		return NULL;
+	}
+
+	return err;
+}
+
+
 void errorobject_throw(struct Interpreter *interp, struct Object *err)
 {
 	assert(!interp->err);
@@ -334,27 +360,11 @@ void errorobject_throwfmt(struct Interpreter *interp, char *classname, char *fmt
 		return;
 	}
 
-	struct ErrorData *data = malloc(sizeof(struct ErrorData));
-	if (!data) {
-		errorobject_thrownomem(interp);
-		OBJECT_DECREF(interp, klass);
-		OBJECT_DECREF(interp, msg);
-		return;
-	}
-
-	data->message = msg;
-	data->stack = interp->builtins.null;
-	OBJECT_INCREF(interp, interp->builtins.null);
-
-	// builtins.ö must not define any errors that can't be constructed like this
-	struct Object *err = classobject_newinstance(interp, klass, data, error_destructor);
+	struct Object *err = errorobject_new(interp, klass, msg);
 	OBJECT_DECREF(interp, klass);
-	if (!err) {
-		OBJECT_DECREF(interp, data->message);
-		OBJECT_DECREF(interp, data->stack);
-		free(data);
+	OBJECT_DECREF(interp, msg);
+	if (!err)
 		return;
-	}
 
 	errorobject_throw(interp, err);
 	OBJECT_DECREF(interp, err);

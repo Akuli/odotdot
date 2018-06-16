@@ -16,6 +16,11 @@ struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp);
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *errorobject_createmarkererrorclass(struct Interpreter *interp);
 
+// NOT GUARANTEED TO WORK with all error classes
+// but all built-in errors work fine
+// RETURNS A NEW REFERENCE or NULL on error
+struct Object *errorobject_new(struct Interpreter *interp, struct Object *errorclass, struct Object *messagestring);
+
 // if this fails, interp->err is set to an error describing that failure, so there's no need to check that
 // that's why this thing returns void
 // bad things happen if err is not an Error object
