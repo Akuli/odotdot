@@ -22,10 +22,11 @@ void errorobject_throw(struct Interpreter *interp, struct Object *err);
 // throws an error with a string created with stringobject_newfromfmt
 void errorobject_throwfmt(struct Interpreter *interp, char *classname, char *fmt, ...);
 
-// prints "ClassName: message" without a stack trace to stderr
+// prints "ClassName: message" and a stack trace to stderr
+// if builtins.ö hasn't been loaded, there will be no stack trace
 // if this fails, the failure is printed
 // interp->err must be NULL when calling this, and it's always NULL when this returns
-void errorobject_printsimple(struct Interpreter *interp, struct Object *err);
+void errorobject_print(struct Interpreter *interp, struct Object *err);
 
 // never fails
 #define errorobject_thrownomem(interp) do { \

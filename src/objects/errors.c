@@ -146,6 +146,45 @@ static struct Object *stack_setter(struct Interpreter *interp, struct Object *ar
 	return nullobject_get(interp);
 }
 
+static bool print_ustr(struct Interpreter *interp, struct UnicodeString u)
+{
+	char *utf8;
+	size_t utf8len;
+	if (!utf8_encode(interp, u, &utf8, &utf8len))
+		return false;
+
+	for (size_t i = 0; i < utf8len; i++)
+		fputc(utf8[i], stderr);
+	free(utf8);
+	return true;
+}
+
+// builtins.ö replaces this stupid thing with a method that actually prints the stack
+static struct Object *print_stack(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	struct Object *err = ARRAYOBJECT_GET(args, 0);
+	if (!check_data(interp, err)) return NULL;
+
+	if (err == interp->builtins.nomemerr) {
+		// no more memory can be allocated
+		fprintf(stderr, "MemError: not enough memory\n");
+		return nullobject_get(interp);
+	}
+
+	if (!print_ustr(interp, ((struct ClassObjectData *) err->klass->data)->name))
+		return NULL;
+	fputs(": ", stderr);
+	struct ErrorData *data = err->data;
+	if (!print_ustr( interp, *((struct UnicodeString *) data->message->data) ))
+		return NULL;
+	fputc('\n', stderr);
+
+	return nullobject_get(interp);
+}
+
 static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
@@ -163,6 +202,7 @@ bool errorobject_addmethods(struct Interpreter *interp)
 	if (!attribute_add(interp, interp->builtins.Error, "message", message_getter, message_setter)) return false;
 	if (!attribute_add(interp, interp->builtins.Error, "stack", stack_getter, stack_setter)) return false;
 	if (!method_add(interp, interp->builtins.Error, "setup", setup)) return false;
+	if (!method_add(interp, interp->builtins.Error, "print_stack", print_stack)) return false;
 	if (!method_add(interp, interp->builtins.Error, "to_debug_string", to_debug_string)) return false;
 	return true;
 }
@@ -299,40 +339,17 @@ void errorobject_throwfmt(struct Interpreter *interp, char *classname, char *fmt
 }
 
 
-static bool print_ustr(struct Interpreter *interp, struct UnicodeString u)
-{
-	char *utf8;
-	size_t utf8len;
-	if (!utf8_encode(interp, u, &utf8, &utf8len))
-		return false;
-
-	for (size_t i = 0; i < utf8len; i++)
-		fputc(utf8[i], stderr);
-	free(utf8);
-	return true;
-}
-
-void errorobject_printsimple(struct Interpreter *interp, struct Object *err)
+void errorobject_print(struct Interpreter *interp, struct Object *err)
 {
 	assert(!interp->err);
 
-	if (err == interp->builtins.nomemerr) {
-		// no more memory can be allocated
-		fprintf(stderr, "MemError: not enough memory\n");
-		return;
+	// the stack printing is implemented in pure Ö
+	struct Object *res = method_call(interp, err, "print_stack", NULL);
+	if (res) {
+		OBJECT_DECREF(interp, res);
+	} else {
+		fprintf(stderr, "\n%s: %s while printing an error\n", interp->argv0, interp->err==interp->builtins.nomemerr?"ran out of memory":"another error occurred");
+		OBJECT_DECREF(interp, interp->err);
+		interp->err = NULL;
 	}
-
-	if (!print_ustr(interp, ((struct ClassObjectData *) err->klass->data)->name))
-		goto cantprint;
-	fputs(": ", stderr);
-	struct ErrorData *data = err->data;
-	if (!print_ustr( interp, *((struct UnicodeString *) data->message->data) ))
-		goto cantprint;
-	fputc('\n', stderr);
-	return;
-
-cantprint:
-	fprintf(stderr, "\n%s: %s while printing an error\n", interp->argv0, interp->err==interp->builtins.nomemerr?"ran out of memory":"another error occurred");
-	OBJECT_DECREF(interp, interp->err);
-	interp->err = NULL;
 }

@@ -434,7 +434,7 @@ error:
 	assert(interp->err);
 	struct Object *errsave = interp->err;
 	interp->err = NULL;
-	errorobject_printsimple(interp, errsave);
+	errorobject_print(interp, errsave);
 	OBJECT_DECREF(interp, errsave);
 	return false;
 

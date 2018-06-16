@@ -64,13 +64,13 @@ static void print_and_reset_err(struct Interpreter *interp)
 	assert(interp->err);
 	struct Object *errsave = interp->err;
 	interp->err = NULL;
-	errorobject_printsimple(interp, errsave);
+	errorobject_print(interp, errsave);
 	OBJECT_DECREF(interp, errsave);
 }
 
 
-// prints errors to stderr
-// returns an exit code, e.g. 0 for success
+// reads and runs a file
+// prints errors to stderr, returns an exit code e.g. 0 for success
 static int run_file(struct Interpreter *interp, struct Object *scope, char *path)
 {
 	FILE *f = fopen(path, "rb");   // b because the content is decoded below... i think this is good

@@ -85,6 +85,7 @@ while.name = "while";
 
 
 add_method Error "print_stack" (lambda "this" {
+    # TODO: use stderr instead of stdout
     catch {
         print (((get_class this).name.concat ": ").concat this.message);
 
