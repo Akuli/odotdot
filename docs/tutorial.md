@@ -291,6 +291,18 @@ func "print_twice string" {
 print_twice "hello";
 ```
 
+Functions defined like `func "name args" { ... };`run in a new
+[subscope](#scopes) of `{ ... }.definition_scope`.
+
+```python
+func "thingy" {
+    var x = "hi";
+};
+
+thingy;
+print x;      # fails!
+```
+
 The string that `func` takes describes how the function must be called, and it
 should contain variable names separated by spaces. All variable names except
 the first are argument names of the function, and the resulting function ends
@@ -304,52 +316,6 @@ debug print_twice;   # prints <Function "print_twice" at 0xblablabla>
 debug print;         # prints <Function "print" at 0xblablabla>
 debug func;          # prints <Function "func" at 0xblablabla>
 ```
-
-You can pass any number of arguments you want to `func`.
-
-```python
-func "hello" {
-    print "hello";
-};
-hello;
-
-func "print3 a b c" {
-    print a;
-    print b;
-    print c;
-};
-print3 "hello" "world" "test";
-```
-
-`func` runs the block passed to it like this:
-1. A new subscope of the block's definition scope is created.
-2. A local `return` variable of the subscope is set to `null`.
-3. The block is ran in the subscope.
-4. The current value of the `return` variable is returned.
-
-To be honest, I don't like this `return` variable thing. I'll implement a
-*real* return later. Meanwhile, if you want to return something from a
-function, just set the `return` variable to something:
-
-```python
-func "asd" {
-    return = "asd asd";
-};
-
-print (asd);    # prints "asd asd"
-```
-
-Note that returning doesn't end the function like it does in many other
-programming languages, so this function...
-
-```python
-func "thingy" {
-    return = 123;
-    print "still alive";
-};
-```
-
-...prints `still alive`.
 
 It's time to write our own **pure-Ö implementation of if** without using the
 built-in if at all! Let's do it.
@@ -379,6 +345,48 @@ This is quite awesome IMO. Our `fake_if` is implemented purely in the language
 itself, but it's still called exactly like the built-in `if`. Many "built-in"
 functions are actually implemented in Ö; see
 [stdlib/builtins.ö](../stdlib/builtins.ö) for their source code.
+
+
+## Returning
+
+You can return values a lot like in many other programming languages.
+
+```python
+func "asd" {
+    return "asd asd";
+    print "this never gets printed, returning ends the function";
+};
+
+print (asd);    # prints "asd asd"
+```
+
+Here the `return` function is just a local variable added to the scope that the
+code runs in. The function returns `null` if `return` is never called, and
+`return;` is equivalent to `return null;`.
+
+There's also some syntactic sugar: `{ value }` without a `;` is equivalent to
+`{ return value; }`.
+
+```python
+func "lol" { "asda" };
+print (lol);    # prints "asda"
+```
+
+This is useful with functions like [while](builtins.md#while):
+
+```python
+# print numbers 0 to 9
+var i = 0;
+while { (not (i `equals` 10)) } {
+    print (i.to_string);
+    i = (i.plus 1);   # there's no + operator yet and it sucks
+};
+```
+
+Rust-style `{ something; the_return_value }` syntax is not supported because
+`{ value }` is meant to be used when writing `return` everywhere would be
+annoying, not as a replacement to `{ return value; }`. In other words,
+`{ return value; }` is not bad style in Ö like it is in rust.
 
 
 ## Options

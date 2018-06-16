@@ -132,8 +132,10 @@ var y = [];
 
 ### while
 
-`while { return condition; } block;` runs `block` repeatedly until `condition`
-evaluates to [false].
+`while { condition } block;` runs `block` repeatedly until `condition`
+evaluates to [false]. Here `{ condition }` is syntactic sugar for
+`{ return condition; }`; see block expressions documented in
+[the syntax spec](syntax-spec.md#parsing-to-ast).
 
 `while` creates a new subscope of `block`'s [definition scope]. Then it runs
 the first argument in it, and that should return [true] or [false]; if it
@@ -146,15 +148,13 @@ Bugs:
 - There's no `break` or `continue` yet.
 - `while` is implemented with recursion, so infinite loops don't work.
 - `while` is slow.
-- The `{ return condition; }` syntax sucks. I'll hopefully implement a
-  `{ condition }` syntax that is equivalent to `{ return condition; }` soon.
 
 Example:
 
 ```python
 # print numbers from 0 to 9
 var i = 0;
-while { return (not (i `equals` 10)); } {
+while { (not (i `equals` 10)) } {
     print (i.to_string);
     i = (i.plus 1);   # yes, this sucks... no + operator yet
 };
@@ -553,7 +553,7 @@ For example, you can access the built-in scope like this:
 
 ```python
 var builtin_scope = {}.definition_scope;
-while { keep_going = (not (builtin_scope.definition_scope `same_object` null)); } {
+while { (not (builtin_scope.definition_scope `same_object` null)) } {
     builtin_scope = builtin_scope.parent_scope;
 };
 # now (builtin_scope.local_vars.get "while") works

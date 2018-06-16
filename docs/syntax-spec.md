@@ -147,7 +147,6 @@ Here's a list of all supported kinds of expressions:
   block that does nothing, and `{ expression }` without a `;` is equivalent to
   `{ return expression; }`. However, `{ statement; expression }` is a syntax
   error.
-  TODO: the Ö interpreter doesn't support the `{ expression }` syntax yet :(
 
 Here's a list of statements:
 - Function calls: `function arg1 arg2 arg3;` is like the
