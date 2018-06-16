@@ -13,6 +13,9 @@ bool errorobject_addmethods(struct Interpreter *interp);
 // RETURNS A NEW REFERENCE or NULL on no mem
 struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp);
 
+// RETURNS A NEW REFERENCE or NULL on error
+struct Object *errorobject_createmarkererrorclass(struct Interpreter *interp);
+
 // if this fails, interp->err is set to an error describing that failure, so there's no need to check that
 // that's why this thing returns void
 // bad things happen if err is not an Error object

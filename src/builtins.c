@@ -378,6 +378,7 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!(interp->builtins.Scope = scopeobject_createclass(interp))) goto error;
 	if (!(interp->builtins.Block = blockobject_createclass(interp))) goto error;
 	if (!(interp->builtins.StackFrame = stackframeobject_createclass(interp))) goto error;
+	if (!(interp->builtins.MarkerError = errorobject_createmarkererrorclass(interp))) goto error;
 
 	if (!(interp->builtinscope = scopeobject_newbuiltin(interp))) goto error;
 
@@ -455,6 +456,7 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(Function);
 	TEARDOWN(Integer);
 	TEARDOWN(Mapping);
+	TEARDOWN(MarkerError);
 	TEARDOWN(Object);
 	TEARDOWN(Scope);
 	TEARDOWN(StackFrame);

@@ -45,6 +45,7 @@ struct Object *errorobject_createclass_noerr(struct Interpreter *interp)
 	return classobject_new_noerr(interp, "Error", interp->builtins.Object, error_foreachref, true);
 }
 
+
 static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.String, NULL)) return NULL;
@@ -205,6 +206,13 @@ bool errorobject_addmethods(struct Interpreter *interp)
 	if (!method_add(interp, interp->builtins.Error, "print_stack", print_stack)) return false;
 	if (!method_add(interp, interp->builtins.Error, "to_debug_string", to_debug_string)) return false;
 	return true;
+}
+
+
+struct Object *errorobject_createmarkererrorclass(struct Interpreter *interp)
+{
+	assert(interp->builtins.Error);
+	return classobject_new(interp, "MarkerError", interp->builtins.Error, NULL, false);
 }
 
 
