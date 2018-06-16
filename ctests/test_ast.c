@@ -18,7 +18,7 @@
 
 static struct Object *newnode(char kind, void *info)
 {
-	struct Object *res = astnodeobject_new(testinterp, kind, 123, info);
+	struct Object *res = astnodeobject_new(testinterp, kind, "<test>", 123, info);
 	buttert(res);
 	return res;
 }
@@ -104,7 +104,7 @@ static struct Object *parse_expression_string(char *s)
 	free(hugestring.val);
 
 	struct Token *tmp = tok1st;
-	struct Object *node = parse_expression(testinterp, &tmp);
+	struct Object *node = parse_expression(testinterp, "<test>", &tmp);
 	buttert(!tmp);
 	token_freeall(tok1st);
 	buttert2(node, s);
@@ -124,7 +124,7 @@ static struct Object *parse_statement_string(char *s)
 	free(hugestring.val);
 
 	struct Token *tmp = tok1st;
-	struct Object *node = parse_statement(testinterp, &tmp);
+	struct Object *node = parse_statement(testinterp, "<test>", &tmp);
 	token_freeall(tok1st);
 	buttert2(node, s);
 	return node;

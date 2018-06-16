@@ -16,7 +16,7 @@ bool check_type(struct Interpreter *interp, struct Object *klass, struct Object 
 {
 	if (!classobject_isinstanceof(obj, klass)) {
 		struct UnicodeString name = ((struct ClassObjectData*) klass->data)->name;
-		errorobject_setwithfmt(interp, "TypeError", "expected an instance of %U, got %D", name, obj);
+		errorobject_throwfmt(interp, "TypeError", "expected an instance of %U, got %D", name, obj);
 		return false;
 	}
 	return true;
@@ -26,7 +26,7 @@ bool check_args_with_array(struct Interpreter *interp, struct Object *args, stru
 {
 	// TODO: include the function name in the error?
 	if (ARRAYOBJECT_LEN(args) != ARRAYOBJECT_LEN(types)) {
-		errorobject_setwithfmt(interp, "ArgError", "%s arguments: expected %L, got %L",
+		errorobject_throwfmt(interp, "ArgError", "%s arguments: expected %L, got %L",
 			ARRAYOBJECT_LEN(args)>ARRAYOBJECT_LEN(types) ? "too many" : "not enough",
 			(long long) ARRAYOBJECT_LEN(types), (long long) ARRAYOBJECT_LEN(args));
 		return false;
@@ -77,7 +77,7 @@ bool check_opts_with_mapping(struct Interpreter *interp, struct Object *opts, st
 				return false;
 		} else {
 			if (status == 0)    // not found
-				errorobject_setwithfmt(interp, "ArgError", "unexpected option %D", iter.key);
+				errorobject_throwfmt(interp, "ArgError", "unexpected option %D", iter.key);
 			return false;
 		}
 	}
@@ -130,7 +130,7 @@ bool check_opts(struct Interpreter *interp, struct Object *opts, ...)
 		struct MappingObjectIter iter;
 		mappingobject_iterbegin(&iter, opts);
 		mappingobject_iternext(&iter);
-		errorobject_setwithfmt(interp, "ArgError", "unexpected option %D", iter.key);
+		errorobject_throwfmt(interp, "ArgError", "unexpected option %D", iter.key);
 		return false;
 	}
 

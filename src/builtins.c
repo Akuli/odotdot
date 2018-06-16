@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "attribute.h"
 #include "check.h"
 #include "equals.h"
@@ -21,6 +22,7 @@
 #include "objects/null.h"
 #include "objects/object.h"
 #include "objects/scope.h"
+#include "objects/stackframe.h"
 #include "objects/string.h"
 #include "unicode.h"
 
@@ -105,9 +107,7 @@ static struct Object *throw(struct Interpreter *interp, struct Object *args, str
 	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	assert(!interp->err);
-	interp->err = ARRAYOBJECT_GET(args, 0);
-	OBJECT_INCREF(interp, interp->err);
+	errorobject_throw(interp, ARRAYOBJECT_GET(args, 0));
 	return NULL;
 }
 
@@ -127,7 +127,7 @@ static struct Object *catch(struct Interpreter *interp, struct Object *args, str
 		varname = NULL;
 	} else if (classobject_isinstanceof(errspec, interp->builtins.Array)) {
 		if (ARRAYOBJECT_LEN(errspec) != 2) {
-			errorobject_setwithfmt(interp, "ValueError", "expected a pair like [errorclass varname], got %D", errspec);
+			errorobject_throwfmt(interp, "ValueError", "expected a pair like [errorclass varname], got %D", errspec);
 			return NULL;
 		}
 		errclass = ARRAYOBJECT_GET(errspec, 0);
@@ -135,12 +135,12 @@ static struct Object *catch(struct Interpreter *interp, struct Object *args, str
 		if (!check_type(interp, interp->builtins.Class, errclass)) return NULL;
 		if (!check_type(interp, interp->builtins.String, varname)) return NULL;
 	} else {
-		errorobject_setwithfmt(interp, "TypeError", "expected a subclass of Error or an [errorclass varname] array, got %D", errspec);
+		errorobject_throwfmt(interp, "TypeError", "expected a subclass of Error or an [errorclass varname] array, got %D", errspec);
 		return NULL;
 	}
 
 	if (!classobject_issubclassof(errclass, interp->builtins.Error)) {
-		errorobject_setwithfmt(interp, "TypeError", "cannot catch %U, it doesn't inherit from Error", ((struct ClassObjectData*)errclass->data)->name);
+		errorobject_throwfmt(interp, "TypeError", "cannot catch %U, it doesn't inherit from Error", ((struct ClassObjectData*)errclass->data)->name);
 		return NULL;
 	}
 
@@ -150,10 +150,11 @@ static struct Object *catch(struct Interpreter *interp, struct Object *args, str
 	if (ok)
 		return nullobject_get(interp);
 
+	assert(interp->err);
+
 	if (!classobject_isinstanceof(interp->err, errclass))
 		return NULL;
 
-	assert(interp->err);
 	struct Object *err = interp->err;
 	interp->err = NULL;
 
@@ -248,11 +249,21 @@ static struct Object *print(struct Interpreter *interp, struct Object *args, str
 	return nullobject_get(interp);
 }
 
+// returns a list of [filename lineno] sublists
+// see stack.c and stack.h
+static struct Object *get_stack(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	return stackframeobject_getstack(interp);
+}
+
 
 static struct Object *new(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (ARRAYOBJECT_LEN(args) == 0) {
-		errorobject_setwithfmt(interp, "ArgError", "new needs at least 1 argument, the class");
+		errorobject_throwfmt(interp, "ArgError", "new needs at least 1 argument, the class");
 		return NULL;
 	}
 	if (!check_type(interp, interp->builtins.Class, ARRAYOBJECT_GET(args, 0)))
@@ -332,6 +343,7 @@ bool builtins_setup(struct Interpreter *interp)
 	interp->builtins.Class->klass = interp->builtins.Class;
 	OBJECT_INCREF(interp, interp->builtins.Class);
 
+	if (!(interp->builtins.null = nullobject_create_noerr(interp))) goto error;
 	if (!(interp->builtins.String = stringobject_createclass_noerr(interp))) goto nomem;
 	if (!(interp->builtins.Error = errorobject_createclass_noerr(interp))) goto nomem;
 	if (!(interp->builtins.nomemerr = errorobject_createnomemerr_noerr(interp))) goto nomem;
@@ -342,7 +354,8 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!(interp->builtins.Mapping = mappingobject_createclass(interp))) goto error;
 
 	// these classes must exist before methods exist, so they are handled specially
-	// TODO: rename addmethods to addattributes functions? methods are attributes
+	// TODO: rename addmethods to addattrib(ute)s functions? methods are attributes
+	if (!nullobject_addmethods(interp)) goto error;
 	if (!classobject_addmethods(interp)) goto error;
 	if (!objectobject_addmethods(interp)) goto error;
 	if (!stringobject_addmethods(interp)) goto error;
@@ -350,21 +363,21 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!mappingobject_addmethods(interp)) goto error;
 	if (!functionobject_addmethods(interp)) goto error;
 
+	if (!classobject_setname(interp, interp->builtins.null->klass, "Null")) goto error;
 	if (!classobject_setname(interp, interp->builtins.Class, "Class")) goto error;
 	if (!classobject_setname(interp, interp->builtins.Object, "Object")) goto error;
 	if (!classobject_setname(interp, interp->builtins.String, "String")) goto error;
 	if (!classobject_setname(interp, interp->builtins.Mapping, "Mapping")) goto error;
 	if (!classobject_setname(interp, interp->builtins.Function, "Function")) goto error;
-
 	if (!classobject_setname(interp, interp->builtins.Error, "Error")) goto error;
 	if (!classobject_setname(interp, interp->builtins.nomemerr->klass, "MemError")) goto error;
 
-	if (!(interp->builtins.null = nullobject_create(interp))) goto error;
 	if (!(interp->builtins.Array = arrayobject_createclass(interp))) goto error;
 	if (!(interp->builtins.Integer = integerobject_createclass(interp))) goto error;
 	if (!(interp->builtins.AstNode = astnodeobject_createclass(interp))) goto error;
 	if (!(interp->builtins.Scope = scopeobject_createclass(interp))) goto error;
 	if (!(interp->builtins.Block = blockobject_createclass(interp))) goto error;
+	if (!(interp->builtins.StackFrame = stackframeobject_createclass(interp))) goto error;
 
 	if (!(interp->builtinscope = scopeobject_newbuiltin(interp))) goto error;
 
@@ -391,6 +404,7 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!add_function(interp, "print", print)) goto error;
 	if (!add_function(interp, "same_object", same_object)) goto error;
 	if (!add_function(interp, "get_attrdata", get_attrdata)) goto error;
+	if (!add_function(interp, "get_stack", get_stack)) goto error;
 
 	// compile like this:   $ CFLAGS=-DDEBUG_BUILTINS make clean all
 #ifdef DEBUG_BUILTINS
@@ -417,24 +431,11 @@ bool builtins_setup(struct Interpreter *interp)
 	return true;
 
 error:
-	fprintf(stderr, "an error occurred :(\n");    // TODO: better error message printing!
-	assert(0);
-
-	struct Object *print = interpreter_getbuiltin(interp, "print");
-	if (print) {
-		struct Object *err = interp->err;
-		interp->err = NULL;
-		struct Object *printres = functionobject_call(interp, print, (struct Object *) err->data, NULL);
-		OBJECT_DECREF(interp, err);
-		if (printres)
-			OBJECT_DECREF(interp, printres);
-		else     // print failed, interp->err is decreffed below
-			OBJECT_DECREF(interp, interp->err);
-		OBJECT_DECREF(interp, print);
-	}
-
-	OBJECT_DECREF(interp, interp->err);
+	assert(interp->err);
+	struct Object *errsave = interp->err;
 	interp->err = NULL;
+	errorobject_printsimple(interp, errsave);
+	OBJECT_DECREF(interp, errsave);
 	return false;
 
 nomem:
@@ -456,6 +457,7 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(Mapping);
 	TEARDOWN(Object);
 	TEARDOWN(Scope);
+	TEARDOWN(StackFrame);
 	TEARDOWN(String);
 	TEARDOWN(null);
 	TEARDOWN(nomemerr);

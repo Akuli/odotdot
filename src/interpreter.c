@@ -24,6 +24,7 @@ struct Interpreter *interpreter_new(char *argv0)
 	}
 
 	interp->argv0 = argv0;
+	interp->stackptr = interp->stack;   // make it point to the 1st element
 
 	interp->err =
 	interp->builtinscope =
@@ -36,6 +37,7 @@ struct Interpreter *interpreter_new(char *argv0)
 	interp->builtins.Integer =
 	interp->builtins.Mapping =
 	interp->builtins.Object =
+	interp->builtins.StackFrame =
 	interp->builtins.String =
 	interp->builtins.null =
 	interp->builtins.nomemerr =

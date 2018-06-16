@@ -25,7 +25,7 @@ static bool parse_ustr(struct Interpreter *interp, struct UnicodeString ustr, lo
 {
 	struct UnicodeString origstr = ustr;
 	if (ustr.len == 0) {
-		errorobject_setwithfmt(interp, "ValueError", "'' is not an integer");
+		errorobject_throwfmt(interp, "ValueError", "'' is not an integer");
 		return false;
 	}
 
@@ -43,7 +43,7 @@ static bool parse_ustr(struct Interpreter *interp, struct UnicodeString ustr, lo
 	}
 
 	if (ustr.len == 0) {
-		errorobject_setwithfmt(interp, "ValueError", "'%U' is not an integer", origstr);
+		errorobject_throwfmt(interp, "ValueError", "'%U' is not an integer", origstr);
 		return false;
 	}
 	if (ustr.len > INTEGEROBJECT_MAXDIGITS) {
@@ -55,7 +55,7 @@ static bool parse_ustr(struct Interpreter *interp, struct UnicodeString ustr, lo
 	int digits[INTEGEROBJECT_MAXDIGITS];
 	for (int i=0; i < (int)ustr.len; i++) {
 		if (ustr.val[i] < '0' || ustr.val[i] > '9') {
-			errorobject_setwithfmt(interp, "ValueError", "'%U' is not an integer", origstr);
+			errorobject_throwfmt(interp, "ValueError", "'%U' is not an integer", origstr);
 			return false;
 		}
 		digits[i] = ustr.val[i] - '0';
@@ -78,7 +78,7 @@ static bool parse_ustr(struct Interpreter *interp, struct UnicodeString ustr, lo
 	return true;
 
 mustBbetween:
-	errorobject_setwithfmt(interp, "ValueError", "integers must be between %s and %s, but '%U' is not", INTEGEROBJECT_MINSTR, INTEGEROBJECT_MAXSTR, origstr);
+	errorobject_throwfmt(interp, "ValueError", "integers must be between %s and %s, but '%U' is not", INTEGEROBJECT_MINSTR, INTEGEROBJECT_MAXSTR, origstr);
 	return false;
 }
 
@@ -97,13 +97,13 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 	struct Object *integer = ARRAYOBJECT_GET(args, 0);
 	struct Object *string = ARRAYOBJECT_GET(args, 1);
 	if (integer->data) {
-		errorobject_setwithfmt(interp, "AssertError", "setup was called twice");
+		errorobject_throwfmt(interp, "AssertError", "setup was called twice");
 		return NULL;
 	}
 
 	long long *data = malloc(sizeof(long long));
 	if (!data) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 	if (!parse_ustr(interp, *((struct UnicodeString*) string->data), data))
@@ -183,7 +183,7 @@ struct Object *integerobject_newfromlonglong(struct Interpreter *interp, long lo
 
 	long long *data = malloc(sizeof(long long));
 	if (!data) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 	*data = val;

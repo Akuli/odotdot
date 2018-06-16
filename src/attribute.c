@@ -145,7 +145,7 @@ struct Object *attribute_getwithstringobj(struct Interpreter *interp, struct Obj
 		assert(res == 0);   // not found
 	} while ((klass = klassdata->baseclass));
 
-	errorobject_setwithfmt(interp, "AttribError", "%U objects don't have an attribute named %D",
+	errorobject_throwfmt(interp, "AttribError", "%U objects don't have an attribute named %D",
 		((struct ClassObjectData *) obj->klass->data)->name, stringobj);
 	return NULL;
 }
@@ -188,7 +188,7 @@ bool attribute_setwithstringobj(struct Interpreter *interp, struct Object *obj, 
 	} while ((klass = klassdata->baseclass));
 
 	// TODO: check if there's a getter for the attribute for better error messages
-	errorobject_setwithfmt(interp, "AttribError", "%U objects don't have an attribute named %D or it's read-only",
+	errorobject_throwfmt(interp, "AttribError", "%U objects don't have an attribute named %D or it's read-only",
 		((struct ClassObjectData *) obj->klass->data)->name, stringobj);
 	return false;
 }

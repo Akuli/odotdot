@@ -12,11 +12,13 @@
 #include "tokenizer.h"
 #include "unicode.h"
 #include "objects/array.h"
+#include "objects/astnode.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
 #include "objects/function.h"
 #include "objects/scope.h"
 #include "parse.h"
+#include "stack.h"
 
 #define FILE_CHUNK_SIZE 4096
 
@@ -34,7 +36,7 @@ bool read_file_to_huge_string(struct Interpreter *interp, char *filename, FILE *
 		if (!ptr) {
 			// free(NULL) does nothing
 			free(s);
-			errorobject_setnomem(interp);
+			errorobject_thrownomem(interp);
 			return false;
 		}
 		s = ptr;
@@ -46,7 +48,7 @@ bool read_file_to_huge_string(struct Interpreter *interp, char *filename, FILE *
 		free(s);
 		// TODO: use a more appropriate error class if/when it will be available
 		// TODO: include more stuff in the error message, maybe use errno and strerror stuff
-		errorobject_setwithfmt(interp, "ValueError", "an error occurred while reading '%s'", filename);
+		errorobject_throwfmt(interp, "ValueError", "an error occurred while reading '%s'", filename);
 		return false;
 	}
 
@@ -56,56 +58,14 @@ bool read_file_to_huge_string(struct Interpreter *interp, char *filename, FILE *
 }
 
 
-static bool print_ustr(struct Interpreter *interp, struct UnicodeString u, FILE *f)
-{
-	char *utf8;
-	size_t utf8len;
-	if (!utf8_encode(interp, u, &utf8, &utf8len))
-		return false;
-
-	for (size_t i=0; i < utf8len; i++)
-		fputc(utf8[i], f);
-	free(utf8);
-	return true;
-}
-
 // TODO: print a stack trace and use stderr instead of stdout
 static void print_and_reset_err(struct Interpreter *interp)
 {
-	if (!(interp->err)) {
-		// no error to print, nothing to reset
-		fprintf(stderr, "%s: interp->err wasn't set correctly\n", interp->argv0);
-		return;
-	}
-
-	if (interp->err == interp->builtins.nomemerr) {
-		// no memory must be allocated in this case...
-		fprintf(stderr, "MemError: not enough memory\n");
-	} else {
-		// utf8_encode may set another error
-		struct Object *errsave = interp->err;
-		interp->err = NULL;
-
-		if (!print_ustr(interp, ((struct ClassObjectData*) errsave->klass->data)->name, stderr)) {
-			fprintf(stderr, "failed to display the error\n");
-			OBJECT_DECREF(interp, errsave);
-			goto end;    // interp->err was set to the utf8_encode error and THAT is cleared
-		}
-		fputc(':', stderr);
-		fputc(' ', stderr);
-		if (!print_ustr(interp, *((struct UnicodeString*) ((struct Object*) errsave->data)->data), stderr)) {
-			fprintf(stderr, "\nfailed to display the error\n");
-			OBJECT_DECREF(interp, errsave);
-			goto end;
-		}
-		OBJECT_DECREF(interp, errsave);
-		fputc('\n', stderr);
-		return;
-	}
-
-end:
-	OBJECT_DECREF(interp, interp->err);
+	assert(interp->err);
+	struct Object *errsave = interp->err;
 	interp->err = NULL;
+	errorobject_printsimple(interp, errsave);
+	OBJECT_DECREF(interp, errsave);
 }
 
 
@@ -153,7 +113,7 @@ static int run_file(struct Interpreter *interp, struct Object *scope, char *path
 
 	struct Token *curtok = tok1st;
 	while (curtok) {
-		struct Object *stmtnode = parse_statement(interp, &curtok);
+		struct Object *stmtnode = parse_statement(interp, path, &curtok);
 		if (!stmtnode) {
 			print_and_reset_err(interp);
 			token_freeall(tok1st);
@@ -174,7 +134,15 @@ static int run_file(struct Interpreter *interp, struct Object *scope, char *path
 
 	// run!
 	for (size_t i=0; i < ARRAYOBJECT_LEN(statements); i++) {
-		if (!run_statement(interp, scope, ARRAYOBJECT_GET(statements, i))) {
+		struct AstNodeObjectData *astdata = ARRAYOBJECT_GET(statements, i)->data;
+		if (!stack_push(interp, path, astdata->lineno, scope)) {
+			print_and_reset_err(interp);
+			returnval = 1;
+			goto end;
+		}
+		ok = run_statement(interp, scope, ARRAYOBJECT_GET(statements, i));
+		stack_pop(interp);
+		if (!ok) {
 			print_and_reset_err(interp);
 			returnval = 1;
 			goto end;

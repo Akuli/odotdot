@@ -1,6 +1,7 @@
 #ifndef ATTRIBUTE_H
 #define ATTRIBUTE_H
 
+#include "check.h"   // for the ATTRIBUTE_DEFINE_blah macros
 #include "interpreter.h"    // IWYU pragma: keep
 #include "objectsystem.h"   // IWYU pragma: keep
 #include "unicode.h"        // IWYU pragma: keep

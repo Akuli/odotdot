@@ -84,7 +84,7 @@ static bool check_inheritable(struct Interpreter *interp, struct Object *basecla
 {
 	struct ClassObjectData *data = baseclass->data;
 	if (!data->inheritable) {
-		errorobject_setwithfmt(interp, "TypeError", "cannot inherit from non-inheritable class %U", data->name);
+		errorobject_throwfmt(interp, "TypeError", "cannot inherit from non-inheritable class %U", data->name);
 		return false;
 	}
 	return true;
@@ -100,7 +100,7 @@ struct Object *classobject_new(struct Interpreter *interp, char *name, struct Ob
 
 	struct Object *klass = classobject_new_noerr(interp, name, baseclass, foreachref, inheritable);
 	if (!klass) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 
@@ -117,12 +117,12 @@ struct Object *classobject_newinstance(struct Interpreter *interp, struct Object
 {
 	if (!classobject_isinstanceof(klass, interp->builtins.Class)) {
 		// TODO: test this
-		errorobject_setwithfmt(interp, "TypeError", "cannot create an instance of %D", klass);
+		errorobject_throwfmt(interp, "TypeError", "cannot create an instance of %D", klass);
 		return NULL;
 	}
 	struct Object *instance = object_new_noerr(interp, klass, data, destructor);
 	if (!instance) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 	return instance;
@@ -213,7 +213,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 		OBJECT_DECREF(interp, inheritableobj);
 
 		if (!yess && !noo) {
-			errorobject_setwithfmt(interp, "TypeError", "inheritable must be a Bool, not %D", inheritableobj);
+			errorobject_throwfmt(interp, "TypeError", "inheritable must be a Bool, not %D", inheritableobj);
 			return NULL;
 		}
 		inheritable = yess;
@@ -222,13 +222,13 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 	// phewhhh.... check done
 
 	if (klass->data) {
-		errorobject_setwithfmt(interp, "AssertError", "setup was called twice");
+		errorobject_throwfmt(interp, "AssertError", "setup was called twice");
 		return NULL;
 	}
 
 	struct ClassObjectData *data = create_data(interp, baseclass, NULL, inheritable);
 	if (!data) {
-		errorobject_setnomem(interp);
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 

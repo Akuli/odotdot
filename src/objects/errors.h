@@ -1,4 +1,3 @@
-// TODO: add subclasses of Error
 #ifndef OBJECTS_ERRORS_H
 #define OBJECTS_ERRORS_H
 
@@ -14,16 +13,22 @@ bool errorobject_addmethods(struct Interpreter *interp);
 // RETURNS A NEW REFERENCE or NULL on no mem
 struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp);
 
-// the ultimate convenience function
-// sets interp->err to an error with a string created with stringobject_newfromfmt
-// it was named errorobject_seterrfromfmtstring but that was way too long to type
-// i thought about errorobject_sethandy, but that wouldn't be very descriptive
 // if this fails, interp->err is set to an error describing that failure, so there's no need to check that
 // that's why this thing returns void
-void errorobject_setwithfmt(struct Interpreter *interp, char *classname, char *fmt, ...);
+// bad things happen if err is not an Error object
+void errorobject_throw(struct Interpreter *interp, struct Object *err);
+
+// the ultimate convenience function
+// throws an error with a string created with stringobject_newfromfmt
+void errorobject_throwfmt(struct Interpreter *interp, char *classname, char *fmt, ...);
+
+// prints "ClassName: message" without a stack trace to stderr
+// if this fails, the failure is printed
+// interp->err must be NULL when calling this, and it's always NULL when this returns
+void errorobject_printsimple(struct Interpreter *interp, struct Object *err);
 
 // never fails
-#define errorobject_setnomem(interp) do { \
+#define errorobject_thrownomem(interp) do { \
 		OBJECT_INCREF((interp), (interp)->builtins.nomemerr); \
 		(interp)->err = (interp)->builtins.nomemerr; \
 	} while (0)

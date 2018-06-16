@@ -7,6 +7,7 @@
 #include "../objectsystem.h"  // IWYU pragma: keep
 #include "../run.h"
 #include "array.h"
+#include "astnode.h"
 #include "classobject.h"
 #include "errors.h"
 #include "function.h"
@@ -38,8 +39,17 @@ bool blockobject_run(struct Interpreter *interp, struct Object *block, struct Ob
 	for (size_t i=0; i < ARRAYOBJECT_LEN(ast); i++) {
 		// ast_statements attribute is an array, so it's possible to add anything into it
 		// must not have bad things happening, run_statements expects AstNodes
-		if (!check_type(interp, interp->builtins.AstNode, ARRAYOBJECT_GET(ast, i))) goto error;
-		if (!run_statement(interp, scope, ARRAYOBJECT_GET(ast, i))) goto error;
+		if (!check_type(interp, interp->builtins.AstNode, ARRAYOBJECT_GET(ast, i)))
+			goto error;
+
+		// TODO: optimize by not pushing a new frame every time?
+		struct AstNodeObjectData *astdata = ARRAYOBJECT_GET(ast, i)->data;
+		if (!stack_push(interp, astdata->filename, astdata->lineno, scope))
+			goto error;
+		bool ok = run_statement(interp, scope, ARRAYOBJECT_GET(ast, i));
+		stack_pop(interp);
+		if (!ok)
+			goto error;
 	}
 
 	OBJECT_DECREF(interp, ast);
