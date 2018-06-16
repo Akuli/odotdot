@@ -324,8 +324,77 @@ static struct Object *parse_array(struct Interpreter *interp, char *filename, st
 	return res;
 }
 
+// creates an AstNode that represents getting a variable named return
+static struct Object *create_return_getvar(struct Interpreter *interp, char *filename, size_t lineno)
+{
+	struct AstGetVarInfo *info = malloc(sizeof (struct AstGetVarInfo));
+	if (!info) {
+		errorobject_thrownomem(interp);
+		return NULL;
+	}
+
+	info->varname.len = 6;
+	info->varname.val = malloc(sizeof(unicode_char)*6);
+	if (!info->varname.val) {
+		errorobject_thrownomem(interp);
+		free(info);
+		return NULL;
+	}
+	for (int i=0; i < 6; i++)
+		info->varname.val[i] = "return"[i];
+
+	struct Object *res = astnodeobject_new(interp, AST_GETVAR, filename, lineno, info);
+	if (!res) {
+		free(info->varname.val);
+		free(info);
+		return NULL;
+	}
+	return res;
+}
+
+// create an AstNode that represents 'return returnednode;'
+static struct Object *create_return_call(struct Interpreter *interp, struct Object *returnednode)
+{
+	struct AstCallInfo *callinfo = malloc(sizeof(struct AstCallInfo));
+	if (!callinfo) {
+		errorobject_thrownomem(interp);
+		return NULL;
+	}
+
+	// infix calls don't support options, so this is left empty
+	if (!(callinfo->opts = mappingobject_newempty(interp))) {
+		errorobject_thrownomem(interp);
+		free(callinfo);
+		return NULL;
+	}
+
+	struct AstNodeObjectData* tmp = returnednode->data;
+	if (!(callinfo->funcnode = create_return_getvar(interp, tmp->filename, tmp->lineno))) {
+		OBJECT_DECREF(interp, callinfo->opts);
+		free(callinfo);
+		return NULL;
+	}
+
+	if (!(callinfo->args = arrayobject_new(interp, &returnednode, 1))) {
+		OBJECT_DECREF(interp, callinfo->funcnode);
+		OBJECT_DECREF(interp, callinfo->opts);
+		free(callinfo);
+		return NULL;
+	}
+
+	struct Object *res = astnodeobject_new(interp, AST_CALL, tmp->filename, tmp->lineno, callinfo);
+	if (!res) {
+		OBJECT_DECREF(interp, callinfo->args);
+		OBJECT_DECREF(interp, callinfo->funcnode);
+		OBJECT_DECREF(interp, callinfo->opts);
+		free(callinfo);
+		return NULL;
+	}
+	return res;
+}
+
 // { ... }
-struct Object *parse_block(struct Interpreter *interp, char *filename, struct Token **curtok)
+static struct Object *parse_block(struct Interpreter *interp, char *filename, struct Token **curtok)
 {
 	assert(*curtok);
 	assert((*curtok)->kind == TOKEN_OP);
@@ -335,24 +404,81 @@ struct Object *parse_block(struct Interpreter *interp, char *filename, struct To
 	*curtok = (*curtok)->next;
 	assert(*curtok);    // TODO: report error "unexpected end of file"
 
+	// figure out whether it contains a semicolon before }
+	// if not, this is an implicit return: { expr } is same as { return expr; }
+	bool implicitreturn;
+
+	if ((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == '}') {
+		// { } is an empty block
+		implicitreturn = false;
+	} else {
+		// check if there's a ; before }
+		// must match braces because blocks can be nested
+		unsigned int bracecount = 1;
+		bool foundit = false;
+
+		for (struct Token *futtok = *curtok; futtok; futtok = futtok->next) {
+			if (futtok->kind != TOKEN_OP || futtok->str.len != 1)
+				continue;
+			if (futtok->str.val[0] == ';' && bracecount == 1) {
+				// found a ; not nested in another { }
+				implicitreturn = false;
+				foundit = true;
+				break;
+			}
+			if (futtok->str.val[0] == '}' && --bracecount == 0) {
+				// found the terminating } before a ;
+				implicitreturn = true;
+				foundit = true;
+				break;
+			}
+			if (futtok->str.val[0] == '{')
+				bracecount++;
+		}
+
+		// TODO: report error "missing }"
+		assert(foundit);
+	}
+
 	struct Object *statements = arrayobject_newempty(interp);
 	if (!statements)
 		return NULL;
 
-	// TODO: { expr } should be same as { return expr; }
-	while ((*curtok) && !((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == '}')) {
-		struct Object *stmt = parse_statement(interp, filename, curtok);
-		if (!stmt) {
+	if (implicitreturn) {
+		struct Object *returnme = parse_expression(interp, filename, curtok);
+		if (!returnme) {
 			OBJECT_DECREF(interp, statements);
 			return NULL;
 		}
-		bool ok = arrayobject_push(interp, statements, stmt);
-		OBJECT_DECREF(interp, stmt);
+
+		struct Object *returncall = create_return_call(interp, returnme);
+		OBJECT_DECREF(interp, returnme);
+		if (!returncall) {
+			OBJECT_DECREF(interp, statements);
+			return NULL;
+		}
+
+		bool ok = arrayobject_push(interp, statements, returncall);
+		OBJECT_DECREF(interp, returncall);
 		if (!ok) {
 			OBJECT_DECREF(interp, statements);
 			return NULL;
 		}
-	}
+	} else {
+		while ((*curtok) && !((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == '}')) {
+			struct Object *stmt = parse_statement(interp, filename, curtok);
+			if (!stmt) {
+				OBJECT_DECREF(interp, statements);
+				return NULL;
+			}
+			bool ok = arrayobject_push(interp, statements, stmt);
+			OBJECT_DECREF(interp, stmt);
+			if (!ok) {
+				OBJECT_DECREF(interp, statements);
+				return NULL;
+			}
+		}
+	};
 
 	assert(*curtok);   // TODO: report error "unexpected end of file"
 	assert((*curtok)->str.len == 1 && (*curtok)->str.val[0] == '}');

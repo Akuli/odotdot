@@ -92,7 +92,7 @@ add_method Error "print_stack" (lambda "this" {
             var stack_copy = (this.stack.slice 0);
             var prefix = "in";
 
-            while { return (not (stack_copy.length `equals` 0)); } {
+            while { (not (stack_copy.length `equals` 0)) } {
                 var frame = (stack_copy.pop);
                 print ((("  ".concat prefix).concat " ").concat (frame.to_string));
                 # TODO: print the source line
@@ -117,7 +117,7 @@ var func = (lambda "funcname_and_argnames block" {
     # a stupid way to join strings by spaces
     var argnames = "";
     var i = 1;    # skip the function name
-    while { return ((i `equals` splitted.length) `same_object` false); } {
+    while { ((i `equals` splitted.length) `same_object` false) } {
         argnames = (argnames.concat (splitted.get i));
         argnames = (argnames.concat " ");
         i = (i.plus 1);
@@ -156,7 +156,7 @@ func "foreach varname array block" {
     var i = 0;
     var scope = (new Scope block.definition_scope);
 
-    while { return (not (i `equals` array.length)); } {
+    while { (not (i `equals` array.length)) } {
         scope.local_vars.set varname (array.get i);
         block.run scope;
         i = (i.plus 1);
@@ -215,7 +215,7 @@ func "foreach varname array block" {
 
             var this_and_args = "this ";
             var i = 1;    # skip the method name
-            while { return ((i `equals` splitted.length) `same_object` false); } {
+            while { ((i `equals` splitted.length) `same_object` false) } {
                 this_and_args = (this_and_args.concat (splitted.get i));
                 this_and_args = (this_and_args.concat " ");
                 i = (i.plus 1);

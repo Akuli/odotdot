@@ -1,6 +1,8 @@
 var i = 0;
 
-while { return (not (i `equals` 10)); } {
+# { x } is equivalent to { return x; }
+# so the first argument returns (not (i `equals` 10)) to while
+while { (not (i `equals` 10)) } {
     print (i.to_string);
     i = (i.plus 1);
 };
