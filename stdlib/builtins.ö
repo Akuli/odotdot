@@ -43,6 +43,7 @@ add_method Mapping "get_with_fallback" (lambda "this key fallback" {
     };
 });
 
+
 var while = (lambda "condition_block body_block" {
     var scope = (new Scope body_block.definition_scope);
     scope.local_vars.set "keep_going" null;
@@ -59,6 +60,30 @@ var while = (lambda "condition_block body_block" {
 });
 while.name = "while";
 
+
+# scope magic: variables created inside this thing are not visible outside it
+{
+    # get the StackFrame class
+    var StackFrame = null;
+    catch {
+        throw (new MathError "1 + 2 is not 3");
+    } [MathError "e"] {
+        StackFrame = (get_class (e.stack.get 0));
+    };
+    if (StackFrame `equals` null) {
+        throw (new AssertError "throw and catch don't seem to work");
+    };
+
+    add_method StackFrame "to_string" (lambda "this" {
+        return = ((("file ".concat this.filename).concat ", line ").concat (this.lineno.to_string));
+    });
+
+    add_method StackFrame "to_debug_string" (lambda "this" {
+        return = (("<StackFrame: ".concat (this.to_string)).concat ">");
+    });
+}.run (new Scope {}.definition_scope);
+
+
 add_method Error "print_stack" (lambda "this" {
     catch {
         print (((get_class this).name.concat ": ").concat this.message);
@@ -69,7 +94,7 @@ add_method Error "print_stack" (lambda "this" {
 
             while { keep_going = (not (stack_copy.length `equals` 0)); } {
                 var frame = (stack_copy.pop);
-                print ((("  ".concat prefix).concat " ").concat (frame.to_debug_string));
+                print ((("  ".concat prefix).concat " ").concat (frame.to_string));
                 # TODO: print the source line
 
                 if (prefix `equals` "in") {
@@ -81,6 +106,7 @@ add_method Error "print_stack" (lambda "this" {
         print "got another error while printing the stack trace of an error";
     };
 });
+
 
 var func = (lambda "funcname_and_argnames block" {
     var splitted = (funcname_and_argnames.split_by_whitespace);
