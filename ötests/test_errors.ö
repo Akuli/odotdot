@@ -28,9 +28,9 @@ test "message attribute" {
 };
 
 
-class "SuperError" inherits:Error inheritable:true { };
-class "Error1" inherits:SuperError { };
-class "Error2" inherits:SuperError { };
+class "AsdTootError" inherits:Error inheritable:true { };
+class "AsdError" inherits:AsdTootError { };
+class "TootError" inherits:AsdTootError { };
 
 
 test "throw" {
@@ -49,7 +49,7 @@ test "catch" {
     # success case
     var ran = false;
     catch {
-    } Error1 {
+    } AsdError {
         ran = true;
     };
     assert (not ran);
@@ -57,25 +57,25 @@ test "catch" {
     # catching by superclass
     var ran = false;
     catch {
-        throw (new Error1 "lol");
-    } SuperError {
+        throw (new AsdError "lol");
+    } AsdTootError {
         ran = true;
     };
     assert ran;
 
     # not catching by subclass
-    throws SuperError {
+    throws AsdTootError {
         catch {
-            throw (new SuperError "lol");
-        } Error1 { };
+            throw (new AsdTootError "lol");
+        } AsdError { };
     };
 
     # catch block throws
-    throws Error2 {
+    throws TootError {
         catch {
-            throw (new Error1 "lol");
-        } Error1 {
-            throw (new Error2 "lol");
+            throw (new AsdError "lol");
+        } AsdError {
+            throw (new TootError "lol");
         };
     };
 
@@ -94,9 +94,61 @@ test "catch" {
     # so make sure that works
     throws TypeError { catch {} "lol" {}; };
     throws TypeError { catch {} String {}; };   # String is not an error class
-    throws TypeError { catch {} [Error1 123] {}; };   # String is not an error class
+    throws TypeError { catch {} [AsdError 123] {}; };   # String is not an error class
     throws TypeError { catch {} [123 "hi"] {}; };   # String is not an error class
     throws ValueError { catch {} [] {}; };
-    throws ValueError { catch {} [Error1] {}; };
-    throws ValueError { catch {} [Error1 "lol" 123] {}; };
+    throws ValueError { catch {} [AsdError] {}; };
+    throws ValueError { catch {} [AsdError "lol" 123] {}; };
+};
+
+test "the stack attribute" {
+    var e = (new AsdError "lol");
+    assert (e.stack `same_object` null);
+
+    throws TypeError { e.stack = "lol"; };
+    assert (e.stack `same_object` null);
+
+    # right now any arrays are allowed
+    # because e.stack is an array, and anything can be added to arrays at any time
+    e.stack = [1 2 3];
+    assert (e.stack `equals` [1 2 3]);
+    e.stack = null;
+    assert (e.stack `same_object` null);
+};
+
+test "how throw sets the stack attribute" {
+    var e = (new AsdError "lol");
+    assert (e.stack `same_object` null);
+
+    var throwscope = null;
+    throws AsdError {
+        throwscope = {}.definition_scope;
+        throw e;
+    };
+    assert (not (e.stack `same_object` null));
+    assert (e.stack `is_instance_of` Array);
+
+    # lineno isn't cheked exactly because changing the tests changes line numbers
+    var last_frame = (e.stack.get (e.stack.length.plus -1));
+    #assert (last_frame.scope `same_object` throwscope);
+    assert (last_frame.filename `equals` "ötests/test_errors.ö");
+    assert (last_frame.lineno `is_instance_of` Integer);
+};
+
+test "that the stack doesn't get set on rethrowing" {
+    var e = (new AsdError "lol");
+    throws AsdError {
+        throw e;
+    };
+
+    var old_stack = e.stack;
+    var old_stack_copy = (e.stack.slice 0);   # because rethrowing must not change the content of the array
+    assert (not (old_stack `same_object` old_stack_copy));
+    assert (old_stack `equals` old_stack_copy);
+
+    throws AsdError {
+        throw e;
+    };
+    assert (e.stack `same_object` old_stack);
+    assert (e.stack `equals` old_stack_copy);
 };
