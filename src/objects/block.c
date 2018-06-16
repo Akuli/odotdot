@@ -163,11 +163,19 @@ struct Object *blockobject_runwithreturn(struct Interpreter *interp, struct Obje
 }
 
 
+// TODO: a with_return option instead of two separate thingss
 static struct Object *run(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Scope, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 	return blockobject_run(interp, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1)) ? nullobject_get(interp) : NULL;
+}
+
+static struct Object *run_with_return(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Scope, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+	return blockobject_runwithreturn(interp, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1));
 }
 
 struct Object *blockobject_createclass(struct Interpreter *interp)
@@ -178,6 +186,7 @@ struct Object *blockobject_createclass(struct Interpreter *interp)
 
 	if (!method_add(interp, klass, "setup", setup)) goto error;
 	if (!method_add(interp, klass, "run", run)) goto error;
+	if (!method_add(interp, klass, "run_with_return", run_with_return)) goto error;
 	if (!attribute_add(interp, klass, "definition_scope", definition_scope_getter, NULL)) goto error;
 	if (!attribute_add(interp, klass, "ast_statements", ast_statements_getter, NULL)) goto error;
 	return klass;

@@ -1,6 +1,6 @@
 var i = 0;
 
-while { keep_going = (not (i `equals` 10)); } {
+while { return (not (i `equals` 10)); } {
     print (i.to_string);
     i = (i.plus 1);
 };
