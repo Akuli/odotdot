@@ -343,6 +343,7 @@ bool builtins_setup(struct Interpreter *interp)
 	interp->builtins.Class->klass = interp->builtins.Class;
 	OBJECT_INCREF(interp, interp->builtins.Class);
 
+	if (!(interp->builtins.null = nullobject_create_noerr(interp))) goto error;
 	if (!(interp->builtins.String = stringobject_createclass_noerr(interp))) goto nomem;
 	if (!(interp->builtins.Error = errorobject_createclass_noerr(interp))) goto nomem;
 	if (!(interp->builtins.nomemerr = errorobject_createnomemerr_noerr(interp))) goto nomem;
@@ -354,6 +355,7 @@ bool builtins_setup(struct Interpreter *interp)
 
 	// these classes must exist before methods exist, so they are handled specially
 	// TODO: rename addmethods to addattrib(ute)s functions? methods are attributes
+	if (!nullobject_addmethods(interp)) goto error;
 	if (!classobject_addmethods(interp)) goto error;
 	if (!objectobject_addmethods(interp)) goto error;
 	if (!stringobject_addmethods(interp)) goto error;
@@ -361,16 +363,15 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!mappingobject_addmethods(interp)) goto error;
 	if (!functionobject_addmethods(interp)) goto error;
 
+	if (!classobject_setname(interp, interp->builtins.null->klass, "Null")) goto error;
 	if (!classobject_setname(interp, interp->builtins.Class, "Class")) goto error;
 	if (!classobject_setname(interp, interp->builtins.Object, "Object")) goto error;
 	if (!classobject_setname(interp, interp->builtins.String, "String")) goto error;
 	if (!classobject_setname(interp, interp->builtins.Mapping, "Mapping")) goto error;
 	if (!classobject_setname(interp, interp->builtins.Function, "Function")) goto error;
-
 	if (!classobject_setname(interp, interp->builtins.Error, "Error")) goto error;
 	if (!classobject_setname(interp, interp->builtins.nomemerr->klass, "MemError")) goto error;
 
-	if (!(interp->builtins.null = nullobject_create(interp))) goto error;
 	if (!(interp->builtins.Array = arrayobject_createclass(interp))) goto error;
 	if (!(interp->builtins.Integer = integerobject_createclass(interp))) goto error;
 	if (!(interp->builtins.AstNode = astnodeobject_createclass(interp))) goto error;

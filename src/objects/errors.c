@@ -16,18 +16,32 @@
 #include "classobject.h"
 #include "mapping.h"
 #include "null.h"
+#include "stackframe.h"
 #include "string.h"
 
-static void error_foreachref(struct Object *obj, void *data, classobject_foreachrefcb cb)
+struct ErrorData {
+	struct Object *message;    // String
+	struct Object *stack;      // Array of StackFrames, or the null object (i.e. never NULL)
+};
+
+
+static void error_foreachref(struct Object *err, void *cbdata, classobject_foreachrefcb cb)
 {
-	if (obj->data)
-		cb((struct Object *) obj->data, data);
+	struct ErrorData *data = err->data;
+	if (data) {
+		cb(data->message, cbdata);
+		cb(data->stack, cbdata);
+	}
+}
+
+static void error_destructor(struct Object *err)
+{
+	if (err->data)
+		free(err->data);
 }
 
 struct Object *errorobject_createclass_noerr(struct Interpreter *interp)
 {
-	// Error objects can have any attributes
-	// TODO: use a message attribute instead of ->data?
 	return classobject_new_noerr(interp, "Error", interp->builtins.Object, error_foreachref, true);
 }
 
@@ -35,15 +49,27 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 {
 	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.String, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-
 	struct Object *err = ARRAYOBJECT_GET(args, 0);
+	struct Object *msg = ARRAYOBJECT_GET(args, 1);
+
 	if (err->data) {
 		errorobject_throwfmt(interp, "AssertError", "setup was called twice");
 		return NULL;
 	}
 
-	err->data = ARRAYOBJECT_GET(args, 1);
-	OBJECT_INCREF(interp, ARRAYOBJECT_GET(args, 1));
+	struct ErrorData *data = malloc(sizeof(struct ErrorData));
+	if (!data) {
+		// can't recurse because nomemerr is created very early, and only 'new Error' runs this
+		errorobject_thrownomem(interp);
+		return NULL;
+	}
+	data->message = msg;
+	OBJECT_INCREF(interp, msg);
+	data->stack = interp->builtins.null;
+	OBJECT_INCREF(interp, interp->builtins.null);
+
+	err->data = data;
+	err->destructor = error_destructor;
 	return nullobject_get(interp);
 }
 
@@ -63,27 +89,60 @@ static struct Object *message_getter(struct Interpreter *interp, struct Object *
 {
 	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-
 	struct Object *err = ARRAYOBJECT_GET(args, 0);
 	if (!check_data(interp, err)) return NULL;
 
-	struct Object *msg = err->data;
-	OBJECT_INCREF(interp, msg);
-	return msg;
+	struct ErrorData *data = err->data;
+	OBJECT_INCREF(interp, data->message);
+	return data->message;
 }
 
 static struct Object *message_setter(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.String, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-
 	struct Object *err = ARRAYOBJECT_GET(args, 0);
 	if (!check_data(interp, err)) return NULL;
-	struct Object *msg = ARRAYOBJECT_GET(args, 1);
 
-	OBJECT_DECREF(interp, (struct Object*) err->data);
-	err->data = msg;
-	OBJECT_INCREF(interp, msg);
+	struct ErrorData *data = err->data;
+	OBJECT_DECREF(interp, data->message);
+	data->message = ARRAYOBJECT_GET(args, 1);
+	OBJECT_INCREF(interp, data->message);
+	return nullobject_get(interp);
+}
+
+static struct Object *stack_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+	struct Object *err = ARRAYOBJECT_GET(args, 0);
+	if (!check_data(interp, err)) return NULL;
+
+	struct ErrorData *data = err->data;
+	OBJECT_INCREF(interp, data->stack);
+	return data->stack;
+}
+
+static struct Object *stack_setter(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	// doesn't make sense to check if the new stack contains nothing but StackFrames
+	// because it's possible to push anything to the array
+	// the Object must be null or an Array, that is checked below
+	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+	struct Object *err = ARRAYOBJECT_GET(args, 0);
+	if (!check_data(interp, err)) return NULL;
+	struct Object *newstack = ARRAYOBJECT_GET(args, 1);
+
+	if (newstack != interp->builtins.null && !classobject_isinstanceof(newstack, interp->builtins.Array)) {
+		errorobject_throwfmt(interp, "TypeError", "expected null or an Array, got %D", newstack);
+		return NULL;
+	}
+
+	struct ErrorData *data = err->data;
+	OBJECT_DECREF(interp, data->stack);
+	data->stack = newstack;
+	OBJECT_INCREF(interp, newstack);
 	return nullobject_get(interp);
 }
 
@@ -95,12 +154,14 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 	if (!check_data(interp, err)) return NULL;
 
 	struct ClassObjectData *classdata = err->klass->data;
-	return stringobject_newfromfmt(interp, "<%U: %D>", classdata->name, (struct Object*)err->data);
+	struct ErrorData *errdata = err->data;
+	return stringobject_newfromfmt(interp, "<%U: %D>", classdata->name, errdata->message);
 }
 
 bool errorobject_addmethods(struct Interpreter *interp)
 {
 	if (!attribute_add(interp, interp->builtins.Error, "message", message_getter, message_setter)) return false;
+	if (!attribute_add(interp, interp->builtins.Error, "stack", stack_getter, stack_setter)) return false;
 	if (!method_add(interp, interp->builtins.Error, "setup", setup)) return false;
 	if (!method_add(interp, interp->builtins.Error, "to_debug_string", to_debug_string)) return false;
 	return true;
@@ -150,15 +211,48 @@ struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 		return NULL;
 	}
 
-	struct Object *err = object_new_noerr(interp, klass, str, NULL);
+	struct ErrorData *data = malloc(sizeof(struct ErrorData));
+	if (!data) {
+		OBJECT_DECREF(interp, klass);
+		OBJECT_DECREF(interp, str);
+		return NULL;
+	}
+
+	assert(interp->builtins.null);
+	data->message = str;
+	data->stack = interp->builtins.null;
+	OBJECT_INCREF(interp, interp->builtins.null);
+
+	struct Object *err = object_new_noerr(interp, klass, data, error_destructor);
 	OBJECT_DECREF(interp, klass);
-	return err;    // may be NULL
+	if (!err) {
+		OBJECT_DECREF(interp, data->message);
+		OBJECT_DECREF(interp, data->stack);
+		free(data);
+		return NULL;
+	}
+	return err;
 }
 
 
 void errorobject_throw(struct Interpreter *interp, struct Object *err)
 {
 	assert(!interp->err);
+
+	// check_data can throw, but it shouldn't recurse unless something's badly broken ....
+	if (!check_data(interp, err))
+		return;
+
+	struct ErrorData *data = err->data;
+	if (data->stack == interp->builtins.null) {
+		// the stack hasn't been set yet, so we're throwing this error for the 1st time
+		struct Object *stack = stackframeobject_getstack(interp);
+		if (!stack)
+			return;
+		OBJECT_DECREF(interp, data->stack);
+		data->stack = stack;
+	}
+
 	interp->err = err;
 	OBJECT_INCREF(interp, err);
 }
@@ -178,12 +272,25 @@ void errorobject_throwfmt(struct Interpreter *interp, char *classname, char *fmt
 		return;
 	}
 
-	// builtins.ö must not define any errors that can't be constructed like this
-	struct Object *err = classobject_newinstance(interp, klass, msg, NULL);
-	OBJECT_DECREF(interp, klass);
-	// don't decref msg, instead let err hold a reference to it
-	if (!err) {
+	struct ErrorData *data = malloc(sizeof(struct ErrorData));
+	if (!data) {
+		errorobject_thrownomem(interp);
+		OBJECT_DECREF(interp, klass);
 		OBJECT_DECREF(interp, msg);
+		return;
+	}
+
+	data->message = msg;
+	data->stack = interp->builtins.null;
+	OBJECT_INCREF(interp, interp->builtins.null);
+
+	// builtins.ö must not define any errors that can't be constructed like this
+	struct Object *err = classobject_newinstance(interp, klass, data, error_destructor);
+	OBJECT_DECREF(interp, klass);
+	if (!err) {
+		OBJECT_DECREF(interp, data->message);
+		OBJECT_DECREF(interp, data->stack);
+		free(data);
 		return;
 	}
 
@@ -218,7 +325,8 @@ void errorobject_printsimple(struct Interpreter *interp, struct Object *err)
 	if (!print_ustr(interp, ((struct ClassObjectData *) err->klass->data)->name))
 		goto cantprint;
 	fputs(": ", stderr);
-	if (!print_ustr( interp, *((struct UnicodeString *) err->data) ))
+	struct ErrorData *data = err->data;
+	if (!print_ustr( interp, *((struct UnicodeString *) data->message->data) ))
 		goto cantprint;
 	fputc('\n', stderr);
 	return;
