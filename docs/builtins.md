@@ -32,15 +32,9 @@ argument names when defining the function, but not when calling the function;
 
 When called, the function creates a new subscope of `block`'s
 [definition scope], and inserts the values of the arguments there as local
-variables. A `return` variable is also added with an initial value of `null`;
-its value is returned when the function exits. Note that `return` is just a
-variable, so `return = 123;` doesn't exit the function immediately like
-returning a value does in most other programming languages.
-
-Annoying and missing features:
-- The `return = value;` syntax sucks. I think it really should be a function
-  call like `return value;` instead, and that should exit the function right
-  away.
+variables. A `return` function that behaves like the `return` of
+[Block](#block)'s `run_with_return` is also added, so `return foo;` inside the
+function makes the function return `foo` and exits it.
 
 **See Also:** There's more info about functions in the [Function](#function)
 class documentation. The functions created by `func` are `Function` objects.
@@ -50,8 +44,12 @@ class documentation. The functions created by `func` are `Function` objects.
 `(lambda "arg1 arg2 arg3" block)` returns a new function.
 
 `lambda` is like [func](#func), but it returns a function instead of setting it
-to `block`'s definition scope automagically. This also means that there's no
-function name in the string argument.
+to a variable in `block`'s definition scope automagically. This also means that
+there's no function name in the string argument.
+
+The `name` attribute (see the [Function](#function) class) is set to
+`"a lambda function"` by default, but you can set that to any other string you
+want.
 
 ### if
 
@@ -96,19 +94,15 @@ Right now Ö has only these rules for comparing equality of objects:
 
 Bugs:
 - There's no way to override the default `equals` behaviour in custom classes.
-  However, it's not actually possible to define classes yet, so this isn't a
-  big problem yet.
 - There really should be a `==` operator. Even though infix notation isn't too
   bad, `(x == y)` would be more readable than ``(x `equals` y)``.
-- Comparing mappings is broken; it returns [false] for different mappings with
-  equal content.
 
 ### same_object
 
 ``(x `same_object` y)`` returns [true] if `x` and `y` point to the same object,
 and [false] otherwise.
 
-For example, this sets `x` and `y` to the same object...
+For example, this sets `x` and `y` to the same empty [array](#array)...
 
 ```python
 var x = [];
@@ -138,29 +132,29 @@ var y = [];
 
 ### while
 
-`while { keep_going = condition; } block;` runs `block` repeatedly until
-`keep_going` is set to [false].
+`while { return condition; } block;` runs `block` repeatedly until `condition`
+evaluates to [false].
 
 `while` creates a new subscope of `block`'s [definition scope]. Then it runs
-the first argument in it, and that should set `keep_going` to [true] or
-[false]. If `keep_going` was set to [true], `block` is ran in the same
-subscope. Then the first argument is ran in the scope again and the process is
-repeated until the interpreter segfaults or `keep_going` is set to [false].
+the first argument in it, and that should return [true] or [false]; if it
+returns something else, a `TypeError` is raised. If [true] was returned,
+`block` is ran in the same subscope. Then the first argument is ran in the
+subscope again and the process is repeated until the interpreter's stack gets
+full or `condition` evaulates to [false].
 
 Bugs:
 - There's no `break` or `continue` yet.
-- `while` is implemented with recursion, so infinite loops don't work. The
-  interpreter segfaults at the end of a long loop.
+- `while` is implemented with recursion, so infinite loops don't work.
 - `while` is slow.
-- The `{ keep_going = condition; }` syntax sucks. I think it should be
-  `{ condition }` instead.
+- The `{ return condition; }` syntax sucks. I'll hopefully implement a
+  `{ condition }` syntax that is equivalent to `{ return condition; }` soon.
 
 Example:
 
 ```python
 # print numbers from 0 to 9
 var i = 0;
-while { keep_going = (not (i `equals` 10)); } {
+while { return (not (i `equals` 10)); } {
     print (i.to_string);
     i = (i.plus 1);   # yes, this sucks... no + operator yet
 };
@@ -291,10 +285,8 @@ This getter and setter stuff has a few important consequences:
   it's not in the base class either, the base class of the base class is
   checked and so on until the attribute is found or there are no more base
   classes.
-- A different error for missing attributes may be thrown for accessing
-  `setters` or `getters` directly versus using the `.` syntax. For example, my
-  Ö interpreter throws `SomeClass objects don't have an attribute named "y"`
-  with `x.y` and `cannot find key "y"` with `((get_class x).getters.get "y")`.
+- If the attribute is missing, an `AttribError` is raised with the `.` syntax,
+  but a `KeyError` is raised when accessing `setters` or `getters` directly.
 
 Classes also have one method:
 - `(some_class.to_debug_string)` returns a string like `<Class "the name">`
@@ -307,7 +299,7 @@ them with `(new Class name baseclass)`, where `Class` is `(get_class String)`
 another `Class` object to inherit from (usually [Object](#object)). Pass
 `inheritable:true` if you want to make the class inheritable, i.e. allow
 creating more classes with the new class as baseclass. `new Class` throws an
-error if baseclass is not inheritable.
+error if `baseclass` is not inheritable.
 
 ### Object
 
@@ -452,10 +444,11 @@ Annoyances:
 
     ```python
     func "map function array" {
-        return = [];
+        var mapped = [];
         foreach "item" array {
-            return.push item;
+            mapped.push (function item);
         };
+        return mapped;
     };
     ```
 
@@ -531,6 +524,12 @@ Attributes:
 Methods:
 - `block.run scope;` runs the AST statements in the scope passed to this
   function. This method does nothing with `definition_scope`.
+- `(block.run_with_return scope)` inserts a `return` function to the scope's
+  local variables and runs the scope as with `block.run scope;`. The `return`
+  function takes 1 or 0 arguments, throws a [MarkerError], and running the
+  block terminates. `run_with_return` then catches the `MarkerError` and
+  returns the value passed to the `return` function while running. If `return`
+  is not called at all or it's called with no arguments, `null` is returned.
 
 ### Scopes
 
@@ -622,3 +621,4 @@ it has no methods or other attributes. You can access the class with
 [ArgError]: errors.md
 [TypeError]: errors.md
 [ValueError]: errors.md
+[MarkerError]: errors.md

@@ -32,6 +32,10 @@ their [setup methods] take 1 argument, the error message string.
   `[].aasdasd` and `[].aasdasd = "lol";` throw `AttribError`.
 - `KeyError` is thrown when a key of a mapping is not found.
   `(new Mapping [[1 2] [3 4]]).get 5;` throws a `KeyError`.
+- `MarkerError` is used internally by `return`. It's not in the
+  [built-in scope] because there's usually no need to catch it, and even if you
+  catch a `MarkerError`, there's no documented way to check which return value
+  it represents or which function call it came from.
 - `MathError` is currently never thrown by any built-in functions as addition
   is the only supported math operation (I know, it sucks). In the future, this
   will probably be used for things like division by zero.
@@ -49,12 +53,19 @@ Attributes of `Error`:
 - `error.message` is the message as a human-readable string. This can be set
   after creating the error object, but setting it to something else than a
   [String](builtins.md#string) throws `TypeError`.
+- `error.stack` is an [Array] of [StackFrame objects](#stackframe-objects), or
+  `null` if the error has never been thrown. When throwing an error,
+  `error.stack` is set to a new array, but only if it's `null`; see
+  [rethrowing](#rethrowing).
 
 Methods of `Error`:
-- `(error.to_debug_string)` returns a string like `<SomeError: "the message">`
-  where `the message` is `error.message` and `SomeError` is the name of the
-  error's class. See also [Object](builtins.md#object)'s `to_debug_string`
-  documentation.
+- `(error.print_stack)` prints a stack trace. If the error has never been
+  thrown and `error.stack` is `null`, this prints `SomeError: message` where
+  `message` is `error.message` and `SomeError` is the name of the error's
+  class.
+- `(error.to_debug_string)` returns a string like `<SomeError: "message">`
+  where `SomeError` and `message` mean the same things as above. See also
+  [Object](builtins.md#object)'s `to_debug_string` documentation.
 
 Note that all of the above classes have the attributes and methods that `Error`
 has because they are subclasses of `Error`.
@@ -104,7 +115,7 @@ catch {
 ```
 
 The matching is checked with [is_instance_of](builtins.md#is_instance_of), and
-the blocks are ran in a new subscope new subscopes of their
+the blocks are ran in new subscopes of their
 [definition scopes][definition scope]. The variable named by `varname` (`e` in
 the above example) is set as a local variable to the scope that `block2` runs
 in before running `block2`.
@@ -118,6 +129,25 @@ If the `errorclass` or `[errorclass varname]` pair is invalid, `catch` throws
 an error without running either of the blocks. If the `[errorclass varname]`
 array contains the wrong number of elements, a `ValueError` is thrown;
 otherwise the thrown error is a `TypeError`.
+
+
+## Rethrowing
+
+You can throw an error as many times as you want, like this:
+
+```python
+catch {
+    print 123;
+} [TypeError "e"] {
+    print "it failed";
+    throw e;    # this is known as rethrowing
+};
+```
+
+When the `print 123;` part fails, `"it failed"` is printed, but otherwise
+everything behaves just as if `print 123;` was called without `catch`. Note
+that rethrowing is not shown in the stack traces; if you run the above program,
+the line that `throw e;` is on won't be shown in the error message.
 
 
 ## Custom Errors
@@ -144,6 +174,59 @@ errors. For example, if you would instead `throw (new ValueError ...)`,
 `ValueError`. Catching `ArticleNotFoundError` looks nice because it's easy to
 see what the code is doing, but it's also good because if `get_article`
 unexpectedly throws `ValueError` somewhere else, that won't get caught.
+
+
+## StackFrame objects
+
+If you run a program like this...
+
+```python
+func "f" { print 123; };
+func "g" { f; };
+func "h" { g; };
+h;
+```
+
+...you get a *stack trace* roughly like this one:
+
+```
+TypeError: expected an instance of String, got 123
+  in file fgh.ö, line 1
+  by file fgh.ö, line 2
+  by file fgh.ö, line 3
+  by file fgh.ö, line 4
+```
+
+This stack trace is created from the `stack` attribute of the error object. If
+you wrap everything in `catch` and [debug](builtins.md#debug) the `stack` of
+the error...
+
+```python3
+catch {
+    func "f" { print 123; };
+    func "g" { f; };
+    func "h" { g; };
+    h;
+} [TypeError "e"] {
+    debug e.stack;
+};
+```
+
+...you get something like this:
+
+```
+[<StackFrame: file fgh.ö, line 1> <StackFrame: file fgh.ö, line 5> <StackFrame:
+file fgh.ö, line 4> <StackFrame: file fgh.ö, line 3> <StackFrame: file fgh.ö, li
+ne 2>]
+```
+
+Each of the stack frames represents one line in the stack trace.
+
+Stack frames have these read-only attributes:
+- `stackframe.filename` is the file name displayed in the stack trace, as a
+  [String](builtins.md#string).
+- `stackframe.lineno` is the line number in the stack trace, as an
+  [Integer](builtins.md#integer).
 
 
 [built-in scope]: tutorial.md#scopes
