@@ -1,0 +1,50 @@
+func "test what how" {
+    how.run (new Scope how.definition_scope);
+};
+func "throws errorclass body" {
+    var threw = null;
+    catch {
+        body.run (new Scope body.definition_scope);
+        threw = false;
+    } errorclass {
+        threw = true;
+    };
+    assert threw;
+};
+
+
+test "important basic stuff" {
+    foreach "cmp" [equals same_object] {
+        assert (not (true `cmp` false));
+        assert (not (true `cmp` null));
+        assert (not (false `cmp` null));
+    };
+};
+
+test "classes" {
+    assert ((get_class true) `same_object` Bool);
+    assert ((get_class false) `same_object` Bool);
+    assert (not (null `is_instance_of` Bool));
+
+    assert (Bool.name `equals` "Bool");
+    assert ((get_class null).name `equals` "Null");
+    throws VariableError { debug Null; };
+};
+
+test "to_string" {
+    throws AttribError { true.to_string; };
+    throws AttribError { false.to_string; };
+    throws AttribError { null.to_string; };
+};
+
+test "to_debug_string" {
+    assert ((true.to_debug_string) `equals` "true");
+    assert ((false.to_debug_string) `equals` "false");
+    assert ((null.to_debug_string) `equals` "null");
+};
+
+test "setup" {
+    throws TypeError { true.setup; };
+    throws TypeError { false.setup; };
+    throws TypeError { null.setup; };
+};
