@@ -19,4 +19,9 @@ struct Object *blockobject_new(struct Interpreter *interp, struct Object *defini
 // bad things happen if block is not a Block object or scope is not a Scope object
 bool blockobject_run(struct Interpreter *interp, struct Object *block, struct Object *scope);
 
+// inserts a return function to the scope and removes it when done
+// returns the value that the return function was called with, or null if it wasn't called
+// RETURNS A NEW REFERENCE or NULL on error
+struct Object *blockobject_runwithreturn(struct Interpreter *interp, struct Object *block, struct Object *scope);
+
 #endif    // OBJECTS_BLOCK_H

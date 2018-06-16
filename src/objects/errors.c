@@ -209,24 +209,10 @@ bool errorobject_addmethods(struct Interpreter *interp)
 }
 
 
-// MarkerError objects have a value attribute, so 'return value;' can set the value attribute and throw
-ATTRIBUTE_DEFINE_SIMPLE_GETTER(value, MarkerError)
-ATTRIBUTE_DEFINE_SIMPLE_SETTER(value, MarkerError, Object)
-
 struct Object *errorobject_createmarkererrorclass(struct Interpreter *interp)
 {
 	assert(interp->builtins.Error);
-
-	struct Object *klass = classobject_new(interp, "MarkerError", interp->builtins.Error, NULL, false);
-	if (!klass)
-		return NULL;
-
-	if (!attribute_add(interp, klass, "value", value_getter, value_setter)) goto error;
-	return klass;
-
-error:
-	OBJECT_DECREF(interp, klass);
-	return NULL;
+	return classobject_new(interp, "MarkerError", interp->builtins.Error, NULL, false);
 }
 
 

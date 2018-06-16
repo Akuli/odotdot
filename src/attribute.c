@@ -45,8 +45,9 @@ struct Object *attribute_getfromattrdata(struct Interpreter *interp, struct Obje
 	if (!stringobj)
 		return NULL;
 
-	// this sets a "key not found" error if the attribute is not found
+	// this throws a "key not found" error if the attribute is not found
 	// mappingobject_get() sets no errors in that case
+	// there's no need to throw AttribError because these should be rare anyway
 	struct Object *res = method_call(interp, obj->attrdata, "get", stringobj, NULL);
 	OBJECT_DECREF(interp, stringobj);
 	return res;
