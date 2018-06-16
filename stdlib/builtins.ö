@@ -18,42 +18,30 @@ var VariableError = (new Class "VariableError" Error);
 {}.definition_scope.local_vars.delete "Class";
 
 
-# closure tricks: blah_getters are not visible outside this scope
-{
-    var setup_getter = (lambda "this" {
-        return = (lambda "" {
-            throw (new TypeError "cannot create new Bool objects, use true and false instead");
-        });
-        return.name = "setup method";
+var add_method = (lambda "klass name lambda_with_this" {
+    var getter = (lambda "this" {
+        return = (lambda_with_this.partial this);
+        return.name = (name.concat " method");
     });
-    setup_getter.name = "getter of setup";
-    Bool.getters.set "setup" setup_getter;
+    getter.name = ("getter of ".concat name);
+    klass.getters.set name getter;
+});
 
-    var strings = (new Mapping [[true "true"] [false "false"]]);
-    var to_debug_string_getter = (lambda "this" {
-        return = (lambda "" {
-            return = (strings.get this);
-        });
-        return.name = "to_debug_string method";
-    });
-    to_debug_string_getter.name = "getter of to_debug_string";
-    Bool.getters.set "to_debug_string" to_debug_string_getter;
+add_method Bool "setup" (lambda "this" {
+    throw (new TypeError "cannot create new Bool objects, use true and false instead");
+});
 
-    var get_with_fallback_getter = (lambda "this" {
-        return = (lambda "key fallback" {
-            catch {
-                return = (this.get key);
-            } KeyError {
-                return = fallback;
-            };
-        });
-        return.name = "get_with_fallback method";
-    });
-    get_with_fallback_getter.name = "getter of get_with_fallback";
-    Mapping.getters.set "get_with_fallback" get_with_fallback_getter;
+add_method Bool "to_debug_string" (lambda "this" {
+    return = ((new Mapping [[true "true"] [false "false"]]).get this);
+});
 
-}.run (new Scope {}.definition_scope);
-
+add_method Mapping "get_with_fallback" (lambda "this key fallback" {
+    catch {
+        return = (this.get key);
+    } KeyError {
+        return = fallback;
+    };
+});
 
 var while = (lambda "condition_block body_block" {
     var scope = (new Scope body_block.definition_scope);
@@ -70,6 +58,29 @@ var while = (lambda "condition_block body_block" {
     one_iteration.run one_iteration.definition_scope;
 });
 while.name = "while";
+
+add_method Error "print_stack" (lambda "this" {
+    catch {
+        print (((get_class this).name.concat ": ").concat this.message);
+
+        if (not (this.stack `same_object` null)) {
+            var stack_copy = (this.stack.slice 0);
+            var prefix = "in";
+
+            while { keep_going = (not (stack_copy.length `equals` 0)); } {
+                var frame = (stack_copy.pop);
+                print ((("  ".concat prefix).concat " ").concat (frame.to_debug_string));
+                # TODO: print the source line
+
+                if (prefix `equals` "in") {
+                    prefix = "by";
+                };
+            };
+        };
+    } Error {    # avoid recursion!
+        print "got another error while printing the stack trace of an error";
+    };
+});
 
 var func = (lambda "funcname_and_argnames block" {
     var splitted = (funcname_and_argnames.split_by_whitespace);
@@ -128,10 +139,14 @@ func "foreach varname array block" {
 
 
 {
+    # gets and deletes a variable from built-in scope
+    var get_and_hide_builtin = {}.definition_scope.parent_scope.local_vars.get_and_delete;
+
     # objects have an attrdata mapping that attributes can store their values in
     # it's not useful anywhere else because one can just create attributes using this code
     # so we hide it from the rest of the world here
-    var get_attrdata = ({}.definition_scope.parent_scope.local_vars.get_and_delete "get_attrdata");
+    var get_attrdata = (get_and_hide_builtin "get_attrdata");
+    var add_method = (get_and_hide_builtin "add_method");
 
     func "class class_name initializer_block inherits: inheritable:" {
         if (inherits `same_object` null) {
@@ -172,22 +187,16 @@ func "foreach varname array block" {
                 throw (new ValueError "method's string argument must not be empty");
             };
 
-            var argnames = "this ";
+            var this_and_args = "this ";
             var i = 1;    # skip the method name
             while { keep_going = ((i `equals` splitted.length) `same_object` false); } {
-                argnames = (argnames.concat (splitted.get i));
-                argnames = (argnames.concat " ");
+                this_and_args = (this_and_args.concat (splitted.get i));
+                this_and_args = (this_and_args.concat " ");
                 i = (i.plus 1);
             };
 
             var method_name = ((splitted.get 0).concat " method");
-            var function = (lambda argnames block);
-            var getter = (lambda "this" {
-                return = (function.partial this);
-                return.name = method_name;
-            });
-            getter.name = ("getter of ".concat (splitted.get 0));
-            klass.getters.set (splitted.get 0) getter;
+            add_method klass method_name (lambda this_and_args block);
         };
 
         var init_scope = (new Scope initializer_block.definition_scope);
