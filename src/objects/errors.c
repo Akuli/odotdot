@@ -375,7 +375,6 @@ void errorobject_print(struct Interpreter *interp, struct Object *err)
 {
 	assert(!interp->err);
 
-	// the stack printing is implemented in pure Ö
 	struct Object *res = method_call(interp, err, "print_stack", NULL);
 	if (res) {
 		OBJECT_DECREF(interp, res);
