@@ -82,16 +82,9 @@ static struct Object *runner(struct Interpreter *interp, struct Object *args, st
 		return NULL;
 	}
 
-	struct Object *localvars = attribute_get(interp, scope, "local_vars");
-	if (!localvars) {
-		OBJECT_DECREF(interp, scope);
-		OBJECT_DECREF(interp, theargs);
-		return NULL;
-	}
-
 	// add values of arguments...
 	for (size_t i=0; i < ARRAYOBJECT_LEN(argnames); i++) {
-		if (!mappingobject_set(interp, localvars, ARRAYOBJECT_GET(argnames, i), ARRAYOBJECT_GET(theargs, i))) {
+		if (!mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), ARRAYOBJECT_GET(argnames, i), ARRAYOBJECT_GET(theargs, i))) {
 			OBJECT_DECREF(interp, theargs);
 			goto error;
 		}
@@ -110,19 +103,17 @@ static struct Object *runner(struct Interpreter *interp, struct Object *args, st
 			val = nullobject_get(interp);
 		assert(val);
 
-		bool ok = mappingobject_set(interp, localvars, optname, val);
+		bool ok = mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), optname, val);
 		OBJECT_DECREF(interp, val);
 		if (!ok)
 			goto error;
 	}
 
 	struct Object *retval = blockobject_runwithreturn(interp, block, scope);
-	OBJECT_DECREF(interp, localvars);
 	OBJECT_DECREF(interp, scope);
 	return retval;
 
 error:
-	OBJECT_DECREF(interp, localvars);
 	OBJECT_DECREF(interp, scope);
 	return NULL;
 }

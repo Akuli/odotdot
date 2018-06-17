@@ -228,16 +228,8 @@ static struct Object *catch(struct Interpreter *interp, struct Object *args, str
 	}
 
 	if (varname) {
-		struct Object *localvars = attribute_get(interp, scope, "local_vars");
-		if (!localvars) {
-			OBJECT_DECREF(interp, err);
-			OBJECT_DECREF(interp, scope);
-			return NULL;
-		}
-
-		bool ok = mappingobject_set(interp, localvars, varname, err);
+		bool ok = mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), varname, err);
 		OBJECT_DECREF(interp, err);
-		OBJECT_DECREF(interp, localvars);
 		if (!ok) {
 			OBJECT_DECREF(interp, scope);
 			return NULL;

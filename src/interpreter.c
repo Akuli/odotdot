@@ -10,6 +10,7 @@
 #include "unicode.h"
 #include "objects/errors.h"
 #include "objects/mapping.h"
+#include "objects/scope.h"
 #include "objects/string.h"
 
 struct Interpreter *interpreter_new(char *argv0)
@@ -59,15 +60,8 @@ bool interpreter_addbuiltin(struct Interpreter *interp, char *name, struct Objec
 	if (!keystr)
 		return false;
 
-	struct Object *localvars = attribute_get(interp, interp->builtinscope, "local_vars");
-	if (!localvars) {
-		OBJECT_DECREF(interp, keystr);
-		return false;
-	}
-
-	bool ok = mappingobject_set(interp, localvars, keystr, val);
+	bool ok = mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(interp->builtinscope), keystr, val);
 	OBJECT_DECREF(interp, keystr);
-	OBJECT_DECREF(interp, localvars);
 	return ok;
 }
 
@@ -77,14 +71,12 @@ struct Object *interpreter_getbuiltin(struct Interpreter *interp, char *name)
 	if (!keystr)
 		return NULL;
 
-	struct Object *localvars = attribute_get(interp, interp->builtinscope, "local_vars");
-	if (!localvars) {
-		OBJECT_DECREF(interp, keystr);
-		return NULL;
-	}
-
-	struct Object *ret = method_call(interp, localvars, "get", keystr, NULL);
+	struct Object *ret;
+	int status = mappingobject_get(interp, SCOPEOBJECT_LOCALVARS(interp->builtinscope), keystr, &ret);
 	OBJECT_DECREF(interp, keystr);
-	OBJECT_DECREF(interp, localvars);
+	if (status == 0)   // FIXME: this recurses if someone deletes VariableError
+		errorobject_throwfmt(interp, "VariableError", "cannot find a built-in variable named \"%s\"", name);
+	if (status != 1)
+		return NULL;
 	return ret;
 }

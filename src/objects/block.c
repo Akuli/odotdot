@@ -14,6 +14,7 @@
 #include "function.h"
 #include "mapping.h"
 #include "null.h"
+#include "scope.h"
 #include "string.h"
 
 ATTRIBUTE_DEFINE_SIMPLE_GETTER(definition_scope, Block)
@@ -113,24 +114,15 @@ struct Object *blockobject_runwithreturn(struct Interpreter *interp, struct Obje
 		return NULL;
 	}
 
-	struct Object *localvars = attribute_get(interp, scope, "local_vars");
-	if (!localvars) {
-		OBJECT_DECREF(interp, returner);
-		OBJECT_DECREF(interp, marker);
-		return NULL;
-	}
-
 	// TODO: optimize by not creating this every time?
 	struct Object *returnstr = stringobject_newfromcharptr(interp, "return");
 	if (!returnstr) {
-		OBJECT_DECREF(interp, localvars);
 		OBJECT_DECREF(interp, returner);
 		OBJECT_DECREF(interp, marker);
 		return NULL;
 	}
 
-	bool ok = mappingobject_set(interp, localvars, returnstr, returner);
-	OBJECT_DECREF(interp, localvars);
+	bool ok = mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), returnstr, returner);
 	OBJECT_DECREF(interp, returnstr);
 	OBJECT_DECREF(interp, returner);
 	if (!ok) {

@@ -170,21 +170,13 @@ bool run_statement(struct Interpreter *interp, struct Object *scope, struct Obje
 		if (!val)
 			return false;
 
-		struct Object *localvars = attribute_get(interp, scope, "local_vars");
-		if (!localvars) {
-			OBJECT_DECREF(interp, val);
-			return false;
-		}
-
 		struct Object *keystr = stringobject_newfromustr(interp, INFO_AS(AstCreateOrSetVarInfo)->varname);
 		if (!keystr) {
-			OBJECT_DECREF(interp, localvars);
 			OBJECT_DECREF(interp, val);
 		}
 
-		bool res = mappingobject_set(interp, localvars, keystr, val);
+		bool res = mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), keystr, val);
 		OBJECT_DECREF(interp, keystr);
-		OBJECT_DECREF(interp, localvars);
 		OBJECT_DECREF(interp, val);
 		return res;
 	}

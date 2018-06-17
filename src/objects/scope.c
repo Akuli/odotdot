@@ -14,14 +14,9 @@
 #include "null.h"
 #include "string.h"
 
-struct ScopeData {
-	struct Object *parent_scope;   // NULL for the built-in scope
-	struct Object *local_vars;
-};
-
 static void scope_foreachref(struct Object *scope, void *cbdata, classobject_foreachrefcb cb)
 {
-	struct ScopeData *data = scope->data;
+	struct ScopeObjectData *data = scope->data;
 	if (data) {
 		if (data->parent_scope)
 			cb(data->parent_scope, cbdata);
@@ -36,9 +31,9 @@ static void scope_destructor(struct Object *scope)
 }
 
 
-static struct ScopeData *create_data(struct Interpreter *interp, struct Object *parent_scope)
+static struct ScopeObjectData *create_data(struct Interpreter *interp, struct Object *parent_scope)
 {
-	struct ScopeData *data = malloc(sizeof(struct ScopeData));
+	struct ScopeObjectData *data = malloc(sizeof(struct ScopeObjectData));
 	if (!data) {
 		errorobject_thrownomem(interp);
 		return NULL;
@@ -61,7 +56,7 @@ struct Object *scopeobject_newsub(struct Interpreter *interp, struct Object *par
 	assert(interp->builtins.Scope);
 	assert(parent_scope);
 
-	struct ScopeData *data = create_data(interp, parent_scope);
+	struct ScopeObjectData *data = create_data(interp, parent_scope);
 	if (!data)
 		return NULL;
 
@@ -79,7 +74,7 @@ struct Object *scopeobject_newbuiltin(struct Interpreter *interp)
 {
 	assert(interp->builtins.Scope);
 
-	struct ScopeData *data = create_data(interp, NULL);
+	struct ScopeObjectData *data = create_data(interp, NULL);
 	if (!data)
 		return NULL;
 
@@ -118,7 +113,7 @@ static struct Object *set_var(struct Interpreter *interp, struct Object *args, s
 	struct Object *varname = ARRAYOBJECT_GET(args, 1);
 	struct Object *val = ARRAYOBJECT_GET(args, 2);
 
-	struct ScopeData *scopedata = scope->data;
+	struct ScopeObjectData *scopedata = scope->data;
 	assert(scopedata);
 
 	// is the variable defined here?
@@ -158,7 +153,7 @@ static struct Object *get_var(struct Interpreter *interp, struct Object *args, s
 	struct Object *varname = ARRAYOBJECT_GET(args, 1);
 
 	// is the variable defined here?
-	struct ScopeData *scopedata = scope->data;
+	struct ScopeObjectData *scopedata = scope->data;
 	struct Object *val;
 	int res = mappingobject_get(interp, scopedata->local_vars, varname, &val);
 	if (res == 1)
@@ -187,7 +182,7 @@ static struct Object *parent_scope_getter(struct Interpreter *interp, struct Obj
 	if (!check_args(interp, args, interp->builtins.Scope, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct Object *res = ((struct ScopeData *) ARRAYOBJECT_GET(args, 0)->data)->parent_scope;
+	struct Object *res = ((struct ScopeObjectData *) ARRAYOBJECT_GET(args, 0)->data)->parent_scope;
 	if (!res)
 		res = interp->builtins.null;
 	OBJECT_INCREF(interp, res);
@@ -199,7 +194,7 @@ static struct Object *local_vars_getter(struct Interpreter *interp, struct Objec
 	if (!check_args(interp, args, interp->builtins.Scope, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct Object *res = ((struct ScopeData *) ARRAYOBJECT_GET(args, 0)->data)->local_vars;
+	struct Object *res = ((struct ScopeObjectData *) ARRAYOBJECT_GET(args, 0)->data)->local_vars;
 	OBJECT_INCREF(interp, res);
 	return res;
 }
