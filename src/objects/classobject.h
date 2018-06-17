@@ -6,8 +6,6 @@
 #include "../objectsystem.h"        // IWYU pragma: keep
 #include "../unicode.h"             // IWYU pragma: keep
 
-typedef void (*classobject_foreachrefcb)(struct Object *ref, void *data);
-
 // this is exposed for objectsystem.c
 struct ClassObjectData {
 	// not a String object because it makes creating the String class easier
@@ -27,25 +25,22 @@ struct ClassObjectData {
 	// uninheritable classes break if they are inherited
 	// for example, an Array subclass might forget to call Array's setup method
 	// but array.c isn't prepared to that, so Array is not inheritable
+	// TODO: get rid of this, other people hate it
 	bool inheritable;
-
-	// calls cb(ref, data) for each ref object that this object (obj) refers to
-	// this is used for garbage collecting
-	// can be NULL
-	// use classobject_runforeachref() when calling these, it handles corner cases
-	void (*foreachref)(struct Object *obj, void *data, classobject_foreachrefcb cb);
 };
 
 // creates a new class
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *baseclass, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb), bool inheritable);
+struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *baseclass, bool inheritable);
 
 // RETURNS A NEW REFERENCE or NULL on no mem, for builtins_setup() only
-struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, struct Object *baseclass, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb), bool inheritable);
+// doesn't set the name, see classobject_setname() and builtins_setup()
+struct Object *classobject_new_noerr(struct Interpreter *interp, struct Object *baseclass, bool inheritable);
 
 // a nicer wrapper for object_new_noerr()
 // RETURNS A NEW REFERENCE or NULL on error (but unlike object_new_noerr, it sets interp->err)
-struct Object *classobject_newinstance(struct Interpreter *interp, struct Object *klass, void *data, void (*destructor)(struct Object*));
+struct Object *classobject_newinstance(struct Interpreter *interp, struct Object *klass,
+	void *data, void (*foreachref)(struct Object *, void *, object_foreachrefcb), void (*destructor)(struct Object *));
 
 // just for builtins_setup()
 // bad things happen if klass is not a class object
@@ -59,10 +54,6 @@ bool classobject_issubclassof(struct Object *sub, struct Object *super);
 
 // convenience ftw
 #define classobject_isinstanceof(obj, objklass) classobject_issubclassof((obj)->klass, (objklass))
-
-// use this instead of ((struct ClassobjectData *) obj->klass->data)->foreachref(obj, data, cb)
-// ->foreachref may be NULL, this handles that and inheritance
-void classobject_runforeachref(struct Object *obj, void *data, classobject_foreachrefcb cb);
 
 // used only in builtins_setup(), RETURNS A NEW REFERENCE or NULL on no mem
 // uses interp->builtins.Object

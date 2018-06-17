@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../interpreter.h"
+#include "../method.h"
 #include "../objectsystem.h"
 #include "../tokenizer.h"
 #include "../unicode.h"
@@ -12,7 +13,7 @@
 #include "integer.h"
 #include "string.h"
 
-static void foreachref(struct Object *node, void *cbdata, classobject_foreachrefcb cb)
+static void astnode_foreachref(struct Object *node, void *cbdata, object_foreachrefcb cb)
 {
 	struct AstNodeObjectData *data = node->data;
 	switch (data->kind) {
@@ -50,7 +51,7 @@ static void foreachref(struct Object *node, void *cbdata, classobject_foreachref
 	}
 }
 
-static void destructor(struct Object *node)
+static void astnode_destructor(struct Object *node)
 {
 	struct AstNodeObjectData *data = node->data;
 	switch (data->kind) {
@@ -90,11 +91,26 @@ static void destructor(struct Object *node)
 	free(data);
 }
 
+static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	errorobject_throwfmt(interp, "TypeError", "cannot create new AstNode objects");
+	return NULL;
+}
+
 struct Object *astnodeobject_createclass(struct Interpreter *interp)
 {
 	// the 1 means that AstNode instances may have attributes
 	// TODO: add at least kind and lineno attributes to the nodes?
-	return classobject_new(interp, "AstNode", interp->builtins.Object, foreachref, false);
+	struct Object *klass = classobject_new(interp, "AstNode", interp->builtins.Object, false);
+	if (!klass)
+		return NULL;
+
+	if (!method_add(interp, klass, "setup", setup)) goto error;
+	return klass;
+
+error:
+	OBJECT_DECREF(interp, klass);
+	return NULL;
 }
 
 struct Object *astnodeobject_new(struct Interpreter *interp, char kind, char *filename, size_t lineno, void *info)
@@ -117,7 +133,7 @@ struct Object *astnodeobject_new(struct Interpreter *interp, char kind, char *fi
 	data->lineno = lineno;
 	data->info = info;
 
-	struct Object *obj = classobject_newinstance(interp, interp->builtins.AstNode, data, destructor);
+	struct Object *obj = classobject_newinstance(interp, interp->builtins.AstNode, data, astnode_foreachref, astnode_destructor);
 	if (!obj) {
 		free(data->filename);
 		free(data);

@@ -29,7 +29,7 @@ static void string_destructor(struct Object *s)
 
 struct Object *stringobject_createclass_noerr(struct Interpreter *interp)
 {
-	return classobject_new_noerr(interp, "String", interp->builtins.Object, NULL, false);
+	return classobject_new_noerr(interp, interp->builtins.Object, false);
 }
 
 
@@ -265,7 +265,7 @@ struct Object *stringobject_newfromustr(struct Interpreter *interp, struct Unico
 	if (!data)
 		return NULL;
 
-	struct Object *s = classobject_newinstance(interp, interp->builtins.String, data, string_destructor);
+	struct Object *s = classobject_newinstance(interp, interp->builtins.String, data, NULL, string_destructor);
 	if (!s) {
 		free(data->val);
 		free(data);
@@ -286,7 +286,7 @@ struct Object *stringobject_newfromcharptr(struct Interpreter *interp, char *ptr
 		return NULL;
 	}
 
-	struct Object *s = classobject_newinstance(interp, interp->builtins.String, data, string_destructor);
+	struct Object *s = classobject_newinstance(interp, interp->builtins.String, data, NULL, string_destructor);
 	if (!s) {
 		free(data->val);
 		free(data);
@@ -295,7 +295,6 @@ struct Object *stringobject_newfromcharptr(struct Interpreter *interp, char *ptr
 	s->hash = string_hash(*data);
 	return s;
 }
-
 
 
 #define POINTER_MAXSTR 50            // should be big enough

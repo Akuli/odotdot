@@ -25,7 +25,7 @@ struct ErrorData {
 };
 
 
-static void error_foreachref(struct Object *err, void *cbdata, classobject_foreachrefcb cb)
+static void error_foreachref(struct Object *err, void *cbdata, object_foreachrefcb cb)
 {
 	struct ErrorData *data = err->data;
 	if (data) {
@@ -42,7 +42,7 @@ static void error_destructor(struct Object *err)
 
 struct Object *errorobject_createclass_noerr(struct Interpreter *interp)
 {
-	return classobject_new_noerr(interp, "Error", interp->builtins.Object, error_foreachref, true);
+	return classobject_new_noerr(interp, interp->builtins.Object, true);
 }
 
 
@@ -70,6 +70,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 	OBJECT_INCREF(interp, interp->builtins.null);
 
 	err->data = data;
+	err->foreachref = error_foreachref;
 	err->destructor = error_destructor;
 	return nullobject_get(interp);
 }
@@ -212,7 +213,7 @@ bool errorobject_addmethods(struct Interpreter *interp)
 struct Object *errorobject_createmarkererrorclass(struct Interpreter *interp)
 {
 	assert(interp->builtins.Error);
-	return classobject_new(interp, "MarkerError", interp->builtins.Error, NULL, false);
+	return classobject_new(interp, "MarkerError", interp->builtins.Error, false);
 }
 
 
@@ -245,7 +246,7 @@ struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 		ustr->val[i] = MESSAGE[i];
 #undef MESSAGE
 
-	struct Object *str = object_new_noerr(interp, interp->builtins.String, ustr, string_destructor);
+	struct Object *str = object_new_noerr(interp, interp->builtins.String, ustr, NULL, string_destructor);
 	if (!str) {
 		free(ustr->val);
 		free(ustr);
@@ -253,7 +254,7 @@ struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 	}
 
 	// the MemError class is not stored anywhere else, builtins_setup() looks it up from interp->builtins.nomemerr
-	struct Object *klass = classobject_new_noerr(interp, "MemError", interp->builtins.Error, NULL, false);
+	struct Object *klass = classobject_new_noerr(interp, interp->builtins.Error, false);
 	if (!klass) {
 		OBJECT_DECREF(interp, str);   // takes care of ustr and ustr->val
 		return NULL;
@@ -271,7 +272,7 @@ struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 	data->stack = interp->builtins.null;
 	OBJECT_INCREF(interp, interp->builtins.null);
 
-	struct Object *err = object_new_noerr(interp, klass, data, error_destructor);
+	struct Object *err = object_new_noerr(interp, klass, data, error_foreachref, error_destructor);
 	OBJECT_DECREF(interp, klass);
 	if (!err) {
 		OBJECT_DECREF(interp, data->message);
@@ -297,14 +298,13 @@ struct Object *errorobject_new(struct Interpreter *interp, struct Object *errorc
 	OBJECT_INCREF(interp, interp->builtins.null);
 
 	// builtins.ö must not define any errors that can't be constructed like this
-	struct Object *err = classobject_newinstance(interp, errorclass, data, error_destructor);
+	struct Object *err = classobject_newinstance(interp, errorclass, data, error_foreachref, error_destructor);
 	if (!err) {
 		OBJECT_DECREF(interp, data->message);
 		OBJECT_DECREF(interp, data->stack);
 		free(data);
 		return NULL;
 	}
-
 	return err;
 }
 

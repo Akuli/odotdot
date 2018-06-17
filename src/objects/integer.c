@@ -162,7 +162,7 @@ static struct Object *plus(struct Interpreter *interp, struct Object *args, stru
 
 struct Object *integerobject_createclass(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, "Integer", interp->builtins.Object, NULL, false);
+	struct Object *klass = classobject_new(interp, "Integer", interp->builtins.Object, false);
 	if (!klass)
 		return NULL;
 
@@ -188,7 +188,7 @@ struct Object *integerobject_newfromlonglong(struct Interpreter *interp, long lo
 	}
 	*data = val;
 
-	struct Object *integer = classobject_newinstance(interp, interp->builtins.Integer, data, integer_destructor);
+	struct Object *integer = classobject_newinstance(interp, interp->builtins.Integer, data, NULL, integer_destructor);
 	if (!integer) {
 		free(data);
 		return NULL;

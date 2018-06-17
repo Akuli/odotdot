@@ -27,6 +27,19 @@ struct MappingObjectItem {
 	struct MappingObjectItem *next;
 };
 
+static void mapping_foreachref(struct Object *map, void *cbdata, object_foreachrefcb cb)
+{
+	if (!map->data)
+		return;
+
+	struct MappingObjectIter iter;
+	mappingobject_iterbegin(&iter, map);
+	while (mappingobject_iternext(&iter)) {
+		cb(iter.key, cbdata);
+		cb(iter.value, cbdata);
+	}
+}
+
 static void mapping_destructor(struct Object *map)
 {
 	struct MappingObjectData *data = map->data;
@@ -66,13 +79,12 @@ struct Object *mappingobject_newempty(struct Interpreter *interp)
 		return NULL;
 	}
 
-	struct Object *map = classobject_newinstance(interp, interp->builtins.Mapping, data, mapping_destructor);
+	struct Object *map = classobject_newinstance(interp, interp->builtins.Mapping, data, mapping_foreachref, mapping_destructor);
 	if (!map) {
 		free(data->buckets);
 		free(data);
 		return NULL;
 	}
-
 	map->hashable = false;
 	return map;
 }
@@ -104,6 +116,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 	}
 
 	map->data = data;
+	map->foreachref = mapping_foreachref;
 	map->destructor = mapping_destructor;
 	map->hashable = false;
 
@@ -386,20 +399,7 @@ starthere:
 }
 
 
-static void foreachref(struct Object *map, void *cbdata, classobject_foreachrefcb cb)
-{
-	if (!map->data)
-		return;
-
-	struct MappingObjectIter iter;
-	mappingobject_iterbegin(&iter, map);
-	while (mappingobject_iternext(&iter)) {
-		cb(iter.key, cbdata);
-		cb(iter.value, cbdata);
-	}
-}
-
 struct Object *mappingobject_createclass(struct Interpreter *interp)
 {
-	return classobject_new(interp, "Mapping", interp->builtins.Object, foreachref, false);
+	return classobject_new(interp, "Mapping", interp->builtins.Object, false);
 }

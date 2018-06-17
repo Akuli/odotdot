@@ -16,6 +16,16 @@
 #include "null.h"
 #include "string.h"
 
+static void class_foreachref(struct Object *klass, void *cbdata, object_foreachrefcb cb)
+{
+	struct ClassObjectData *data = klass->data;
+	if (!data)     // setup method failed
+		return;
+	if (data->baseclass) cb(data->baseclass, cbdata);
+	if (data->setters) cb(data->setters, cbdata);
+	if (data->getters) cb(data->getters, cbdata);
+}
+
 static void class_destructor(struct Object *klass)
 {
 	// class_foreachref takes care of most other things
@@ -27,7 +37,7 @@ static void class_destructor(struct Object *klass)
 }
 
 
-static struct ClassObjectData *create_data(struct Interpreter *interp, struct Object *baseclass, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb), bool inheritable)
+static struct ClassObjectData *create_data(struct Interpreter *interp, struct Object *baseclass, bool inheritable)
 {
 	struct ClassObjectData *data = malloc(sizeof(struct ClassObjectData));
 	if (!data)
@@ -41,7 +51,6 @@ static struct ClassObjectData *create_data(struct Interpreter *interp, struct Ob
 	data->setters = NULL;
 	data->getters = NULL;
 	data->inheritable = inheritable;
-	data->foreachref = foreachref;
 	return data;
 }
 
@@ -53,14 +62,14 @@ static void free_data(struct Interpreter *interp, struct ClassObjectData *data)
 	free(data);
 }
 
-struct Object *classobject_new_noerr(struct Interpreter *interp, char *name, struct Object *baseclass, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb), bool inheritable)
+struct Object *classobject_new_noerr(struct Interpreter *interp, struct Object *baseclass, bool inheritable)
 {
-	struct ClassObjectData *data = create_data(interp, baseclass, foreachref, inheritable);
+	struct ClassObjectData *data = create_data(interp, baseclass, inheritable);
 	if (!data)
 		return NULL;
 
 	// interp->Class can be NULL, see builtins_setup()
-	struct Object *klass = object_new_noerr(interp, interp->builtins.Class, data, class_destructor);
+	struct Object *klass = object_new_noerr(interp, interp->builtins.Class, data, class_foreachref, class_destructor);
 	if (!klass) {
 		free_data(interp, data);
 		return NULL;
@@ -90,7 +99,7 @@ static bool check_inheritable(struct Interpreter *interp, struct Object *basecla
 	return true;
 }
 
-struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *baseclass, void (*foreachref)(struct Object*, void*, classobject_foreachrefcb), bool inheritable)
+struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *baseclass, bool inheritable)
 {
 	assert(interp->builtins.Class);
 	assert(interp->builtins.nomemerr);
@@ -98,7 +107,7 @@ struct Object *classobject_new(struct Interpreter *interp, char *name, struct Ob
 	if (!check_inheritable(interp, baseclass))
 		return NULL;
 
-	struct Object *klass = classobject_new_noerr(interp, name, baseclass, foreachref, inheritable);
+	struct Object *klass = classobject_new_noerr(interp, baseclass, inheritable);
 	if (!klass) {
 		errorobject_thrownomem(interp);
 		return NULL;
@@ -113,14 +122,9 @@ struct Object *classobject_new(struct Interpreter *interp, char *name, struct Ob
 
 
 // TODO: get rid of this? it seems quite dumb
-struct Object *classobject_newinstance(struct Interpreter *interp, struct Object *klass, void *data, void (*destructor)(struct Object*))
+struct Object *classobject_newinstance(struct Interpreter *interp, struct Object *klass, void *data, void (*foreachref)(struct Object *, void *, object_foreachrefcb), void (*destructor)(struct Object *))
 {
-	if (!classobject_isinstanceof(klass, interp->builtins.Class)) {
-		// TODO: test this
-		errorobject_throwfmt(interp, "TypeError", "cannot create an instance of %D", klass);
-		return NULL;
-	}
-	struct Object *instance = object_new_noerr(interp, klass, data, destructor);
+	struct Object *instance = object_new_noerr(interp, klass, data, foreachref, destructor);
 	if (!instance) {
 		errorobject_thrownomem(interp);
 		return NULL;
@@ -137,34 +141,10 @@ bool classobject_issubclassof(struct Object *sub, struct Object *super)
 	return false;
 }
 
-void classobject_runforeachref(struct Object *obj, void *data, classobject_foreachrefcb cb)
-{
-	// this must not fail if obj->klass is NULL because builtins_setup() is lol
-	struct Object *klass = obj->klass;
-	while (klass) {
-		struct ClassObjectData *klassdata = klass->data;
-		if (klassdata->foreachref)
-			klassdata->foreachref(obj, data, cb);
-		klass = klassdata->baseclass;
-	}
-}
-
-
-static void class_foreachref(struct Object *klass, void *cbdata, classobject_foreachrefcb cb)
-{
-	struct ClassObjectData *data = klass->data;
-	if (!data)     // setup method failed
-		return;
-	if (data->baseclass) cb(data->baseclass, cbdata);
-	if (data->setters) cb(data->setters, cbdata);
-	if (data->getters) cb(data->getters, cbdata);
-}
-
 
 struct Object *classobject_create_Class_noerr(struct Interpreter *interp)
 {
-	// TODO: should the name of class objects be implemented as an attribute?
-	return classobject_new_noerr(interp, "Class", interp->builtins.Object, class_foreachref, false);
+	return classobject_new_noerr(interp, interp->builtins.Object, false /* no metaclasses :( */);
 }
 
 
@@ -226,7 +206,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 		return NULL;
 	}
 
-	struct ClassObjectData *data = create_data(interp, baseclass, NULL, inheritable);
+	struct ClassObjectData *data = create_data(interp, baseclass, inheritable);
 	if (!data) {
 		errorobject_thrownomem(interp);
 		return NULL;
@@ -239,6 +219,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 	}
 
 	klass->data = data;
+	klass->foreachref = class_foreachref;
 	klass->destructor = class_destructor;
 
 	return nullobject_get(interp);

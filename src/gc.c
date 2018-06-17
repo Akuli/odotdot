@@ -24,10 +24,16 @@ void gc_run(struct Interpreter *interp)
 #define for_each_object iter = allobjects_iterbegin(interp->allobjects); while (allobjects_iternext(&iter))   // lol
 
 	for_each_object
-		((struct Object *) iter.obj)->gcflag = 0;
+		iter.obj->gcflag = 0;
 
-	for_each_object
-		classobject_runforeachref((struct Object *) iter.obj, NULL, mark_reference);
+	for_each_object {
+		if (iter.obj->klass)
+			iter.obj->klass->gcflag++;
+		if (iter.obj->attrdata)
+			iter.obj->attrdata->gcflag++;
+		if (iter.obj->foreachref)
+			iter.obj->foreachref(iter.obj, NULL, mark_reference);
+	}
 
 	bool gotproblems = false;
 	struct Object *problems[PROBLEMS_MAX] = { NULL };  // for debugging
@@ -51,14 +57,9 @@ void gc_run(struct Interpreter *interp)
 	// i can gdb this and then look at the problems array
 	assert(!gotproblems);
 
-	// classes may be wiped before their instances
-	// object_free_impl() uses ->klass unless ->klass is NULL
-	for_each_object
-		((struct Object *) iter.obj)->klass = NULL;
-
 	// wipe everything, can use for_each_object if interp->allobjects isn't modified in the loop
 	for_each_object
-		object_free_impl(interp, iter.obj, false);    // doesn't modify interp->allobjects because false
+		object_free_impl(interp, iter.obj, true);    // doesn't modify interp->allobjects because the true arg
 
 #undef for_each_object
 }

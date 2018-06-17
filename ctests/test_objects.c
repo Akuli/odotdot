@@ -27,9 +27,12 @@ void cleaner(struct Object *obj)
 void test_objects_simple(void)
 {
 	buttert(cleaner_ran == 0);
-	struct Object *obj = classobject_newinstance(testinterp, testinterp->builtins.Object, (void *)0xdeadbeef, cleaner);
+	struct Object *obj = classobject_newinstance(testinterp, testinterp->builtins.Object, (void*)0xdeadbeef, NULL, cleaner);
 	buttert(obj);
-	buttert(obj->data == (void *)0xdeadbeef);
+	buttert(obj->data == (void*)0xdeadbeef);
+	buttert(obj->foreachref == NULL);
+	buttert(obj->destructor == cleaner);
+
 	buttert(cleaner_ran == 0);
 	OBJECT_INCREF(testinterp, obj);
 	OBJECT_DECREF(testinterp, obj);

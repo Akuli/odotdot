@@ -25,11 +25,11 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 struct Object *nullobject_create_noerr(struct Interpreter *interp)
 {
 	assert(interp->builtins.Object);
-	struct Object *klass = classobject_new_noerr(interp, "FIXME: this is never used", interp->builtins.Object, NULL, false);
+	struct Object *klass = classobject_new_noerr(interp, interp->builtins.Object, false);
 	if (!klass)
 		return NULL;
 
-	struct Object *nullobj = object_new_noerr(interp, klass, NULL, NULL);
+	struct Object *nullobj = object_new_noerr(interp, klass, NULL, NULL, NULL);
 	OBJECT_DECREF(interp, klass);
 	return nullobj;
 }

@@ -22,7 +22,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 
 struct Object *stackframeobject_createclass(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, "StackFrame", interp->builtins.Object, NULL, false);
+	struct Object *klass = classobject_new(interp, "StackFrame", interp->builtins.Object, false);
 	if (!klass)
 		return NULL;
 
@@ -39,7 +39,7 @@ error:
 
 static struct Object *new_frame_object(struct Interpreter *interp, struct StackFrame f)
 {
-	struct Object *fobj = classobject_newinstance(interp, interp->builtins.StackFrame, NULL, NULL);
+	struct Object *fobj = classobject_newinstance(interp, interp->builtins.StackFrame, NULL, NULL, NULL);
 	if (!fobj)
 		return NULL;
 

@@ -16,7 +16,7 @@
 #include "null.h"
 #include "string.h"
 
-static void array_foreachref(struct Object *arr, void *cbdata, classobject_foreachrefcb cb)
+static void array_foreachref(struct Object *arr, void *cbdata, object_foreachrefcb cb)
 {
 	struct ArrayObjectData *data = arr->data;
 	for (size_t i=0; i < data->len; i++)
@@ -34,8 +34,7 @@ static void array_destructor(struct Object *arr)
 
 static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	// FIXME: ValueError feels wrong, but there are no better alternatives right now
-	errorobject_throwfmt(interp, "ValueError", "arrays can't be created with (new Array), use [ ] instead");
+	errorobject_throwfmt(interp, "TypeError", "arrays can't be created with (new Array), use [ ] instead");
 	return NULL;
 }
 
@@ -217,7 +216,7 @@ static struct Object *length_getter(struct Interpreter *interp, struct Object *a
 
 struct Object *arrayobject_createclass(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, "Array", interp->builtins.Object, array_foreachref, false);
+	struct Object *klass = classobject_new(interp, "Array", interp->builtins.Object, false);
 	if (!klass)
 		return NULL;
 
@@ -257,7 +256,7 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **elems
 		return NULL;
 	}
 
-	struct Object *arr = classobject_newinstance(interp, interp->builtins.Array, data, array_destructor);
+	struct Object *arr = classobject_newinstance(interp, interp->builtins.Array, data, array_foreachref, array_destructor);
 	if (!arr) {
 		free(data->elems);
 		free(data);

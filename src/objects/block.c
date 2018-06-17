@@ -172,7 +172,7 @@ static struct Object *run_with_return(struct Interpreter *interp, struct Object 
 
 struct Object *blockobject_createclass(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, "Block", interp->builtins.Object, NULL, false);
+	struct Object *klass = classobject_new(interp, "Block", interp->builtins.Object, false);
 	if (!klass)
 		return NULL;
 
@@ -190,7 +190,7 @@ error:
 
 struct Object *blockobject_new(struct Interpreter *interp, struct Object *definition_scope, struct Object *astnodearr)
 {
-	struct Object *block = classobject_newinstance(interp, interp->builtins.Block, NULL, NULL);
+	struct Object *block = classobject_newinstance(interp, interp->builtins.Block, NULL, NULL, NULL);
 	if (!block)
 		return NULL;
 

@@ -23,7 +23,7 @@ struct FunctionData {
 	size_t npartialargs;
 };
 
-static void function_foreachref(struct Object *func, void *cbdata, classobject_foreachrefcb cb)
+static void function_foreachref(struct Object *func, void *cbdata, object_foreachrefcb cb)
 {
 	struct FunctionData *data = func->data;    // casts implicitly
 	cb(data->name, cbdata);
@@ -42,7 +42,7 @@ static void function_destructor(struct Object *func)
 
 struct Object *functionobject_createclass(struct Interpreter *interp)
 {
-	return classobject_new(interp, "Function", interp->builtins.Object, function_foreachref, false);
+	return classobject_new(interp, "Function", interp->builtins.Object, false);
 }
 
 
@@ -77,7 +77,7 @@ static struct Object *create_a_partial(struct Interpreter *interp, struct Object
 	newdata->name = data->name;
 	OBJECT_INCREF(interp, newdata->name);
 
-	struct Object *obj = classobject_newinstance(interp, interp->builtins.Function, newdata, function_destructor);
+	struct Object *obj = classobject_newinstance(interp, interp->builtins.Function, newdata, function_foreachref, function_destructor);
 	if (!obj) {
 		OBJECT_DECREF(interp, newdata->name);
 		for (size_t i=0; i < newdata->npartialargs; i++)
@@ -198,12 +198,13 @@ struct Object *functionobject_new(struct Interpreter *interp, functionobject_cfu
 	data->partialargs = NULL;
 	data->npartialargs = 0;
 
-	struct Object *obj = classobject_newinstance(interp, interp->builtins.Function, data, function_destructor);
+	struct Object *obj = classobject_newinstance(interp, interp->builtins.Function, data, function_foreachref, function_destructor);
 	if (!obj) {
 		OBJECT_DECREF(interp, nameobj);
 		free(data);
 		return NULL;
 	}
+
 	return obj;
 }
 

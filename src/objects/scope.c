@@ -14,13 +14,19 @@
 #include "null.h"
 #include "string.h"
 
-static void scope_foreachref(struct Object *scope, void *cbdata, classobject_foreachrefcb cb)
+static void builtin_scope_foreachref(struct Object *scope, void *cbdata, object_foreachrefcb cb)
+{
+	struct ScopeObjectData *data = scope->data;
+	if (data)
+		cb(data->local_vars, cbdata);
+}
+
+static void subscope_foreachref(struct Object *scope, void *cbdata, object_foreachrefcb cb)
 {
 	struct ScopeObjectData *data = scope->data;
 	if (data) {
-		if (data->parent_scope)
-			cb(data->parent_scope, cbdata);
 		cb(data->local_vars, cbdata);
+		cb(data->parent_scope, cbdata);
 	}
 }
 
@@ -60,7 +66,7 @@ struct Object *scopeobject_newsub(struct Interpreter *interp, struct Object *par
 	if (!data)
 		return NULL;
 
-	struct Object *scope = classobject_newinstance(interp, interp->builtins.Scope, data, scope_destructor);
+	struct Object *scope = classobject_newinstance(interp, interp->builtins.Scope, data, subscope_foreachref, scope_destructor);
 	if (!scope) {
 		OBJECT_DECREF(interp, data->parent_scope);
 		OBJECT_DECREF(interp, data->local_vars);
@@ -78,7 +84,7 @@ struct Object *scopeobject_newbuiltin(struct Interpreter *interp)
 	if (!data)
 		return NULL;
 
-	struct Object *scope = classobject_newinstance(interp, interp->builtins.Scope, data, scope_destructor);
+	struct Object *scope = classobject_newinstance(interp, interp->builtins.Scope, data, builtin_scope_foreachref, scope_destructor);
 	if (!scope) {
 		OBJECT_DECREF(interp, data->local_vars);
 		free(data);
@@ -102,6 +108,8 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 	}
 
 	scope->data = create_data(interp, parent_scope);
+	scope->foreachref = subscope_foreachref;
+	scope->destructor = scope_destructor;
 	return scope->data ? nullobject_get(interp) : NULL;
 }
 
@@ -201,7 +209,7 @@ static struct Object *local_vars_getter(struct Interpreter *interp, struct Objec
 
 struct Object *scopeobject_createclass(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, "Scope", interp->builtins.Object, scope_foreachref, false);
+	struct Object *klass = classobject_new(interp, "Scope", interp->builtins.Object, false);
 	if (!klass)
 		return NULL;
 

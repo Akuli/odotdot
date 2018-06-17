@@ -12,17 +12,9 @@
 #include "null.h"
 #include "string.h"
 
-static void object_foreachref(struct Object *obj, void *data, classobject_foreachrefcb cb)
-{
-	if (obj->klass)
-		cb(obj->klass, data);
-	if (obj->attrdata)
-		cb(obj->attrdata, data);
-}
-
 struct Object *objectobject_createclass_noerr(struct Interpreter *interp)
 {
-	return classobject_new_noerr(interp, "Object", NULL, object_foreachref, true);
+	return classobject_new_noerr(interp, NULL, true);
 }
 
 
