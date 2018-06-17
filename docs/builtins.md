@@ -528,8 +528,8 @@ Methods:
   local variables and runs the scope as with `block.run scope;`. The `return`
   function takes 1 or 0 arguments, throws a [MarkerError], and running the
   block terminates. `run_with_return` then catches the `MarkerError` and
-  returns the value passed to the `return` function while running. If `return`
-  is not called at all or it's called with no arguments, `null` is returned.
+  returns the value that was passed to the `return` function. If `return` was
+  not called at all or it was called with no arguments, `null` is returned.
 
 ### Scopes
 

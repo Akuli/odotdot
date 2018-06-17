@@ -392,8 +392,8 @@ annoying, not as a replacement to `{ return value; }`. In other words,
 ## Options
 
 Functions can also take options. They are like arguments, but every option has
-a name associated with it. Options are also *optional*, so you don't need to
-specify them when calling the function.
+a name associated with it. Options are also *optional*, so you can call the
+function with an option or without an option.
 
 Here's an example:
 
@@ -510,12 +510,12 @@ debug method;       # error: no variable named 'method'
 
 ```python
 class "Baz" {
-    debug method;   # prints <Function "debug" at 0xblablabla>
+    debug method;   # prints <Function "method" at 0xblablabla>
 };
 ```
 
-`method` is a function that is inserted to the subscope that the block is
-running in.
+`method` is a function that is inserted to the scope that the block is running
+in.
 
 In the `Foo` example, we defined the `setup` method like
 `method "setup" { ... };`. If it takes arguments, those arguments must be
