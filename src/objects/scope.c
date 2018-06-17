@@ -14,49 +14,84 @@
 #include "null.h"
 #include "string.h"
 
+struct ScopeData {
+	struct Object *parent_scope;   // NULL for the built-in scope
+	struct Object *local_vars;
+};
+
+static void scope_foreachref(struct Object *scope, void *cbdata, classobject_foreachrefcb cb)
+{
+	struct ScopeData *data = scope->data;
+	if (data) {
+		if (data->parent_scope)
+			cb(data->parent_scope, cbdata);
+		cb(data->local_vars, cbdata);
+	}
+}
+
+static void scope_destructor(struct Object *scope)
+{
+	if (scope->data)
+		free(scope->data);
+}
+
+
+static struct ScopeData *create_data(struct Interpreter *interp, struct Object *parent_scope)
+{
+	struct ScopeData *data = malloc(sizeof(struct ScopeData));
+	if (!data) {
+		errorobject_thrownomem(interp);
+		return NULL;
+	}
+
+	data->local_vars = mappingobject_newempty(interp);
+	if (!data->local_vars) {
+	 	free(data);
+		return NULL;
+	}
+
+	data->parent_scope = parent_scope;
+	if (parent_scope)
+		OBJECT_INCREF(interp, parent_scope);
+	return data;
+}
 
 struct Object *scopeobject_newsub(struct Interpreter *interp, struct Object *parent_scope)
 {
 	assert(interp->builtins.Scope);
+	assert(parent_scope);
 
-	struct Object *scope = classobject_newinstance(interp, interp->builtins.Scope, NULL, NULL);
-	if (!scope)
+	struct ScopeData *data = create_data(interp, parent_scope);
+	if (!data)
 		return NULL;
 
-	struct Object *local_vars = mappingobject_newempty(interp);
-	if (!local_vars) {
-		OBJECT_DECREF(interp, scope);
+	struct Object *scope = classobject_newinstance(interp, interp->builtins.Scope, data, scope_destructor);
+	if (!scope) {
+		OBJECT_DECREF(interp, data->parent_scope);
+		OBJECT_DECREF(interp, data->local_vars);
+		free(data);
 		return NULL;
 	}
-
-	if (!attribute_settoattrdata(interp, scope, "parent_scope", parent_scope)) goto error;
-	if (!attribute_settoattrdata(interp, scope, "local_vars", local_vars)) goto error;
-
-	OBJECT_DECREF(interp, local_vars);
 	return scope;
-
-error:
-	OBJECT_DECREF(interp, local_vars);
-	OBJECT_DECREF(interp, scope);
-	return NULL;
 }
 
 struct Object *scopeobject_newbuiltin(struct Interpreter *interp)
 {
-	// null is defined in stdlib/builtins.ö, but this is called from builtins.c before builtins.ö runs
-	// builtins.ö replaces this with the correct null object
-	struct Object *fakenull = classobject_newinstance(interp, interp->builtins.Scope, NULL, NULL);
-	if (!fakenull)
+	assert(interp->builtins.Scope);
+
+	struct ScopeData *data = create_data(interp, NULL);
+	if (!data)
 		return NULL;
 
-	struct Object *res = scopeobject_newsub(interp, fakenull);
-	OBJECT_DECREF(interp, fakenull);
-	return res;
+	struct Object *scope = classobject_newinstance(interp, interp->builtins.Scope, data, scope_destructor);
+	if (!scope) {
+		OBJECT_DECREF(interp, data->local_vars);
+		free(data);
+		return NULL;
+	}
+	return scope;
 }
 
-
-ATTRIBUTE_DEFINE_SIMPLE_GETTER(parent_scope, Scope)
-ATTRIBUTE_DEFINE_SIMPLE_GETTER(local_vars, Scope)
 
 static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
@@ -65,21 +100,15 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 	struct Object *scope = ARRAYOBJECT_GET(args, 0);
 	struct Object *parent_scope = ARRAYOBJECT_GET(args, 1);
 
-	struct Object *local_vars = mappingobject_newempty(interp);
-	if (!local_vars)
+	if (scope->data) {
+		// FIXME: ValueError for this sucks
+		errorobject_throwfmt(interp, "ValueError", "Scope's setup was called twice");
 		return NULL;
+	}
 
-	if (!attribute_settoattrdata(interp, scope, "parent_scope", parent_scope)) goto error;
-	if (!attribute_settoattrdata(interp, scope, "local_vars", local_vars)) goto error;
-
-	OBJECT_DECREF(interp, local_vars);
-	return nullobject_get(interp);
-
-error:
-	OBJECT_DECREF(interp, local_vars);
-	return NULL;
+	scope->data = create_data(interp, parent_scope);
+	return scope->data ? nullobject_get(interp) : NULL;
 }
-
 
 static struct Object *set_var(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
@@ -89,18 +118,16 @@ static struct Object *set_var(struct Interpreter *interp, struct Object *args, s
 	struct Object *varname = ARRAYOBJECT_GET(args, 1);
 	struct Object *val = ARRAYOBJECT_GET(args, 2);
 
-	struct Object *local_vars = attribute_get(interp, scope, "local_vars");
-	if (!local_vars)
-		return NULL;
+	struct ScopeData *scopedata = scope->data;
+	assert(scopedata);
 
 	// is the variable defined here?
 	struct Object *oldval;
-	int res = mappingobject_get(interp, local_vars, varname, &oldval);
-	OBJECT_DECREF(interp, local_vars);
+	int res = mappingobject_get(interp, scopedata->local_vars, varname, &oldval);
 	if (res == 1) {
 		// yes
 		OBJECT_DECREF(interp, oldval);
-		return mappingobject_set(interp, local_vars, varname, val) ? nullobject_get(interp) : NULL;
+		return mappingobject_set(interp, scopedata->local_vars, varname, val) ? nullobject_get(interp) : NULL;
 	}
 	if (res == -1)
 		return NULL;
@@ -114,12 +141,7 @@ static struct Object *set_var(struct Interpreter *interp, struct Object *args, s
 	}
 
 	// maybe the variable is defined in the parent scope?
-	struct Object *parent_scope = attribute_get(interp, scope, "parent_scope");
-	if (!parent_scope)
-		return NULL;
-	struct Object *tmp[] = { parent_scope, varname, val };
-	struct Object *newargs = arrayobject_new(interp, tmp, 3);
-	OBJECT_DECREF(interp, parent_scope);
+	struct Object *newargs = arrayobject_new(interp, (struct Object *[]) { scopedata->parent_scope, varname, val }, 3);
 	if (!newargs)
 		return NULL;
 
@@ -136,13 +158,9 @@ static struct Object *get_var(struct Interpreter *interp, struct Object *args, s
 	struct Object *varname = ARRAYOBJECT_GET(args, 1);
 
 	// is the variable defined here?
-	// TODO: better error message for missing variables
-	struct Object *local_vars = attribute_get(interp, scope, "local_vars");
-	if (!local_vars)
-		return NULL;
+	struct ScopeData *scopedata = scope->data;
 	struct Object *val;
-	int res = mappingobject_get(interp, local_vars, varname, &val);
-	OBJECT_DECREF(interp, local_vars);
+	int res = mappingobject_get(interp, scopedata->local_vars, varname, &val);
 	if (res == 1)
 		return val;
 	if (res == -1)
@@ -154,12 +172,7 @@ static struct Object *get_var(struct Interpreter *interp, struct Object *args, s
 		return NULL;
 	}
 
-	struct Object *parent_scope = attribute_get(interp, scope, "parent_scope");
-	if (!parent_scope)
-		return NULL;
-	struct Object *tmp[] = { parent_scope, varname };
-	struct Object *newargs = arrayobject_new(interp, tmp, 2);
-	OBJECT_DECREF(interp, parent_scope);
+	struct Object *newargs = arrayobject_new(interp, (struct Object *[]) { scopedata->parent_scope, varname }, 2);
 	if (!newargs)
 		return NULL;
 
@@ -168,9 +181,32 @@ static struct Object *get_var(struct Interpreter *interp, struct Object *args, s
 	return ret;
 }
 
+
+static struct Object *parent_scope_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Scope, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	struct Object *res = ((struct ScopeData *) ARRAYOBJECT_GET(args, 0)->data)->parent_scope;
+	if (!res)
+		res = interp->builtins.null;
+	OBJECT_INCREF(interp, res);
+	return res;
+}
+
+static struct Object *local_vars_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Scope, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	struct Object *res = ((struct ScopeData *) ARRAYOBJECT_GET(args, 0)->data)->local_vars;
+	OBJECT_INCREF(interp, res);
+	return res;
+}
+
 struct Object *scopeobject_createclass(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, "Scope", interp->builtins.Object, NULL, false);
+	struct Object *klass = classobject_new(interp, "Scope", interp->builtins.Object, scope_foreachref, false);
 	if (!klass)
 		return NULL;
 
