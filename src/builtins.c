@@ -102,6 +102,69 @@ error:
 	return NULL;
 }
 
+// for { init; } { cond } { incr; } { ... };
+// TODO: break and continue
+static struct Object *for_(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Block, interp->builtins.Block, interp->builtins.Block, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+	struct Object *init = ARRAYOBJECT_GET(args, 0);
+	struct Object *cond = ARRAYOBJECT_GET(args, 1);
+	struct Object *incr = ARRAYOBJECT_GET(args, 2);
+	struct Object *body = ARRAYOBJECT_GET(args, 3);
+
+	struct Object *scope = subscope_of_defscope(interp, body);
+	if (!scope)
+		return NULL;
+
+	struct Object *yay = interpreter_getbuiltin(interp, "true");
+	if (!yay) {
+		OBJECT_DECREF(interp, scope);
+		return NULL;
+	}
+	struct Object *nay = interpreter_getbuiltin(interp, "false");
+	if (!nay) {
+		OBJECT_DECREF(interp, yay);
+		OBJECT_DECREF(interp, scope);
+		return NULL;
+	}
+
+	if (!blockobject_run(interp, init, scope))
+		goto error;
+
+	while(1) {
+		struct Object *keepgoing = blockobject_runwithreturn(interp, cond, scope);
+		if (!keepgoing)
+			goto error;
+
+		bool go = keepgoing==yay;
+		bool omg = (keepgoing!=yay && keepgoing!=nay);
+		OBJECT_DECREF(interp, keepgoing);
+		if (omg) {
+			errorobject_throwfmt(interp, "TypeError", "the condition of a for loop must return true or false, but it returned %D", keepgoing);
+			goto error;
+		}
+		if (!go)
+			break;
+
+		if (!blockobject_run(interp, body, scope))
+			goto error;
+		if (!blockobject_run(interp, incr, scope))
+			goto error;
+	}
+
+	OBJECT_DECREF(interp, yay);
+	OBJECT_DECREF(interp, nay);
+	OBJECT_DECREF(interp, scope);
+	return nullobject_get(interp);
+
+error:
+	OBJECT_DECREF(interp, yay);
+	OBJECT_DECREF(interp, nay);
+	OBJECT_DECREF(interp, scope);
+	return NULL;
+}
+
 static struct Object *throw(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
@@ -405,7 +468,8 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!add_function(interp, "print", print)) goto error;
 	if (!add_function(interp, "same_object", same_object)) goto error;
 	if (!add_function(interp, "get_attrdata", get_attrdata)) goto error;
-	if (!add_function(interp, "get_stack", get_stack)) goto error;
+	if (!add_function(interp, "get_stack", get_stack)) goto error;     // TODO: get rid of this??
+	if (!add_function(interp, "for", for_)) goto error;
 
 	// compile like this:   $ CFLAGS=-DDEBUG_BUILTINS make clean all
 #ifdef DEBUG_BUILTINS

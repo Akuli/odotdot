@@ -1,0 +1,77 @@
+func "test what how" {
+    how.run (new Scope how.definition_scope);
+};
+func "throws errorclass body" {
+    var threw = null;
+    catch {
+        body.run (new Scope body.definition_scope);
+        threw = false;
+    } errorclass {
+        threw = true;
+    };
+    assert threw;
+};
+
+test "simple stuff" {
+    var stuff = [];
+    for { var i=0; } { (not (i `equals` 5)) } { i = (i.plus 1); } {
+        stuff.push i;
+    };
+    assert (stuff `equals` [0 1 2 3 4]);
+    throws VariableError {
+        # must not leak the i
+        debug i;
+    };
+
+    var i = 5;
+    while { (not (i `equals` 10)) } {
+        stuff.push i;
+        i = (i.plus 1);
+    };
+    assert (stuff `equals` [0 1 2 3 4 5 6 7 8 9]);
+    assert (i `equals` 10);   # it wasn't deleted magically, which is good
+};
+
+test "for" {
+    var what_happened = [];
+    for { what_happened.push "init"; var i = 0; }
+        { what_happened.push "cond"; return (not (i `equals` 5)); }
+        { what_happened.push "incr"; i = (i.plus 1); }
+    {
+        what_happened.push "body";
+    };
+
+    assert (what_happened `equals` [
+        "init"
+        "cond" "body" "incr"
+        "cond" "body" "incr"
+        "cond" "body" "incr"
+        "cond" "body" "incr"
+        "cond" "body" "incr"
+        "cond"
+    ]);
+
+    what_happened = [];
+    var ok = true;
+
+    throws ArgError {
+        for { throw (new ArgError "oops"); } { ok = false; return true; } { ok = false; } { ok = false; };
+    };
+    assert ok;
+
+    throws ArgError {
+        for { } { throw (new ArgError "oops"); } { ok = false; } { ok = false; };
+    };
+    assert ok;
+
+    var how_many_times = 0;
+    throws ArgError {
+        for { } { true } { throw (new ArgError "oops"); } { how_many_times = (how_many_times.plus 1); };
+    };
+    assert (how_many_times `equals` 1);
+
+    throws ArgError {
+        for { } { true } { ok = false; } { throw (new ArgError "oops"); };
+    };
+    assert ok;
+};
