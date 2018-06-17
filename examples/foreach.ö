@@ -1,5 +1,0 @@
-# simple foreach loop
-var array = ["one" "two" "three"];
-foreach "thing" array {
-    print thing;
-};
