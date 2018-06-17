@@ -48,3 +48,25 @@ test "setup" {
     throws TypeError { false.setup; };
     throws TypeError { null.setup; };
 };
+
+test "and, or" {
+    assert ((true `and` true) `same_object` true);
+    assert ((false `and` true) `same_object` false);
+    assert ((false `and` true) `same_object` false);
+    assert ((false `and` false) `same_object` false);
+
+    assert ((true `or` true) `same_object` true);    # it's not xor
+    assert ((true `or` false) `same_object` true);
+    assert ((false `or` true) `same_object` true);
+    assert ((false `or` false) `same_object` false);
+
+    foreach "function" [and or] {
+        foreach "notbool" [ 123 "asda" "true" "yes" (new Mapping a:1 b:2) [1 2 3] [] ] {
+            throws TypeError { notbool `function` notbool; };
+            throws TypeError { notbool `function` true; };
+            throws TypeError { notbool `function` false; };
+            throws TypeError { true `function` notbool; };
+            throws TypeError { false `function` notbool; };
+        };
+    };
+};

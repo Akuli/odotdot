@@ -141,6 +141,24 @@ func "not x" {
     return true;
 };
 
+func "and x y" {
+    if x {
+        if y {
+            return true;
+        };
+    } else: {
+        # no matter what x is, an error must be thrown if y is not a Bool
+        # this checks it :D
+        not y;
+    };
+
+    return false;
+};
+
+func "or x y" {
+    return (not ((not x) `and` (not y)));
+};
+
 func "assert condition" {
     if (not condition) {
         throw (new AssertError "assertion failed");

@@ -76,6 +76,20 @@ if (not something) {
 
 If `x` is not [true] or [false], `(not x)` throws [TypeError].
 
+### and
+
+``(x `and` y)`` returns [true] if `x` is [true] and `y` is [true]. Otherwise it
+returns [false].
+
+`x` and `y` must both be [true] or [false]; otherwise a [TypeError] is thrown.
+
+### or
+
+``(x `and` y)`` returns [true] if `x` is [true], `y` is [true] or they are both
+[true]. Otherwise it returns [false].
+
+`x` and `y` must both be [true] or [false]; otherwise a [TypeError] is thrown.
+
 ### equals
 
 ``(x `equals` y)`` returns [true] if `x` and `y` should be considered equal,
