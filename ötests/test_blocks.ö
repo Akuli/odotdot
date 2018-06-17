@@ -1,0 +1,69 @@
+func "test what how" {
+    how.run (new Scope how.definition_scope);
+};
+func "throws errorclass body" {
+    var threw = null;
+    catch {
+        body.run (new Scope body.definition_scope);
+        threw = false;
+    } errorclass {
+        threw = true;
+    };
+    assert threw;
+};
+
+test "definition_scope" {
+    # not much more can be done, everything relies on this stuff working correctly
+    assert ({}.definition_scope `is_instance_of` Scope);
+    assert ({}.definition_scope `same_object` {print "Hi";}.definition_scope);
+    var a = 123;
+    assert (({}.definition_scope.local_vars.get "a") `equals` 123);
+};
+
+test "run and run_with_return" {
+    var scope = (new Scope {}.definition_scope);
+    var ran = 0;
+
+    {
+        throws VariableError { return "lol"; };
+        ran = (ran.plus 1);
+    }.run scope;
+    assert (ran `equals` 1);
+
+    assert (({
+        ran = (ran.plus 1);
+        return "lol";
+        ran = (ran.plus 666);   # must not run
+    }.run_with_return scope) `equals` "lol");
+    assert (ran `equals` 2);
+
+    throws ValueError {
+        {
+            ran = (ran.plus 1);
+            throw (new ValueError "oh shit");
+            ran = (ran.plus 666);
+        }.run scope;
+    };
+    assert (ran `equals` 3);
+
+    throws ValueError {
+        {
+            ran = (ran.plus 1);
+            throw (new ValueError "oh shit");
+            ran = (ran.plus 666);
+        }.run_with_return scope;
+    };
+    assert (ran `equals` 4);
+
+    assert (({ }.run_with_return scope) `same_object` null);
+    assert (({ return; }.run_with_return scope) `same_object` null);
+};
+
+test "implicit returning" {
+    assert (({ 123 }.run_with_return {}.definition_scope) `equals` 123);
+    assert (({ ";;;" }.run_with_return {}.definition_scope) `equals` ";;;");
+    assert (({ {
+        throw (new ValueError "this wasn't supposed to run");
+    } }.run_with_return {}.definition_scope) `is_instance_of` Block);
+    # TODO: make sure that { print "hi"; 123 } throws a syntax error
+};
