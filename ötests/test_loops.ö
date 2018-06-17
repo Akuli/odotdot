@@ -75,3 +75,20 @@ test "for" {
     };
     assert ok;
 };
+
+test "scopes" {
+    var scopes = [];
+    for { scopes.push {}.definition_scope; var i = 0; }
+        { scopes.push {}.definition_scope; return (not (i `equals` 2)); }
+        { scopes.push {}.definition_scope; i = (i.plus 1); }
+    {
+        scopes.push {}.definition_scope;
+    };
+
+    # a scope should have gotten pushed exactly 8 times, and must be the same scope every time
+    assert (scopes.length `equals` 8);
+    foreach "scope" scopes {
+        assert (scope `same_object` (scopes.get 0));
+    };
+    assert (not ((scopes.get 0) `same_object` {}.definition_scope));
+};
