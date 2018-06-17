@@ -36,6 +36,8 @@ test "run and run_with_return" {
         ran = (ran.plus 666);   # must not run
     }.run_with_return scope) `equals` "lol");
     assert (ran `equals` 2);
+    # TODO: the return variable should get deleted from the scope
+    # right now it doesn't get deleted
 
     throws ValueError {
         {
