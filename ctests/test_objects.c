@@ -17,19 +17,22 @@
 #include "utils.h"
 
 
+#define DEADBEEFPTR ( (void*)(uintptr_t)0xdeadbeef )
+#define ABCPTR ( (struct Object*)(uintptr_t)0xabc123 )
+
 int cleaner_ran = 0;
 void cleaner(struct Object *obj)
 {
-	buttert(obj->data == (void *)0xdeadbeef);
+	buttert(obj->data == DEADBEEFPTR);
 	cleaner_ran++;
 }
 
 void test_objects_simple(void)
 {
 	buttert(cleaner_ran == 0);
-	struct Object *obj = classobject_newinstance(testinterp, testinterp->builtins.Object, (void*)0xdeadbeef, NULL, cleaner);
+	struct Object *obj = classobject_newinstance(testinterp, testinterp->builtins.Object, DEADBEEFPTR, NULL, cleaner);
 	buttert(obj);
-	buttert(obj->data == (void*)0xdeadbeef);
+	buttert(obj->data == DEADBEEFPTR);
 	buttert(obj->foreachref == NULL);
 	buttert(obj->destructor == cleaner);
 
@@ -52,7 +55,7 @@ struct Object *callback(struct Interpreter *interp, struct Object *args, struct 
 	buttert(ARRAYOBJECT_LEN(args) == 2);
 	buttert(ARRAYOBJECT_GET(args, 0) == callback_arg1);
 	buttert(ARRAYOBJECT_GET(args, 1) == callback_arg2);
-	return (struct Object*) 0x123abc;
+	return ABCPTR;
 }
 
 void test_objects_function(void)
@@ -61,17 +64,17 @@ void test_objects_function(void)
 	buttert((callback_arg2 = stringobject_newfromcharptr(testinterp, "asd2")));
 
 	struct Object *func = functionobject_new(testinterp, callback, "test func");
-	buttert(functionobject_call(testinterp, func, callback_arg1, callback_arg2, NULL) == (struct Object*) 0x123abc);
+	buttert(functionobject_call(testinterp, func, callback_arg1, callback_arg2, NULL) == ABCPTR);
 
 	struct Object *partial1 = functionobject_newpartial(testinterp, func, callback_arg1);
 	OBJECT_DECREF(testinterp, callback_arg1);   // partialfunc should hold a reference to this
 	OBJECT_DECREF(testinterp, func);
-	buttert(functionobject_call(testinterp, partial1, callback_arg2, NULL) == (struct Object*) 0x123abc);
+	buttert(functionobject_call(testinterp, partial1, callback_arg2, NULL) == ABCPTR);
 
 	struct Object *partial2 = functionobject_newpartial(testinterp, partial1, callback_arg2);
 	OBJECT_DECREF(testinterp, callback_arg2);
 	OBJECT_DECREF(testinterp, partial1);
-	buttert(functionobject_call(testinterp, partial2, NULL) == (struct Object*) 0x123abc);
+	buttert(functionobject_call(testinterp, partial2, NULL) == ABCPTR);
 
 	OBJECT_DECREF(testinterp, partial2);
 }
