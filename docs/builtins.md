@@ -153,15 +153,11 @@ evaluates to [false]. Here `{ condition }` is syntactic sugar for
 
 `while` creates a new subscope of `block`'s [definition scope]. Then it runs
 the first argument in it, and that should return [true] or [false]; if it
-returns something else, a `TypeError` is raised. If [true] was returned,
-`block` is ran in the same subscope. Then the first argument is ran in the
-subscope again and the process is repeated until the interpreter's stack gets
-full or `condition` evaulates to [false].
+returns something else, [TypeError] is thrown. If [true] was returned, `block`
+is ran in the same subscope. Then the first argument and the block are ran
+again and the process is repeated until the first argument returns [false].
 
-Bugs:
-- There's no `break` or `continue` yet.
-- `while` is implemented with recursion, so infinite loops don't work.
-- `while` is slow.
+Unfortunately there's no `break` or `continue` yet.
 
 Example:
 
@@ -172,7 +168,56 @@ while { (not (i `equals` 10)) } {
     print (i.to_string);
     i = (i.plus 1);   # yes, this sucks... no + operator yet
 };
+
+# the i variable is not cleaned up
+debug i;    # prints 10
 ```
+
+### for
+
+`for { init; } { condition } { increment; } { body };` is Ö's equivalent of the
+traditional for loop; that is, *not* [the foreach loop](#foreach) that some
+languages call `for`. Here's an example:
+
+```python
+# print numbers 0 to 9
+for { var i = 0; } { (not (i `equals` 10)) } { i = (i.plus 1); } {
+    print (i.to_string);
+};
+
+debug i;   # an error!
+```
+
+Everything is ran in a subscope, so unlike the `while` example above, the `i`
+isn't leaked outside the loop. Note that there's no `;` after
+``(not (i `equals` 10))`` because `{ x }` is syntactic sugar for
+`{ return x; }`, and that was used in the example.
+
+The `for` loop is more powerful than `while`; everything that can be done with
+`while` can also be done with `for`, but with `for` you can also have init and
+increment blocks. In fact, `while` is implemented like this:
+
+```python
+func "while condition body" {
+    for {} condition {} body;
+};
+```
+
+Here's a more detailed description of how `for` works:
+1. A new subscope of the body block's definition scope is created. All of the
+   blocks given as arguments will always be ran in this scope.
+2. The init block is ran.
+3. The condition block is ran with return. See [Block](#block)'s
+   `run_with_return` method.
+4. If the condition block returned [false], `for` terminates without an error.
+   Else, if it returned something else than [true], a [TypeError] is thrown
+   (and `for` terminates).
+5. The body block is ran.
+6. The increment block is ran.
+7. The condition is checked and body and increment are ran over and over again
+   until `condition` returns [false].
+
+As with `while`, there's no `break` or `continue` yet.
 
 ### foreach
 
