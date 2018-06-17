@@ -46,20 +46,6 @@ add_method Mapping "get_with_fallback" (lambda "this key fallback" {
 });
 
 
-var while = (lambda "condition_block body_block" {
-    var scope = (new Scope body_block.definition_scope);
-
-    var one_iteration = {
-        if (condition_block.run_with_return scope) {
-            body_block.run scope;
-            one_iteration.run one_iteration.definition_scope;   # recurses :(((
-        };
-    };
-    one_iteration.run one_iteration.definition_scope;
-});
-while.name = "while";
-
-
 # scope magic: variables created inside this thing are not visible outside it
 {
     # get the StackFrame class
@@ -89,10 +75,8 @@ add_method Error "print_stack" (lambda "this" {
         print (((get_class this).name.concat ": ").concat this.message);
 
         if (not (this.stack `same_object` null)) {
-            var stack_copy = (this.stack.slice 0);
             var prefix = "in";
-
-            while { (not (stack_copy.length `equals` 0)) } {
+            for { var stack_copy = (this.stack.slice 0); } { (not (stack_copy.length `equals` 0)) } {} {
                 var frame = (stack_copy.pop);
                 print ((("  ".concat prefix).concat " ").concat (frame.to_string));
                 # TODO: print the source line
@@ -115,12 +99,11 @@ var func = (lambda "funcname_and_argnames block" {
     };
 
     # a stupid way to join strings by spaces
+    # initial i=1 skips the function name
     var argnames = "";
-    var i = 1;    # skip the function name
-    while { ((i `equals` splitted.length) `same_object` false) } {
+    for { var i = 1; } { ((i `equals` splitted.length) `same_object` false) } { i = (i.plus 1); } {
         argnames = (argnames.concat (splitted.get i));
         argnames = (argnames.concat " ");
-        i = (i.plus 1);
     };
 
     var result = (lambda argnames block);
@@ -128,6 +111,10 @@ var func = (lambda "funcname_and_argnames block" {
     block.definition_scope.local_vars.set result.name result;
 });
 func.name = "func";
+
+func "while condition body" {
+    for {} condition {} body;
+};
 
 func "debug x" {
     print (x.to_debug_string);
@@ -171,13 +158,11 @@ func "assert condition" {
 #        print (x.to_string);
 #    };
 func "foreach varname array block" {
-    var i = 0;
     var scope = (new Scope block.definition_scope);
-
-    while { (not (i `equals` array.length)) } {
+    for { var i = 0; } { (not (i `equals` array.length)) } { i = (i.plus 1); }
+    {
         scope.local_vars.set varname (array.get i);
         block.run scope;
-        i = (i.plus 1);
     };
 };
 
@@ -231,12 +216,11 @@ func "foreach varname array block" {
                 throw (new ValueError "method's string argument must not be empty");
             };
 
-            var this_and_args = "this ";
-            var i = 1;    # skip the method name
-            while { ((i `equals` splitted.length) `same_object` false) } {
-                this_and_args = (this_and_args.concat (splitted.get i));
+            # i=1 skips the method name
+            var this_and_args = "this";
+            for { var i = 1; } { (not (i `equals` splitted.length)) } { i = (i.plus 1); } {
                 this_and_args = (this_and_args.concat " ");
-                i = (i.plus 1);
+                this_and_args = (this_and_args.concat (splitted.get i));
             };
 
             var method_name = ((splitted.get 0).concat " method");
