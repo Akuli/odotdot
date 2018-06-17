@@ -27,29 +27,14 @@ things that I would like to do some day. It's a mess.
         - good because people won't be confused by `a + b * c`, which means
           evaluating `b * c` first in math and many other programming languages
         - real mathematicians (tm) write `a + bc` to avoid this problem, but
-          `ab` mean `a` times `b` in ö so parentheses would be ö's solution
-- need tracebacks and other stack magic
-    - debugging things like `class` in builtins.ö is hard
-    - might be easiest to get the traceback in `Error.new`? that way
-      rethrowing would be easy as `throw caught_error;`
-        - bad idea because nomemerrs would have no traceback
-        - maybe `throw` should instead add a stack trace to the exception only
-          if it doesn't have one already, maybe an attribute that is null by
-          default?
-    - maybe expose the stack info in ö?
-    - maybe traceback printing could be implemented in pure ö?
-        - needs to be robust! an error in traceback printing would be really
-          confusing to a user
-        - also infinite recursion?
-        - most of this could be handled by catching all errors from traceback
-          printing and... doing some magic with them
-    - c functions that push and pop to an array of stack info objects
-    - stack infos should contain at least file name (absolute path?) and lineno
-        - that's enough for reading the file in the traceback printer
-        - maybe also the scope so local variables are more debuggable?
-            - i'm not planning on implementing a debugger any time soon, so no
-              need to add this yet... but adding more stuff to stack info
-              objects must be possible without breaking any existing ö code
+          `ab` doesn't mean `a` times `b` in ö so parentheses would be ö's
+          solution
+- StackInfo objects should contain the scope
+    - local variables are more debuggable?
+        - but i'm not planning on implementing a debugger any time soon
+    - if `import` is too hard to implement, i could implement a temporary
+      `include` that runs the file in the caller's scope, this could be used
+      for that
 - there should be some way to have objects with arbitrary attributes, without
   needing to create a new type for each object
     - this would mean adding extra checks to pretty much every piece of c code
@@ -118,7 +103,7 @@ things that I would like to do some day. It's a mess.
         straight-forward to implement, makes people new to ö think wtf are
         getter and setter doing
 
-    - how about keyword arguments, with `:` syntax:
+    - how about keyword arguments?
 
         ```
         attrib "_thingy_value";
@@ -137,20 +122,16 @@ things that I would like to do some day. It's a mess.
         big problem: no nice way to pass the variable name
 
     boilerplate getters can be simplified with the `{ asd }` means
-    `{ return = asd; }` syntax that is not implemented yet:
+    `{ return = asd; }` syntax:
 
     ```
-    get { this._thingy_value }
+    attrib "thingy" {
+        get { this._thingy_value };
     ```
 
 - loop functions
     - right now these are implemented with recursion, and it sucks
-    - break and continue should be implemented with exceptions
-        - btw... `return x;` could be also implemented with an exception
-        - nested loop breaking must work, so must attach an ID of each loop to
-          the exception objects
-        - could be declared as an atomicincrdecr.h long in `struct Interpreter`
-
+    - break and continue should be implemented with exceptions, just like return
     - maybe should provide a built-in for:
 
         ```
@@ -166,6 +147,8 @@ things that I would like to do some day. It's a mess.
             for {} cond {} body;
         };
         ```
+
+        this is probably nice and simple
 
     - or maybe a built-in `loop_forever` and everything else with that?
         - `loop_forever` would need to provide continue and break
