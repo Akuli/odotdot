@@ -50,7 +50,7 @@ test "new and to_string" {
 
 test "limits" {
     var should_work = [
-        ["-9223372036854775808" -9223372036854775808]
+        ["-9223372036854775807" -9223372036854775807]
         [ "9223372036854775807"  9223372036854775807]
     ];
 
@@ -62,7 +62,7 @@ test "limits" {
         assert ((integer.to_debug_string) `equals` string);
     };
 
-    throws ValueError { new Integer "-9223372036854775809"; };
+    throws ValueError { new Integer "-9223372036854775808"; };
     throws ValueError { new Integer "9223372036854775808"; };
 };
 

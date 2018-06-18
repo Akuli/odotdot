@@ -5,14 +5,6 @@
 #include <string.h>
 #include "utils.h"
 
-#if defined(INT64_MIN) && (INT64_MIN != INTEGEROBJECT_MIN)
-#error INTEGEROBJECT_MIN is broken
-#endif
-
-#if defined(INT64_MAX) && (INT64_MAX != INTEGEROBJECT_MAX)
-#error INTEGEROBJECT_MAX is broken
-#endif
-
 void test_integer_basic_stuff(void)
 {
 	buttert(strlen(INTEGEROBJECT_MINSTR) <= INTEGEROBJECT_MAXDIGITS);

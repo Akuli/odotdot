@@ -7,15 +7,11 @@
 
 
 // long long is at least 64 bits
-// ö integers are never more than 64 bits for consistency on different platforms
-// INT64_MIN and INT64_MAX macros don't exist on systems that don't have int64_t
-#define INTEGEROBJECT_MAX 0x7fffffffffffffffLL
-
-// careful here... INTEGEROBJECT_MAX+1 is undefined, but (-INTEGEROBJECT_MAX)-1 is ok
-#define INTEGEROBJECT_MIN ((-INTEGEROBJECT_MAX) - 1)
-
-// explanation:
-#define INTEGEROBJECT_MINSTR "-9223372036854775808"
+// but the standard doesn't say anything about one's complement vs two's complement
+// so maximum is 2^63 - 1 and minimum is -(2^63 - 1)
+#define INTEGEROBJECT_MIN (-0x7fffffffffffffffLL)
+#define INTEGEROBJECT_MAX   0x7fffffffffffffffLL
+#define INTEGEROBJECT_MINSTR "-9223372036854775807"
 #define INTEGEROBJECT_MAXSTR  "9223372036854775807"
 
 // INTEGEROBJECT_MINSTR, INTEGEROBJECT_MAXSTR and everythign between them fit in this many chars
