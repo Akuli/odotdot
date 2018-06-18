@@ -106,8 +106,10 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 		errorobject_thrownomem(interp);
 		return NULL;
 	}
-	if (!parse_ustr(interp, *((struct UnicodeString*) string->data), data))
+	if (!parse_ustr(interp, *((struct UnicodeString*) string->data), data)) {
+		free(data);
 		return NULL;
+	}
 
 	integer->data = data;
 	integer->destructor = integer_destructor;
