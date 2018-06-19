@@ -41,6 +41,7 @@ fi
 rm ctestsrunner
 trap - EXIT
 
+make ö
 for file in ötests/test_*.ö; do run ./ö "$file"; done
 for file in examples/*.ö; do
     # diff exits with status 1 if the files differ, and set -e stops the script
