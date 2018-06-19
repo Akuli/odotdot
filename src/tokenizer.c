@@ -122,15 +122,39 @@ struct Token *token_ize(struct Interpreter *interp, struct UnicodeString hugestr
 		else if (hugestring.val[0] == '"') {
 			kind = TOKEN_STR;
 			nchars = 1;    // first "
-			while ((hugestring.len > nchars) &&
-					(hugestring.val[nchars] != '"')) {
-				if (hugestring.val[nchars] == '\n') {
-					fprintf(stderr, "line %llu: ending \" must be on the same line as starting \"", (unsigned long long)lineno);
+
+			while (1) {
+				if (hugestring.len == nchars || hugestring.val[nchars] == '\n') {
+					// end of line or file
+					fprintf(stderr, "line %llu: ending \" must be on the same line as starting \"\n", (unsigned long long)lineno);
 					goto error;
 				}
-				nchars++;
+				// now we know that hugestring.val[nchars] is not an error
+				if (hugestring.val[nchars] == '"') {
+					nchars++;
+					break;
+				}
+				if (hugestring.val[nchars] == '\\') {
+					// make sure that the escape is correct, it's actually parsed in parse.c
+					nchars++;
+					if (hugestring.len == nchars) {
+						fprintf(stderr, "line %llu: the file shouldn't end after \\\n", (unsigned long long)lineno);
+						goto error;
+					}
+					// supported escapes:  \n \t \\ \"
+					if (hugestring.val[nchars] != 'n' &&
+						hugestring.val[nchars] != 't' &&
+						hugestring.val[nchars] != '\\' &&
+						hugestring.val[nchars] != '"')
+					{
+						fprintf(stderr, "line %llu: unknown escape\n", (unsigned long long)lineno);
+						goto error;
+					}
+					nchars++;
+				}
+				else
+					nchars++;
 			}
-			nchars++;    // last ", the error handling stuff below runs if this is missing
 		}
 
 #define is0to9(x) ('0' <= (x) && (x) <= '9')
