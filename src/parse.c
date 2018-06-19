@@ -45,13 +45,41 @@ static struct Object *parse_string(struct Interpreter *interp, char *filename, s
 	assert(*curtok);
 	assert((*curtok)->kind == TOKEN_STR);
 
-	// remove " from both ends
-	// TODO: do something more? e.g. \n, \t
-	struct UnicodeString ustr;
-	ustr.len = (*curtok)->str.len - 2;
-	ustr.val = (*curtok)->str.val + 1;
+	// tokenizer.c makes sure that the escapes are valid, so there's no need to keep track of the source length
+	unicode_char *src = (*curtok)->str.val;
 
-	struct Object *info = stringobject_newfromustr(interp, ustr);
+	// the new string's length is never more than (*curtok)->str.len - 2
+	// because (*curtok)->str.len includes a " in both sides
+	// and 2-character escape sequences represent 1 character in the string
+	// e.g. \n (2 characters) represents a newline (1 character)
+	// so length of a \n representation is bigger than length of a string with newlines
+	unicode_char dst[(*curtok)->str.len - 2];
+	size_t dstlen = 0;
+
+	// skip initial "
+	src++;
+
+	// add the characters to dst
+	while (*src != '"') {
+		if (*src == '\\') {
+			src++;
+			if (*src == 'n')
+				dst[dstlen++] = '\n';
+			else if (*src == 't')
+				dst[dstlen++] = '\t';
+			else if (*src == '"')
+				dst[dstlen++] = '"';
+			else if (*src == '\\')
+				dst[dstlen++] = '\\';
+			else
+				assert(0);
+			src++;
+		} else {
+			dst[dstlen++] = *src++;
+		}
+	}
+
+	struct Object *info = stringobject_newfromustr(interp, (struct UnicodeString) { .len = dstlen, .val = dst });
 	if (!info)
 		return NULL;
 
