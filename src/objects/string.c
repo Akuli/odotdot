@@ -27,18 +27,17 @@ static void string_destructor(struct Object *s)
 	free(data);
 }
 
-struct Object *stringobject_createclass_noerr(struct Interpreter *interp)
+static struct Object *newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	return classobject_new_noerr(interp, interp->builtins.Object, false);
-}
-
-
-static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
-{
-	// FIXME: ValueError feels wrong
-	errorobject_throwfmt(interp, "ValueError", "strings can't be created with (new String), use \"text in quotes\" instead");
+	errorobject_throwfmt(interp, "TypeError", "strings can't be created with (new String), use \"text in quotes\" instead");
 	return NULL;
 }
+
+struct Object *stringobject_createclass_noerr(struct Interpreter *interp)
+{
+	return classobject_new_noerr(interp, interp->builtins.Object, false, newinstance);
+}
+
 
 // returns the string itself, for consistency with other types
 static struct Object *to_string(struct Interpreter *interp, struct Object *args, struct Object *opts)
@@ -238,7 +237,6 @@ bool stringobject_addmethods(struct Interpreter *interp)
 {
 	// TODO: create many more string methods
 	if (!attribute_add(interp, interp->builtins.String, "length", length_getter, NULL)) return false;
-	if (!method_add(interp, interp->builtins.String, "setup", setup)) return false;
 	if (!method_add(interp, interp->builtins.String, "concat", concat)) return false;
 	if (!method_add(interp, interp->builtins.String, "get", get)) return false;
 	if (!method_add(interp, interp->builtins.String, "slice", slice)) return false;
@@ -265,8 +263,9 @@ struct Object *stringobject_newfromustr(struct Interpreter *interp, struct Unico
 	if (!data)
 		return NULL;
 
-	struct Object *s = classobject_newinstance(interp, interp->builtins.String, data, NULL, string_destructor);
+	struct Object *s = object_new_noerr(interp, interp->builtins.String, data, NULL, string_destructor);
 	if (!s) {
+		errorobject_thrownomem(interp);
 		free(data->val);
 		free(data);
 		return NULL;
@@ -286,8 +285,9 @@ struct Object *stringobject_newfromcharptr(struct Interpreter *interp, char *ptr
 		return NULL;
 	}
 
-	struct Object *s = classobject_newinstance(interp, interp->builtins.String, data, NULL, string_destructor);
+	struct Object *s = object_new_noerr(interp, interp->builtins.String, data, NULL, string_destructor);
 	if (!s) {
+		errorobject_thrownomem(interp);
 		free(data->val);
 		free(data);
 		return NULL;

@@ -91,9 +91,9 @@ static void astnode_destructor(struct Object *node)
 	free(data);
 }
 
-static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	errorobject_throwfmt(interp, "TypeError", "cannot create new AstNode objects");
+	errorobject_throwfmt(interp, "TypeError", "new AstNode objects cannot be created yet, sorry :(");
 	return NULL;
 }
 
@@ -101,16 +101,7 @@ struct Object *astnodeobject_createclass(struct Interpreter *interp)
 {
 	// the 1 means that AstNode instances may have attributes
 	// TODO: add at least kind and lineno attributes to the nodes?
-	struct Object *klass = classobject_new(interp, "AstNode", interp->builtins.Object, false);
-	if (!klass)
-		return NULL;
-
-	if (!method_add(interp, klass, "setup", setup)) goto error;
-	return klass;
-
-error:
-	OBJECT_DECREF(interp, klass);
-	return NULL;
+	return classobject_new(interp, "AstNode", interp->builtins.Object, false, newinstance);
 }
 
 struct Object *astnodeobject_new(struct Interpreter *interp, char kind, char *filename, size_t lineno, void *info)
@@ -133,8 +124,9 @@ struct Object *astnodeobject_new(struct Interpreter *interp, char kind, char *fi
 	data->lineno = lineno;
 	data->info = info;
 
-	struct Object *obj = classobject_newinstance(interp, interp->builtins.AstNode, data, astnode_foreachref, astnode_destructor);
+	struct Object *obj = object_new_noerr(interp, interp->builtins.AstNode, data, astnode_foreachref, astnode_destructor);
 	if (!obj) {
+		errorobject_thrownomem(interp);
 		free(data->filename);
 		free(data);
 		return NULL;

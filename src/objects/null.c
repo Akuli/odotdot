@@ -9,7 +9,7 @@
 #include "errors.h"
 #include "string.h"
 
-static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	errorobject_throwfmt(interp, "TypeError", "new null objects cannot be created");
 	return NULL;
@@ -25,7 +25,7 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 struct Object *nullobject_create_noerr(struct Interpreter *interp)
 {
 	assert(interp->builtins.Object);
-	struct Object *klass = classobject_new_noerr(interp, interp->builtins.Object, false);
+	struct Object *klass = classobject_new_noerr(interp, interp->builtins.Object, false, newinstance);
 	if (!klass)
 		return NULL;
 
@@ -36,7 +36,6 @@ struct Object *nullobject_create_noerr(struct Interpreter *interp)
 
 bool nullobject_addmethods(struct Interpreter *interp)
 {
-	if (!method_add(interp, interp->builtins.null->klass, "setup", setup)) return false;
 	if (!method_add(interp, interp->builtins.null->klass, "to_debug_string", to_debug_string)) return false;
 	return true;
 }

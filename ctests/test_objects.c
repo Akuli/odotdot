@@ -30,7 +30,7 @@ void cleaner(struct Object *obj)
 void test_objects_simple(void)
 {
 	buttert(cleaner_ran == 0);
-	struct Object *obj = classobject_newinstance(testinterp, testinterp->builtins.Object, DEADBEEFPTR, NULL, cleaner);
+	struct Object *obj = object_new_noerr(testinterp, testinterp->builtins.Object, DEADBEEFPTR, NULL, cleaner);
 	buttert(obj);
 	buttert(obj->data == DEADBEEFPTR);
 	buttert(obj->foreachref == NULL);

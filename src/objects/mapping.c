@@ -71,7 +71,7 @@ static struct MappingObjectData *create_empty_data(void)
 	return data;
 }
 
-struct Object *mappingobject_newempty(struct Interpreter *interp)
+static struct Object *new_empty(struct Interpreter *interp, struct Object *klass)
 {
 	struct MappingObjectData *data = create_empty_data();
 	if (!data) {
@@ -79,16 +79,20 @@ struct Object *mappingobject_newempty(struct Interpreter *interp)
 		return NULL;
 	}
 
-	struct Object *map = classobject_newinstance(interp, interp->builtins.Mapping, data, mapping_foreachref, mapping_destructor);
+	struct Object *map = object_new_noerr(interp, klass, data, mapping_foreachref, mapping_destructor);
 	if (!map) {
+		errorobject_thrownomem(interp);
 		free(data->buckets);
 		free(data);
 		return NULL;
 	}
+
 	map->hashable = false;
 	return map;
 }
 
+struct Object *mappingobject_newempty(struct Interpreter *interp) { return new_empty(interp, interp->builtins.Mapping); }
+static struct Object *newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts) { return new_empty(interp, ARRAYOBJECT_GET(args, 0)); }
 
 static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
@@ -104,21 +108,6 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 		map = ARRAYOBJECT_GET(args, 0);
 		pairs = ARRAYOBJECT_GET(args, 1);
 	}
-
-	if (map->data) {
-		errorobject_throwfmt(interp, "AssertError", "setup was called twice");
-		return NULL;
-	}
-	struct MappingObjectData *data = create_empty_data();
-	if (!data) {
-		errorobject_thrownomem(interp);
-		return NULL;
-	}
-
-	map->data = data;
-	map->foreachref = mapping_foreachref;
-	map->destructor = mapping_destructor;
-	map->hashable = false;
 
 	// TODO: throw an error if there are duplicates?
 
@@ -401,5 +390,5 @@ starthere:
 
 struct Object *mappingobject_createclass(struct Interpreter *interp)
 {
-	return classobject_new(interp, "Mapping", interp->builtins.Object, false);
+	return classobject_new(interp, "Mapping", interp->builtins.Object, false, newinstance);
 }

@@ -46,8 +46,11 @@ static struct ClassObjectData *create_data(struct Interpreter *interp, struct Ob
 	data->name.len = 0;
 	data->name.val = NULL;
 	data->baseclass = baseclass;
-	if (baseclass)
+	if (baseclass) {
 		OBJECT_INCREF(interp, baseclass);
+		data->newinstance = ((struct ClassObjectData *) baseclass->data)->newinstance;   // may be NULL
+	} else
+		data->newinstance = NULL;
 	data->setters = NULL;
 	data->getters = NULL;
 	data->inheritable = inheritable;
@@ -62,11 +65,15 @@ static void free_data(struct Interpreter *interp, struct ClassObjectData *data)
 	free(data);
 }
 
-struct Object *classobject_new_noerr(struct Interpreter *interp, struct Object *baseclass, bool inheritable)
+struct Object *classobject_new_noerr(struct Interpreter *interp, struct Object *baseclass, bool inheritable, functionobject_cfunc newinstance)
 {
 	struct ClassObjectData *data = create_data(interp, baseclass, inheritable);
 	if (!data)
 		return NULL;
+
+	if (newinstance)
+		data->newinstance = newinstance;
+	// else, use the baseclass newinstance, see create_data
 
 	// interp->Class can be NULL, see builtins_setup()
 	struct Object *klass = object_new_noerr(interp, interp->builtins.Class, data, class_foreachref, class_destructor);
@@ -99,7 +106,7 @@ static bool check_inheritable(struct Interpreter *interp, struct Object *basecla
 	return true;
 }
 
-struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *baseclass, bool inheritable)
+struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *baseclass, bool inheritable, functionobject_cfunc newinstance)
 {
 	assert(interp->builtins.Class);
 	assert(interp->builtins.nomemerr);
@@ -107,7 +114,7 @@ struct Object *classobject_new(struct Interpreter *interp, char *name, struct Ob
 	if (!check_inheritable(interp, baseclass))
 		return NULL;
 
-	struct Object *klass = classobject_new_noerr(interp, baseclass, inheritable);
+	struct Object *klass = classobject_new_noerr(interp, baseclass, inheritable, newinstance);
 	if (!klass) {
 		errorobject_thrownomem(interp);
 		return NULL;
@@ -121,17 +128,6 @@ struct Object *classobject_new(struct Interpreter *interp, char *name, struct Ob
 }
 
 
-// TODO: get rid of this? it seems quite dumb
-struct Object *classobject_newinstance(struct Interpreter *interp, struct Object *klass, void *data, void (*foreachref)(struct Object *, void *, object_foreachrefcb), void (*destructor)(struct Object *))
-{
-	struct Object *instance = object_new_noerr(interp, klass, data, foreachref, destructor);
-	if (!instance) {
-		errorobject_thrownomem(interp);
-		return NULL;
-	}
-	return instance;
-}
-
 bool classobject_issubclassof(struct Object *sub, struct Object *super)
 {
 	do {
@@ -142,17 +138,11 @@ bool classobject_issubclassof(struct Object *sub, struct Object *super)
 }
 
 
-struct Object *classobject_create_Class_noerr(struct Interpreter *interp)
-{
-	return classobject_new_noerr(interp, interp->builtins.Object, false /* no metaclasses :( */);
-}
-
-
-static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *class_newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Class, interp->builtins.String, interp->builtins.Class, NULL)) return NULL;
 	if (!check_opts(interp, opts, "inheritable", interp->builtins.Object, NULL)) return NULL;
-	struct Object *klass = ARRAYOBJECT_GET(args, 0);
+	struct Object *classclass = ARRAYOBJECT_GET(args, 0);
 	struct Object *name = ARRAYOBJECT_GET(args, 1);
 	struct Object *baseclass = ARRAYOBJECT_GET(args, 2);
 
@@ -201,11 +191,6 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 
 	// phewhhh.... check done
 
-	if (klass->data) {
-		errorobject_throwfmt(interp, "AssertError", "setup was called twice");
-		return NULL;
-	}
-
 	struct ClassObjectData *data = create_data(interp, baseclass, inheritable);
 	if (!data) {
 		errorobject_thrownomem(interp);
@@ -218,10 +203,24 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 		return NULL;
 	}
 
-	klass->data = data;
-	klass->foreachref = class_foreachref;
-	klass->destructor = class_destructor;
+	struct Object *klass = object_new_noerr(interp, classclass, data, class_foreachref, class_destructor);
+	if (!klass) {
+		free(data->name.val);
+		free_data(interp, data);
+		errorobject_thrownomem(interp);
+		return NULL;
+	}
+	return klass;
+}
 
+struct Object *classobject_create_Class_noerr(struct Interpreter *interp)
+{
+	return classobject_new_noerr(interp, interp->builtins.Object, false /* no metaclasses :( */, class_newinstance);
+}
+
+
+// override Object's setup to allow arguments
+static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts) {
 	return nullobject_get(interp);
 }
 

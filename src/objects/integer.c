@@ -89,17 +89,11 @@ static void integer_destructor(struct Object *integer)
 }
 
 // (new Integer "123") converts a string to an integer
-static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Integer, interp->builtins.String, NULL)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Class, interp->builtins.String, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-
-	struct Object *integer = ARRAYOBJECT_GET(args, 0);
 	struct Object *string = ARRAYOBJECT_GET(args, 1);
-	if (integer->data) {
-		errorobject_throwfmt(interp, "AssertError", "setup was called twice");
-		return NULL;
-	}
 
 	long long *data = malloc(sizeof(long long));
 	if (!data) {
@@ -111,9 +105,18 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 		return NULL;
 	}
 
-	integer->data = data;
-	integer->destructor = integer_destructor;
+	struct Object *integer = object_new_noerr(interp, ARRAYOBJECT_GET(args, 0), data, NULL, integer_destructor);
+	if (!integer) {
+		free(data);
+		return NULL;
+	}
+
 	integer->hash = (unsigned int) *data;
+	return integer;
+}
+
+// overrides Object's setup to allow arguments
+static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts) {
 	return nullobject_get(interp);
 }
 
@@ -164,7 +167,7 @@ static struct Object *plus(struct Interpreter *interp, struct Object *args, stru
 
 struct Object *integerobject_createclass(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, "Integer", interp->builtins.Object, false);
+	struct Object *klass = classobject_new(interp, "Integer", interp->builtins.Object, false, newinstance);
 	if (!klass)
 		return NULL;
 
@@ -190,8 +193,9 @@ struct Object *integerobject_newfromlonglong(struct Interpreter *interp, long lo
 	}
 	*data = val;
 
-	struct Object *integer = classobject_newinstance(interp, interp->builtins.Integer, data, NULL, integer_destructor);
+	struct Object *integer = object_new_noerr(interp, interp->builtins.Integer, data, NULL, integer_destructor);
 	if (!integer) {
+		errorobject_thrownomem(interp);
 		free(data);
 		return NULL;
 	}

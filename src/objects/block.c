@@ -20,14 +20,28 @@
 ATTRIBUTE_DEFINE_SIMPLE_GETTER(definition_scope, Block)
 ATTRIBUTE_DEFINE_SIMPLE_GETTER(ast_statements, Block)
 
-static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Scope, interp->builtins.Array, NULL)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Class, interp->builtins.Scope, interp->builtins.Array, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct Object *block = ARRAYOBJECT_GET(args, 0);
-	if (!attribute_settoattrdata(interp, block, "definition_scope", ARRAYOBJECT_GET(args, 1))) return NULL;
-	if (!attribute_settoattrdata(interp, block, "ast_statements", ARRAYOBJECT_GET(args, 2))) return NULL;
+	struct Object *block = object_new_noerr(interp, ARRAYOBJECT_GET(args, 0), NULL, NULL, NULL);
+	if (!block) {
+		errorobject_thrownomem(interp);
+		return NULL;
+	}
+
+	if (!attribute_settoattrdata(interp, block, "definition_scope", ARRAYOBJECT_GET(args, 1))) goto error;
+	if (!attribute_settoattrdata(interp, block, "ast_statements", ARRAYOBJECT_GET(args, 2))) goto error;
+	return block;
+
+error:
+	OBJECT_DECREF(interp, block);
+	return NULL;
+}
+
+// overrides Object's setup to allow arguments
+static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts) {
 	return nullobject_get(interp);
 }
 
@@ -172,7 +186,7 @@ static struct Object *run_with_return(struct Interpreter *interp, struct Object 
 
 struct Object *blockobject_createclass(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, "Block", interp->builtins.Object, false);
+	struct Object *klass = classobject_new(interp, "Block", interp->builtins.Object, false, newinstance);
 	if (!klass)
 		return NULL;
 
@@ -190,9 +204,11 @@ error:
 
 struct Object *blockobject_new(struct Interpreter *interp, struct Object *definition_scope, struct Object *astnodearr)
 {
-	struct Object *block = classobject_newinstance(interp, interp->builtins.Block, NULL, NULL, NULL);
-	if (!block)
+	struct Object *block = object_new_noerr(interp, interp->builtins.Block, NULL, NULL, NULL);
+	if (!block) {
+		errorobject_thrownomem(interp);
 		return NULL;
+	}
 
 	if (!attribute_settoattrdata(interp, block, "definition_scope", definition_scope)) goto error;
 	if (!attribute_settoattrdata(interp, block, "ast_statements", astnodearr)) goto error;

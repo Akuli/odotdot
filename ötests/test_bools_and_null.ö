@@ -25,10 +25,12 @@ test "classes" {
     assert ((get_class true) `same_object` Bool);
     assert ((get_class false) `same_object` Bool);
     assert (not (null `is_instance_of` Bool));
+    assert (not (true `is_instance_of` (get_class null)));
+    assert (not (false `is_instance_of` (get_class null)));
+    throws VariableError { debug Null; };
 
     assert (Bool.name `equals` "Bool");
     assert ((get_class null).name `equals` "Null");
-    throws VariableError { debug Null; };
 };
 
 test "to_string" {
@@ -43,10 +45,9 @@ test "to_debug_string" {
     assert ((null.to_debug_string) `equals` "null");
 };
 
-test "setup" {
-    throws TypeError { true.setup; };
-    throws TypeError { false.setup; };
-    throws TypeError { null.setup; };
+test "creating more instances that make no sense" {
+    throws TypeError { new Bool; };
+    throws TypeError { new (get_class null); };
 };
 
 test "and, or" {

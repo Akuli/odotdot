@@ -32,7 +32,7 @@ static void array_destructor(struct Object *arr)
 }
 
 
-static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	errorobject_throwfmt(interp, "TypeError", "arrays can't be created with (new Array), use [ ] instead");
 	return NULL;
@@ -216,12 +216,11 @@ static struct Object *length_getter(struct Interpreter *interp, struct Object *a
 
 struct Object *arrayobject_createclass(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, "Array", interp->builtins.Object, false);
+	struct Object *klass = classobject_new(interp, "Array", interp->builtins.Object, false, newinstance);
 	if (!klass)
 		return NULL;
 
 	if (!attribute_add(interp, klass, "length", length_getter, NULL)) goto error;
-	if (!method_add(interp, klass, "setup", setup)) goto error;
 	if (!method_add(interp, klass, "set", set)) goto error;
 	if (!method_add(interp, klass, "get", get)) goto error;
 	if (!method_add(interp, klass, "push", push)) goto error;
@@ -250,14 +249,15 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **elems
 		data->nallocated = nelems;
 
 	data->elems = malloc(data->nallocated * sizeof(struct Object*));
-	if (nelems > 0 && !(data->elems)) {   // malloc(0) MAY be NULL
+	if (!data->elems) {   // malloc(0) MAY be NULL
 		errorobject_thrownomem(interp);
 		free(data);
 		return NULL;
 	}
 
-	struct Object *arr = classobject_newinstance(interp, interp->builtins.Array, data, array_foreachref, array_destructor);
+	struct Object *arr = object_new_noerr(interp, interp->builtins.Array, data, array_foreachref, array_destructor);
 	if (!arr) {
+		errorobject_thrownomem(interp);
 		free(data->elems);
 		free(data);
 		return NULL;

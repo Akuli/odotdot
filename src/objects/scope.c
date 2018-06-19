@@ -66,8 +66,9 @@ struct Object *scopeobject_newsub(struct Interpreter *interp, struct Object *par
 	if (!data)
 		return NULL;
 
-	struct Object *scope = classobject_newinstance(interp, interp->builtins.Scope, data, subscope_foreachref, scope_destructor);
+	struct Object *scope = object_new_noerr(interp, interp->builtins.Scope, data, subscope_foreachref, scope_destructor);
 	if (!scope) {
+		errorobject_thrownomem(interp);
 		OBJECT_DECREF(interp, data->parent_scope);
 		OBJECT_DECREF(interp, data->local_vars);
 		free(data);
@@ -84,8 +85,9 @@ struct Object *scopeobject_newbuiltin(struct Interpreter *interp)
 	if (!data)
 		return NULL;
 
-	struct Object *scope = classobject_newinstance(interp, interp->builtins.Scope, data, builtin_scope_foreachref, scope_destructor);
+	struct Object *scope = object_new_noerr(interp, interp->builtins.Scope, data, builtin_scope_foreachref, scope_destructor);
 	if (!scope) {
+		errorobject_thrownomem(interp);
 		OBJECT_DECREF(interp, data->local_vars);
 		free(data);
 		return NULL;
@@ -94,23 +96,32 @@ struct Object *scopeobject_newbuiltin(struct Interpreter *interp)
 }
 
 
-static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Scope, interp->builtins.Scope, NULL)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Class, interp->builtins.Scope, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	struct Object *scope = ARRAYOBJECT_GET(args, 0);
 	struct Object *parent_scope = ARRAYOBJECT_GET(args, 1);
 
-	if (scope->data) {
-		// FIXME: ValueError for this sucks
-		errorobject_throwfmt(interp, "ValueError", "Scope's setup was called twice");
+	struct ScopeObjectData *data = create_data(interp, parent_scope);
+	if (!data) {
+		errorobject_thrownomem(interp);
 		return NULL;
 	}
 
-	scope->data = create_data(interp, parent_scope);
-	scope->foreachref = subscope_foreachref;
-	scope->destructor = scope_destructor;
-	return scope->data ? nullobject_get(interp) : NULL;
+	struct Object *scope = object_new_noerr(interp, ARRAYOBJECT_GET(args, 0), data, subscope_foreachref, scope_destructor);
+	if (!scope) {
+		OBJECT_DECREF(interp, data->parent_scope);
+		OBJECT_DECREF(interp, data->local_vars);
+		free(data);
+		return NULL;
+	}
+	return scope;
+}
+
+// allow passing arguments to the constructor
+static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	return nullobject_get(interp);
 }
 
 static struct Object *set_var(struct Interpreter *interp, struct Object *args, struct Object *opts)
@@ -209,7 +220,7 @@ static struct Object *local_vars_getter(struct Interpreter *interp, struct Objec
 
 struct Object *scopeobject_createclass(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, "Scope", interp->builtins.Object, false);
+	struct Object *klass = classobject_new(interp, "Scope", interp->builtins.Object, false, newinstance);
 	if (!klass)
 		return NULL;
 

@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../attribute.h"
-#include "../method.h"
 #include "../stack.h"
 #include "../unicode.h"
 #include "array.h"
@@ -14,7 +13,7 @@
 ATTRIBUTE_DEFINE_SIMPLE_GETTER(filename, StackFrame)
 ATTRIBUTE_DEFINE_SIMPLE_GETTER(lineno, StackFrame)
 
-static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	errorobject_throwfmt(interp, "TypeError", "cannot create new StackFrame objects");
 	return NULL;
@@ -22,11 +21,10 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 
 struct Object *stackframeobject_createclass(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, "StackFrame", interp->builtins.Object, false);
+	struct Object *klass = classobject_new(interp, "StackFrame", interp->builtins.Object, false, newinstance);
 	if (!klass)
 		return NULL;
 
-	if (!method_add(interp, klass, "setup", setup)) goto error;
 	if (!attribute_add(interp, klass, "filename", filename_getter, NULL)) goto error;
 	if (!attribute_add(interp, klass, "lineno", lineno_getter, NULL)) goto error;
 	return klass;
@@ -39,9 +37,11 @@ error:
 
 static struct Object *new_frame_object(struct Interpreter *interp, struct StackFrame f)
 {
-	struct Object *fobj = classobject_newinstance(interp, interp->builtins.StackFrame, NULL, NULL, NULL);
-	if (!fobj)
+	struct Object *fobj = object_new_noerr(interp, interp->builtins.StackFrame, NULL, NULL, NULL);
+	if (!fobj) {
+		errorobject_thrownomem(interp);
 		return NULL;
+	}
 
 	// TODO: is utf8 always the best possible file system encoding?
 	struct UnicodeString u;

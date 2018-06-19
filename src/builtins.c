@@ -325,7 +325,16 @@ static struct Object *new(struct Interpreter *interp, struct Object *args, struc
 		return NULL;
 	struct Object *klass = ARRAYOBJECT_GET(args, 0);
 
-	struct Object *obj = classobject_newinstance(interp, klass, NULL, NULL, NULL);
+	struct Object *obj;
+
+	struct ClassObjectData *data = klass->data;
+	if (data->newinstance)
+		obj = data->newinstance(interp, args, opts);
+	else {
+		obj = object_new_noerr(interp, ARRAYOBJECT_GET(args, 0), NULL, NULL, NULL);
+		if (!obj)
+			errorobject_thrownomem(interp);
+	}
 	if (!obj)
 		return NULL;
 

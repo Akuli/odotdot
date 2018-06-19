@@ -40,50 +40,51 @@ static void error_destructor(struct Object *err)
 		free(err->data);
 }
 
-struct Object *errorobject_createclass_noerr(struct Interpreter *interp)
+static struct Object *newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	return classobject_new_noerr(interp, interp->builtins.Object, true);
-}
-
-
-static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.String, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-	struct Object *err = ARRAYOBJECT_GET(args, 0);
-	struct Object *msg = ARRAYOBJECT_GET(args, 1);
-
-	if (err->data) {
-		errorobject_throwfmt(interp, "AssertError", "setup was called twice");
-		return NULL;
-	}
-
 	struct ErrorData *data = malloc(sizeof(struct ErrorData));
 	if (!data) {
 		// can't recurse because nomemerr is created very early, and only 'new Error' runs this
 		errorobject_thrownomem(interp);
 		return NULL;
 	}
-	data->message = msg;
-	OBJECT_INCREF(interp, msg);
+
+	// this must be subclassing-friendly, that's why stuff is set to dummy values here and later changed in setup
+	// this is not documented, but it doesn't really matter
+	// the important thing is that forgetting to call super setup in the subclass doesn't cause a segfault
+	// see also setup() below
+	data->message = stringobject_newfromcharptr(interp, "");
+	if (!data->message)
+		return NULL;
 	data->stack = interp->builtins.null;
 	OBJECT_INCREF(interp, interp->builtins.null);
 
-	err->data = data;
-	err->foreachref = error_foreachref;
-	err->destructor = error_destructor;
-	return nullobject_get(interp);
+	struct Object *err = object_new_noerr(interp, ARRAYOBJECT_GET(args, 0), data, error_foreachref, error_destructor);
+	if (!err) {
+		errorobject_thrownomem(interp);
+		return NULL;
+	}
+	return err;
+}
+
+struct Object *errorobject_createclass_noerr(struct Interpreter *interp)
+{
+	return classobject_new_noerr(interp, interp->builtins.Object, true, newinstance);
 }
 
 
-// Error is subclassable, so it's possible to define a subclass of Error that overrides setup without calling Error's setup
-static bool check_data(struct Interpreter *interp, struct Object *err)
+static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!err->data) {
-		errorobject_throwfmt(interp, "AssertError", "Error's setup method wasn't called");
-		return false;
-	}
-	return true;
+	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.String, NULL)) return NULL;
+
+	struct ErrorData *data = ARRAYOBJECT_GET(args, 0)->data;
+	assert(data);
+
+	OBJECT_DECREF(interp, data->message);
+	data->message = ARRAYOBJECT_GET(args, 1);
+	OBJECT_INCREF(interp, data->message);
+
+	return nullobject_get(interp);
 }
 
 
@@ -91,10 +92,8 @@ static struct Object *message_getter(struct Interpreter *interp, struct Object *
 {
 	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	struct Object *err = ARRAYOBJECT_GET(args, 0);
-	if (!check_data(interp, err)) return NULL;
 
-	struct ErrorData *data = err->data;
+	struct ErrorData *data = ARRAYOBJECT_GET(args, 0)->data;
 	OBJECT_INCREF(interp, data->message);
 	return data->message;
 }
@@ -103,10 +102,8 @@ static struct Object *message_setter(struct Interpreter *interp, struct Object *
 {
 	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.String, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	struct Object *err = ARRAYOBJECT_GET(args, 0);
-	if (!check_data(interp, err)) return NULL;
 
-	struct ErrorData *data = err->data;
+	struct ErrorData *data = ARRAYOBJECT_GET(args, 0)->data;
 	OBJECT_DECREF(interp, data->message);
 	data->message = ARRAYOBJECT_GET(args, 1);
 	OBJECT_INCREF(interp, data->message);
@@ -117,10 +114,8 @@ static struct Object *stack_getter(struct Interpreter *interp, struct Object *ar
 {
 	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	struct Object *err = ARRAYOBJECT_GET(args, 0);
-	if (!check_data(interp, err)) return NULL;
 
-	struct ErrorData *data = err->data;
+	struct ErrorData *data = ARRAYOBJECT_GET(args, 0)->data;
 	OBJECT_INCREF(interp, data->stack);
 	return data->stack;
 }
@@ -133,7 +128,6 @@ static struct Object *stack_setter(struct Interpreter *interp, struct Object *ar
 	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *err = ARRAYOBJECT_GET(args, 0);
-	if (!check_data(interp, err)) return NULL;
 	struct Object *newstack = ARRAYOBJECT_GET(args, 1);
 
 	if (newstack != interp->builtins.null && !classobject_isinstanceof(newstack, interp->builtins.Array)) {
@@ -166,9 +160,7 @@ static struct Object *print_stack(struct Interpreter *interp, struct Object *arg
 {
 	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-
 	struct Object *err = ARRAYOBJECT_GET(args, 0);
-	if (!check_data(interp, err)) return NULL;
 
 	if (err == interp->builtins.nomemerr) {
 		// no more memory can be allocated
@@ -192,7 +184,6 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *err = ARRAYOBJECT_GET(args, 0);
-	if (!check_data(interp, err)) return NULL;
 
 	struct ClassObjectData *classdata = err->klass->data;
 	struct ErrorData *errdata = err->data;
@@ -213,7 +204,7 @@ bool errorobject_addmethods(struct Interpreter *interp)
 struct Object *errorobject_createmarkererrorclass(struct Interpreter *interp)
 {
 	assert(interp->builtins.Error);
-	return classobject_new(interp, "MarkerError", interp->builtins.Error, false);
+	return classobject_new(interp, "MarkerError", interp->builtins.Error, false, newinstance);
 }
 
 
@@ -254,7 +245,7 @@ struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 	}
 
 	// the MemError class is not stored anywhere else, builtins_setup() looks it up from interp->builtins.nomemerr
-	struct Object *klass = classobject_new_noerr(interp, interp->builtins.Error, false);
+	struct Object *klass = classobject_new_noerr(interp, interp->builtins.Error, false, newinstance);
 	if (!klass) {
 		OBJECT_DECREF(interp, str);   // takes care of ustr and ustr->val
 		return NULL;
@@ -298,8 +289,9 @@ struct Object *errorobject_new(struct Interpreter *interp, struct Object *errorc
 	OBJECT_INCREF(interp, interp->builtins.null);
 
 	// builtins.ö must not define any errors that can't be constructed like this
-	struct Object *err = classobject_newinstance(interp, errorclass, data, error_foreachref, error_destructor);
+	struct Object *err = object_new_noerr(interp, errorclass, data, error_foreachref, error_destructor);
 	if (!err) {
+		errorobject_thrownomem(interp);
 		OBJECT_DECREF(interp, data->message);
 		OBJECT_DECREF(interp, data->stack);
 		free(data);
@@ -312,10 +304,6 @@ struct Object *errorobject_new(struct Interpreter *interp, struct Object *errorc
 void errorobject_throw(struct Interpreter *interp, struct Object *err)
 {
 	assert(!interp->err);
-
-	// check_data can throw, but it shouldn't recurse unless something's badly broken ....
-	if (!check_data(interp, err))
-		return;
 
 	struct ErrorData *data = err->data;
 	if (data->stack == interp->builtins.null) {

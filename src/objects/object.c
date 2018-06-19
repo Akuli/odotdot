@@ -14,7 +14,7 @@
 
 struct Object *objectobject_createclass_noerr(struct Interpreter *interp)
 {
-	return classobject_new_noerr(interp, NULL, true);
+	return classobject_new_noerr(interp, NULL, true, NULL);
 }
 
 
