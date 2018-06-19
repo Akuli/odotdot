@@ -25,7 +25,7 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 struct Object *nullobject_create_noerr(struct Interpreter *interp)
 {
 	assert(interp->builtins.Object);
-	struct Object *klass = classobject_new_noerr(interp, interp->builtins.Object, false, newinstance);
+	struct Object *klass = classobject_new_noerr(interp, interp->builtins.Object, newinstance);
 	if (!klass)
 		return NULL;
 

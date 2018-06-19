@@ -23,12 +23,6 @@ struct ClassObjectData {
 	struct Object *setters;   // setters are called with 2 arguments, instance and value, they return null
 	struct Object *getters;   // getters are called with 1 argument, the instance
 
-	// uninheritable classes break if they are inherited
-	// for example, an Array subclass might forget to call Array's setup method
-	// but array.c isn't prepared to that, so Array is not inheritable
-	// TODO: get rid of this, other people hate it
-	bool inheritable;
-
 	// should create and return a new instance of the class
 	// it's always possible to create a subclass of the class that doesn't call the setup method
 	// so if not calling the setup method can cause the interpreter to segfault, use this instead of setup
@@ -42,14 +36,14 @@ struct ClassObjectData {
 // if newinstance is not given, it's taken from the baseclass
 // if newinstance is given, a setup method that takes and ignores all args and opts is added
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *baseclass, bool inheritable, functionobject_cfunc newinstance);
+struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *baseclass, functionobject_cfunc newinstance);
 
 // RETURNS A NEW REFERENCE or NULL on no mem, for builtins_setup() only
 // newinstance is set to NULL
 // if you use this for creating classes that have data, set newinstance later manually and create a setup() that ignores all args and opts
 // this is because Object's setup makes sure that it's called with no args and no opts, but we use newinstance instead of overriding it
 // doesn't set the name, see classobject_setname() and builtins_setup()
-struct Object *classobject_new_noerr(struct Interpreter *interp, struct Object *baseclass, bool inheritable, functionobject_cfunc newinstance);
+struct Object *classobject_new_noerr(struct Interpreter *interp, struct Object *baseclass, functionobject_cfunc newinstance);
 
 // just for builtins_setup()
 // bad things happen if klass is not a class object

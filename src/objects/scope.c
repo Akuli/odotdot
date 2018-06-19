@@ -220,7 +220,7 @@ static struct Object *local_vars_getter(struct Interpreter *interp, struct Objec
 
 struct Object *scopeobject_createclass(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, "Scope", interp->builtins.Object, false, newinstance);
+	struct Object *klass = classobject_new(interp, "Scope", interp->builtins.Object, newinstance);
 	if (!klass)
 		return NULL;
 

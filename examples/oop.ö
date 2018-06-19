@@ -1,9 +1,8 @@
-class "Tooter"
-    inheritable: true
-{
+class "Tooter" {
     attrib "asd";
 
     method "setup asd" {
+        print "Creating a tooter...";
         this.asd = asd;
     };
 
@@ -24,7 +23,6 @@ class "FancyTooter"
 
 
 var t = (new Tooter "Toot Toot!");
-print "tooting:";
 t.toot;
 
 print "----------";

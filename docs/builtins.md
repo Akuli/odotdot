@@ -355,10 +355,7 @@ Classes also have one method:
 Usually new classes are created with [class](#class), but you can also create
 them with `(new Class name baseclass)`, where `Class` is `(get_class String)`
 (see above), `name` will become the `.name` attribute and `baseclass` is
-another `Class` object to inherit from (usually [Object](#object)). Pass
-`inheritable:true` if you want to make the class inheritable, i.e. allow
-creating more classes with the new class as baseclass. `new Class` throws an
-error if `baseclass` is not inheritable.
+another `Class` object to inherit from (usually [Object](#object)).
 
 ### Object
 

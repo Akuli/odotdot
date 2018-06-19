@@ -177,15 +177,12 @@ func "foreach varname array block" {
     var get_attrdata = (get_and_hide_builtin "get_attrdata");
     var add_method = (get_and_hide_builtin "add_method");
 
-    func "class class_name initializer_block inherits: inheritable:" {
+    func "class class_name initializer_block inherits:" {
         if (inherits `same_object` null) {
             inherits = Object;
         };
-        if (inheritable `same_object` null) {
-            inheritable = false;
-        };
 
-        var klass = (new (get_class String) class_name inherits inheritable:inheritable);
+        var klass = (new (get_class String) class_name inherits);
 
         func "attrib name" {
             # just to make debugging easier

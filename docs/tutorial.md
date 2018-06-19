@@ -555,9 +555,33 @@ tooter.toot;     # prints "Toot toot! hello there"
 The `this` variable is available in methods, and it's set to the instance that
 the methods are called from. In this example, `this` was `tooter`.
 
-You can also do inheritance by giving an `inheritable: true` option to `class`
-when defining the base class and `inherit: TheBaseClass` for the subclass. See
-[examples/oop.ö](../examples/oop.ö) for a complete example.
+You can also do inheritance a lot like in other languages:
+
+```python
+class "FancyTooter"
+    inherits: Tooter
+{
+    method "fancy_toot" {
+        print "*** Fancy Fanciness ***";
+        this.toot;
+    };
+};
+
+var tooter2 = (new FancyTooter "hello there");
+tooter2.fancy_toot;
+```
+
+Here `inherits: Tooter` is just an option to `class`, and the code could have
+been written like this...
+
+```python
+class "FancyTooter" inherits:Tooter {
+    ...
+};
+```
+
+...but adding `inherits: Tooter` on a line of its own makes it a bit more
+readable.
 
 Multiple inheritance is not supported, only one class can be inherited. There's
 also no way to call a superclass method yet :(

@@ -21,7 +21,7 @@ static struct Object *newinstance(struct Interpreter *interp, struct Object *arg
 
 struct Object *stackframeobject_createclass(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, "StackFrame", interp->builtins.Object, false, newinstance);
+	struct Object *klass = classobject_new(interp, "StackFrame", interp->builtins.Object, newinstance);
 	if (!klass)
 		return NULL;
 

@@ -28,7 +28,7 @@ test "message attribute" {
 };
 
 
-class "AsdTootError" inherits:Error inheritable:true { };
+class "AsdTootError" inherits:Error { };
 class "AsdError" inherits:AsdTootError { };
 class "TootError" inherits:AsdTootError { };
 

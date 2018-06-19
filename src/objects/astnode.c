@@ -99,9 +99,8 @@ static struct Object *newinstance(struct Interpreter *interp, struct Object *arg
 
 struct Object *astnodeobject_createclass(struct Interpreter *interp)
 {
-	// the 1 means that AstNode instances may have attributes
 	// TODO: add at least kind and lineno attributes to the nodes?
-	return classobject_new(interp, "AstNode", interp->builtins.Object, false, newinstance);
+	return classobject_new(interp, "AstNode", interp->builtins.Object, newinstance);
 }
 
 struct Object *astnodeobject_new(struct Interpreter *interp, char kind, char *filename, size_t lineno, void *info)

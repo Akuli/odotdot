@@ -37,7 +37,7 @@ static void class_destructor(struct Object *klass)
 }
 
 
-static struct ClassObjectData *create_data(struct Interpreter *interp, struct Object *baseclass, bool inheritable)
+static struct ClassObjectData *create_data(struct Interpreter *interp, struct Object *baseclass)
 {
 	struct ClassObjectData *data = malloc(sizeof(struct ClassObjectData));
 	if (!data)
@@ -53,7 +53,6 @@ static struct ClassObjectData *create_data(struct Interpreter *interp, struct Ob
 		data->newinstance = NULL;
 	data->setters = NULL;
 	data->getters = NULL;
-	data->inheritable = inheritable;
 	return data;
 }
 
@@ -65,9 +64,9 @@ static void free_data(struct Interpreter *interp, struct ClassObjectData *data)
 	free(data);
 }
 
-struct Object *classobject_new_noerr(struct Interpreter *interp, struct Object *baseclass, bool inheritable, functionobject_cfunc newinstance)
+struct Object *classobject_new_noerr(struct Interpreter *interp, struct Object *baseclass, functionobject_cfunc newinstance)
 {
-	struct ClassObjectData *data = create_data(interp, baseclass, inheritable);
+	struct ClassObjectData *data = create_data(interp, baseclass);
 	if (!data)
 		return NULL;
 
@@ -96,25 +95,12 @@ bool classobject_setname(struct Interpreter *interp, struct Object *klass, char 
 	return ok;
 }
 
-static bool check_inheritable(struct Interpreter *interp, struct Object *baseclass)
-{
-	struct ClassObjectData *data = baseclass->data;
-	if (!data->inheritable) {
-		errorobject_throwfmt(interp, "TypeError", "cannot inherit from non-inheritable class %U", data->name);
-		return false;
-	}
-	return true;
-}
-
-struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *baseclass, bool inheritable, functionobject_cfunc newinstance)
+struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *baseclass, functionobject_cfunc newinstance)
 {
 	assert(interp->builtins.Class);
 	assert(interp->builtins.nomemerr);
 
-	if (!check_inheritable(interp, baseclass))
-		return NULL;
-
-	struct Object *klass = classobject_new_noerr(interp, baseclass, inheritable, newinstance);
+	struct Object *klass = classobject_new_noerr(interp, baseclass, newinstance);
 	if (!klass) {
 		errorobject_thrownomem(interp);
 		return NULL;
@@ -141,57 +127,12 @@ bool classobject_issubclassof(struct Object *sub, struct Object *super)
 static struct Object *class_newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Class, interp->builtins.String, interp->builtins.Class, NULL)) return NULL;
-	if (!check_opts(interp, opts, "inheritable", interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *classclass = ARRAYOBJECT_GET(args, 0);
 	struct Object *name = ARRAYOBJECT_GET(args, 1);
 	struct Object *baseclass = ARRAYOBJECT_GET(args, 2);
 
-	if (!check_inheritable(interp, baseclass))
-		return NULL;
-
-	// check if the class is supposed to be inheritable
-	// TODO: add some utility function! this is awful
-	struct Object *inheritableobj;
-	struct Object *tmp = stringobject_newfromcharptr(interp, "inheritable");
-	if (!tmp)
-		return NULL;
-	int status = mappingobject_get(interp, opts, tmp, &inheritableobj);
-	OBJECT_DECREF(interp, tmp);
-
-	bool inheritable;
-	if (status == 0)
-		inheritable = false;
-	else if (status == -1)
-		return NULL;
-	else {
-		struct Object *yes = interpreter_getbuiltin(interp, "true");
-		if (!yes) {
-			OBJECT_DECREF(interp, inheritableobj);
-			return NULL;
-		}
-		struct Object *no = interpreter_getbuiltin(interp, "false");
-		if (!no) {
-			OBJECT_DECREF(interp, yes);
-			OBJECT_DECREF(interp, inheritableobj);
-			return NULL;
-		}
-
-		bool yess = (inheritableobj == yes);
-		bool noo = (inheritableobj == no);
-		OBJECT_DECREF(interp, yes);
-		OBJECT_DECREF(interp, no);
-		OBJECT_DECREF(interp, inheritableobj);
-
-		if (!yess && !noo) {
-			errorobject_throwfmt(interp, "TypeError", "inheritable must be a Bool, not %D", inheritableobj);
-			return NULL;
-		}
-		inheritable = yess;
-	}
-
-	// phewhhh.... check done
-
-	struct ClassObjectData *data = create_data(interp, baseclass, inheritable);
+	struct ClassObjectData *data = create_data(interp, baseclass);
 	if (!data) {
 		errorobject_thrownomem(interp);
 		return NULL;
@@ -215,7 +156,7 @@ static struct Object *class_newinstance(struct Interpreter *interp, struct Objec
 
 struct Object *classobject_create_Class_noerr(struct Interpreter *interp)
 {
-	return classobject_new_noerr(interp, interp->builtins.Object, false /* no metaclasses :( */, class_newinstance);
+	return classobject_new_noerr(interp, interp->builtins.Object, class_newinstance);
 }
 
 

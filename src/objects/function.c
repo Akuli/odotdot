@@ -48,7 +48,7 @@ static struct Object *newinstance(struct Interpreter *interp, struct Object *arg
 
 struct Object *functionobject_createclass(struct Interpreter *interp)
 {
-	return classobject_new(interp, "Function", interp->builtins.Object, false /* sad :( */, newinstance);
+	return classobject_new(interp, "Function", interp->builtins.Object, newinstance);
 }
 
 

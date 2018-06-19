@@ -390,5 +390,5 @@ starthere:
 
 struct Object *mappingobject_createclass(struct Interpreter *interp)
 {
-	return classobject_new(interp, "Mapping", interp->builtins.Object, false, newinstance);
+	return classobject_new(interp, "Mapping", interp->builtins.Object, newinstance);
 }

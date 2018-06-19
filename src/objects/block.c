@@ -186,7 +186,7 @@ static struct Object *run_with_return(struct Interpreter *interp, struct Object 
 
 struct Object *blockobject_createclass(struct Interpreter *interp)
 {
-	struct Object *klass = classobject_new(interp, "Block", interp->builtins.Object, false, newinstance);
+	struct Object *klass = classobject_new(interp, "Block", interp->builtins.Object, newinstance);
 	if (!klass)
 		return NULL;
 

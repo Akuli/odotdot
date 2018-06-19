@@ -69,7 +69,7 @@ static struct Object *newinstance(struct Interpreter *interp, struct Object *arg
 
 struct Object *errorobject_createclass_noerr(struct Interpreter *interp)
 {
-	return classobject_new_noerr(interp, interp->builtins.Object, true, newinstance);
+	return classobject_new_noerr(interp, interp->builtins.Object, newinstance);
 }
 
 
@@ -204,7 +204,7 @@ bool errorobject_addmethods(struct Interpreter *interp)
 struct Object *errorobject_createmarkererrorclass(struct Interpreter *interp)
 {
 	assert(interp->builtins.Error);
-	return classobject_new(interp, "MarkerError", interp->builtins.Error, false, newinstance);
+	return classobject_new(interp, "MarkerError", interp->builtins.Error, newinstance);
 }
 
 
@@ -245,7 +245,7 @@ struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 	}
 
 	// the MemError class is not stored anywhere else, builtins_setup() looks it up from interp->builtins.nomemerr
-	struct Object *klass = classobject_new_noerr(interp, interp->builtins.Error, false, newinstance);
+	struct Object *klass = classobject_new_noerr(interp, interp->builtins.Error, newinstance);
 	if (!klass) {
 		OBJECT_DECREF(interp, str);   // takes care of ustr and ustr->val
 		return NULL;

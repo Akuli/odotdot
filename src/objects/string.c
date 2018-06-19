@@ -35,7 +35,7 @@ static struct Object *newinstance(struct Interpreter *interp, struct Object *arg
 
 struct Object *stringobject_createclass_noerr(struct Interpreter *interp)
 {
-	return classobject_new_noerr(interp, interp->builtins.Object, false, newinstance);
+	return classobject_new_noerr(interp, interp->builtins.Object, newinstance);
 }
 
 
