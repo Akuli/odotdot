@@ -26,20 +26,26 @@ if [ "$verbose" = no ]; then valgrindargs="$valgrindargs -q"; fi
 function run {
     local command=("$@")
     if [ "$valgrind" = yes ]; then local command=("$VALGRIND" $valgrindargs "${command[@]}"); fi
-    if [ "$verbose" = yes ]; then echo "${command[@]}"; fi
+    if [ "$verbose" = yes ]; then echo "${command[@]}" >&2; fi
     "${command[@]}"
-    if [ "$verbose" = no ]; then echo -n .; fi
+    if [ "$verbose" = no ]; then echo -n . >&2; fi
 }
 
-make ctestsrunner
 trap 'rm ctestsrunner' EXIT
+make ctestsrunner
 if [ "$verbose" = yes ]; then
     run ./ctestsrunner --verbose
 else
     run ./ctestsrunner
 fi
+rm ctestsrunner
+trap - EXIT
 
 for file in ötests/test_*.ö; do run ./ö "$file"; done
+for file in examples/*.ö; do
+    # diff exits with status 1 if the files differ, and set -e stops the script
+    diff "$(echo "$file" | sed 's:^examples/\(.*\)\.ö$:examples/output/\1.txt:')" <(run ./ö "$file")
+done
 
 echo
 echo "tests pass"
