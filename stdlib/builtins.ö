@@ -220,8 +220,7 @@ func "foreach varname array block" {
                 this_and_args = (this_and_args.concat (splitted.get i));
             };
 
-            var method_name = ((splitted.get 0).concat " method");
-            add_method klass method_name (lambda this_and_args block);
+            add_method klass (splitted.get 0) (lambda this_and_args block);
         };
 
         var init_scope = (new Scope initializer_block.definition_scope);

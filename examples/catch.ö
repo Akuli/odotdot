@@ -1,5 +1,6 @@
-{
+catch {
 	this_function_does_not_exist;
-} `catch` {
-	print "oops";
+} [VariableError "e"] {
+    print "oops";
+    e.print_stack;
 };
