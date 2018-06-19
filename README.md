@@ -59,14 +59,12 @@ Because github.
 
 ## Tests
 
-Some of the tests are written in C and some tests are written in Ö. You can run
-all tests like this:
+Some of the tests are written in C and some tests are written in Ö.
+`runtests` is a shell script that runs all tests:
 
-    $ make test
+    $ ./runtests
 
-If the tests fail, you might want to get more output:
-
-    $ make testverbose
+See `./runtests --help` for more options.
 
 I'm not using a coverage tool because I don't know how to use any C coverage
 tools, and there are much more important things to fix than bad coverage; see

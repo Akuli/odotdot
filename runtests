@@ -1,0 +1,45 @@
+#!/bin/bash
+set -e
+
+verbose=no
+valgrind=no
+VALGRIND="${VALGRIND:-valgrind}"
+
+while [ "$#" -ne 0 ]; do
+    case "$1" in
+    -v|--verbose)
+        verbose=yes
+        ;;
+    --valgrind)
+        valgrind=yes
+        ;;
+    *)
+        echo "Usage: $0 [-v|--verbose] [--valgrind]" >&2
+        exit 2
+    esac
+    shift
+done
+
+valgrindargs="--leak-check=full --error-exitcode=1"
+if [ "$verbose" = no ]; then valgrindargs="$valgrindargs -q"; fi
+
+function run {
+    local command=("$@")
+    if [ "$valgrind" = yes ]; then local command=("$VALGRIND" $valgrindargs "${command[@]}"); fi
+    if [ "$verbose" = yes ]; then echo "${command[@]}"; fi
+    "${command[@]}"
+    if [ "$verbose" = no ]; then echo -n .; fi
+}
+
+make ctestsrunner
+trap 'rm ctestsrunner' EXIT
+if [ "$verbose" = yes ]; then
+    run ./ctestsrunner --verbose
+else
+    run ./ctestsrunner
+fi
+
+for file in ötests/test_*.ö; do run ./ö "$file"; done
+
+echo
+echo "tests pass"

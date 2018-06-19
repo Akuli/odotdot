@@ -4,9 +4,6 @@ CFLAGS += -Wall -Wextra -Wpedantic -std=c99 -Wno-unused-parameter
 # TODO: comment this out some day? this is for debugging with gdb and valgrind
 CFLAGS += -g
 
-VG ?= valgrind
-VGFLAGS += --leak-check=full --error-exitcode=1
-
 SRC := $(filter-out src/main.c, $(wildcard src/*.c src/objects/*.c src/builtins/*.c))
 OBJ := $(SRC:src/%.c=obj/%.o)
 CTESTS_SRC := $(wildcard ctests/*.c) $(wildcard ctests/*.h)
@@ -28,31 +25,6 @@ obj/%.o: src/%.c
 
 ctestsrunner: $(CTESTS_SRC) $(OBJ)
 	$(CC) -I. $(CFLAGS) $(CTESTS_SRC) $(OBJ) -o ctestsrunner
-
-.PHONY: test
-test: ö ctestsrunner
-	./ctestsrunner
-	(for file in ötests/test_*.ö; do ./ö "$$file" && printf . || exit 1; done)
-	@echo
-	@echo "ok"
-
-.PHONY: testverbose
-testverbose: ö ctestsrunner
-	./ctestsrunner --verbose
-	@echo
-	(for file in ötests/test_*.ö; do printf '%-40s  ' "$$file"; ./ö "$$file" && echo "ok" || (echo "returned $$?"; exit 1) || exit 1; done)
-	@echo
-	@echo "---------------------------"
-	@echo "all ötests pass"
-
-.PHONY: testvalgrind
-testvalgrind: ö ctestsrunner
-	$(VG) $(VGFLAGS) ./ctestsrunner --verbose
-	@echo
-	(for file in ötests/test_*.ö; do echo "$$file"; $(VG) $(VGFLAGS) ./ö "$$file" || exit 1; done)
-	@echo
-	@echo "---------------------------"
-	@echo "all ötests pass"
 
 .PHONY: iwyu
 iwyu:
