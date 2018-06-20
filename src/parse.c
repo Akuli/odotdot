@@ -67,10 +67,10 @@ static struct Object *parse_string(struct Interpreter *interp, char *filename, s
 				dst[dstlen++] = '\n';
 			else if (*src == 't')
 				dst[dstlen++] = '\t';
-			else if (*src == '"')
-				dst[dstlen++] = '"';
 			else if (*src == '\\')
 				dst[dstlen++] = '\\';
+			else if (*src == '"')
+				dst[dstlen++] = '"';
 			else
 				assert(0);
 			src++;

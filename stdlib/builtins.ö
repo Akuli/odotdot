@@ -53,14 +53,14 @@ add_method String "to_debug_string" (lambda "this" {
         var character = (this.get i);
 
         # FIXME: need elif or switch/case or something
-        if (character `equals` "\\") {
-            result = (result.concat "\\\\");
+        if (character `equals` "\n") {
+            result = (result.concat "\\n");
         } else: {
-            if (character `equals` "\n") {
-                result = (result.concat "\\n");
+            if (character `equals` "\t") {
+                result = (result.concat "\\t");
             } else: {
-                if (character `equals` "\t") {
-                    result = (result.concat "\\t");
+                if (character `equals` "\\") {
+                    result = (result.concat "\\\\");
                 } else: {
                     if (character `equals` "\"") {
                         result = (result.concat "\\\"");
