@@ -45,6 +45,36 @@ add_method Mapping "get_with_fallback" (lambda "this key fallback" {
     };
 });
 
+add_method String "to_debug_string" (lambda "this" {
+    var result = "";
+
+    # not very efficient, but that's not a problem because this method is just for debugging anyway
+    for { var i=0; } { (not (i `equals` this.length)) } { i = (i.plus 1); } {
+        var character = (this.get i);
+
+        # FIXME: need elif or switch/case or something
+        if (character `equals` "\\") {
+            result = (result.concat "\\\\");
+        } else: {
+            if (character `equals` "\n") {
+                result = (result.concat "\\n");
+            } else: {
+                if (character `equals` "\t") {
+                    result = (result.concat "\\t");
+                } else: {
+                    if (character `equals` "\"") {
+                        result = (result.concat "\\\"");
+                    } else: {
+                        result = (result.concat character);
+                    };
+                };
+            };
+        };
+    };
+
+    return (("\"".concat result).concat "\"");
+});
+
 
 # scope magic: variables created inside this thing are not visible outside it
 {

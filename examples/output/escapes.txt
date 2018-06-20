@@ -1,2 +1,3 @@
 hello "lol" hel
 lo	asd\toot
+"hello \"lol\" hel\nlo\tasd\\toot"

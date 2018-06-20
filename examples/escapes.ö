@@ -1,1 +1,3 @@
-print "hello \"lol\" hel\nlo\tasd\\toot";
+var funny_string = "hello \"lol\" hel\nlo\tasd\\toot";
+print funny_string;     # prints with tabs, newlines and backslaches
+debug funny_string;     # prints the string like it's written in this file

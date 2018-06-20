@@ -31,17 +31,17 @@ function run {
     if [ "$verbose" = no ]; then echo -n . >&2; fi
 }
 
-trap 'rm ctestsrunner' EXIT
-make ctestsrunner
+# ctestsrunner is removed only if running it succeeded
 if [ "$verbose" = yes ]; then
+    make -j2 ctestsrunner ö
     run ./ctestsrunner --verbose
+    rm -v ctestsrunner
 else
+    make -j2 -s ctestsrunner ö
     run ./ctestsrunner
+    rm ctestsrunner
 fi
-rm ctestsrunner
-trap - EXIT
 
-make ö
 for file in ötests/test_*.ö; do run ./ö "$file"; done
 for file in examples/*.ö; do
     # diff exits with status 1 if the files differ, and set -e stops the script

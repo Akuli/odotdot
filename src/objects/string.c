@@ -1,4 +1,12 @@
-// most of the interesting stuff is implemented in ../unicode.c, this is just a wrapper
+/* most of the interesting stuff is implemented in ../unicode.c, this is just a wrapper
+
+if you're looking for how escapes like \n and \t are implemented, you also came to the wrong place :D
+check these places instead:
+	* src/tokenizer.c makes sure that escapes in string literals are valid and returns the literals as-is
+	* src/parse.c assumes that the literals are valid and parses them
+	* stdlib/builtins.ö implements String's to_debug_string
+
+*/
 
 #include "string.h"
 #include <assert.h>
@@ -56,27 +64,6 @@ static struct Object *length_getter(struct Interpreter *interp, struct Object *a
 	if (!check_no_opts(interp, opts)) return NULL;
 
 	return integerobject_newfromlonglong(interp, ((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data)->len);
-}
-
-static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, interp->builtins.String, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-
-	struct UnicodeString noquotes = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data);
-	struct UnicodeString yesquotes;
-	yesquotes.len = noquotes.len + 2;
-	yesquotes.val = malloc(sizeof(unicode_char) * yesquotes.len);
-	if (!yesquotes.val) {
-		errorobject_thrownomem(interp);
-		return NULL;
-	}
-	yesquotes.val[0] = yesquotes.val[yesquotes.len - 1] = '"';
-	memcpy(yesquotes.val + 1, noquotes.val, sizeof(unicode_char) * noquotes.len);
-
-	struct Object *res = stringobject_newfromustr(interp, yesquotes);
-	free(yesquotes.val);
-	return res;
 }
 
 static struct Object *concat(struct Interpreter *interp, struct Object *args, struct Object *opts)
@@ -242,7 +229,6 @@ bool stringobject_addmethods(struct Interpreter *interp)
 	if (!method_add(interp, interp->builtins.String, "slice", slice)) return false;
 	if (!method_add(interp, interp->builtins.String, "split_by_whitespace", split_by_whitespace)) return false;
 	if (!method_add(interp, interp->builtins.String, "to_string", to_string)) return false;
-	if (!method_add(interp, interp->builtins.String, "to_debug_string", to_debug_string)) return false;
 	return true;
 }
 
