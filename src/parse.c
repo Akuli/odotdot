@@ -389,7 +389,6 @@ static struct Object *create_return_call(struct Interpreter *interp, struct Obje
 		return NULL;
 	}
 
-	// infix calls don't support options, so this is left empty
 	if (!(callinfo->opts = mappingobject_newempty(interp))) {
 		errorobject_thrownomem(interp);
 		free(callinfo);
