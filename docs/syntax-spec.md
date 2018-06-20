@@ -52,7 +52,7 @@ Here's a list of *all* supported kinds of tokens:
   tokens would need to be ignored anyway, so it's not possible to write Ö code
   that actually notices the difference.
 - *String literals* are any characters except `"` or newline between `"`
-  quotes. There are no escape sequences yet, not even `\n` :(
+  quotes. See below for details about escape sequences.
 - *Identifiers* are names of e.g. variables and methods. They can contain any
   alphabetical Unicode characters as well as any of the characters
   `_0123456789`. An identifier cannot start with any of the characters
@@ -85,6 +85,21 @@ valid string literal, and the `#` beginning a comment is the 8th character.
 There are no float objects in the whole language yet, so `0.0` should be
 tokenized as two integers and an operator (even though parsing those will
 fail because `.` must be followed by an identifier).
+
+These special escape sequences may appear in string literals:
+
+| Putting this in a string literal...   | ...results in this character  |
+| ------------------------------------- | ----------------------------- |
+| `\n`                                  | new line (0xa)                |
+| `\t`                                  | horizontal tab (0x9)          |
+| `\\`                                  | backslash (0x5c)              |
+| `\"`                                  | double quote (0x22)           |
+
+If the string contains a `\` that doesn't match anything in the above table, an
+error should be thrown. As usual, escapes are checked left-to-right; for
+example, `"\\\n"` is a string that contains a backslash followed by a newline.
+The first two backslashes in the literal create a backslash, and rest of it
+creates the newline character.
 
 
 ## Parsing to AST
