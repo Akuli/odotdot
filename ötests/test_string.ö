@@ -19,11 +19,53 @@ test "concat and equals" {
     assert (("a".concat "b") `equals` "ab");   # probably not relying on an optimization
 };
 
+test "escape sequences" {
+    # FIXME: there's not a good way to check the values yet
+    # e.g. make sure that \n produces a newline character and \t produces a tab
+    # so we need to rely on testing examples/escapes.ö
+    assert ("\n".length `equals` 1);
+    assert ("\t".length `equals` 1);
+    assert ("\"".length `equals` 1);
+    assert ("\\".length `equals` 1);
+
+    # combining multiple things
+    var string = "\n\t\\\\\n\n\"\"";
+    var array = ["\n" "\t" "\\" "\\" "\n" "\n" "\"" "\""];
+    assert (string.length `equals` 8);
+    assert (array.length `equals` 8);
+    for { var i=0; } { (not (i `equals` array.length)) } { i = (i.plus 1); } {
+        assert ((string.get i) `equals` (array.get i));
+    };
+};
+
 test "to_string" {
     foreach "string" ["" "asd" "tootttö ö"] {
         # should use equals instead of same_object
         # but what implementation would really be so insane that these would be different objects...
         assert ((string.to_string) `same_object` string);
+    };
+};
+
+test "to_debug_string" {
+    assert (("lol lmao".to_debug_string) `equals` "\"lol lmao\"");
+
+    # https://xkcd.com/1638/
+    assert (("a\nb".to_debug_string) `equals` "\"a\\nb\"");
+    assert (("a\tb".to_debug_string) `equals` "\"a\\tb\"");
+    assert (("a\"b".to_debug_string) `equals` "\"a\\\"b\"");
+    assert (("a\\b".to_debug_string) `equals` "\"a\\\\b\"");
+
+    # https://explainxkcd.com/wiki/index.php/1638:_Backslashes
+    # the number of backslashes should grow exponentially, so let's test that :D
+    var string = "\\";
+    foreach "length" [2 4 8 16 32 64 128 256 512] {
+        # call to_debug_string and remove " from both ends
+        var debugged = (string.to_debug_string);
+        assert ((debugged.get 0) `equals` "\"");
+        assert ((debugged.get (debugged.length.plus -1)) `equals` "\"");
+        string = (debugged.slice 1 (debugged.length.plus -1));        # no stripping method yet :(
+
+        assert (string.length `equals` length);
     };
 };
 
