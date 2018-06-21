@@ -8,7 +8,9 @@ SRC := $(filter-out src/main.c, $(wildcard src/*.c src/objects/*.c src/builtins/
 OBJ := $(SRC:src/%.c=obj/%.o)
 CTESTS_SRC := $(wildcard ctests/*.c) $(wildcard ctests/*.h)
 
+# runs when "make" or "make all" is invoked, tests.Makefile shouldn't invoke this
 all: ö
+	make -f tests.Makefile
 
 ö: $(OBJ) src/main.c
 	$(CC) -I. $(CFLAGS) src/main.c $(OBJ) -o ö

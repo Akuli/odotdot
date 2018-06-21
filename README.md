@@ -59,12 +59,28 @@ Because github.
 
 ## Tests
 
+This stuff is for people who want to develop my Ö interpreter (it's awesome if
+you do, please let me know!) or are just interested in how stuff works.
+
 Some of the tests are written in C and some tests are written in Ö.
-`runtests` is a shell script that runs all tests:
+`tests.Makefile` is a Makefile that compiles and runs all tests, and you can
+use it like this:
 
-    $ ./runtests
+    $ make -f tests.Makefile
 
-See `./runtests --help` for more options.
+Compiling the interpreter with just `make` also runs the tests. Run `make ö` to
+compile without testing.
+
+If a test fails, you can run just that test like this:
+
+    $ make -f tests.Makefile ötests/test_array.ö
+
+You can also pass these options to `make`:
+- `VALGRIND=valgrind` runs all tests using a valgrind executable named
+  `valgrind`. The executable must be in `$PATH` or a full path.
+- `-j2` runs the tests in parallel, at most 2 tests at a time. This speeds up
+  testing a *lot*, especially if you use valgrind. You can put any number you
+  want after `-j`; usually the number of processors your system has is good.
 
 I'm not using a coverage tool because I don't know how to use any C coverage
 tools, and there are much more important things to fix than bad coverage; see
