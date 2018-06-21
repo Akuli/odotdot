@@ -11,6 +11,7 @@ things that I would like to do some day. It's a mess.
         - maybe warn if there is an `x` directory AND an `x.ö` file?
     - `"<stdlib>"` is special, other paths are treated as relative to the
       importing file
+        - in the future, might add `"<lib>"` for non-stdlib dependencies?
     - ideally importing would be implemented in pure Ö, but many other things
       must be done before that:
         - file I/O
@@ -20,6 +21,8 @@ things that I would like to do some day. It's a mess.
         - expose a function that converts a long string to an AST tree
         - how to make the path relative to the calling file? see stack
         - see the attribute stuff below
+    - maybe easiest to implement in C... :( then implement all the other stuff
+      as importable modules
 - operators
     - syntactic sugar for infixes? e.g. ``a + b`` might be
       ``a `(import "<stdlib>/operators").add` b``
