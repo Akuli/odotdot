@@ -1,6 +1,7 @@
 # makefile for running tests, see README
 
 ifdef VALGRIND
+# FIXME: this doesn't seem to work
 VALGRINDOPTS ?= -q --leak-check=full --error-exitcode=1
 endif
 
