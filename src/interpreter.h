@@ -26,6 +26,7 @@ struct Interpreter {
 
 	// this holds references to built-in classes, functions and stuff
 	struct {
+		struct Object *ArbitraryAttribs;
 		struct Object *Array;
 		struct Object *AstNode;
 		struct Object *Block;

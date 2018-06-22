@@ -11,6 +11,7 @@
 #include "lambdabuiltin.h"
 #include "method.h"
 #include "objectsystem.h"
+#include "objects/arbitraryattribs.h"
 #include "objects/array.h"
 #include "objects/astnode.h"
 #include "objects/block.h"
@@ -443,9 +444,11 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!(interp->builtins.Block = blockobject_createclass(interp))) goto error;
 	if (!(interp->builtins.StackFrame = stackframeobject_createclass(interp))) goto error;
 	if (!(interp->builtins.MarkerError = errorobject_createmarkererrorclass(interp))) goto error;
+	if (!(interp->builtins.ArbitraryAttribs = arbitraryattribsobject_createclass(interp))) goto error;
 
 	if (!(interp->builtinscope = scopeobject_newbuiltin(interp))) goto error;
 
+	if (!interpreter_addbuiltin(interp, "ArbitraryAttribs", interp->builtins.ArbitraryAttribs)) goto error;
 	if (!interpreter_addbuiltin(interp, "Array", interp->builtins.Array)) goto error;
 	if (!interpreter_addbuiltin(interp, "Block", interp->builtins.Block)) goto error;
 	if (!interpreter_addbuiltin(interp, "Integer", interp->builtins.Integer)) goto error;
@@ -513,6 +516,7 @@ nomem:
 void builtins_teardown(struct Interpreter *interp)
 {
 #define TEARDOWN(x) if (interp->builtins.x) { OBJECT_DECREF(interp, interp->builtins.x); interp->builtins.x = NULL; }
+	TEARDOWN(ArbitraryAttribs);
 	TEARDOWN(Array);
 	TEARDOWN(AstNode);
 	TEARDOWN(Block);

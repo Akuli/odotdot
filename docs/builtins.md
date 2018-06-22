@@ -379,6 +379,27 @@ Many objects also have a `to_string` method that should return a human-readable
 string, but not all objects have a human-readable string representations, even
 though all objects *must* have a programmer-readable string representation.
 
+### ArbitraryAttribs
+
+Attributes of this class behave differently than attributes of other classes.
+
+[comment]: # (TODO: make "Class" a link)
+
+If `aa` is an `ArbitraryAttribs` object, then `aa.x = some_value;` first tries
+to look up a setter for an `x` attribute as described in `Class` documentation,
+but if that fails, no `AttribError` is thrown; instead, the value goes to a
+special [mapping](#mapping) associated with the instance. Similarly, looking up
+`aa.x` checks that mapping if no getter is found, and throws `AttribError` only
+if the special mapping doesn't contain the key. Here's an example:
+
+```python
+var aa = (new ArbitraryAttribs);
+aa.lol = "wat";   # works only with ArbitraryAttribs instances
+print aa.lol;     # prints "wat"
+```
+
+Subclasses of `ArbitraryAttribs` also behave this way.
+
 ### Bool
 
 There are two `Bool` objects, `true` and `false`. Creating more Bools wouldn't

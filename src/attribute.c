@@ -146,6 +146,19 @@ struct Object *attribute_getwithstringobj(struct Interpreter *interp, struct Obj
 		assert(res == 0);   // not found
 	} while ((klass = klassdata->baseclass));
 
+	if (classobject_isinstanceof(obj, interp->builtins.ArbitraryAttribs)) {
+		if (!init_data(interp, obj))
+			return NULL;
+
+		struct Object *val;
+		int res = mappingobject_get(interp, obj->attrdata, stringobj, &val);
+		if (res == 1)
+			return val;
+		if (res == 0)   // this error message doesn't mention the class because ArbitraryAttribs
+			errorobject_throwfmt(interp, "AttribError", "there's no attribute named %D", stringobj);
+		return NULL;
+	}
+
 	errorobject_throwfmt(interp, "AttribError", "%U objects don't have an attribute named %D",
 		((struct ClassObjectData *) obj->klass->data)->name, stringobj);
 	return NULL;
@@ -187,6 +200,12 @@ bool attribute_setwithstringobj(struct Interpreter *interp, struct Object *obj, 
 		}
 		assert(res == 0);   // not found
 	} while ((klass = klassdata->baseclass));
+
+	if (classobject_isinstanceof(obj, interp->builtins.ArbitraryAttribs)) {
+		if (!init_data(interp, obj))
+			return NULL;
+		return mappingobject_set(interp, obj->attrdata, stringobj, val);
+	}
 
 	// TODO: check if there's a getter for the attribute for better error messages
 	errorobject_throwfmt(interp, "AttribError", "%U objects don't have an attribute named %D or it's read-only",
