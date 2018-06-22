@@ -3,12 +3,22 @@
 
 #include <stdbool.h>
 
-#include "interpreter.h"     // IWYU pragma: keep
-#include "objectsystem.h"     // IWYU pragma: keep
+struct Interpreter;
 
-// runs a statement from ast_parse_statement()
-// returns false on error
-// bad things happen if scope is not a Scope object or stmtnode is not an AstNode
-bool run_statement(struct Interpreter *interp, struct Object *scope, struct Object *stmtnode);
+/* runs stdlib/builtins.ö
+throws an error and returns false on failure
 
-#endif    // RUN_H
+builtins.ö can't be ran like imported files because:
+	* importing may set errors, but they're not available when running builtins.ö because it defines those errors
+	* builtins.ö must be ran directly in the built-in scope
+	* other files may contain any utf8 characters, but utf8_decode() also uses the errors
+
+this is in the same place with import stuff because reading and running the file is similar
+*/
+bool run_builtinsfile(struct Interpreter *interp);
+
+// main.c calls this for running the program passed as an argument
+// throws an error and returns false on failure
+bool run_mainfile(struct Interpreter *interp, char *path);
+
+#endif   // RUN_H

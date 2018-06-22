@@ -1,10 +1,10 @@
 #include <assert.h>
 #include "builtins.h"
 #include "gc.h"
-#include "import.h"
 #include "interpreter.h"
 #include "objectsystem.h"
 #include "objects/errors.h"
+#include "run.h"
 
 
 static void print_and_reset_err(struct Interpreter *interp)
@@ -34,12 +34,12 @@ int main(int argc, char **argv)
 		goto end;
 	}
 
-	if (!import_runbuiltinsfile(interp)) {
+	if (!run_builtinsfile(interp)) {
 		print_and_reset_err(interp);
 		returnval = 1;
 		goto end;
 	}
-	if (!import_runmainfile(interp, argv[1])) {
+	if (!run_mainfile(interp, argv[1])) {
 		print_and_reset_err(interp);
 		returnval = 1;
 		goto end;
