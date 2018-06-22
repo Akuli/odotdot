@@ -1,0 +1,46 @@
+func "test what how" {
+    how.run (new Scope how.definition_scope);
+};
+func "throws errorclass body" {
+    var threw = null;
+    catch {
+        body.run (new Scope body.definition_scope);
+        threw = false;
+    } errorclass {
+        threw = true;
+    };
+    assert threw;
+};
+
+
+class "WeirdThingy" inherits:ArbitraryAttribs {
+
+    attrib "x";
+    method "setup arg" {
+        assert (arg `equals` "lol");
+        this.x = 1;
+        this.y = 2;
+    };
+    method "lol z" {
+        assert (z `equals` 3);
+        return [this.x this.y];
+    };
+};
+
+
+test "basic stuff" {
+    var weird = (new WeirdThingy "lol");
+    assert (weird.x `equals` 1);
+    assert (weird.y `equals` 2);
+    assert ((weird.lol 3) `equals` [1 2]);
+    throws AttribError { weird.lol = "heh"; };
+
+    foreach "arbi_instance" [(new ArbitraryAttribs) weird] {
+        arbi_instance.to_debug_string;   # make sure it doesn't throw an exception
+        throws AttribError {
+            debug arbi_instance.wat;
+        };
+        arbi_instance.wat = 123;
+        assert (arbi_instance.wat `equals` 123);
+    };
+};
