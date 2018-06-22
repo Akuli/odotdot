@@ -33,7 +33,9 @@ test "basic stuff" {
     assert (weird.x `equals` 1);
     assert (weird.y `equals` 2);
     assert ((weird.lol 3) `equals` [1 2]);
-    throws AttribError { weird.lol = "heh"; };
+
+    # TODO: what should this do?
+    #weird.lol = "heh";
 
     foreach "arbi_instance" [(new ArbitraryAttribs) weird] {
         arbi_instance.to_debug_string;   # make sure it doesn't throw an exception
