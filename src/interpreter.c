@@ -5,6 +5,7 @@
 #include <string.h>
 #include "allobjects.h"
 #include "attribute.h"
+#include "import.h"
 #include "method.h"
 #include "objectsystem.h"
 #include "unicode.h"
@@ -17,15 +18,22 @@ struct Interpreter *interpreter_new(char *argv0)
 {
 	struct Interpreter *interp = malloc(sizeof(struct Interpreter));
 	if (!interp)
-		return NULL;
+		goto nomem;
 
 	if (!allobjects_init(&(interp->allobjects))) {
 		free(interp);
-		return NULL;
+		goto nomem;
 	}
 
 	interp->argv0 = argv0;
 	interp->stackptr = interp->stack;   // make it point to the 1st element
+
+	interp->stdlibpath = import_findstdlib(argv0);
+	if (!interp->stdlibpath) {
+		allobjects_free(interp->allobjects);
+		free(interp);
+		return NULL;
+	}
 
 	interp->err =
 	interp->builtinscope =
@@ -47,11 +55,16 @@ struct Interpreter *interpreter_new(char *argv0)
 	NULL;
 
 	return interp;
+
+nomem:
+	fprintf(stderr, "%s: not enough memory\n", argv0);
+	return NULL;
 }
 
 void interpreter_free(struct Interpreter *interp)
 {
 	allobjects_free(interp->allobjects);
+	free(interp->stdlibpath);
 	free(interp);
 }
 

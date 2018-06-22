@@ -14,6 +14,10 @@ struct Interpreter {
 	// this is set to argv[0] from main(), useful for error messages
 	char *argv0;
 
+	// set by builtins_setup(), it calls
+	// TODO: paths aren't char* on windows, so choose another type here
+	char *stdlibpath;
+
 	// this is a Scope object
 	// some builtins are also available here (e.g. String), others (e.g. AstNode) are not
 	struct Object *builtinscope;
@@ -50,7 +54,7 @@ struct Interpreter {
 	struct StackFrame *stackptr;   // pointer to the top of the stack
 };
 
-// returns NULL on no mem
+// prints a message to stderr and returns NULL on error
 // pretty much nothing is ready after calling this, use builtins_setup()
 struct Interpreter *interpreter_new(char *argv0);
 
