@@ -11,7 +11,6 @@
 #include "lambdabuiltin.h"
 #include "method.h"
 #include "objectsystem.h"
-#include "objects/arbitraryattribs.h"
 #include "objects/array.h"
 #include "objects/astnode.h"
 #include "objects/block.h"
@@ -19,6 +18,7 @@
 #include "objects/errors.h"
 #include "objects/function.h"
 #include "objects/integer.h"
+#include "objects/library.h"
 #include "objects/mapping.h"
 #include "objects/null.h"
 #include "objects/object.h"
@@ -444,7 +444,8 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!(interp->builtins.Block = blockobject_createclass(interp))) goto error;
 	if (!(interp->builtins.StackFrame = stackframeobject_createclass(interp))) goto error;
 	if (!(interp->builtins.MarkerError = errorobject_createmarkererrorclass(interp))) goto error;
-	if (!(interp->builtins.ArbitraryAttribs = arbitraryattribsobject_createclass(interp))) goto error;
+	if (!(interp->builtins.ArbitraryAttribs = libraryobject_createaaclass(interp))) goto error;
+	if (!(interp->builtins.Library = libraryobject_createclass(interp))) goto error;
 
 	if (!(interp->builtinscope = scopeobject_newbuiltin(interp))) goto error;
 
@@ -479,6 +480,7 @@ bool builtins_setup(struct Interpreter *interp)
 #ifdef DEBUG_BUILTINS
 	printf("things created by builtins_setup():\n");
 #define debug(x) printf("  interp->%s = %p\n", #x, (void *) interp->x);
+	// FIXME: this list is very outdated
 	debug(builtins.Array);
 	debug(builtins.AstNode);
 	debug(builtins.Block);
@@ -524,6 +526,7 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(Error);
 	TEARDOWN(Function);
 	TEARDOWN(Integer);
+	TEARDOWN(Library);
 	TEARDOWN(Mapping);
 	TEARDOWN(MarkerError);
 	TEARDOWN(Object);

@@ -34,6 +34,7 @@ struct Interpreter {
 		struct Object *Error;
 		struct Object *Function;
 		struct Object *Integer;
+		struct Object *Library;
 		struct Object *Mapping;
 		struct Object *MarkerError;   // an Error subclass for return, will probably be used for break and continue later
 		struct Object *Object;   // yes, this works
