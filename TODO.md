@@ -178,11 +178,6 @@ things that I would like to do some day. It's a mess.
 
 
 ## testing
-- some tests suck, they are commented out in `ctests/run.c`
-    - they started sucking when they required running `stdlib/builtins.ö` but i
-      couldn't figure out a good way to run it run without lots of copy/pasta
-    - still haven't figured out
-    - everything has gotten less and less tested since then...
 - there are lots of ötests already... which is good
 - need to go through the docs and test every case documented
     - also look through the source and try to find funny corner cases
