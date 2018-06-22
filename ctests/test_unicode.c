@@ -1,3 +1,4 @@
+#include <src/attribute.h>
 #include <src/equals.h>
 #include <src/objects/string.h>
 #include <src/objectsystem.h>
@@ -148,6 +149,8 @@ void unicode_test_setup(void)
 }
 
 
+#define DEADBEEF (void*)((uintptr_t) 0xdeadbeef)   // lol
+
 void test_utf8_encode(void)
 {
 	for (size_t i=0; i < N_UTF8_TESTS; i++) {
@@ -155,10 +158,10 @@ void test_utf8_encode(void)
 		if (test.unicodelen < 0)
 			continue;
 
-		char *actual_utf8 = (char *) 0xdeadbeef;
+		char *actual_utf8 = DEADBEEF;
 		size_t actual_utf8len = 123;
 		struct UnicodeString unicode = { test.unicodeval, (size_t) test.unicodelen };
-		int res = utf8_encode(testinterp, unicode, &actual_utf8, &actual_utf8len);
+		bool res = utf8_encode(testinterp, unicode, &actual_utf8, &actual_utf8len);
 
 		if (strlen(test.errormsg) == 0) {
 			// should succeed
@@ -170,19 +173,21 @@ void test_utf8_encode(void)
 			// should fail
 			buttert(res == false);
 			buttert(testinterp->err);
+			struct Object *err = testinterp->err;
+			testinterp->err = NULL;
 
-			char *tmp;
-			size_t errormsglen;
-			struct UnicodeString *uerrormsg = ((struct Object*)testinterp->err->data)->data;
-			buttert(utf8_encode(testinterp, *uerrormsg, &tmp, &errormsglen) == true);
-			char errormsg[errormsglen+1];
-			memcpy(errormsg, tmp, errormsglen);
-			errormsg[errormsglen] = 0;
+			struct Object *msg = attribute_get(testinterp, err, "message");
+			OBJECT_DECREF(testinterp, err);
+			buttert(msg);
+			struct Object *testmsg = stringobject_newfromcharptr(testinterp, test.errormsg);
+			buttert(testmsg);
 
-			buttert(strcmp(errormsg, test.errormsg) == 0);
+			buttert(equals(testinterp, msg, testmsg) == 1);
+			OBJECT_DECREF(testinterp, testmsg);
+			OBJECT_DECREF(testinterp, msg);
 
 			// these must be left untouched
-			buttert(actual_utf8 == (char *) 0xdeadbeef);
+			buttert(actual_utf8 == DEADBEEF);
 			buttert(actual_utf8len == 123);
 		}
 	}
@@ -196,28 +201,34 @@ void test_utf8_decode(void)
 		buttert(!testinterp->err);
 		struct UnicodeString actual_unicode;
 		actual_unicode.len = 123;
-		actual_unicode.val = (unicode_char*)0xdeadbeef;   // lol
-		int res = utf8_decode(testinterp, test.utf8, (size_t) test.utf8len, &actual_unicode);
+		actual_unicode.val = DEADBEEF;
+		bool res = utf8_decode(testinterp, test.utf8, (size_t) test.utf8len, &actual_unicode);
 
 		if (strlen(test.errormsg) == 0) {
 			// should succeed
 			buttert(!testinterp->err);
-			buttert(res == true);
+			buttert(res);
 			buttert(actual_unicode.len == (size_t) test.unicodelen);
 			buttert(memcmp(test.unicodeval, actual_unicode.val, sizeof(unicode_char)*test.unicodelen) == 0);
 			free(actual_unicode.val);
 		} else {
 			// should fail
-			buttert(res == false);
-			struct Object *msg = testinterp->err->data;
-			struct Object *testmsg = stringobject_newfromcharptr(testinterp, test.errormsg);
-			buttert(equals(testinterp, msg, testmsg));
-			OBJECT_DECREF(testinterp, testmsg);
-			OBJECT_DECREF(testinterp, testinterp->err);
+			buttert(!res);
+			struct Object *err = testinterp->err;
 			testinterp->err = NULL;
 
+			struct Object *msg = attribute_get(testinterp, err, "message");
+			OBJECT_DECREF(testinterp, err);
+			buttert(msg);
+			struct Object *testmsg = stringobject_newfromcharptr(testinterp, test.errormsg);
+			buttert(testmsg);
+
+			buttert(equals(testinterp, msg, testmsg) == 1);
+			OBJECT_DECREF(testinterp, testmsg);
+			OBJECT_DECREF(testinterp, msg);
+
 			// these must be left untouched
-			buttert(actual_unicode.val == (unicode_char *) 0xdeadbeef);
+			buttert(actual_unicode.val == DEADBEEF);
 			buttert(actual_unicode.len == 123);
 		}
 	}

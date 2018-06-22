@@ -7,6 +7,7 @@
 #include <src/builtins.h>
 #include <src/gc.h>
 #include <src/interpreter.h>
+#include <src/run.h>
 
 typedef void (*testfunc)(void);
 bool verbose;
@@ -18,6 +19,8 @@ struct Interpreter *testinterp;
 
 static void run_test(char *name, testfunc func)
 {
+	buttert(!testinterp->err);
+
 	if (verbose) {
 		printf("%-50s  ", name);
 		fflush(stdout);
@@ -25,11 +28,13 @@ static void run_test(char *name, testfunc func)
 		struct timeval start, end;
 		buttert(gettimeofday(&start, NULL) == 0);
 		func();
+		buttert(!testinterp->err);
 		buttert(gettimeofday(&end, NULL) == 0);
 		unsigned long totaltime = (end.tv_sec - start.tv_sec)*1000*1000 + (end.tv_usec - start.tv_usec);
 		printf("ok, %lu.%03lu ms\n", totaltime/1000, totaltime%1000);
 	} else {
 		func();
+		buttert(!testinterp->err);
 		printf(".");
 		fflush(stdout);
 	}
@@ -52,6 +57,7 @@ int main(int argc, char **argv)
 
 	buttert(testinterp = interpreter_new("testargv0"));
 	buttert(builtins_setup(testinterp));
+	buttert(run_builtinsfile(testinterp));
 
 	RUN_TEST(test_objects_simple);
 	RUN_TEST(test_objects_function);
@@ -75,8 +81,8 @@ int main(int argc, char **argv)
 
 	// FIXME: these get into an infinite loop because ctests are ran without builtins.ö
 	void unicode_test_setup(void); unicode_test_setup();
-	//RUN_TEST(test_utf8_encode);
-	//RUN_TEST(test_utf8_decode);
+	RUN_TEST(test_utf8_encode);
+	RUN_TEST(test_utf8_decode);
 
 	builtins_teardown(testinterp);
 	gc_run(testinterp);
