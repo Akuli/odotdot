@@ -9,7 +9,8 @@ needed functions. They are listed here.
 ### debug
 
 `debug x;` does the same thing as `print (x.to_debug_string);`. See
-[Object](#object) for more info about the `to_debug_string` method.
+[Object](#object) for more info about the `to_debug_string` method and
+[the debugging section of the tutorial].
 
 ### func
 
@@ -246,6 +247,10 @@ foreach "character" ["a" "b" "c"] {
 
 See [the documentation about errors](errors.md).
 
+### import
+
+This function is documented [here](import.md).
+
 ### assert
 
 `assert x;` is equivalent to
@@ -265,8 +270,8 @@ number and meanings of the arguments depends on which class was passed to
 
 Don't use this function for checking types. For example,
 ``((get_class []) `same_object` Object)`` returns [false], even though
-[all values are Objects](#classes). Use [is_instance_of](#is_instance_of)
-instead.
+[all values are Objects](#classes) and therefore `[]` is also an Object. Use
+[is_instance_of](#is_instance_of) instead.
 
 ### is_instance_of
 
@@ -700,6 +705,7 @@ it has no methods or other attributes. You can access the class with
 [integer literals]: syntax-spec.md#tokenizing
 [hash table]: https://en.wikipedia.org/wiki/Hash_table
 [options]: tutorial.md#options
+[the debugging section of the tutorial]: tutorial.md#debugging
 
 [ArgError]: errors.md
 [TypeError]: errors.md
