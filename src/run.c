@@ -11,7 +11,7 @@
 #include "parse.h"
 #include "runast.h"
 #include "tokenizer.h"
-#include "unicode.h"
+#include "utf8.h"
 
 #if defined(_WIN32) || defined(_WIN64)
 #define SLASH "\\"

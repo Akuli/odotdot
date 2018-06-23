@@ -25,7 +25,7 @@
 #include "objects/scope.h"
 #include "objects/stackframe.h"
 #include "objects/string.h"
-#include "unicode.h"
+#include "utf8.h"
 
 
 static struct Object *subscope_of_defscope(struct Interpreter *interp, struct Object *block)

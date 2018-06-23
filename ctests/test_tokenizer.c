@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include <src/tokenizer.h>
-#include <src/unicode.h>
+#include <src/utf8.h>
 
 #include "utils.h"
 
@@ -12,7 +12,7 @@ static char *unicode_to_utf8_ending_with_0(struct UnicodeString unicode)
 {
 	char *utf8;
 	size_t utf8len;
-	buttert(utf8_encode(testinterp, unicode, &utf8, &utf8len) == true);
+	buttert(utf8_encode(testinterp, unicode, &utf8, &utf8len));
 	buttert((utf8=realloc(utf8, utf8len+1)));
 	utf8[utf8len]=0;
 	return utf8;

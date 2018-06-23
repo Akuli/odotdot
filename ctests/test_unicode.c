@@ -3,6 +3,7 @@
 #include <src/objects/string.h>
 #include <src/objectsystem.h>
 #include <src/unicode.h>
+#include <src/utf8.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>

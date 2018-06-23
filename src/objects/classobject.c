@@ -10,6 +10,7 @@
 #include "../method.h"
 #include "../objectsystem.h"
 #include "../unicode.h"
+#include "../utf8.h"
 #include "array.h"
 #include "errors.h"
 #include "mapping.h"
@@ -87,7 +88,6 @@ bool classobject_setname(struct Interpreter *interp, struct Object *klass, char 
 {
 	struct ClassObjectData *data = klass->data;
 
-	// if utf8_decode fails, the name must be left untouched
 	void *maybegonnafree = data->name.val;
 	bool ok = utf8_decode(interp, name, strlen(name), &data->name);
 	if (ok)

@@ -12,6 +12,7 @@
 #include "../method.h"
 #include "../objectsystem.h"
 #include "../unicode.h"
+#include "../utf8.h"
 #include "array.h"
 #include "classobject.h"
 #include "mapping.h"
