@@ -434,6 +434,12 @@ Methods:
   separated by one or more Unicode whitespace characters (e.g. spaces, tabs or
   newlines). For example, `(" hello world test ".split_by_whitespace)` returns
   `["hello" "world" "test"]`.
+- `(string.replace old new)` returns a new String with all occurences of an
+  `old` string replaced by a `new` string. `ValueError` is thrown if `old` is
+  `""`. The parts of the string that have already been replaced by `new` are
+  never replaced again, e.g. `("xxxy".replace "xy" "yy")` returns `"xxyy"` even
+  though it contains the `"xy"` string. Unfortunately there's no way to replace
+  multiple things at once yet :(
 - `(string.to_string)` returns the `string` unchanged. This is for consistency
   with the `to_string` methods of other classes; `to_string` is supposed to
   return a human-readable string representing the object, if any, and the

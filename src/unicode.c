@@ -45,7 +45,6 @@ struct UnicodeString *unicodestring_copy(struct Interpreter *interp, struct Unic
 	}
 	if (!unicodestring_copyinto(interp, src, res)) {
 		free(res);
-		errorobject_thrownomem(interp);
 		return NULL;
 	}
 	return res;
@@ -144,9 +143,86 @@ bool utf8_encode(struct Interpreter *interp, struct UnicodeString unicode, char 
 	return true;
 }
 
+// there are lots of corner cases... :D
+struct UnicodeString *unicodestring_replace(struct Interpreter *interp, struct UnicodeString src, struct UnicodeString old, struct UnicodeString new)
+{
+	if (old.len == 0) {
+		// need to divide by old.len soon, and division by 0 is no good
+		// also, what would .replace "" "lol" even do??
+		errorobject_throwfmt(interp, "ValueError", "cannot replace \"\" with another string");
+		return NULL;
+	}
+	if (src.len < old.len) {
+		// src can't contain old
+		return unicodestring_copy(interp, src);
+	}
+
+	struct UnicodeString *res = malloc(sizeof(struct UnicodeString));
+	if (!res) {
+		errorobject_thrownomem(interp);
+		return NULL;
+	}
+
+	res->len = src.len;
+	if (new.len > old.len) {
+		// old fits in src floor(src.len/old.len) times, and C's size_t/size_t floor()s
+		// so there may be at most src.len/old.len replacements
+		// (max number of characters the string can grow) = (max number of replacements) * (length difference)
+		res->val = malloc(sizeof(unicode_char) * (src.len + (src.len/old.len)*(new.len - old.len)));
+	} else {
+		// number of characters can't grow
+		res->val = malloc(sizeof(unicode_char) * src.len);
+	}
+	if (!res->val) {
+		free(res);
+		errorobject_thrownomem(interp);
+		return NULL;
+	}
+	memcpy(res->val, src.val, sizeof(unicode_char) * src.len);
+
+	// now comes the replacing
+	// replacing a substring with a different length messes up indexes AFTER the replacement
+	// so must replace backwards
+	size_t offset = src.len - old.len;    // can't be negative, see beginning of this function
+	while (true) {
+		// look for old in src at offset
+		bool foundold = true;
+		for (size_t i=0; i < old.len; i++) {
+			if (src.val[offset + i] != old.val[i]) {
+				foundold = false;
+				break;
+			}
+		}
+		if (!foundold) {
+			if (offset == 0)
+				return res;
+			offset--;
+			continue;
+		}
+
+		// this is the real thing... let's do the replace
+		// first move stuff after offset+new.len out of the way, then add the new
+		memmove(res->val+offset+new.len, res->val+offset+old.len, sizeof(unicode_char) * (res->len-offset-old.len));
+		memcpy(res->val+offset, new.val, sizeof(unicode_char) * new.len);
+
+		// i'm not sure what small_size_t - big_size_t does
+		// probably something funny because size_t is unsigned but the result should be negative
+		if (new.len > old.len)
+			res->len += new.len - old.len;
+		if (new.len < old.len)
+			res->len -= old.len - new.len;
+
+		// anything on the replaced area must not be replaced again
+		// but avoid making the offset negative because it's unsigned
+		if (offset < old.len)
+			return res;
+		offset -= old.len;
+	}
+}
+
 
 // there are many casts to unsigned char
-// i don't want to cast a char pointer to unsigned char because i'm not sure if that's standardy
+// i don't want to cast a char pointer to unsigned char pointer because i'm not sure if that's standardy
 #define U(x) ((unsigned char)(x))
 
 bool utf8_decode(struct Interpreter *interp, char *utf8, size_t utf8len, struct UnicodeString *unicode)

@@ -82,6 +82,32 @@ static struct Object *concat(struct Interpreter *interp, struct Object *args, st
 	return stringobject_newfromustr(interp, u);
 }
 
+// forward decla
+static struct Object *new_string_from_ustr_with_no_copy(struct Interpreter *, struct UnicodeString *);
+
+static struct Object *replace(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	// TODO: allow passing in a Mapping of things to replace?
+	if (!check_args(interp, args, interp->builtins.String, interp->builtins.String, interp->builtins.String, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	struct UnicodeString *src = ARRAYOBJECT_GET(args, 0)->data;
+	struct UnicodeString *old = ARRAYOBJECT_GET(args, 1)->data;
+	struct UnicodeString *new = ARRAYOBJECT_GET(args, 2)->data;
+
+	struct UnicodeString *replaced = unicodestring_replace(interp, *src, *old, *new);
+	if (!replaced)
+		return NULL;
+
+	struct Object *res = new_string_from_ustr_with_no_copy(interp, replaced);
+	if (!res) {
+		free(replaced->val);
+		free(replaced);
+		return NULL;
+	}
+	return res;
+}
+
 // get and slice are a lot like array methods
 // some day strings will hopefully behave like an immutable array of 1-character strings
 static struct Object *get(struct Interpreter *interp, struct Object *args, struct Object *opts)
@@ -226,6 +252,7 @@ bool stringobject_addmethods(struct Interpreter *interp)
 	if (!attribute_add(interp, interp->builtins.String, "length", length_getter, NULL)) return false;
 	if (!method_add(interp, interp->builtins.String, "concat", concat)) return false;
 	if (!method_add(interp, interp->builtins.String, "get", get)) return false;
+	if (!method_add(interp, interp->builtins.String, "replace", replace)) return false;
 	if (!method_add(interp, interp->builtins.String, "slice", slice)) return false;
 	if (!method_add(interp, interp->builtins.String, "split_by_whitespace", split_by_whitespace)) return false;
 	if (!method_add(interp, interp->builtins.String, "to_string", to_string)) return false;
@@ -243,21 +270,31 @@ static long string_hash(struct UnicodeString u)
 	return (long)hash;
 }
 
+// TODO: expose this and use it everywhere
+static struct Object *new_string_from_ustr_with_no_copy(struct Interpreter *interp, struct UnicodeString *ustr)
+{
+	struct Object *s = object_new_noerr(interp, interp->builtins.String, ustr, NULL, string_destructor);
+	if (!s) {
+		errorobject_thrownomem(interp);
+		return NULL;
+	}
+	s->hash = string_hash(*ustr);
+	return s;
+}
+
 struct Object *stringobject_newfromustr(struct Interpreter *interp, struct UnicodeString ustr)
 {
-	struct UnicodeString *data = unicodestring_copy(interp, ustr);   // TODO: create an alternative non-copying function
+	struct UnicodeString *data = unicodestring_copy(interp, ustr);
 	if (!data)
 		return NULL;
 
-	struct Object *s = object_new_noerr(interp, interp->builtins.String, data, NULL, string_destructor);
-	if (!s) {
-		errorobject_thrownomem(interp);
+	struct Object *res = new_string_from_ustr_with_no_copy(interp, data);
+	if (!res) {
 		free(data->val);
 		free(data);
 		return NULL;
 	}
-	s->hash = string_hash(ustr);
-	return s;
+	return res;
 }
 
 struct Object *stringobject_newfromcharptr(struct Interpreter *interp, char *ptr)
@@ -271,15 +308,13 @@ struct Object *stringobject_newfromcharptr(struct Interpreter *interp, char *ptr
 		return NULL;
 	}
 
-	struct Object *s = object_new_noerr(interp, interp->builtins.String, data, NULL, string_destructor);
-	if (!s) {
-		errorobject_thrownomem(interp);
+	struct Object *res = new_string_from_ustr_with_no_copy(interp, data);
+	if (!res) {
 		free(data->val);
 		free(data);
 		return NULL;
 	}
-	s->hash = string_hash(*data);
-	return s;
+	return res;
 }
 
 
@@ -430,7 +465,6 @@ error:
 		OBJECT_DECREF(interp, gonnadecref[i]);
 	return NULL;
 }
-
 
 struct Object *stringobject_newfromfmt(struct Interpreter *interp, char *fmt, ...)
 {

@@ -11,7 +11,8 @@ struct Interpreter;
 
 // the standard says that int32_t is optional, but this must exist
 // you can also use unsigned long when working with unicode chars, that's also >= 32 bits
-// TODO: get rid of this and just unsigned long everything?
+// on many 64-bit systems, uint_least32_t is 32 bits but unsigned long is 64 bits
+// so strings fit in smaller space with uint_least32_t
 typedef uint_least32_t unicode_char;
 
 struct UnicodeString {
@@ -26,6 +27,10 @@ struct UnicodeString *unicodestring_copy(struct Interpreter *interp, struct Unic
 // dst->val must be free()'d
 // returns false on error
 bool unicodestring_copyinto(struct Interpreter *interp, struct UnicodeString src, struct UnicodeString *dst);
+
+// replace all occurrences of old with new in src
+// the return value's ->val and the return value must be free()'d
+struct UnicodeString *unicodestring_replace(struct Interpreter *interp, struct UnicodeString src, struct UnicodeString old, struct UnicodeString new);
 
 
 // convert a Unicode string to a UTF-8 string

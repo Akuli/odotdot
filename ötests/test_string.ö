@@ -100,3 +100,39 @@ test "split_by_whitespace" {
         assert ((input.split_by_whitespace) `equals` expected_output);
     };
 };
+
+test "replace" {
+    assert (("hello world".replace "worl" "asdd") `equals` "hello asddd");
+    assert (("lol xyzz".replace "xy" "ab") `equals` "lol abzz");
+    assert (("lol xyzz".replace "xy" "a") `equals` "lol azz");
+    assert (("lol xyzz".replace "xy" "asdasd") `equals` "lol asdasdzz");
+
+    # test which args can be empty
+    assert (("abcxyz".replace "x" "") `equals` "abcyz");
+    assert (("".replace "asd" "asda") `equals` "");
+    throws ValueError { "lol".replace "" "asd"; };
+
+    # characters that are results of a replace must not be replaced again
+    # so this needs multiple replaces, not just one
+    var string = "asdddddasddddda";
+    string = (string.replace "dasd" "as"); assert (string `equals` "asddddasdddda");
+    string = (string.replace "dasd" "as"); assert (string `equals` "asdddasddda");
+    string = (string.replace "dasd" "as"); assert (string `equals` "asddasdda");
+    string = (string.replace "dasd" "as"); assert (string `equals` "asdasda");
+    string = (string.replace "dasd" "as"); assert (string `equals` "asasa");
+    string = (string.replace "dasd" "as"); assert (string `equals` "asasa");
+
+    string = "aaaab";
+    string = (string.replace "ab" "bb"); assert (string `equals` "aaabb");
+    string = (string.replace "ab" "bb"); assert (string `equals` "aabbb");
+    string = (string.replace "ab" "bb"); assert (string `equals` "abbbb");
+    string = (string.replace "ab" "bb"); assert (string `equals` "bbbbb");
+    string = (string.replace "ab" "bb"); assert (string `equals` "bbbbb");
+
+    string = "abbbb";
+    string = (string.replace "ab" "aa"); assert (string `equals` "aabbb");
+    string = (string.replace "ab" "aa"); assert (string `equals` "aaabb");
+    string = (string.replace "ab" "aa"); assert (string `equals` "aaaab");
+    string = (string.replace "ab" "aa"); assert (string `equals` "aaaaa");
+    string = (string.replace "ab" "aa"); assert (string `equals` "aaaaa");
+};
