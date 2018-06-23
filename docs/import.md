@@ -31,9 +31,36 @@ For example, if `blah/blah/run.ö` calls `(import "asd/toot")`, a file named
 e.g. `C:\Users\Someone` instead of `/home/someone`, but `import` replaces `/`'s
 in the string with `\`'s on Windows, so you don't need to worry about it.
 
+Common path tricks are supported; for example, running `(import "../thingy.ö")`
+in `asd/toot/wat.ö` imports `asd/thingy.ö` because `..` means the parent
+directory of `asd/toot`, which is `asd`.
+
 If the string passed to `import` contains `<stdlibs>`, it will be replaced with
 a path to Ö's [stdlibs](../stdlibs) directory. There's nothing useful there yet,
 so unfortunately I can't provide an example of importing something from the
 stdlibs.
+
+
+## Caching
+
+If you have a `hello.ö` that does something when it's imported, e.g. this...
+
+```python
+print "hello.ö was imported";
+```
+
+...and you have a `run.ö` like this...
+
+```python
+var hello1 = (import "hello");
+var hello2 = (import "hello");
+var hello3 = (import "hello");
+```
+
+...the `print` in `hello.ö` will **not** run 3 times; it'll run once only. This
+means that if your library file is big and slow to load, that's not a problem;
+it'll be loaded only once, even if you have many other files that need the
+library file.
+
 
 [built-in scope]: tutorial.md#scopes
