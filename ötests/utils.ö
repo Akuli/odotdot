@@ -1,0 +1,14 @@
+func "test what how" {
+    how.run (new Scope how.definition_scope);
+};
+
+func "throws errorclass body" {
+    var threw = null;
+    catch {
+        body.run (new Scope body.definition_scope);
+        threw = false;
+    } errorclass {
+        threw = true;
+    };
+    assert threw;
+};
