@@ -7,6 +7,7 @@
 #include "attribute.h"
 #include "check.h"
 #include "equals.h"
+#include "import.h"
 #include "interpreter.h"
 #include "lambdabuiltin.h"
 #include "method.h"
@@ -25,6 +26,7 @@
 #include "objects/scope.h"
 #include "objects/stackframe.h"
 #include "objects/string.h"
+#include "path.h"
 #include "utf8.h"
 
 
@@ -315,6 +317,23 @@ static struct Object *get_stack(struct Interpreter *interp, struct Object *args,
 	return stackframeobject_getstack(interp);
 }
 
+static struct Object *import_builtin(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.String, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+	struct Object *modname = ARRAYOBJECT_GET(args, 0);
+
+	char *srcfile = (interp->stackptr - 1)->filename;
+	assert(path_isabsolute(srcfile));
+	size_t i = path_findlastslash(srcfile);
+
+	char srcdir[i+1];
+	memcpy(srcdir, srcfile, i);
+	srcdir[i] = 0;
+
+	return import(interp, *((struct UnicodeString*) modname->data), srcdir);
+}
+
 
 static struct Object *new(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
@@ -468,6 +487,7 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!add_function(interp, "catch", catch)) goto error;
 	if (!add_function(interp, "equals", equals_builtin)) goto error;
 	if (!add_function(interp, "get_class", get_class)) goto error;
+	if (!add_function(interp, "import", import_builtin)) goto error;
 	if (!add_function(interp, "is_instance_of", is_instance_of)) goto error;
 	if (!add_function(interp, "new", new)) goto error;
 	if (!add_function(interp, "print", print)) goto error;

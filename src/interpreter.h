@@ -51,7 +51,7 @@ struct Interpreter {
 	} builtins;
 
 	struct StackFrame stack[STACK_MAX];
-	struct StackFrame *stackptr;   // pointer to the top of the stack
+	struct StackFrame *stackptr;   // pointer to above the top of the stack
 };
 
 // prints a message to stderr and returns NULL on error

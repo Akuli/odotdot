@@ -1,4 +1,5 @@
 #include "run.h"
+#include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -9,19 +10,16 @@
 #include "objects/errors.h"
 #include "objects/scope.h"
 #include "parse.h"
+#include "path.h"
 #include "runast.h"
 #include "tokenizer.h"
 #include "utf8.h"
 
-#if defined(_WIN32) || defined(_WIN64)
-#define SLASH "\\"
-#else
-#define SLASH "/"
-#endif
-
 
 static bool read_and_run_file(struct Interpreter *interp, char *path, struct Object *scope, bool runningbuiltinsfile)
 {
+	assert(path_isabsolute(path));
+
 	// ValueError can't be used when running builtins.ö because it's defined in builtins.ö
 	// TODO: create an IOError class or something?
 	char *ioerrorclass = runningbuiltinsfile ? "Error" : "ValueError";
@@ -124,19 +122,37 @@ static bool read_and_run_file(struct Interpreter *interp, char *path, struct Obj
 
 bool run_builtinsfile(struct Interpreter *interp)
 {
-	char path[strlen(interp->stdlibpath) + sizeof(SLASH)-1 + sizeof("builtins.ö") /* includes \0 */];
-	strcpy(path, interp->stdlibpath);
-	strcat(path, SLASH "builtins.ö");
-	return read_and_run_file(interp, path, interp->builtinscope, true);
+	// interp->stdlibpath should be absolute
+	char *path = path_concat(interp->stdlibpath, "builtins.ö");
+	if (!path) {
+		errorobject_thrownomem(interp);
+		return false;
+	}
+
+	bool ok = read_and_run_file(interp, path, interp->builtinscope, true);
+	free(path);
+	return ok;
 }
 
 bool run_mainfile(struct Interpreter *interp, char *path)
 {
-	struct Object *subscope = scopeobject_newsub(interp, interp->builtinscope);
-	if (!subscope)
+	char *abspath = path_toabsolute(path);
+	if (!abspath) {
+		if (errno == ENOMEM)
+			errorobject_thrownomem(interp);
+		else    // ValueError sucks for this .....
+			errorobject_throwfmt(interp, "ValueError", "cannot get absolute path of '%s': %s", path, strerror(errno));
 		return false;
+	}
 
-	bool ok = read_and_run_file(interp, path, subscope, false);
+	struct Object *subscope = scopeobject_newsub(interp, interp->builtinscope);
+	if (!subscope) {
+		free(abspath);
+		return false;
+	}
+
+	bool ok = read_and_run_file(interp, abspath, subscope, false);
 	OBJECT_DECREF(interp, subscope);
+	free(abspath);
 	return ok;
 }
