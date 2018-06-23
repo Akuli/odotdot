@@ -6,7 +6,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "attribute.h"
+#include "check.h"
 #include "interpreter.h"
+#include "objects/array.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
 #include "objects/mapping.h"
@@ -51,10 +53,80 @@ char *import_findstdlibs(char *argv0)
 }
 
 
+struct Object *import(struct Interpreter *interp, struct Object *namestring, struct Object *stackframe)
+{
+	assert(interp->importstuff.importers);
+	assert(interp->builtins.Function);
+
+	for (size_t i=0; i < ARRAYOBJECT_LEN(interp->importstuff.importers); i++)
+	{
+		struct Object *importer = ARRAYOBJECT_GET(interp->importstuff.importers, i);
+		if (!check_type(interp, interp->builtins.Function, importer))
+			return NULL;
+
+		struct Object *lib = functionobject_call(interp, importer, namestring, stackframe, NULL);
+		if (!lib)
+			return NULL;
+		if (lib == interp->builtins.null) {
+			OBJECT_DECREF(interp, lib);
+			continue;
+		}
+		if (!classobject_isinstanceof(lib, interp->builtins.Library)) {
+			errorobject_throwfmt(interp, "TypeError", "importer functions should return a Library object or null, but %D returned %D", importer, lib);
+			OBJECT_DECREF(interp, lib);
+			return NULL;
+		}
+		return lib;
+	}
+
+	// FIXME: ValueError feels wrong
+	errorobject_throwfmt(interp, "ValueError", "cannot import %S", namestring);
+	return NULL;
+}
+
+
+static char *get_source_dir(struct Interpreter *interp, struct Object *stackframe)
+{
+	struct Object *filenameobj = attribute_get(interp, stackframe, "filename");
+	if (!filenameobj)
+		return NULL;
+	if (!check_type(interp, interp->builtins.String, filenameobj)) {
+		OBJECT_DECREF(interp, filenameobj);
+		return NULL;
+	}
+
+	char *filename;
+	size_t filenamelen;
+	bool ok = utf8_encode(interp, *((struct UnicodeString*) filenameobj->data), &filename, &filenamelen);
+	OBJECT_DECREF(interp, filenameobj);
+	if (!ok)
+		return NULL;
+
+	char filename0[filenamelen+1];
+	memcpy(filename0, filename, filenamelen);
+	free(filename);
+	filename0[filenamelen] = 0;
+	assert(path_isabsolute(filename0));
+
+	size_t i = path_findlastslash(filename0);
+	char *srcdir = malloc(i+1);
+	if (!srcdir) {
+		errorobject_thrownomem(interp);
+		return NULL;
+	}
+	memcpy(srcdir, filename0, i);
+	srcdir[i] = 0;
+	return srcdir;
+}
+
 static unicode_char stdlibsmarker[] = { '<','s','t','d','l','i','b','s','>' };
 
-struct Object *import(struct Interpreter *interp, struct UnicodeString name, char *sourcedir)
+static struct Object *file_importer(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
+	if (!check_args(interp, args, interp->builtins.String, interp->builtins.StackFrame, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+	struct UnicodeString name = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data);
+
 	struct UnicodeString ustdlibspath;
 	if (!utf8_decode(interp, interp->stdlibspath, strlen(interp->stdlibspath), &ustdlibspath))
 		return NULL;
@@ -106,7 +178,11 @@ struct Object *import(struct Interpreter *interp, struct UnicodeString name, cha
 		fullpath = fname;
 		mustfreefullpath = false;
 	} else {
+		char *sourcedir = get_source_dir(interp, ARRAYOBJECT_GET(args, 1));
+		if (!sourcedir)
+			return NULL;
 		fullpath = path_concat(sourcedir, fname);
+		free(sourcedir);
 		if (!fullpath) {
 			errorobject_thrownomem(interp);
 			return NULL;
@@ -139,6 +215,7 @@ struct Object *import(struct Interpreter *interp, struct UnicodeString name, cha
 		return NULL;
 	assert(status == 0);
 
+	// TODO: check file not found error
 	struct Object *vars = run_libfile(interp, fullpath);
 	if (mustfreefullpath)
 		free(fullpath);
@@ -179,4 +256,14 @@ struct Object *import(struct Interpreter *interp, struct UnicodeString name, cha
 	return lib;
 }
 
-#undef UNICODE
+bool import_init(struct Interpreter *interp)
+{
+	assert(interp->importstuff.importers);
+
+	struct Object *fileimp = functionobject_new(interp, file_importer, "file_importer");
+	if (!fileimp)
+		return NULL;
+	bool ok = arrayobject_push(interp, interp->importstuff.importers, fileimp);
+	OBJECT_DECREF(interp, fileimp);
+	return ok;
+}

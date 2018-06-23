@@ -35,7 +35,8 @@ struct Interpreter *interpreter_new(char *argv0)
 		return NULL;
 	}
 
-	interp->importstuff.filelibcache = NULL;
+	interp->importstuff.filelibcache =
+	interp->importstuff.importers =
 	interp->err =
 	interp->builtinscope =
 	interp->builtins.Array =

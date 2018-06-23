@@ -13,8 +13,14 @@ struct Object;
 // argv0 is used in error messages
 char *import_findstdlibs(char *argv0);
 
+// for builtins_setup()
+// adds the built-in importer(s) to interp->importstuff.importers
+// number of built-in importer(s) is an implementation detail
+// throws an error and returns false on failure
+bool import_init(struct Interpreter *interp);
+
 // returns a Module object, sets an error and returns NULL on failure
-// sourcedir should be the directory where the file that import was called from is
-struct Object *import(struct Interpreter *interp, struct UnicodeString name, char *sourcedir);
+// stackframe should be the StackFrame object that import was called from, used for e.g. finding files relatively
+struct Object *import(struct Interpreter *interp, struct Object *namestring, struct Object *stackframe);
 
 #endif    // IMPORT_H

@@ -52,6 +52,7 @@ struct Interpreter {
 
 	struct {
 		struct Object *filelibcache;   // Mapping, keys are path strings, values are Library objects
+		struct Object *importers;      // Array of importer functions, see docs
 	} importstuff;
 
 	struct StackFrame stack[STACK_MAX];
