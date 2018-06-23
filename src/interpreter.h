@@ -50,6 +50,10 @@ struct Interpreter {
 		struct Object *nomemerr;
 	} builtins;
 
+	struct {
+		struct Object *filelibcache;   // Mapping, keys are path strings, values are Library objects
+	} importstuff;
+
 	struct StackFrame stack[STACK_MAX];
 	struct StackFrame *stackptr;   // pointer to above the top of the stack
 };

@@ -467,6 +467,7 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!(interp->builtins.Library = libraryobject_createclass(interp))) goto error;
 
 	if (!(interp->builtinscope = scopeobject_newbuiltin(interp))) goto error;
+	if (!(interp->importstuff.filelibcache = mappingobject_newempty(interp))) goto error;
 
 	if (!interpreter_addbuiltin(interp, "ArbitraryAttribs", interp->builtins.ArbitraryAttribs)) goto error;
 	if (!interpreter_addbuiltin(interp, "Array", interp->builtins.Array)) goto error;
@@ -537,28 +538,26 @@ nomem:
 
 void builtins_teardown(struct Interpreter *interp)
 {
-#define TEARDOWN(x) if (interp->builtins.x) { OBJECT_DECREF(interp, interp->builtins.x); interp->builtins.x = NULL; }
-	TEARDOWN(ArbitraryAttribs);
-	TEARDOWN(Array);
-	TEARDOWN(AstNode);
-	TEARDOWN(Block);
-	TEARDOWN(Class);
-	TEARDOWN(Error);
-	TEARDOWN(Function);
-	TEARDOWN(Integer);
-	TEARDOWN(Library);
-	TEARDOWN(Mapping);
-	TEARDOWN(MarkerError);
-	TEARDOWN(Object);
-	TEARDOWN(Scope);
-	TEARDOWN(StackFrame);
-	TEARDOWN(String);
-	TEARDOWN(null);
-	TEARDOWN(nomemerr);
-#undef TEARDOWN
+#define TEARDOWN(x) if (interp->x) { OBJECT_DECREF(interp, interp->x); interp->x = NULL; }
+	TEARDOWN(builtins.ArbitraryAttribs);
+	TEARDOWN(builtins.Array);
+	TEARDOWN(builtins.AstNode);
+	TEARDOWN(builtins.Block);
+	TEARDOWN(builtins.Class);
+	TEARDOWN(builtins.Error);
+	TEARDOWN(builtins.Function);
+	TEARDOWN(builtins.Integer);
+	TEARDOWN(builtins.Library);
+	TEARDOWN(builtins.Mapping);
+	TEARDOWN(builtins.MarkerError);
+	TEARDOWN(builtins.Object);
+	TEARDOWN(builtins.Scope);
+	TEARDOWN(builtins.StackFrame);
+	TEARDOWN(builtins.String);
+	TEARDOWN(builtins.null);
+	TEARDOWN(builtins.nomemerr);
 
-	if (interp->builtinscope) {
-		OBJECT_DECREF(interp, interp->builtinscope);
-		interp->builtinscope = NULL;
-	}
+	TEARDOWN(importstuff.filelibcache);
+	TEARDOWN(builtinscope);
+#undef TEARDOWN
 }

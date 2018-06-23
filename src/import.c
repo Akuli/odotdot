@@ -11,6 +11,7 @@
 #include "objects/errors.h"
 #include "objects/mapping.h"
 #include "objects/null.h"
+#include "objects/string.h"
 #include "objectsystem.h"
 #include "path.h"
 #include "run.h"
@@ -115,18 +116,46 @@ struct Object *import(struct Interpreter *interp, struct UnicodeString name, cha
 		mustfreefullpath = true;
 	}
 
+	// check if the lib is cached
+	struct Object *fullpathobj = stringobject_newfromcharptr(interp, fullpath);
+	if (!fullpathobj) {
+		if (mustfreefullpath)
+			free(fullpath);
+		return NULL;
+	}
+
+	// TODO: lowercase fullpathobj on case-insensitive file systems?
+	// "case-insensitive file systems" is not same as windows, e.g. osx is case-insensitive
+	// unless you install it in an unusual way or something... anyway
+	assert(interp->importstuff.filelibcache);
+	struct Object *cachedlib;
+	int status = mappingobject_get(interp, interp->importstuff.filelibcache, fullpathobj, &cachedlib);
+	if (status != 0) {   // gonna return soon
+		OBJECT_DECREF(interp, fullpathobj);
+		if (mustfreefullpath)
+			free(fullpath);
+	}
+	if (status == 1)
+		return cachedlib;
+	if (status == -1)
+		return NULL;
+	assert(status == 0);
+
 	struct Object *vars = run_libfile(interp, fullpath);
 	if (mustfreefullpath)
 		free(fullpath);
-	if (!vars)
+	if (!vars) {
+		OBJECT_DECREF(interp, fullpathobj);
 		return NULL;
+	}
 
-	// do what the new builtin does when there's no ->newinstance
+	// do what the built-in new function does when there's no ->newinstance
 	assert(!((struct ClassObjectData*) interp->builtins.Library->data)->newinstance);
 	struct Object *lib = object_new_noerr(interp, interp->builtins.Library, NULL, NULL, NULL);
 	if (!lib) {
 		errorobject_thrownomem(interp);
 		OBJECT_DECREF(interp, vars);
+		OBJECT_DECREF(interp, fullpathobj);
 		return NULL;
 	}
 
@@ -136,11 +165,19 @@ struct Object *import(struct Interpreter *interp, struct UnicodeString name, cha
 		if (!attribute_setwithstringobj(interp, lib, iter.key, iter.value)) {
 			OBJECT_DECREF(interp, lib);
 			OBJECT_DECREF(interp, vars);
+			OBJECT_DECREF(interp, fullpathobj);
 			return NULL;
 		}
 	}
-
 	OBJECT_DECREF(interp, vars);
+
+	ok = mappingobject_set(interp, interp->importstuff.filelibcache, fullpathobj, lib);
+	OBJECT_DECREF(interp, fullpathobj);
+	if (!ok) {
+		OBJECT_DECREF(interp, lib);
+		return NULL;
+	}
+
 	return lib;
 }
 
