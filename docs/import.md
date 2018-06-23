@@ -31,9 +31,9 @@ For example, if `blah/blah/run.ö` calls `(import "asd/toot")`, a file named
 e.g. `C:\Users\Someone` instead of `/home/someone`, but `import` replaces `/`'s
 in the string with `\`'s on Windows, so you don't need to worry about it.
 
-If the string passed to `import` contains `<stdlib>`, it will be replaced with
-a path to Ö's [stdlib](../stdlib) directory. There's nothing useful there yet,
+If the string passed to `import` contains `<stdlibs>`, it will be replaced with
+a path to Ö's [stdlibs](../stdlibs) directory. There's nothing useful there yet,
 so unfortunately I can't provide an example of importing something from the
-stdlib.
+stdlibs.
 
 [built-in scope]: tutorial.md#scopes

@@ -28,8 +28,8 @@ struct Interpreter *interpreter_new(char *argv0)
 	interp->argv0 = argv0;
 	interp->stackptr = interp->stack;   // make it point to the 1st element
 
-	interp->stdlibpath = import_findstdlib(argv0);
-	if (!interp->stdlibpath) {
+	interp->stdlibspath = import_findstdlibs(argv0);
+	if (!interp->stdlibspath) {
 		allobjects_free(interp->allobjects);
 		free(interp);
 		return NULL;
@@ -64,7 +64,7 @@ nomem:
 void interpreter_free(struct Interpreter *interp)
 {
 	allobjects_free(interp->allobjects);
-	free(interp->stdlibpath);
+	free(interp->stdlibspath);
 	free(interp);
 }
 

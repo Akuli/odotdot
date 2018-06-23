@@ -5,13 +5,13 @@ things that I would like to do some day. It's a mess.
 
 ## Language design stuff
 - importing? here is what i have in mind right now:
-    - `(import "<stdlib>/x")` loads `stdlib/x.ö`, or something like
-      `stdlib/x/setup.ö` if `stdlib/x.ö` doesn't exist and `stdlib/x` is a
+    - `(import "<stdlibs>/x")` loads `stdlibs/x.ö`, or something like
+      `stdlibs/x/setup.ö` if `stdlibs/x.ö` doesn't exist and `stdlibs/x` is a
       directory
         - maybe warn if there is an `x` directory AND an `x.ö` file?
-    - `"<stdlib>"` is special, other paths are treated as relative to the
+    - `"<stdlibs>"` is special, other paths are treated as relative to the
       importing file
-        - in the future, might add `"<lib>"` for non-stdlib dependencies?
+        - in the future, might add `"<lib>"` for non-stdlibs dependencies?
     - ideally importing would be implemented in pure Ö, but many other things
       must be done before that:
         - file I/O
@@ -25,7 +25,7 @@ things that I would like to do some day. It's a mess.
       as importable modules
 - operators
     - syntactic sugar for infixes? e.g. ``a + b`` might be
-      ``a `(import "<stdlib>/operators").add` b``
+      ``a `(import "<stdlibs>/operators").add` b``
     - `a + b*c` would be invalid syntax, would need to be written `(a + (b*c))`
         - good because people won't be confused by `a + b * c`, which means
           evaluating `b * c` first in math and many other programming languages
@@ -207,7 +207,7 @@ these suck, must figure out a more customizable alternative
 if dispatchable functions will exist some day, maybe like this:
 
 ```
-# this stuff would go to a special file, e.g. stdlib/operators.ö
+# this stuff would go to a special file, e.g. stdlibs/operators.ö
 
 dispatchable_func "equals a b";
 equals.dispatch [Integer Integer] {

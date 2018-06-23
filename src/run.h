@@ -6,7 +6,7 @@
 struct Interpreter;
 struct Object;
 
-/* runs stdlib/builtins.ö
+/* runs stdlibs/builtins.ö
 throws an error and returns false on failure
 
 builtins.ö can't be ran like imported files because:

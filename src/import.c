@@ -27,7 +27,7 @@
 
 
 // TODO: make this not rely on cwd
-char *import_findstdlib(char *argv0)
+char *import_findstdlibs(char *argv0)
 {
 	char *cwd = path_getcwd();
 	if (!cwd) {
@@ -39,7 +39,7 @@ char *import_findstdlib(char *argv0)
 	assert(len >= 1);
 	bool needslash = (cwd[len-1] != PATH_SLASH);
 
-	void *tmp = realloc(cwd, strlen(cwd) + (size_t)needslash + sizeof("stdlib") /* includes \0 */);
+	void *tmp = realloc(cwd, strlen(cwd) + (size_t)needslash + sizeof("stdlibs") /* includes \0 */);
 	if (!tmp) {
 		fprintf(stderr, "%s: not enough memory\n", argv0);
 		free(cwd);
@@ -47,17 +47,17 @@ char *import_findstdlib(char *argv0)
 	}
 	cwd = tmp;
 
-	strcat(cwd, needslash ? PATH_SLASHSTR"stdlib" : "stdlib");
+	strcat(cwd, needslash ? PATH_SLASHSTR"stdlibs" : "stdlibs");
 	return cwd;
 }
 
 
-static unicode_char stdlibmarker[] = { '<','s','t','d','l','i','b','>' };
+static unicode_char stdlibsmarker[] = { '<','s','t','d','l','i','b','s','>' };
 
 struct Object *import(struct Interpreter *interp, struct UnicodeString name, char *sourcedir)
 {
-	struct UnicodeString ustdlibpath;
-	if (!utf8_decode(interp, interp->stdlibpath, strlen(interp->stdlibpath), &ustdlibpath))
+	struct UnicodeString ustdlibspath;
+	if (!utf8_decode(interp, interp->stdlibspath, strlen(interp->stdlibspath), &ustdlibspath))
 		return NULL;
 
 #if PATH_SLASH != '/'
@@ -72,7 +72,7 @@ struct Object *import(struct Interpreter *interp, struct UnicodeString name, cha
 #if PATH_SLASH != '/'
 		{ (struct UnicodeString){ .len = 1, .val = &badslash }, (struct UnicodeString){ .len = 1, .val = &goodslash } },
 #endif
-		{ (struct UnicodeString){ .len = sizeof(stdlibmarker)/sizeof(unicode_char), .val = stdlibmarker }, ustdlibpath }
+		{ (struct UnicodeString){ .len = sizeof(stdlibsmarker)/sizeof(unicode_char), .val = stdlibsmarker }, ustdlibspath }
 	};
 
 	for (size_t i=0; i < sizeof(replaces)/sizeof(replaces[0]); i++) {
@@ -81,13 +81,13 @@ struct Object *import(struct Interpreter *interp, struct UnicodeString name, cha
 			free(name.val);
 
 		if (!tmp) {
-			free(ustdlibpath.val);
+			free(ustdlibspath.val);
 			return NULL;
 		}
 		name = *tmp;
 		free(tmp);
 	}
-	free(ustdlibpath.val);
+	free(ustdlibspath.val);
 
 	char *fname_noext;
 	size_t fname_noextlen;
