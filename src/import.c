@@ -96,14 +96,23 @@ struct Object *import(struct Interpreter *interp, struct UnicodeString name, cha
 	free(fname_noext);
 	memcpy(fname+fname_noextlen, ".ö", sizeof(".ö"));
 
-	char *fullpath = path_concat(sourcedir, fname);
-	if (!fullpath) {
-		errorobject_thrownomem(interp);
-		return NULL;
+	char *fullpath;
+	bool mustfreefullpath;
+	if (path_isabsolute(fname)) {
+		fullpath = fname;
+		mustfreefullpath = false;
+	} else {
+		fullpath = path_concat(sourcedir, fname);
+		if (!fullpath) {
+			errorobject_thrownomem(interp);
+			return NULL;
+		}
+		mustfreefullpath = true;
 	}
 
 	printf("** %s\n", fullpath);
-	free(fullpath);
+	if (mustfreefullpath)
+		free(fullpath);
 	return nullobject_get(interp);
 }
 
