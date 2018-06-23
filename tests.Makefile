@@ -22,6 +22,6 @@ ctests: executables
 	$(VALGRIND) $(VALGRINDOPTS) ./ö $@
 
 examples/%.ö: executables FORCE
-	bash -c 'diff <($(VALGRIND) $(VALGRINDOPTS) ./ö $@) examples/output/$*.txt'
+	bash -c 'diff <($(VALGRIND) $(VALGRINDOPTS) ./ö $@) <(sed "s:DIRECTORY:$$PWD:g" examples/output/$*.txt)'
 
 FORCE:

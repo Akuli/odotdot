@@ -25,4 +25,4 @@ three
 8
 9
 VariableError: no variable named "j"
-  in file examples/loops.ö, line 27
+  in file DIRECTORY/examples/loops.ö, line 27

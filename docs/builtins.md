@@ -426,7 +426,7 @@ Strings behave a lot like [arrays](#array) of strings of length 1. For example,
 
 Methods:
 - `string.get` is like the array `.get` method.
-- `string.slice` is like the array `.get` method, but it returns a string
+- `string.slice` is like the array `.slice` method, but it returns a string
   instead of an array of characters.
 - `(string1.concat string2)` returns the strings added together. For example,
   `("hello".concat "world")` returns `"helloworld"`.

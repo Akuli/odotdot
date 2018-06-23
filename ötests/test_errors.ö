@@ -116,6 +116,24 @@ test "the stack attribute" {
     assert (e.stack `same_object` null);
 };
 
+# returns a - b, b must be non-negative
+func "minus a b" {
+    for { var i=0; } { (not (i `equals` b)) } { i = (i.plus 1); } {    # run b times
+        a = (a.plus -1);
+    };
+    return a;
+};
+
+# TODO: make this a string method
+func "ends_with string substring" {
+    return ((string.slice (string.length `minus` substring.length) string.length) `equals` substring);
+};
+
+test "the ends_with util function" {
+    assert ("asd" `ends_with` "sd");
+    assert (not ("asd" `ends_with` "ds"));
+};
+
 test "how throw sets the stack attribute" {
     var e = (new AsdError "lol");
     assert (e.stack `same_object` null);
@@ -131,7 +149,7 @@ test "how throw sets the stack attribute" {
     # lineno isn't cheked exactly because changing the tests changes line numbers
     var last_frame = (e.stack.get (e.stack.length.plus -1));
     #assert (last_frame.scope `same_object` throwscope);
-    assert (last_frame.filename `equals` "/home/akuli/ö/ötests/test_errors.ö");     # FIXME
+    assert (last_frame.filename `ends_with` "ötests/test_errors.ö");
     assert (last_frame.lineno `is_instance_of` Integer);
 };
 
