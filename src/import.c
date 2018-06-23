@@ -18,13 +18,11 @@
 #include "unicode.h"
 #include "utf8.h"
 
-
 #if defined(_WIN32) || defined(_WIN64)
 #define WINDOWS
 #else
 #undef WINDOWS
 #endif
-
 
 
 // TODO: make this not rely on cwd
