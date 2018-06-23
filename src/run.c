@@ -9,6 +9,7 @@
 #include "objects/astnode.h"
 #include "objects/errors.h"
 #include "objects/scope.h"
+#include "objectsystem.h"
 #include "parse.h"
 #include "path.h"
 #include "runast.h"
@@ -119,7 +120,6 @@ static bool read_and_run_file(struct Interpreter *interp, char *path, struct Obj
 	return true;
 }
 
-
 bool run_builtinsfile(struct Interpreter *interp)
 {
 	// interp->stdlibpath should be absolute
@@ -134,6 +134,27 @@ bool run_builtinsfile(struct Interpreter *interp)
 	return ok;
 }
 
+
+struct Object *run_libfile(struct Interpreter *interp, char *abspath)
+{
+	assert(path_isabsolute(abspath));
+
+	struct Object *subscope = scopeobject_newsub(interp, interp->builtinscope);
+	if (!subscope)
+		return NULL;
+
+	if (!read_and_run_file(interp, abspath, subscope, false)) {
+		OBJECT_DECREF(interp, subscope);
+		return NULL;
+	}
+
+	struct Object *res = SCOPEOBJECT_LOCALVARS(subscope);
+	OBJECT_INCREF(interp, res);
+	OBJECT_DECREF(interp, subscope);
+	return res;
+}
+
+
 bool run_mainfile(struct Interpreter *interp, char *path)
 {
 	char *abspath = path_toabsolute(path);
@@ -145,14 +166,10 @@ bool run_mainfile(struct Interpreter *interp, char *path)
 		return false;
 	}
 
-	struct Object *subscope = scopeobject_newsub(interp, interp->builtinscope);
-	if (!subscope) {
-		free(abspath);
-		return false;
-	}
-
-	bool ok = read_and_run_file(interp, abspath, subscope, false);
-	OBJECT_DECREF(interp, subscope);
+	struct Object *vars = run_libfile(interp, abspath);
 	free(abspath);
-	return ok;
+	if (!vars)
+		return false;
+	OBJECT_DECREF(interp, vars);
+	return true;
 }

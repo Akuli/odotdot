@@ -5,10 +5,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "attribute.h"
 #include "interpreter.h"
+#include "objects/classobject.h"
 #include "objects/errors.h"
+#include "objects/mapping.h"
 #include "objects/null.h"
+#include "objectsystem.h"
 #include "path.h"
+#include "run.h"
 #include "unicode.h"
 #include "utf8.h"
 
@@ -91,7 +96,7 @@ struct Object *import(struct Interpreter *interp, struct UnicodeString name, cha
 	if (!ok)
 		return NULL;
 
-	char fname[fname_noextlen + sizeof(".ö")];
+	char fname[fname_noextlen + sizeof(".ö") /* includes \0 */];
 	memcpy(fname, fname_noext, fname_noextlen);
 	free(fname_noext);
 	memcpy(fname+fname_noextlen, ".ö", sizeof(".ö"));
@@ -110,10 +115,33 @@ struct Object *import(struct Interpreter *interp, struct UnicodeString name, cha
 		mustfreefullpath = true;
 	}
 
-	printf("** %s\n", fullpath);
+	struct Object *vars = run_libfile(interp, fullpath);
 	if (mustfreefullpath)
 		free(fullpath);
-	return nullobject_get(interp);
+	if (!vars)
+		return NULL;
+
+	// do what the new builtin does when there's no ->newinstance
+	assert(!((struct ClassObjectData*) interp->builtins.Library->data)->newinstance);
+	struct Object *lib = object_new_noerr(interp, interp->builtins.Library, NULL, NULL, NULL);
+	if (!lib) {
+		errorobject_thrownomem(interp);
+		OBJECT_DECREF(interp, vars);
+		return NULL;
+	}
+
+	struct MappingObjectIter iter;
+	mappingobject_iterbegin(&iter, vars);
+	while (mappingobject_iternext(&iter)) {
+		if (!attribute_setwithstringobj(interp, lib, iter.key, iter.value)) {
+			OBJECT_DECREF(interp, lib);
+			OBJECT_DECREF(interp, vars);
+			return NULL;
+		}
+	}
+
+	OBJECT_DECREF(interp, vars);
+	return lib;
 }
 
 #undef UNICODE
