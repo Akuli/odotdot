@@ -61,7 +61,7 @@ var hello2 = (import "hello");
 ```
 
 ...the `print` in `hello.ö` will **not** run 2 times; it'll run once only, and
-`hello1` will be [the same object](builtins.md#same-object) as `hello2`. This
+`hello1` will be [the same object](builtins.md#same_object) as `hello2`. This
 means that if your library file is big and slow to load, that's not a problem;
 it'll be loaded only once, even if you have many other files that need the
 library file.
