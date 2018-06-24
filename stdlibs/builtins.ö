@@ -261,7 +261,7 @@ func "foreach varname array block" {
         initializer_block.definition_scope.local_vars.set class_name klass;
     };
 
-    # export class to the built-in namespace, but keep get_attrdata here
+    # export class to the built-in scope, but keep get_attrdata here
     {}.definition_scope.parent_scope.local_vars.set "class" class;
 }.run (new Scope {}.definition_scope);
 
