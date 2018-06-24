@@ -355,6 +355,12 @@ static struct Object *new(struct Interpreter *interp, struct Object *args, struc
 		OBJECT_DECREF(interp, obj);
 		return NULL;
 	}
+	if (!check_type(interp, interp->builtins.Function, setup)) {
+		OBJECT_DECREF(interp, setup);
+		OBJECT_DECREF(interp, setupargs);
+		OBJECT_DECREF(interp, obj);
+		return NULL;
+	}
 
 	struct Object *res = functionobject_vcall(interp, setup, setupargs, opts);
 	OBJECT_DECREF(interp, setupargs);

@@ -1,0 +1,26 @@
+var test = (import "utils").test;
+var throws = (import "utils").throws;
+
+
+test "things that used to make my interpreter segfault" {
+    # getters should be functions
+    class "A" { };
+    A.getters.set "setup" "lol";
+    throws TypeError { new A; };
+
+    # getters should return a function instead of "lol"
+    class "B" { };
+    B.getters.set "setup" (lambda "this" { return "lol"; });
+    throws TypeError { new B; };
+
+    # in my interpreter, setup is handled a bit differently than other methods
+    # so also test one of the other ones
+    # this tests to_debug_string, Mapping.get calls it when creating the KeyError message
+    class "C" { };
+    C.getters.set "to_debug_string" (lambda "this" { return "lol"; });
+    var c = (new C);
+    var mapping = (new Mapping);
+    throws TypeError {
+        mapping.get c;
+    };
+};

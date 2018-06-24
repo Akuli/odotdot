@@ -139,6 +139,10 @@ struct Object *attribute_getwithstringobj(struct Interpreter *interp, struct Obj
 		if (res == -1)
 			return NULL;
 		if (res == 1) {
+			if (!check_type(interp, interp->builtins.Function, getter)) {
+				OBJECT_DECREF(interp, getter);
+				return NULL;
+			}
 			struct Object *ret = functionobject_call(interp, getter, obj, NULL);
 			OBJECT_DECREF(interp, getter);
 			return ret;
@@ -191,6 +195,10 @@ bool attribute_setwithstringobj(struct Interpreter *interp, struct Object *obj, 
 		if (res == -1)
 			return false;
 		if (res == 1) {
+			if (!check_type(interp, interp->builtins.Function, setter)) {
+				OBJECT_DECREF(interp, setter);
+				return NULL;
+			}
 			struct Object *res = functionobject_call(interp, setter, obj, val, NULL);
 			OBJECT_DECREF(interp, setter);
 			if (!res)

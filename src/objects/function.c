@@ -218,8 +218,6 @@ struct Object *functionobject_new(struct Interpreter *interp, functionobject_cfu
 
 struct Object *functionobject_call(struct Interpreter *interp, struct Object *func, ...)
 {
-	assert(func->klass == interp->builtins.Function);    // TODO: better type check
-
 	struct Object *args = arrayobject_newempty(interp);
 	if (!args)
 		return NULL;

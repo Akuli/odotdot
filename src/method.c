@@ -66,6 +66,10 @@ struct Object *method_call(struct Interpreter *interp, struct Object *obj, char 
 	struct Object *method = attribute_get(interp, obj, methname);
 	if (!method)
 		return NULL;
+	if (!check_type(interp, interp->builtins.Function, method)) {
+		OBJECT_DECREF(interp, method);
+		return NULL;
+	}
 
 	struct Object *args = arrayobject_newempty(interp);
 	if (!args) {
