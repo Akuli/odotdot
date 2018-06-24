@@ -288,8 +288,8 @@ func "foreach varname array block" {
                 } else: {
                     if (not (lib `is_instance_of` Library)) {
                         # need string formatting :(
-                        throw (new TypeError (("importers should return a Library object or null, but ".concat
-                            (importer.to_debug_string)).concat " returned ").concat (lib.to_debug_string));
+                        throw (new TypeError ((("importers should return a Library object or null, but ".concat
+                            (importer.to_debug_string)).concat " returned ").concat (lib.to_debug_string)));
                     };
                 };
                 return lib;
