@@ -4,25 +4,6 @@ This list contains things that are horribly broken, things that annoy me and
 things that I would like to do some day. It's a mess.
 
 ## Language design stuff
-- importing? here is what i have in mind right now:
-    - `(import "<stdlibs>/x")` loads `stdlibs/x.ö`, or something like
-      `stdlibs/x/setup.ö` if `stdlibs/x.ö` doesn't exist and `stdlibs/x` is a
-      directory
-        - maybe warn if there is an `x` directory AND an `x.ö` file?
-    - `"<stdlibs>"` is special, other paths are treated as relative to the
-      importing file
-        - in the future, might add `"<lib>"` for non-stdlibs dependencies?
-    - ideally importing would be implemented in pure Ö, but many other things
-      must be done before that:
-        - file I/O
-        - path utilities: checking if the path is absolute, `\\` on windows etc
-            - speaking of windows... i'd like to learn a less unixy alternative
-              to make and try to compile ö on windows some day
-        - expose a function that converts a long string to an AST tree
-        - how to make the path relative to the calling file? see stack
-        - see the attribute stuff below
-    - maybe easiest to implement in C... :( then implement all the other stuff
-      as importable modules
 - operators
     - syntactic sugar for infixes? e.g. ``a + b`` might be
       ``a `(import "<stdlibs>/operators").add` b``
@@ -35,36 +16,6 @@ things that I would like to do some day. It's a mess.
 - StackInfo objects should contain the scope
     - local variables are more debuggable?
         - but i'm not planning on implementing a debugger any time soon
-    - if `import` is too hard to implement, i could implement a temporary
-      `include` that runs the file in the caller's scope, this could be used
-      for that
-- there should be some way to have objects with arbitrary attributes, without
-  needing to create a new type for each object
-    - this would mean adding extra checks to pretty much every piece of c code
-      that does something with attributes, fortunately attribute.h abstracts it
-      away quite nicely
-    - i want this because modules would be represented nicely as objects with
-      exported symbols as attributes
-        - maybe add a flag that allows setting arbitrary attributes?
-
-            ```
-            class "Module" {
-                arbitrary_attributes = true;
-                ...
-            };
-
-            var toot = (new Module);
-            toot.asd = "lol wat";
-            ```
-
-        - or maybe a special class that does some magic?
-
-            ```
-            class "Module" inherits ArbitraryAttributes {
-                ...
-            };
-            ```
-
 - `class`: support attributes with custom getters and setters
     - maybe something like this inside the `{ }`:
 
@@ -132,49 +83,72 @@ things that I would like to do some day. It's a mess.
         get { this._thingy_value };
     ```
 
-- loop functions
-    - right now these are implemented with recursion, and it sucks
-    - break and continue should be implemented with exceptions, just like return
-    - maybe should provide a built-in for:
+- `for`: want break and continue
+    - they would also work in `while` right away because `while` is implemented
+      like this:
 
         ```
-        for { init; } { cond } { incr; } {
-            ...
+        func "while condition body" {
+            for {} condition {} body;
         };
         ```
 
-        and everything could be implemented with it:
+- need `switch` and `case`
 
-        ```
-        func "while cond body" {
-            for {} cond {} body;
+    this is the only thing that can be done now:
+
+    ```
+    if (x `equals` 1) {
+        print "a";
+    } else: {
+        if (x `equals` 2) {
+            print "b";
+        } else: {
+            if (x `equals` 3) {
+                print "c";
+            } else: {
+                print "d";
+            };
         };
-        ```
+    };
+    ```
 
-        this is probably nice and simple
+    a `Mapping` could help but it feels like a workaround
 
-    - or maybe a built-in `loop_forever` and everything else with that?
-        - `loop_forever` would need to provide continue and break
-            - funny corner cases with continue works with `for` loops:
+    ```
+    var lol = (new Mapping [[1 "a"] [2 "b"] [3 "c"]]);
+    print (lol.get_with_default x "d");
+    ```
 
-                this...
+    i want something like:
 
-                ```
-                for { init; } { cond } { incr; } {
-                    stuff;
-                };
-                ```
+    ```
+    switch x {
+        case 1 { print "a"; };
+        case 2 { print "b"; };
+        case 3 { print "c"; };
+        default { print "d"; };
+    };
+    ```
 
-                ...is NOT the same as this:
+    it can be implemented in pure ö
 
-                ```
-                init;
-                while { cond } {
-                    stuff;
-                    incr;
-                };
-                ```
-                because `incr` must run after `stuff` continues
+- string formatting
+
+    this sucks:
+
+    ```
+    var lol = ((((a.concat ", ").concat b).concat " and ").concat c);
+    ```
+
+    and is hard to debug and maintain and write and everything and i hate it
+
+    i want something like
+
+    ```
+    var lol = "${a}, ${b} and ${c}";
+    var wut = "it costs \$100";   # escaping the $ for a literal dollar sign
+    ```
 
 
 ## testing
@@ -193,13 +167,12 @@ things that I would like to do some day. It's a mess.
   `tokenize()` reads nicer
 
 ## ast.{c,h}
-- add nonzero linenos to expression nodes
-    - debugging would be a lot easier
 - use an enum for ast node kinds?
     - more debugger-friendly (maybe? not sure if that's a big deal)
     - then again, values like `'1'` for numbers and `'.'` for attributes are
       quite debuggable
 - error handling in ast.c sucks dick, should use error objects instead
+- make ast nodes possible to inspect, manipulate and create from ö code?
 
 ## equals.{c,h}
 these suck, must figure out a more customizable alternative
@@ -211,10 +184,10 @@ if dispatchable functions will exist some day, maybe like this:
 
 dispatchable_func "equals a b";
 equals.dispatch [Integer Integer] {
-    return (some magic that computes a+b);
+    return something;
 };
 equals.dispatch [String String] {
-    return (some magic that concatenates the strings);
+    return something;
 };
 
 # now ("a" == "b") would call the string thing and (1 == 2) would call the integer thing
