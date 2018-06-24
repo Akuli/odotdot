@@ -27,7 +27,7 @@ with `(get_class (import "something"))` if you need it.
 The string that `import` takes as an argument is treated as a path to a file
 relative to the location of the file that imports, and without the `.ö` part.
 For example, if `blah/blah/run.ö` calls `(import "asd/toot")`, a file named
-`blah/blah/asd/toot.ö` will be loaded. Windows paths use `/` instead of `\`,
+`blah/blah/asd/toot.ö` will be loaded. Windows paths use `\` instead of `/`,
 e.g. `C:\Users\Someone` instead of `/home/someone`, but `import` replaces `/`'s
 in the string with `\`'s on Windows, so you don't need to worry about it.
 
