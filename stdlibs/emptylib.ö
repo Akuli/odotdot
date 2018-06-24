@@ -1,3 +1,0 @@
-# this is here just because imports.ö needs to import something to get the Library class
-# and the C interpreter has a bug that makes running empty files fail....
-assert (1 `equals` 1);

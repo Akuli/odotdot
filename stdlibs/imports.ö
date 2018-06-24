@@ -2,10 +2,11 @@
 # but most of the time people don't need to mess with importer functions
 # so it's best to put it here imo
 # builtins.ö imports this file automatically when setting up other stuff is done
+
 assert ({}.definition_scope.parent_scope.parent_scope `same_object` null);   # parent_scope is built-in scope
 var importers = ({}.definition_scope.parent_scope.local_vars.get_and_delete "importers");
 
-var Library = (get_class (import "<stdlibs>/emptylib"));
+var Library = (get_class (import "<stdlibs>/stacks"));   # any library would do
 
 
 # a mistake that i just spent some time debugging: i did 'import "somefile.ö";'
