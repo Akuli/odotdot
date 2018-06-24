@@ -1,0 +1,76 @@
+var test = (import "utils").test;
+var throws = (import "utils").throws;
+
+var imports = (import "<stdlibs>/imports");
+
+
+test "including .ö extension in the import string" {
+    import "<stdlibs>/imports";   # must work
+
+    # the throws util doesn't support accessing the error object yet :(
+    var caught = false;
+    catch {
+        import "asdasd.ö";
+    } [ValueError "e"] {
+        assert (e.message `equals` "import \"asdasd\" instead of \"asdasd.ö\"");
+        caught = true;
+    };
+    assert caught;
+};
+
+test "simple importer" {
+    var stack = (get_stack);
+    var this_file_name = (stack.get (stack.length.plus -1)).filename;
+    var lib = (new imports.Library);
+    var count = 0;
+
+    func "importer string stackframe" {
+        assert (stackframe `is_instance_of` (get_class (stack.get 0)));
+
+        if (string `equals` "testie") {
+            assert (stackframe.filename `equals` this_file_name);   # called from this file
+            count = (count.plus 1);
+            return lib;
+        } else: {
+            return null;
+        };
+    };
+
+    imports.importers.push importer;
+    assert (count `equals` 0);
+    assert ((import "testie") `same_object` lib);
+    assert (count `equals` 1);
+    assert ((import "testie") `same_object` lib);
+    assert (count `equals` 2);
+    assert ((imports.importers.pop) `same_object` importer);
+};
+
+test "bad importer" {
+    func "importer string stackframe" {
+        if (string `equals` "testie") {
+            return "lol";
+        } else: {
+            return null;
+        };
+    };
+
+    imports.importers.push importer;
+    throws TypeError {
+        import "testie";
+    };
+    assert ((imports.importers.pop) `same_object` importer);
+};
+
+# TODO: implement and test this stuff with case-insensitive file systems
+test "built-in importer caching" {
+    var lib1 = (import "<stdlibs>/imports");
+    var lib2 = (import "<stdlibs>/imports");
+    var lib3 = (import "testfiles/hello");
+    var lib4 = (import "testfiles/hello");
+    var lib5 = ((import "testfiles/import_hello").get_hello);
+
+    assert (lib1 `same_object` lib2);
+    assert (not (lib2 `same_object` lib3));
+    assert (lib3 `same_object` lib4);
+    assert (lib4 `same_object` lib5);   # caching works even though it's imported from different directories
+};

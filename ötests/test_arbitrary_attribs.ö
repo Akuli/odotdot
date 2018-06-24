@@ -25,7 +25,8 @@ test "basic stuff" {
     # TODO: what should this do?
     #weird.lol = "heh";
 
-    foreach "arbi_instance" [(new ArbitraryAttribs) weird] {
+	var Library = (import "<stdlibs>/imports").Library;
+    foreach "arbi_instance" [(new ArbitraryAttribs) (new Library) weird] {
         arbi_instance.to_debug_string;   # make sure it doesn't throw an exception
         throws AttribError {
             debug arbi_instance.wat;

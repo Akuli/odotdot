@@ -483,10 +483,12 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!interpreter_addbuiltin(interp, "Object", interp->builtins.Object)) goto error;
 	if (!interpreter_addbuiltin(interp, "Scope", interp->builtins.Scope)) goto error;
 	if (!interpreter_addbuiltin(interp, "String", interp->builtins.String)) goto error;
-	if (!interpreter_addbuiltin(interp, "null", interp->builtins.null)) goto error;
 
 	if (!interpreter_addbuiltin(interp, "Error", interp->builtins.Error)) goto error;
 	if (!interpreter_addbuiltin(interp, "MemError", interp->builtins.nomemerr->klass)) goto error;
+
+	if (!interpreter_addbuiltin(interp, "importers", interp->importstuff.importers)) goto error;
+	if (!interpreter_addbuiltin(interp, "null", interp->builtins.null)) goto error;
 
 	if (!add_function(interp, "if", if_)) goto error;
 	if (!add_function(interp, "throw", throw)) goto error;

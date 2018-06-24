@@ -80,7 +80,7 @@ struct Object *import(struct Interpreter *interp, struct Object *namestring, str
 	}
 
 	// FIXME: ValueError feels wrong
-	errorobject_throwfmt(interp, "ValueError", "cannot import %D", namestring);
+	errorobject_throwfmt(interp, "ValueError", "cannot importtt %D", namestring);
 	return NULL;
 }
 

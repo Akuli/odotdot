@@ -150,7 +150,7 @@ int run_libfile(struct Interpreter *interp, char *abspath, struct Object **res)
 		return 0;
 
 	int status = read_and_run_file(interp, abspath, subscope, false, true);
-	if (status != 0) {
+	if (status != 1 /* not ok */) {
 		OBJECT_DECREF(interp, subscope);
 		return status;
 	}
@@ -181,10 +181,7 @@ bool run_mainfile(struct Interpreter *interp, char *path)
 
 	int status = read_and_run_file(interp, abspath, subscope, false, false);
 	free(abspath);
+	OBJECT_DECREF(interp, subscope);
 	assert(status == !!status);
-	if (!status) {
-		OBJECT_DECREF(interp, subscope);
-		return false;
-	}
-	return true;
+	return status;
 }
