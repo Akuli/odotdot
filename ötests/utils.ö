@@ -12,3 +12,21 @@ func "throws errorclass body" {
     };
     assert threw;
 };
+
+# returns a-b, b must be non-negative
+func "minus a b" {
+    for { var i=0; } { (not (i `equals` b)) } { i = (i.plus 1); } {    # run b times
+        a = (a.plus -1);
+    };
+    return a;
+};
+
+# TODO: make this a string method
+func "ends_with string substring" {
+    return ((string.slice (string.length `minus` substring.length) string.length) `equals` substring);
+};
+
+test "the ends_with util function" {
+    assert ("asd" `ends_with` "sd");
+    assert (not ("asd" `ends_with` "ds"));
+};

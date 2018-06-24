@@ -1,12 +1,19 @@
+var test = (import "utils").test;
+var throws = (import "utils").throws;
+var ends_with = (import "utils").ends_with;
+
 var stacks = (import "<stdlibs>/stacks");
 
-test "StackFrame" {
-    assert (stacks.StackFrame.name `equals` "StackFrame");
-};
 
-test "get_stack" {
+test "get_stack and StackFrame" {
+    assert (stacks.StackFrame.name `equals` "StackFrame");
+
     var stack = (stacks.get_stack);
     var last_frame = (stack.get (stack.length.plus -1));
-    assert (last_frame `is_instance_of` StackFrame);
-    assert (last_frame.filename `ends_with` "test_errors.ö");
+    assert (last_frame `is_instance_of` stacks.StackFrame);
+    assert (last_frame.filename `ends_with` "test_stacks.ö");
+
+    throws AttribError { last_frame.filename = "Ha Ha Haa"; };
+    throws AttribError { last_frame.lineno = 123; };
+    throws AttribError { last_frame.watwut = "Toot!"; };
 };

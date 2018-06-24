@@ -1,5 +1,6 @@
 var test = (import "utils").test;
 var throws = (import "utils").throws;
+var ends_with = (import "utils").ends_with;
 
 
 test "message attribute" {
@@ -103,24 +104,6 @@ test "the stack attribute" {
     assert (e.stack `equals` [1 2 3]);
     e.stack = null;
     assert (e.stack `same_object` null);
-};
-
-# returns a - b, b must be non-negative
-func "minus a b" {
-    for { var i=0; } { (not (i `equals` b)) } { i = (i.plus 1); } {    # run b times
-        a = (a.plus -1);
-    };
-    return a;
-};
-
-# TODO: make this a string method
-func "ends_with string substring" {
-    return ((string.slice (string.length `minus` substring.length) string.length) `equals` substring);
-};
-
-test "the ends_with util function" {
-    assert ("asd" `ends_with` "sd");
-    assert (not ("asd" `ends_with` "ds"));
 };
 
 test "how throw sets the stack attribute" {
