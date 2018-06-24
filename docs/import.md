@@ -36,9 +36,13 @@ in `asd/toot/wat.ö` imports `asd/thingy.ö` because `..` means the parent
 directory of `asd/toot`, which is `asd`.
 
 If the string passed to `import` contains `<stdlibs>`, it will be replaced with
-a path to Ö's [stdlibs](../stdlibs) directory. There's nothing useful there yet,
-so unfortunately I can't provide an example of importing something from the
-stdlibs.
+a path to Ö's [stdlibs](../stdlibs) directory. For example, the
+[imports](stdlibs/imports.md) library contains functions for customizing
+`import` behaviour, and you can load it like this:
+
+```python
+var imports = (import "<stdlibs>/imports");
+```
 
 
 ## Caching
@@ -54,10 +58,10 @@ print "hello.ö was imported";
 ```python
 var hello1 = (import "hello");
 var hello2 = (import "hello");
-var hello3 = (import "hello");
 ```
 
-...the `print` in `hello.ö` will **not** run 3 times; it'll run once only. This
+...the `print` in `hello.ö` will **not** run 2 times; it'll run once only, and
+`hello1` will be [the same object](builtins.md#same-object) as `hello2`. This
 means that if your library file is big and slow to load, that's not a problem;
 it'll be loaded only once, even if you have many other files that need the
 library file.
