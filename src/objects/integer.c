@@ -115,7 +115,43 @@ static struct Object *newinstance(struct Interpreter *interp, struct Object *arg
 	return integer;
 }
 
+struct Object *integerobject_newfromlonglong(struct Interpreter *interp, long long val)
+{
+	assert(INTEGEROBJECT_MIN <= val && val <= INTEGEROBJECT_MAX);
+
+	long long *data = malloc(sizeof(long long));
+	if (!data) {
+		errorobject_thrownomem(interp);
+		return NULL;
+	}
+	*data = val;
+
+	struct Object *integer = object_new_noerr(interp, interp->builtins.Integer, data, NULL, integer_destructor);
+	if (!integer) {
+		errorobject_thrownomem(interp);
+		free(data);
+		return NULL;
+	}
+	integer->hash = (unsigned int) val;
+	return integer;
+}
+
+struct Object *integerobject_newfromustr(struct Interpreter *interp, struct UnicodeString ustr)
+{
+	long long val;
+	if (!parse_ustr(interp, ustr, &val))
+		return NULL;
+	return integerobject_newfromlonglong(interp, val);
+}
+
+long long integerobject_tolonglong(struct Object *integer)
+{
+	return *((long long *) integer->data);
+}
+
+
 // overrides Object's setup to allow arguments
+// the arguments will go to newinstance
 static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts) {
 	return nullobject_get(interp);
 }
@@ -182,36 +218,56 @@ error:
 	return NULL;
 }
 
-struct Object *integerobject_newfromlonglong(struct Interpreter *interp, long long val)
+
+// TODO: these are a lot of boilerplate
+static struct Object *add(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	assert(INTEGEROBJECT_MIN <= val && val <= INTEGEROBJECT_MAX);
-
-	long long *data = malloc(sizeof(long long));
-	if (!data) {
-		errorobject_thrownomem(interp);
-		return NULL;
-	}
-	*data = val;
-
-	struct Object *integer = object_new_noerr(interp, interp->builtins.Integer, data, NULL, integer_destructor);
-	if (!integer) {
-		errorobject_thrownomem(interp);
-		free(data);
-		return NULL;
-	}
-	integer->hash = (unsigned int) val;
-	return integer;
+	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+	struct Object *x = ARRAYOBJECT_GET(args, 0), *y = ARRAYOBJECT_GET(args, 1);
+	if (classobject_isinstanceof(x, interp->builtins.Integer) && classobject_isinstanceof(x, interp->builtins.Integer))
+		return integerobject_newfromlonglong(interp, integerobject_tolonglong(x) + integerobject_tolonglong(y));
+	return nullobject_get(interp);
 }
 
-struct Object *integerobject_newfromustr(struct Interpreter *interp, struct UnicodeString ustr)
+static struct Object *sub(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	long long val;
-	if (!parse_ustr(interp, ustr, &val))
-		return NULL;
-	return integerobject_newfromlonglong(interp, val);
+	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+	struct Object *x = ARRAYOBJECT_GET(args, 0), *y = ARRAYOBJECT_GET(args, 1);
+	if (classobject_isinstanceof(x, interp->builtins.Integer) && classobject_isinstanceof(x, interp->builtins.Integer))
+		return integerobject_newfromlonglong(interp, integerobject_tolonglong(x) - integerobject_tolonglong(y));
+	return nullobject_get(interp);
 }
 
-long long integerobject_tolonglong(struct Object *integer)
+static struct Object *mul(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	return *((long long *) integer->data);
+	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+	struct Object *x = ARRAYOBJECT_GET(args, 0), *y = ARRAYOBJECT_GET(args, 1);
+	if (classobject_isinstanceof(x, interp->builtins.Integer) && classobject_isinstanceof(x, interp->builtins.Integer))
+		return integerobject_newfromlonglong(interp, integerobject_tolonglong(x) * integerobject_tolonglong(y));
+	return nullobject_get(interp);
+}
+
+// TODO: div
+
+
+static bool create_opfunc(struct Interpreter *interp, struct Object *array, char *name, functionobject_cfunc func)
+{
+	struct Object *funcobj = functionobject_new(interp, func, name);
+	if (!funcobj)
+		return false;
+
+	bool ok = arrayobject_push(interp, array, funcobj);
+	OBJECT_DECREF(interp, funcobj);
+	return ok;
+}
+
+bool integerobject_initoparrays(struct Interpreter *interp)
+{
+	if (!create_opfunc(interp, interp->oparrays.add, "integer_add", add)) return false;
+	if (!create_opfunc(interp, interp->oparrays.sub, "integer_sub", sub)) return false;
+	if (!create_opfunc(interp, interp->oparrays.mul, "integer_mul", mul)) return false;
+	return true;
 }

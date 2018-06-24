@@ -122,6 +122,49 @@ static struct Object *runast_expression(struct Interpreter *interp, struct Objec
 		return res;
 	}
 
+	if (nodedata->kind == AST_OPCALL) {
+		char op = INFO_AS(AstOpCallInfo)->op;
+		struct Object *oparray;
+		if (op == '+')
+			oparray = interp->oparrays.add;
+		else if (op == '-')
+			oparray = interp->oparrays.sub;
+		else if (op == '*')
+			oparray = interp->oparrays.mul;
+		else if (op == '/')
+			oparray = interp->oparrays.div;
+		else
+			assert(0);
+
+		struct Object *lhs = runast_expression(interp, scope, INFO_AS(AstOpCallInfo)->lhs);
+		if (!lhs)
+			return NULL;
+		struct Object *rhs = runast_expression(interp, scope, INFO_AS(AstOpCallInfo)->rhs);
+		if (!lhs) {
+			OBJECT_DECREF(interp, lhs);
+			return NULL;
+		}
+
+		for (size_t i=0; i < ARRAYOBJECT_LEN(oparray); i++) {
+			struct Object *func = ARRAYOBJECT_GET(oparray, i);
+			if (!check_type(interp, interp->builtins.Function, func)) {
+				OBJECT_DECREF(interp, lhs);
+				OBJECT_DECREF(interp, rhs);
+				return NULL;
+			}
+
+			struct Object *res = functionobject_call(interp, func, lhs, rhs, NULL);
+			if (res == interp->builtins.null) {
+				OBJECT_DECREF(interp, res);
+				continue;
+			}
+
+			OBJECT_DECREF(interp, lhs);
+			OBJECT_DECREF(interp, rhs);
+			return res;   // NULL or a new reference
+		}
+	}
+
 	if (nodedata->kind == AST_ARRAY) {
 		struct Object *result = arrayobject_newempty(interp);
 		if (!result)

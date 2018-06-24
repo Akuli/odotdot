@@ -457,9 +457,16 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!(interp->builtins.Library = libraryobject_createclass(interp))) goto error;
 
 	if (!(interp->builtinscope = scopeobject_newbuiltin(interp))) goto error;
+
 	if (!(interp->importstuff.filelibcache = mappingobject_newempty(interp))) goto error;
 	if (!(interp->importstuff.importers = arrayobject_newempty(interp))) goto error;
 	if (!import_init(interp)) goto error;
+
+	if (!(interp->oparrays.add = arrayobject_newempty(interp))) goto error;
+	if (!(interp->oparrays.sub = arrayobject_newempty(interp))) goto error;
+	if (!(interp->oparrays.mul = arrayobject_newempty(interp))) goto error;
+	if (!(interp->oparrays.div = arrayobject_newempty(interp))) goto error;
+	if (!integerobject_initoparrays(interp)) goto error;
 
 	if (!interpreter_addbuiltin(interp, "ArbitraryAttribs", interp->builtins.ArbitraryAttribs)) goto error;
 	if (!interpreter_addbuiltin(interp, "Array", interp->builtins.Array)) goto error;
@@ -549,9 +556,13 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(builtins.String);
 	TEARDOWN(builtins.null);
 	TEARDOWN(builtins.nomemerr);
+	TEARDOWN(builtinscope);
 
 	TEARDOWN(importstuff.filelibcache);
 	TEARDOWN(importstuff.importers);
-	TEARDOWN(builtinscope);
+	TEARDOWN(oparrays.add);
+	TEARDOWN(oparrays.sub);
+	TEARDOWN(oparrays.mul);
+	TEARDOWN(oparrays.div);
 #undef TEARDOWN
 }

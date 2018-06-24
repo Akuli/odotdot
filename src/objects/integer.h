@@ -1,6 +1,7 @@
 #ifndef OBJECTS_INTEGER_H
 #define OBJECTS_INTEGER_H
 
+#include <stdbool.h>
 #include "../interpreter.h"    // IWYU pragma: keep
 #include "../objectsystem.h"   // IWYU pragma: keep
 #include "../unicode.h"        // IWYU pragma: keep
@@ -20,6 +21,10 @@
 
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *integerobject_createclass(struct Interpreter *interp);
+
+// for builtins-setup()
+// returns true on success and false on error
+bool integerobject_initoparrays(struct Interpreter *interp);
 
 // asserts that the value fits in a 64-bit int, long long can be more than 64 bits in c99
 // RETURNS A NEW REFERENCE or NULL on error

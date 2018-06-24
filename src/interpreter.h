@@ -55,6 +55,12 @@ struct Interpreter {
 		struct Object *importers;      // Array of importer functions, see docs
 	} importstuff;
 
+	// contains arrays of functions
+	// (x + y) loops through oparrays.plus and calls the functions until one of them returns non-null
+	struct {
+		struct Object *add, *sub, *mul, *div;
+	} oparrays;
+
 	struct StackFrame stack[STACK_MAX];
 	struct StackFrame *stackptr;   // pointer to above the top of the stack
 };

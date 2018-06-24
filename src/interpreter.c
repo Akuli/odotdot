@@ -37,6 +37,10 @@ struct Interpreter *interpreter_new(char *argv0)
 
 	interp->importstuff.filelibcache =
 	interp->importstuff.importers =
+	interp->oparrays.add =
+	interp->oparrays.sub =
+	interp->oparrays.mul =
+	interp->oparrays.div =
 	interp->err =
 	interp->builtinscope =
 	interp->builtins.Array =
