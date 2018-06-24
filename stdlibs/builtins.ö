@@ -274,7 +274,7 @@ func "foreach varname array block" {
     func "import string" {
         # last frame is this function, get the one before that
         var stack = (get_stack);
-        var frame = (stack.get (stack.length.plus -2));
+        var frame = (stack.get (stack.length.plus (0-2)));
 
         foreach "importer" importers {
             var lib = (importer string frame);

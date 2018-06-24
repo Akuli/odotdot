@@ -220,6 +220,43 @@ error:
 	return NULL;
 }
 
+// arg1 OPERATOR arg2
+// where OPERATOR is one of: + - * / < >
+static struct Object *parse_operator_call(struct Interpreter *interp, char *filename, struct Token **curtok, struct Object *lhs)
+{
+	size_t lineno = (*curtok)->lineno;
+
+	assert((*curtok)->str.len == 1);    // should be checked by parse_expression()
+	char op = (*curtok)->str.val[0];
+	*curtok = (*curtok)->next;
+
+	struct Object *rhs = parse_expression(interp, filename, curtok);
+	if (!rhs)
+		return NULL;
+
+	struct AstOpCallInfo *opcallinfo = malloc(sizeof(struct AstOpCallInfo));
+	if (!opcallinfo) {
+		OBJECT_DECREF(interp, rhs);
+		return NULL;
+	}
+
+	opcallinfo->op = op;
+	opcallinfo->lhs = lhs;
+	OBJECT_INCREF(interp, lhs);
+	opcallinfo->rhs = rhs;
+	// already holding a reference to rhs
+
+	struct Object *res = astnodeobject_new(interp, AST_OPCALL, filename, lineno, opcallinfo);
+	if (!res) {
+		OBJECT_DECREF(interp, opcallinfo->lhs);
+		OBJECT_DECREF(interp, opcallinfo->rhs);
+		free(opcallinfo);
+		return NULL;
+	}
+	return res;
+}
+
+
 // arg1 `func` arg2
 static struct Object *parse_infix_call(struct Interpreter *interp, char *filename, struct Token **curtok, struct Object *arg1)
 {
@@ -283,7 +320,9 @@ static struct Object *parse_infix_call(struct Interpreter *interp, char *filenam
 }
 
 
-// (func arg1 arg2) or (arg1 `func` arg2)
+//     (func arg1 arg2)
+// or: (arg1 `func` arg2)
+// or: (arg1 OPERATOR arg2)  where OPERATOR is one of:  + - * / < >
 static struct Object *parse_call_expression(struct Interpreter *interp, char *filename, struct Token **curtok)
 {
 	// this SHOULD be checked by parse_expression()
@@ -295,8 +334,12 @@ static struct Object *parse_call_expression(struct Interpreter *interp, char *fi
 		return NULL;
 
 	struct Object *res;
-	if ((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == '`')
+#define f(x) ((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == (x))
+	if (f('`'))
 		res = parse_infix_call(interp, filename, curtok, first);
+	else if (f('+') || f('-') || f('*') || f('/') || f('<') || f('<'))
+#undef f
+		res = parse_operator_call(interp, filename, curtok, first);
 	else
 		res = parse_call(interp, filename, curtok, first);
 	OBJECT_DECREF(interp, first);
@@ -728,6 +771,7 @@ struct Object *parse_statement(struct Interpreter *interp, char *filename, struc
 
 		if ((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == '=')
 			res = parse_assignment(interp, filename, curtok, first);
+		// TODO: are infix call statements actually useful for something?
 		else if ((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == '`')
 			res = parse_infix_call(interp, filename, curtok, first);
 		else

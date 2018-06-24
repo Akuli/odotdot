@@ -20,6 +20,8 @@ static void astnode_foreachref(struct Object *node, void *cbdata, object_foreach
 #define info_as(X) ((struct X *) data->info)
 	case AST_ARRAY:
 	case AST_BLOCK:
+	case AST_INT:
+	case AST_STR:
 		cb(info_as(AstArrayOrBlockInfo), cbdata);
 		break;
 	case AST_GETATTR:
@@ -38,10 +40,9 @@ static void astnode_foreachref(struct Object *node, void *cbdata, object_foreach
 		cb(info_as(AstCallInfo)->args, cbdata);
 		cb(info_as(AstCallInfo)->opts, cbdata);
 		break;
-	case AST_INT:
-	case AST_STR:
-		cb(info_as(AstIntOrStrInfo), cbdata);
-		break;
+	case AST_OPCALL:
+		cb(info_as(AstOpCallInfo)->lhs, cbdata);
+		cb(info_as(AstOpCallInfo)->rhs, cbdata);
 	case AST_GETVAR:
 		// do nothing
 		break;
@@ -74,6 +75,7 @@ static void astnode_destructor(struct Object *node)
 		free(data->info);
 		break;
 	case AST_CALL:
+	case AST_OPCALL:
 		free(data->info);
 		break;
 	case AST_INT:

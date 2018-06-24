@@ -4,7 +4,7 @@ func "get_stack" {
     } [MathError "e"] {
         # we don't care about the last 2 frames
         # one is calling catch, the other is this catching block
-        return (e.stack.slice 0 (e.stack.length.plus -2));
+        return (e.stack.slice 0 (e.stack.length.plus (0-2)));
     };
 
     # the return in the catch should always run

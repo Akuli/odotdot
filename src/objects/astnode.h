@@ -25,14 +25,15 @@ struct Object *astnodeobject_new(struct Interpreter *interp, char kind, char *fi
 
 
 // expressions
+// TODO: get rid of the //lol macros
 
 // the info is a String or Integer object
-#define AstIntOrStrInfo Object    // lol
+#define AstIntOrStrInfo Object    //lol
 #define AST_INT '1'
 #define AST_STR '"'
 
 // array and block infos are Array objects of ast nodes
-#define AstArrayOrBlockInfo Object
+#define AstArrayOrBlockInfo Object    //lol
 #define AST_ARRAY '['
 #define AST_BLOCK '{'
 
@@ -60,6 +61,11 @@ struct AstSetAttrInfo { struct Object *objnode; struct UnicodeString attr; struc
 // opts is a Mapping with String keys and AstNode values
 struct AstCallInfo { struct Object *funcnode; struct Object *args; struct Object *opts; };
 #define AST_CALL '('
+
+// op is one of:  '+' '-' '*' '/' '<' '>'
+// lhs and rhs are AstNodes
+struct AstOpCallInfo { char op; struct Object *lhs; struct Object *rhs; };
+#define AST_OPCALL '+'
 
 
 #endif     // OBJECTS_ASTNODE_H
