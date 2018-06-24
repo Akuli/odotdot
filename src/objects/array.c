@@ -1,4 +1,5 @@
 #include "array.h"
+#include <assert.h>
 #include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -243,13 +244,13 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **elems
 	}
 
 	data->len = nelems;
-	if (nelems <= 3)   // 3 feels good
+	if (nelems <= 3)   // 3 feels good, can't be 0 because malloc(0) may return NULL on success
 		data->nallocated = 3;
 	else
 		data->nallocated = nelems;
 
 	data->elems = malloc(data->nallocated * sizeof(struct Object*));
-	if (!data->elems) {   // malloc(0) MAY be NULL
+	if (!data->elems) {
 		errorobject_thrownomem(interp);
 		free(data);
 		return NULL;
@@ -275,6 +276,8 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **elems
 
 static bool resize(struct Interpreter *interp, struct ArrayObjectData *data)
 {
+	assert(data->nallocated > 0);
+
 	// allocating more than this is not possible because realloc takes size_t
 #define NALLOCATED_MAX (SIZE_MAX / sizeof(struct Object*))
 

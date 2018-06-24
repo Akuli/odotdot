@@ -54,7 +54,7 @@ struct Object *functionobject_createclass(struct Interpreter *interp)
 
 static struct Object *create_a_partial(struct Interpreter *interp, struct Object *func, struct Object **partialargs, size_t npartialargs)
 {
-	// shortcut
+	// shortcut to avoid malloc(0), important because malloc(0) may return NULL on success
 	if (npartialargs == 0)
 		return func;
 

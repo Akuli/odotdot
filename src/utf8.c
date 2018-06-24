@@ -51,6 +51,12 @@ invalid_code_point:
 
 bool utf8_encode(struct Interpreter *interp, struct UnicodeString unicode, char **utf8, size_t *utf8len)
 {
+	if (unicode.len == 0) {
+		*utf8 = NULL;
+		*utf8len = 0;
+		return true;
+	}
+
 	// don't set utf8len if this fails
 	size_t utf8len_val = 0;
 	for (size_t i=0; i < unicode.len; i++) {
@@ -107,6 +113,12 @@ bool utf8_encode(struct Interpreter *interp, struct UnicodeString unicode, char 
 
 bool utf8_decode(struct Interpreter *interp, char *utf8, size_t utf8len, struct UnicodeString *unicode)
 {
+	if (utf8len == 0) {
+		unicode->len = 0;
+		unicode->val = NULL;
+		return true;
+	}
+
 	// must leave unicode and unicodelen untouched on error
 	unicode_char *result;
 	size_t resultlen = 0;

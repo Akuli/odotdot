@@ -62,7 +62,7 @@ static struct MappingObjectData *create_empty_data(void)
 		return NULL;
 
 	data->size = 0;
-	data->nbuckets = 50;
+	data->nbuckets = 50;     // TODO: make this smaller?
 	data->buckets = calloc(data->nbuckets, sizeof(struct MappingObjectItem));
 	if (!(data->buckets)) {
 		free(data);
@@ -149,6 +149,7 @@ static struct Object *length_getter(struct Interpreter *interp, struct Object *a
 
 static bool make_bigger(struct Interpreter *interp, struct MappingObjectData *data)
 {
+	assert(data->nbuckets != 0);           // should never happen
 	assert(data->nbuckets != ULONG_MAX);   // the caller should check this
 
 	unsigned long newnbuckets = (data->nbuckets > ULONG_MAX/3) ? ULONG_MAX : data->nbuckets*3;

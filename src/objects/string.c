@@ -345,12 +345,14 @@ struct Object *stringobject_newfromvfmt(struct Interpreter *interp, char *fmt, v
 				char msg[POINTER_MAXSTR+1];
 				snprintf(msg, POINTER_MAXSTR, "%p", ptr);
 				msg[POINTER_MAXSTR] = 0;
+				assert(msg[0] != 0);    // must not be empty because malloc(0) may return NULL on success
 
 				parts[nparts].len = strlen(msg);
 				parts[nparts].val = malloc(sizeof(unicode_char) * parts[nparts].len);
 				if (!parts[nparts].val)
 					goto nomem;
 
+				// decodes with ASCII
 				// can't memcpy because different types
 				for (int i=0; i < (int) parts[nparts].len; i++)
 					parts[nparts].val[i] = msg[i];
@@ -431,19 +433,21 @@ struct Object *stringobject_newfromvfmt(struct Interpreter *interp, char *fmt, v
 	for (int i=0; i < nparts; i++)
 		everything.len += parts[i].len;
 
-	everything.val = malloc(sizeof(unicode_char) * everything.len);
-	if (!everything.val)
-		goto nomem;
+	struct Object *res;
+	if (everything.len == 0)    // malloc(0) may return NULL on success, avoid that
+		res = stringobject_newfromcharptr(interp, "");
+	else {
+		unicode_char everythingval[everything.len];
+		everything.val = everythingval;
 
-	unicode_char *ptr = everything.val;
-	for (int i=0; i < nparts; i++) {
-		memcpy(ptr, parts[i].val, sizeof(unicode_char) * parts[i].len);
-		ptr += parts[i].len;
+		unicode_char *ptr = everythingval;
+		for (int i=0; i < nparts; i++) {
+			memcpy(ptr, parts[i].val, sizeof(unicode_char) * parts[i].len);
+			ptr += parts[i].len;
+		}
+		res = stringobject_newfromustr(interp, everything);
 	}
 
-	struct Object *res = stringobject_newfromustr(interp, everything);
-
-	free(everything.val);
 	for (int i=0; i < nparts; i++) {
 		if (!skipfreeval[i])
 			free(parts[i].val);
@@ -451,7 +455,7 @@ struct Object *stringobject_newfromvfmt(struct Interpreter *interp, char *fmt, v
 	for (int i=0; gonnadecref[i]; i++)
 		OBJECT_DECREF(interp, gonnadecref[i]);
 
-	return res;
+	return res;      // may be NULL
 
 nomem:
 	errorobject_thrownomem(interp);

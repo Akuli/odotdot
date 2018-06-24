@@ -16,7 +16,7 @@ struct Interpreter;
 typedef uint_least32_t unicode_char;
 
 struct UnicodeString {
-	unicode_char *val;    // usually from malloc(), must be free()'d
+	unicode_char *val;    // usually from malloc() and must be free()'d
 	size_t len;
 };
 

@@ -24,6 +24,12 @@ these functions set errors in the following cases:
 
 bool unicodestring_copyinto(struct Interpreter *interp, struct UnicodeString src, struct UnicodeString *dst)
 {
+	if (src.len == 0) {     // malloc(0) may return NULL on success
+		dst->len = 0;
+		dst->val = NULL;
+		return true;
+	}
+
 	unicode_char *val = malloc(sizeof(unicode_char) * src.len);
 	if (!val) {
 		errorobject_thrownomem(interp);
@@ -54,6 +60,9 @@ struct UnicodeString *unicodestring_copy(struct Interpreter *interp, struct Unic
 // there are lots of corner cases... :D
 struct UnicodeString *unicodestring_replace(struct Interpreter *interp, struct UnicodeString src, struct UnicodeString old, struct UnicodeString new)
 {
+	if (src.len == 0)   // malloc(0) may return NULL on success
+		return unicodestring_copy(interp, src);
+
 	if (old.len == 0) {
 		// need to divide by old.len soon, and division by 0 is no good
 		// also, what would .replace "" "lol" even do??
