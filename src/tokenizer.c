@@ -44,11 +44,6 @@ void token_freeall(struct Token *tok1st)
 // returns true iff an integer literal is valid
 static bool check_integer(struct UnicodeString hugestring, size_t nchars, size_t lineno)
 {
-	if (hugestring.val[0] == '-') {
-		// this relies on pass-by-value
-		hugestring.val++;
-		nchars--;
-	}
 	assert(nchars >= 1);  // token_ize() should handle this
 
 	// any single-digit integer is valid, including 0
@@ -102,7 +97,8 @@ struct Token *token_ize(struct Interpreter *interp, struct UnicodeString hugestr
 		}
 
 #define f(x) (hugestring.val[0]==(x))
-		else if (f('{')||f('}')||f('[')||f(']')||f('(')||f(')')||f('=')||f(';')||f('.')||f(':')||f('`')) {
+		else if (f('{')||f('}')||f('[')||f(']')||f('(')||f(')')||f('=')||f(';')||f('.')||f(':')||f('`')||
+				f('+')||f('-')||f('*')||f('/')||f('<')||f('>')) {
 #undef f
 			kind = TOKEN_OP;
 			nchars = 1;
@@ -155,25 +151,14 @@ struct Token *token_ize(struct Interpreter *interp, struct UnicodeString hugestr
 			}
 		}
 
-#define is0to9(x) ('0' <= (x) && (x) <= '9')
-		else if (is0to9(hugestring.val[0])) {
+		else if ('0' <= hugestring.val[0] && hugestring.val[0] <= '9') {
 			kind = TOKEN_INT;
 			nchars = 0;
-			while (hugestring.len > nchars && is0to9(hugestring.val[nchars]))
+			while (hugestring.len > nchars && '0' <= hugestring.val[nchars] && hugestring.val[nchars] <= '9')
 				nchars++;
 			if (!check_integer(hugestring, nchars, lineno))
 				goto error;
 		}
-
-		else if (hugestring.len >= 2 && hugestring.val[0] == '-' && is0to9(hugestring.val[1])) {
-			kind = TOKEN_INT;
-			nchars = 1;    // don't give the '-' to the while loop below
-			while (hugestring.len > nchars && is0to9(hugestring.val[nchars]))
-				nchars++;
-			if (!check_integer(hugestring, nchars, lineno))
-				goto error;
-		}
-#undef is0to9
 
 		else if (unicode_isidentifier1st(hugestring.val[0])) {
 			kind = TOKEN_ID;
