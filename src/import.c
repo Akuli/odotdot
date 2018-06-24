@@ -262,6 +262,7 @@ static struct Object *file_importer(struct Interpreter *interp, struct Object *a
 	return lib;
 }
 
+
 bool import_init(struct Interpreter *interp)
 {
 	assert(interp->importstuff.importers);
