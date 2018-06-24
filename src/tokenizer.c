@@ -85,18 +85,15 @@ struct Token *token_ize(struct Interpreter *interp, struct UnicodeString hugestr
 	size_t nchars;    // comparing size_t with size_t produces no warnings
 
 	while (hugestring.len) {
-		// TODO: check for any unicode whitespace
-#define f(x) (hugestring.val[0]==(x))
-		if (f(' ')||f('\t')||f('\n')) {
-			if (f('\n'))
+		if (unicode_isspace(hugestring.val[0])) {
+			if (hugestring.val[0] == '\n')   // handles \r\n because the \r is ignored
 				lineno++;
-			// this relies on pass-by-value
 			hugestring.val++;
 			hugestring.len--; 
 			continue;
 		}
 
-		if (hugestring.val[0] == '#') {
+		else if (hugestring.val[0] == '#') {
 			while (hugestring.len && hugestring.val[0] != '\n') {
 				hugestring.val++;
 				hugestring.len--;
@@ -104,7 +101,8 @@ struct Token *token_ize(struct Interpreter *interp, struct UnicodeString hugestr
 			continue;
 		}
 
-		if (f('{')||f('}')||f('[')||f(']')||f('(')||f(')')||f('=')||f(';')||f('.')||f(':')||f('`')) {
+#define f(x) (hugestring.val[0]==(x))
+		else if (f('{')||f('}')||f('[')||f(']')||f('(')||f(')')||f('=')||f(';')||f('.')||f(':')||f('`')) {
 #undef f
 			kind = TOKEN_OP;
 			nchars = 1;
