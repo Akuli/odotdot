@@ -12,8 +12,8 @@ var Library = (get_class (import "<stdlibs>/stacks"));   # any library would do
 # a mistake that i just spent some time debugging: i did 'import "somefile.ö";'
 # the .ö is not supposed to be a part of the string passed to import
 importers.push (lambda "string stackframe" {
-    if ((string.slice (string.length.plus (0-2))) `equals` ".ö") {
-        var no_dot_ö = (string.slice 0 (string.length.plus (0-2)));
+    if ((string.slice (string.length - 2)) `equals` ".ö") {
+        var no_dot_ö = (string.slice 0 (string.length-2));
         throw (new ValueError ((("import ".concat (no_dot_ö.to_debug_string)).concat " instead of ").concat (string.to_debug_string)));
     };
     return null;

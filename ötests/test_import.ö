@@ -20,7 +20,7 @@ test "including .ö extension in the import string" {
 
 test "simple importer" {
     var stack = (get_stack);
-    var this_file_name = (stack.get (stack.length.plus -1)).filename;
+    var this_file_name = (stack.get (stack.length - 1)).filename;
     var lib = (new imports.Library);
     var count = 0;
 
@@ -29,7 +29,7 @@ test "simple importer" {
 
         if (string `equals` "testie") {
             assert (stackframe.filename `equals` this_file_name);   # called from this file
-            count = (count.plus 1);
+            count = (count + 1);
             return lib;
         } else: {
             return null;

@@ -16,6 +16,7 @@
 #include "objects/mapping.h"
 #include "objects/scope.h"
 #include "objects/string.h"
+#include "operator.h"
 #include "parse.h"
 
 // RETURNS A NEW REFERENCE
@@ -123,19 +124,6 @@ static struct Object *runast_expression(struct Interpreter *interp, struct Objec
 	}
 
 	if (nodedata->kind == AST_OPCALL) {
-		char op = INFO_AS(AstOpCallInfo)->op;
-		struct Object *oparray;
-		if (op == '+')
-			oparray = interp->oparrays.add;
-		else if (op == '-')
-			oparray = interp->oparrays.sub;
-		else if (op == '*')
-			oparray = interp->oparrays.mul;
-		else if (op == '/')
-			oparray = interp->oparrays.div;
-		else
-			assert(0);
-
 		struct Object *lhs = runast_expression(interp, scope, INFO_AS(AstOpCallInfo)->lhs);
 		if (!lhs)
 			return NULL;
@@ -145,24 +133,22 @@ static struct Object *runast_expression(struct Interpreter *interp, struct Objec
 			return NULL;
 		}
 
-		for (size_t i=0; i < ARRAYOBJECT_LEN(oparray); i++) {
-			struct Object *func = ARRAYOBJECT_GET(oparray, i);
-			if (!check_type(interp, interp->builtins.Function, func)) {
-				OBJECT_DECREF(interp, lhs);
-				OBJECT_DECREF(interp, rhs);
-				return NULL;
-			}
+		struct Object *res;
+		char op = INFO_AS(AstOpCallInfo)->op ;
+		if (op == '+')
+			res = operator_add(interp, lhs, rhs);
+		else if (op == '-')
+			res = operator_sub(interp, lhs, rhs);
+		else if (op == '*')
+			res = operator_mul(interp, lhs, rhs);
+		else if (op == '/')
+			res = operator_div(interp, lhs, rhs);
+		else
+			assert(0);
 
-			struct Object *res = functionobject_call(interp, func, lhs, rhs, NULL);
-			if (res == interp->builtins.null) {
-				OBJECT_DECREF(interp, res);
-				continue;
-			}
-
-			OBJECT_DECREF(interp, lhs);
-			OBJECT_DECREF(interp, rhs);
-			return res;   // NULL or a new reference
-		}
+		OBJECT_DECREF(interp, lhs);
+		OBJECT_DECREF(interp, rhs);
+		return res;   // may be NULL
 	}
 
 	if (nodedata->kind == AST_ARRAY) {

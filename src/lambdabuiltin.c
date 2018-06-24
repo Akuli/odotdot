@@ -3,7 +3,6 @@
 #include <stdbool.h>
 #include "attribute.h"
 #include "check.h"
-#include "equals.h"
 #include "objectsystem.h"
 #include "objects/array.h"
 #include "objects/block.h"

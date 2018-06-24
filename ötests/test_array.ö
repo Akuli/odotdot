@@ -43,7 +43,7 @@ test "basic stuff" {
 
     assert ((array.get 0) `equals` "a");
     assert ((array.get 2) `equals` "c");
-    throws ValueError { array.get -1; };
+    throws ValueError { array.get (0-1); };
     throws ValueError { array.get 3; };
 
     assert (array `equals` ["a" "b" "c"]);
@@ -64,10 +64,10 @@ test "basic stuff" {
     assert (array `equals` ["x" "b" "c"]);
     array.set 2 "y";
     assert (array `equals` ["x" "b" "y"]);
-    throws ValueError { array.set -1 "z"; };
+    throws ValueError { array.set (0-1) "z"; };
     throws ValueError { array.set 3 "z"; };
     assert (array `equals` ["x" "b" "y"]);
 
     assert ((array.slice 1 2) `equals` ["b"]);
-    assert ((array.slice -123 123) `equals` array);    # out-of-bounds indexes are ok
+    assert ((array.slice (0-123) 123) `equals` array);    # out-of-bounds indexes are ok
 };

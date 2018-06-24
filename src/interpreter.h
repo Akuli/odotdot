@@ -56,7 +56,8 @@ struct Interpreter {
 	} importstuff;
 
 	// contains arrays of functions
-	// (x + y) loops through oparrays.plus and calls the functions until one of them returns non-null
+	// (x + y) loops through oparrays.add and calls the functions until one of them returns non-null
+	// see also operator.h
 	struct {
 		struct Object *add, *sub, *mul, *div;
 	} oparrays;

@@ -1,7 +1,7 @@
 #include <src/attribute.h>
-#include <src/equals.h>
 #include <src/objects/string.h>
 #include <src/objectsystem.h>
+#include <src/operator.h>
 #include <src/unicode.h>
 #include <src/utf8.h>
 #include <stddef.h>
@@ -183,7 +183,7 @@ void test_utf8_encode(void)
 			struct Object *testmsg = stringobject_newfromcharptr(testinterp, test.errormsg);
 			buttert(testmsg);
 
-			buttert(equals(testinterp, msg, testmsg) == 1);
+			buttert(operator_eqint(testinterp, msg, testmsg) == 1);
 			OBJECT_DECREF(testinterp, testmsg);
 			OBJECT_DECREF(testinterp, msg);
 
@@ -224,7 +224,7 @@ void test_utf8_decode(void)
 			struct Object *testmsg = stringobject_newfromcharptr(testinterp, test.errormsg);
 			buttert(testmsg);
 
-			buttert(equals(testinterp, msg, testmsg) == 1);
+			buttert(operator_eqint(testinterp, msg, testmsg) == 1);
 			OBJECT_DECREF(testinterp, testmsg);
 			OBJECT_DECREF(testinterp, msg);
 

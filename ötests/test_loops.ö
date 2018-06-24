@@ -4,7 +4,7 @@ var throws = (import "utils").throws;
 
 test "simple stuff" {
     var stuff = [];
-    for { var i=0; } { (not (i `equals` 5)) } { i = (i.plus 1); } {
+    for { var i=0; } { (not (i `equals` 5)) } { i = (i + 1); } {
         stuff.push i;
     };
     assert (stuff `equals` [0 1 2 3 4]);
@@ -16,7 +16,7 @@ test "simple stuff" {
     var i = 5;
     while { (not (i `equals` 10)) } {
         stuff.push i;
-        i = (i.plus 1);
+        i = (i + 1);
     };
     assert (stuff `equals` [0 1 2 3 4 5 6 7 8 9]);
     assert (i `equals` 10);   # it wasn't deleted magically, which is good
@@ -26,7 +26,7 @@ test "for" {
     var what_happened = [];
     for { what_happened.push "init"; var i = 0; }
         { what_happened.push "cond"; return (not (i `equals` 5)); }
-        { what_happened.push "incr"; i = (i.plus 1); }
+        { what_happened.push "incr"; i = (i + 1); }
     {
         what_happened.push "body";
     };
@@ -56,7 +56,7 @@ test "for" {
 
     var how_many_times = 0;
     throws ArgError {
-        for { } { true } { throw (new ArgError "oops"); } { how_many_times = (how_many_times.plus 1); };
+        for { } { true } { throw (new ArgError "oops"); } { how_many_times = (how_many_times + 1); };
     };
     assert (how_many_times `equals` 1);
 
@@ -70,7 +70,7 @@ test "scopes" {
     var scopes = [];
     for { scopes.push {}.definition_scope; var i = 0; }
         { scopes.push {}.definition_scope; return (not (i `equals` 2)); }
-        { scopes.push {}.definition_scope; i = (i.plus 1); }
+        { scopes.push {}.definition_scope; i = (i + 1); }
     {
         scopes.push {}.definition_scope;
     };

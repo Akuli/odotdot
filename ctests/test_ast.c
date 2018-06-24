@@ -162,11 +162,11 @@ void test_ast_strings(void)
 
 void test_ast_ints(void)
 {
-	struct Object *node = parse_expression_string("-123");
+	struct Object *node = parse_expression_string("123");
 	struct AstNodeObjectData *data = node->data;
 
 	buttert(data->kind == AST_INT);
-	buttert(integerobject_tolonglong(data->info) == -123);
+	buttert(integerobject_tolonglong(data->info) == 123);
 	OBJECT_DECREF(testinterp, node);
 }
 

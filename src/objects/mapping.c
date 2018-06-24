@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include "../attribute.h"
 #include "../check.h"
-#include "../equals.h"
+#include "../operator.h"
 #include "../method.h"
 #include "array.h"
 #include "classobject.h"
@@ -196,7 +196,7 @@ bool mappingobject_set(struct Interpreter *interp, struct Object *map, struct Ob
 	struct MappingObjectData *data = map->data;
 	unsigned long i = HASH_MODULUS(key->hash, data->nbuckets);
 	for (struct MappingObjectItem *olditem = data->buckets[i]; olditem; olditem=olditem->next) {
-		int eqres = equals(interp, olditem->key, key);
+		int eqres = operator_eqint(interp, olditem->key, key);
 		if (eqres == -1)
 			return false;
 		if (eqres == 1) {
@@ -260,7 +260,7 @@ int mappingobject_get(struct Interpreter *interp, struct Object *map, struct Obj
 
 	struct MappingObjectData *data = map->data;
 	for (struct MappingObjectItem *item = data->buckets[HASH_MODULUS(key->hash, data->nbuckets)]; item; item=item->next) {
-		int eqres = equals(interp, item->key, key);
+		int eqres = operator_eqint(interp, item->key, key);
 		if (eqres == -1)
 			return -1;
 		if (eqres == 1) {
@@ -305,7 +305,7 @@ static struct Object *get_and_delete(struct Interpreter *interp, struct Object *
 
 	struct MappingObjectItem *prev = NULL;
 	for (struct MappingObjectItem *item = data->buckets[i]; item; item=item->next) {
-		int eqres = equals(interp, item->key, key);
+		int eqres = operator_eqint(interp, item->key, key);
 		if (eqres == -1)
 			return NULL;
 		if (eqres == 1) {

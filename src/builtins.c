@@ -6,7 +6,6 @@
 #include <string.h>
 #include "attribute.h"
 #include "check.h"
-#include "equals.h"
 #include "import.h"
 #include "interpreter.h"
 #include "lambdabuiltin.h"
@@ -26,6 +25,7 @@
 #include "objects/scope.h"
 #include "objects/stackframe.h"
 #include "objects/string.h"
+#include "operator.h"
 #include "path.h"
 #include "utf8.h"
 
@@ -270,13 +270,7 @@ struct Object *equals_builtin(struct Interpreter *interp, struct Object *args, s
 {
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-
-	int res = equals(interp, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1));
-	if (res == -1)
-		return NULL;
-
-	assert(res == !!res);
-	return BOOL(interp, res);
+	return operator_eq(interp, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1));
 }
 
 static struct Object *same_object(struct Interpreter *interp, struct Object *args, struct Object *opts)

@@ -9,7 +9,7 @@ test "get_stack and StackFrame" {
     assert (stacks.StackFrame.name `equals` "StackFrame");
 
     var stack = (stacks.get_stack);
-    var last_frame = (stack.get (stack.length.plus -1));
+    var last_frame = (stack.get (stack.length - 1));
     assert (last_frame `is_instance_of` stacks.StackFrame);
     assert (last_frame.filename `ends_with` "test_stacks.ö");
 

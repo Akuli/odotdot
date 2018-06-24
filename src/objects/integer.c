@@ -190,17 +190,6 @@ static struct Object *to_string(struct Interpreter *interp, struct Object *args,
 	return stringobject_newfromcharptr(interp, res+i);
 }
 
-// FIXME: we need operators
-static struct Object *plus(struct Interpreter *interp, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, interp->builtins.Integer, interp->builtins.Integer, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-
-	long long x = integerobject_tolonglong(ARRAYOBJECT_GET(args, 0));
-	long long y = integerobject_tolonglong(ARRAYOBJECT_GET(args, 1));
-	return integerobject_newfromlonglong(interp, x + y);
-}
-
 struct Object *integerobject_createclass(struct Interpreter *interp)
 {
 	struct Object *klass = classobject_new(interp, "Integer", interp->builtins.Object, newinstance);
@@ -210,7 +199,6 @@ struct Object *integerobject_createclass(struct Interpreter *interp)
 	if (!method_add(interp, klass, "setup", setup)) goto error;
 	if (!method_add(interp, klass, "to_string", to_string)) goto error;
 	if (!method_add(interp, klass, "to_debug_string", to_string)) goto error;
-	if (!method_add(interp, klass, "plus", plus)) goto error;
 	return klass;
 
 error:

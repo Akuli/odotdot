@@ -35,7 +35,7 @@ void test_tokenizer_tokenize(void)
 		"# cömment\n"
 		"var abc = åäö;     \t #cömment \n"
 		"print \"hellö wörld\"\n"
-		";print 123 -123;\n"
+		";print 123 456;\n"
 		"2bäd;\n";
 	int utf8codelen = strlen(utf8code);
 	utf8code[5] = 0;    // must not break anything
@@ -59,7 +59,7 @@ void test_tokenizer_tokenize(void)
 	curtok = check_token(curtok, TOKEN_OP, ";", 4);
 	curtok = check_token(curtok, TOKEN_ID, "print", 4);
 	curtok = check_token(curtok, TOKEN_INT, "123", 4);
-	curtok = check_token(curtok, TOKEN_INT, "-123", 4);
+	curtok = check_token(curtok, TOKEN_INT, "456", 4);
 	curtok = check_token(curtok, TOKEN_OP, ";", 4);
 	curtok = check_token(curtok, TOKEN_INT, "2", 5);
 	curtok = check_token(curtok, TOKEN_ID, "bäd", 5);

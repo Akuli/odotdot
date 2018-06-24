@@ -49,7 +49,7 @@ add_method String "to_debug_string" (lambda "this" {
     var result = "";
 
     # not very efficient, but that's not a problem because this method is just for debugging anyway
-    for { var i=0; } { (not (i `equals` this.length)) } { i = (i.plus 1); } {
+    for { var i=0; } { (not (i `equals` this.length)) } { i = (i + 1); } {
         var character = (this.get i);
 
         # FIXME: need elif or switch/case or something
@@ -131,7 +131,7 @@ var func = (lambda "funcname_and_argnames block" {
     # a stupid way to join strings by spaces
     # initial i=1 skips the function name
     var argnames = "";
-    for { var i = 1; } { ((i `equals` splitted.length) `same_object` false) } { i = (i.plus 1); } {
+    for { var i = 1; } { ((i `equals` splitted.length) `same_object` false) } { i = (i + 1); } {
         argnames = (argnames.concat (splitted.get i));
         argnames = (argnames.concat " ");
     };
@@ -189,7 +189,7 @@ func "assert condition" {
 #    };
 func "foreach varname array block" {
     var scope = (new Scope block.definition_scope);
-    for { var i = 0; } { (not (i `equals` array.length)) } { i = (i.plus 1); }
+    for { var i = 0; } { (not (i `equals` array.length)) } { i = (i + 1); }
     {
         scope.local_vars.set varname (array.get i);
         block.run scope;
@@ -245,7 +245,7 @@ func "foreach varname array block" {
 
             # i=1 skips the method name
             var this_and_args = "this";
-            for { var i = 1; } { (not (i `equals` splitted.length)) } { i = (i.plus 1); } {
+            for { var i = 1; } { (not (i `equals` splitted.length)) } { i = (i + 1); } {
                 this_and_args = (this_and_args.concat " ");
                 this_and_args = (this_and_args.concat (splitted.get i));
             };
@@ -274,7 +274,7 @@ func "foreach varname array block" {
     func "import string" {
         # last frame is this function, get the one before that
         var stack = (get_stack);
-        var frame = (stack.get (stack.length.plus (0-2)));
+        var frame = (stack.get (stack.length - 2));
 
         foreach "importer" importers {
             var lib = (importer string frame);

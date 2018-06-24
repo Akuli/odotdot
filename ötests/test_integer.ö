@@ -8,10 +8,10 @@ var MANY_ASDS = "asdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasd
 test "equals" {
     assert (1 `equals` 1);
     assert (2 `equals` 2);
-    assert (-1 `equals` -1);
-    assert (not (1 `equals` -1));
+    assert ((0-1) `equals` (0-1));
+    assert (not (1 `equals` (0-1)));
     assert (not (1 `equals` 0));
-    assert (not (-1 `equals` 0));
+    assert (not ((0-1) `equals` 0));
 };
 
 test "new and to_string" {
@@ -20,12 +20,12 @@ test "new and to_string" {
         ["123" 123 true]
         ["0" 0 true]
         ["-0" 0 false]
-        ["-1" -1 true]
-        ["-123" -123 true]
+        ["-1" (0-1) true]
+        ["-123" (0-123) true]
         ["0123" 123 false]
         [(MANY_ZEROS.concat "123") 123 false]
-        ["-0123" -123 false]
-        [(("-".concat MANY_ZEROS).concat "123") -123 false]
+        ["-0123" (0-123) false]
+        [(("-".concat MANY_ZEROS).concat "123") (0-123) false]
     ];
 
     foreach "pair" tests {
@@ -43,8 +43,8 @@ test "new and to_string" {
 
 test "limits" {
     var should_work = [
-        ["-9223372036854775807" -9223372036854775807]
-        [ "9223372036854775807"  9223372036854775807]
+        ["-9223372036854775807" (0-9223372036854775807)]
+        [ "9223372036854775807"    9223372036854775807]
     ];
 
     foreach "pair" should_work {
@@ -64,4 +64,11 @@ test "to_string errors" {
                    "123asd" "asd123" "-asd123" MANY_ASDS] {
         throws ValueError { new Integer bad; };
     };
+};
+
+
+test "operators" {
+    # TODO: more tests
+    assert ((1+2) `equals` 3);
+    assert ((1-2) `equals` (0-1));
 };

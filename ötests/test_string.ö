@@ -22,7 +22,7 @@ test "escape sequences" {
     var array = ["\n" "\t" "\\" "\\" "\n" "\n" "\"" "\""];
     assert (string.length `equals` 8);
     assert (array.length `equals` 8);
-    for { var i=0; } { (not (i `equals` array.length)) } { i = (i.plus 1); } {
+    for { var i=0; } { (not (i `equals` array.length)) } { i = (i + 1); } {
         assert ((string.get i) `equals` (array.get i));
     };
 };
@@ -51,8 +51,8 @@ test "to_debug_string" {
         # call to_debug_string and remove " from both ends
         var debugged = (string.to_debug_string);
         assert ((debugged.get 0) `equals` "\"");
-        assert ((debugged.get (debugged.length.plus -1)) `equals` "\"");
-        string = (debugged.slice 1 (debugged.length.plus -1));        # no stripping method yet :(
+        assert ((debugged.get (debugged.length - 1)) `equals` "\"");
+        string = (debugged.slice 1 (debugged.length - 1));        # no stripping method yet :(
 
         assert (string.length `equals` length);
     };
@@ -64,11 +64,11 @@ test "array-like methods" {
 
     assert (("abc".get 0) `equals` "a");
     assert (("abc".get 2) `equals` "c");
-    throws ValueError { "abc".get -1; };
+    throws ValueError { "abc".get (0-1); };
     throws ValueError { "abc".get 3; };
 
     assert (("abc".slice 1 2) `equals` "b");
-    assert (("abc".slice -123 123) `equals` "abc");
+    assert (("abc".slice (0-123) 123) `equals` "abc");
 };
 
 test "split_by_whitespace" {

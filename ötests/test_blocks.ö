@@ -16,14 +16,14 @@ test "run and run_with_return" {
 
     {
         throws VariableError { return "lol"; };
-        ran = (ran.plus 1);
+        ran = (ran + 1);
     }.run scope;
     assert (ran `equals` 1);
 
     assert (({
-        ran = (ran.plus 1);
+        ran = (ran + 1);
         return "lol";
-        ran = (ran.plus 666);   # must not run
+        ran = (ran + 666);   # must not run
     }.run_with_return scope) `equals` "lol");
     assert (ran `equals` 2);
     # TODO: the return variable should get deleted from the scope
@@ -31,18 +31,18 @@ test "run and run_with_return" {
 
     throws ValueError {
         {
-            ran = (ran.plus 1);
+            ran = (ran + 1);
             throw (new ValueError "oh shit");
-            ran = (ran.plus 666);
+            ran = (ran + 666);
         }.run scope;
     };
     assert (ran `equals` 3);
 
     throws ValueError {
         {
-            ran = (ran.plus 1);
+            ran = (ran + 1);
             throw (new ValueError "oh shit");
-            ran = (ran.plus 666);
+            ran = (ran + 666);
         }.run_with_return scope;
     };
     assert (ran `equals` 4);
