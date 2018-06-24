@@ -80,7 +80,7 @@ struct Object *import(struct Interpreter *interp, struct Object *namestring, str
 	}
 
 	// FIXME: ValueError feels wrong
-	errorobject_throwfmt(interp, "ValueError", "cannot import %S", namestring);
+	errorobject_throwfmt(interp, "ValueError", "cannot import %D", namestring);
 	return NULL;
 }
 
@@ -216,13 +216,19 @@ static struct Object *file_importer(struct Interpreter *interp, struct Object *a
 	assert(status == 0);
 
 	// TODO: check file not found error
-	struct Object *vars = run_libfile(interp, fullpath);
+	struct Object *vars;
+	status = run_libfile(interp, fullpath, &vars);
 	if (mustfreefullpath)
 		free(fullpath);
-	if (!vars) {
+	if (status == -1) {    // file not found, try another importer
+		OBJECT_DECREF(interp, fullpathobj);
+		return nullobject_get(interp);
+	}
+	if (status == 0) {   // error was thrown
 		OBJECT_DECREF(interp, fullpathobj);
 		return NULL;
 	}
+	assert(status == 1);   // success
 
 	// do what the built-in new function does when there's no ->newinstance
 	assert(!((struct ClassObjectData*) interp->builtins.Library->data)->newinstance);

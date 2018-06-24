@@ -17,7 +17,7 @@
 #include "utf8.h"
 
 
-static bool read_and_run_file(struct Interpreter *interp, char *path, struct Object *scope, bool runningbuiltinsfile)
+static int read_and_run_file(struct Interpreter *interp, char *path, struct Object *scope, bool runningbuiltinsfile, bool handleENOENT)
 {
 	assert(path_isabsolute(path));
 
@@ -28,8 +28,13 @@ static bool read_and_run_file(struct Interpreter *interp, char *path, struct Obj
 	// read the file
 	FILE *f = fopen(path, "rb");   // b because the content is decoded below... i think this is good
 	if (!f) {
+		// both windows and posix have ENOENT even though C99 doesn't have it
+		if (errno == ENOENT && handleENOENT) {
+			errno = 0;
+			return -1;
+		}
 		errorobject_throwfmt(interp, ioerrorclass, "cannot open '%s': %s", path, strerror(errno));
-		return false;
+		return 0;
 	}
 
 	char *huge = NULL;
@@ -43,7 +48,7 @@ static bool read_and_run_file(struct Interpreter *interp, char *path, struct Obj
 			// free(NULL) does nothing
 			free(huge);
 			errorobject_thrownomem(interp);
-			return false;
+			return 0;
 		}
 		huge = ptr;
 		memcpy(huge+hugelen, buf, nread);
@@ -54,13 +59,13 @@ static bool read_and_run_file(struct Interpreter *interp, char *path, struct Obj
 		// TODO: use a more appropriate error class if/when it will be available
 		errorobject_throwfmt(interp, ioerrorclass, "an error occurred while reading '%s': %s", path, strerror(errno));
 		free(huge);
-		return false;
+		return 0;
 	}
 
 	if (fclose(f) != 0) {
 		errorobject_throwfmt(interp, ioerrorclass, "an error occurred while closing a file opened from '%s': %s", path, strerror(errno));
 		free(huge);
-		return false;
+		return 0;
 	}
 
 	// convert to UnicodeString
@@ -68,7 +73,7 @@ static bool read_and_run_file(struct Interpreter *interp, char *path, struct Obj
 	bool ok = utf8_decode(interp, huge, hugelen, &code);
 	free(huge);
 	if (!ok)
-		return false;
+		return 0;
 
 	// tokenize
 	// TODO: handle errors in tokenizer.c :(
@@ -79,7 +84,7 @@ static bool read_and_run_file(struct Interpreter *interp, char *path, struct Obj
 	struct Object *statements = arrayobject_newempty(interp);
 	if (!statements) {
 		token_freeall(tok1st);
-		return false;
+		return 0;
 	}
 
 	struct Token *curtok = tok1st;
@@ -88,7 +93,7 @@ static bool read_and_run_file(struct Interpreter *interp, char *path, struct Obj
 		if (!stmtnode) {
 			token_freeall(tok1st);
 			OBJECT_DECREF(interp, statements);
-			return false;
+			return 0;
 		}
 
 		ok = arrayobject_push(interp, statements, stmtnode);
@@ -96,7 +101,7 @@ static bool read_and_run_file(struct Interpreter *interp, char *path, struct Obj
 		if (!ok) {
 			token_freeall(tok1st);
 			OBJECT_DECREF(interp, statements);
-			return false;
+			return 0;
 		}
 	}
 	token_freeall(tok1st);
@@ -106,18 +111,18 @@ static bool read_and_run_file(struct Interpreter *interp, char *path, struct Obj
 		struct AstNodeObjectData *astdata = ARRAYOBJECT_GET(statements, i)->data;
 		if (!stack_push(interp, path, astdata->lineno, scope)) {
 			OBJECT_DECREF(interp, statements);
-			return false;
+			return 0;
 		}
 		ok = runast_statement(interp, scope, ARRAYOBJECT_GET(statements, i));
 		stack_pop(interp);
 		if (!ok) {
 			OBJECT_DECREF(interp, statements);
-			return false;
+			return 0;
 		}
 	}
 
 	OBJECT_DECREF(interp, statements);
-	return true;
+	return 1;
 }
 
 bool run_builtinsfile(struct Interpreter *interp)
@@ -129,29 +134,31 @@ bool run_builtinsfile(struct Interpreter *interp)
 		return false;
 	}
 
-	bool ok = read_and_run_file(interp, path, interp->builtinscope, true);
+	int status = read_and_run_file(interp, path, interp->builtinscope, true, false);
 	free(path);
-	return ok;
+	assert(status >= 0);
+	return (bool)status;
 }
 
 
-struct Object *run_libfile(struct Interpreter *interp, char *abspath)
+int run_libfile(struct Interpreter *interp, char *abspath, struct Object **res)
 {
 	assert(path_isabsolute(abspath));
 
 	struct Object *subscope = scopeobject_newsub(interp, interp->builtinscope);
 	if (!subscope)
-		return NULL;
+		return 0;
 
-	if (!read_and_run_file(interp, abspath, subscope, false)) {
+	int status = read_and_run_file(interp, abspath, subscope, false, true);
+	if (status != 0) {
 		OBJECT_DECREF(interp, subscope);
-		return NULL;
+		return status;
 	}
 
-	struct Object *res = SCOPEOBJECT_LOCALVARS(subscope);
-	OBJECT_INCREF(interp, res);
+	*res = SCOPEOBJECT_LOCALVARS(subscope);
+	OBJECT_INCREF(interp, *res);
 	OBJECT_DECREF(interp, subscope);
-	return res;
+	return 1;
 }
 
 
@@ -166,10 +173,18 @@ bool run_mainfile(struct Interpreter *interp, char *path)
 		return false;
 	}
 
-	struct Object *vars = run_libfile(interp, abspath);
-	free(abspath);
-	if (!vars)
+	struct Object *subscope = scopeobject_newsub(interp, interp->builtinscope);
+	if (!subscope) {
+		free(abspath);
 		return false;
-	OBJECT_DECREF(interp, vars);
+	}
+
+	int status = read_and_run_file(interp, abspath, subscope, false, false);
+	free(abspath);
+	assert(status == !!status);
+	if (!status) {
+		OBJECT_DECREF(interp, subscope);
+		return false;
+	}
 	return true;
 }

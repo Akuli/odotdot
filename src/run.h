@@ -24,8 +24,12 @@ bool run_builtinsfile(struct Interpreter *interp);
 bool run_mainfile(struct Interpreter *interp, char *path);
 
 // for import.c, the path must be absolute
-// returns a Mapping of variables defined in the file on success
+// sets a Mapping of variables defined in the file to vars on success
+// return values:
+//  1   success
+//  0   an error has been thrown
+//  -1  opening the file returned ENOENT, the file doesn't exist
 // throws an error and returns NULL on failure
-struct Object *run_libfile(struct Interpreter *interp, char *abspath);
+int run_libfile(struct Interpreter *interp, char *abspath, struct Object **vars);
 
 #endif   // RUN_H

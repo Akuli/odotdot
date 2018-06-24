@@ -20,7 +20,7 @@ char *import_findstdlibs(char *argv0);
 bool import_init(struct Interpreter *interp);
 
 // returns a Module object, sets an error and returns NULL on failure
-// stackframe should be the StackFrame object that import was called from, used for e.g. finding files relatively
+// stackframe should be the StackFrame object that import was called from, for e.g. finding files relatively
 struct Object *import(struct Interpreter *interp, struct Object *namestring, struct Object *stackframe);
 
 #endif    // IMPORT_H
