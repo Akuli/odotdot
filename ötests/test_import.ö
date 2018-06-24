@@ -48,7 +48,7 @@ test "simple importer" {
 test "bad importer" {
     func "importer string stackframe" {
         if (string `equals` "testie") {
-            return "lol";
+            return "lol";  # BAD!
         } else: {
             return null;
         };

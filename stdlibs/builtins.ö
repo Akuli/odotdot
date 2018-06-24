@@ -266,36 +266,42 @@ func "foreach varname array block" {
 }.run (new Scope {}.definition_scope);
 
 
-#{
-#    # allow importers to be deleted from the built-in scope
-#    var importers = importers;
-#
-#    func "import string" {
-#        # last frame is this function, get the one before that
-#        var stack = (get_stack);
-#        var frame = (stack.get (stack.length.plus -2));
-#        debug frame;
-#
-#        foreach "importer" importers {
-#            debug importer;
-#            var lib = (importer string frame);
-#            debug lib;
-#            if (not (lib `same_object` null)) {
-#                if (not (lib `is_instance_of` Library)) {
-#                    # need string formatting :(
-#                    throw (new TypeError (("importers should return a Library object or null, but ".concat
-#                        (importer.to_debug_string)).concat " returned ").concat (lib.to_debug_string));
-#                };
-#                return lib;
-#            };
-#        };
-#
-#        # FIXME: ValueError feels wrong
-#        throw (new ValueError ("cannot import ".concat (string.to_debug_string)));
-#    };
-#
-#    {}.definition_scope.parent_scope.local_vars.set "import" import;
-#}.run (new Scope {}.definition_scope);
+{
+    # allow importers to be deleted from the built-in scope
+    var importers = importers;
+    var Library = null;
+
+    func "import string" {
+        # last frame is this function, get the one before that
+        var stack = (get_stack);
+        var frame = (stack.get (stack.length.plus -2));
+
+        foreach "importer" importers {
+            var lib = (importer string frame);
+
+            if (not (lib `same_object` null)) {
+                if (Library `same_object` null) {
+                    # this is a funny way to get the Library class
+                    # imports.ö gets it by importing a library
+                    # but that's what we're doing here all the time, so...
+                    Library = (get_class lib);
+                } else: {
+                    if (not (lib `is_instance_of` Library)) {
+                        # need string formatting :(
+                        throw (new TypeError (("importers should return a Library object or null, but ".concat
+                            (importer.to_debug_string)).concat " returned ").concat (lib.to_debug_string));
+                    };
+                };
+                return lib;
+            };
+        };
+
+        # FIXME: ValueError feels wrong
+        throw (new ValueError ("cannot import ".concat (string.to_debug_string)));
+    };
+
+    {}.definition_scope.parent_scope.local_vars.set "import" import;
+}.run (new Scope {}.definition_scope);
 
 # this hides the importers list
 # see its comments for more details

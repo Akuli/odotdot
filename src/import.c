@@ -53,38 +53,6 @@ char *import_findstdlibs(char *argv0)
 }
 
 
-struct Object *import(struct Interpreter *interp, struct Object *namestring, struct Object *stackframe)
-{
-	assert(interp->importstuff.importers);
-	assert(interp->builtins.Function);
-
-	for (size_t i=0; i < ARRAYOBJECT_LEN(interp->importstuff.importers); i++)
-	{
-		struct Object *importer = ARRAYOBJECT_GET(interp->importstuff.importers, i);
-		if (!check_type(interp, interp->builtins.Function, importer))
-			return NULL;
-
-		struct Object *lib = functionobject_call(interp, importer, namestring, stackframe, NULL);
-		if (!lib)
-			return NULL;
-		if (lib == interp->builtins.null) {
-			OBJECT_DECREF(interp, lib);
-			continue;
-		}
-		if (!classobject_isinstanceof(lib, interp->builtins.Library)) {
-			errorobject_throwfmt(interp, "TypeError", "importer functions should return a Library object or null, but %D returned %D", importer, lib);
-			OBJECT_DECREF(interp, lib);
-			return NULL;
-		}
-		return lib;
-	}
-
-	// FIXME: ValueError feels wrong
-	errorobject_throwfmt(interp, "ValueError", "cannot importtt %D", namestring);
-	return NULL;
-}
-
-
 static char *get_source_dir(struct Interpreter *interp, struct Object *stackframe)
 {
 	struct Object *filenameobj = attribute_get(interp, stackframe, "filename");

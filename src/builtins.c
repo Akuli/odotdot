@@ -309,33 +309,13 @@ static struct Object *print(struct Interpreter *interp, struct Object *args, str
 
 // returns a list of [filename lineno] sublists
 // see stack.c and stack.h
+// TODO: implement this in pure ö with exceptions
 static struct Object *get_stack(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
 	return stackframeobject_getstack(interp);
-}
-
-static struct Object *import_builtin(struct Interpreter *interp, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, interp->builtins.String, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-
-	struct Object *stackarr = stackframeobject_getstack(interp);
-	if (!stackarr)
-		return NULL;
-	if (ARRAYOBJECT_LEN(stackarr) == 0) {
-		// FIXME: ValueError sucks for this
-		errorobject_throwfmt(interp, "ValueError", "cannot find the stack frame that import was called from");
-		OBJECT_DECREF(interp, stackarr);
-		return NULL;
-	}
-
-	struct Object *frame = ARRAYOBJECT_GET(stackarr, ARRAYOBJECT_LEN(stackarr)-1);
-	struct Object *lib = import(interp, ARRAYOBJECT_GET(args, 0), frame);
-	OBJECT_DECREF(interp, stackarr);
-	return lib;
 }
 
 
@@ -496,7 +476,6 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!add_function(interp, "catch", catch)) goto error;
 	if (!add_function(interp, "equals", equals_builtin)) goto error;
 	if (!add_function(interp, "get_class", get_class)) goto error;
-	if (!add_function(interp, "import", import_builtin)) goto error;
 	if (!add_function(interp, "is_instance_of", is_instance_of)) goto error;
 	if (!add_function(interp, "new", new)) goto error;
 	if (!add_function(interp, "print", print)) goto error;
