@@ -18,7 +18,7 @@ Then download and compile the interpreter.
 
     $ git clone https://github.com/akuli/odotdot
     $ cd odotdot
-    $ make ö
+    $ make
 
 You should get lots of output, but no errors.
 
