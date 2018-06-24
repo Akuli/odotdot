@@ -1,8 +1,8 @@
 # imports
 
 `<stdlibs>/imports` contains things that are useful for doing magic with the
-import function. See [the import documentation](../import.md) if you just want
-to use libraries the usual way.
+import function. See [the importing documentation](../importing.md) if you just
+want to use libraries the usual way.
 
 ## Importers
 
@@ -72,4 +72,4 @@ imported.
 
 [array]: ../builtins.md#array
 [stack frame]: ../errors.md#stackframe-objects
-[cached]: ../import.md#caching
+[cached]: ../importing.md#caching

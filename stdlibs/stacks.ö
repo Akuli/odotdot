@@ -1,0 +1,14 @@
+func "get_stack" {
+    catch {
+        throw (new MathError "oh no");
+    } [MathError "e"] {
+        # we don't care about the last 2 frames
+        # one is calling catch, the other is this catching block
+        return (e.stack.slice 0 (e.stack.length.plus -2));
+    };
+
+    # the return in the catch should always run
+    assert false;
+};
+
+var StackFrame = (get_class ((get_stack).get 0));

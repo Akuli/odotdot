@@ -53,10 +53,10 @@ Attributes of `Error`:
 - `error.message` is the message as a human-readable string. This can be set
   after creating the error object, but setting it to something else than a
   [String](builtins.md#string) throws `TypeError`.
-- `error.stack` is an [Array] of [StackFrame objects](#stackframe-objects), or
-  `null` if the error has never been thrown. When throwing an error,
-  `error.stack` is set to a new array, but only if it's `null`; see
-  [rethrowing](#rethrowing).
+- `error.stack` is an [Array] of StackFrame objects, or `null` if the error has
+  never been thrown. See [the stacks library's documentation](stdlibs/stacks.md)
+  for more information about stack frames. When throwing an error, `error.stack`
+  is set to a new array, but only if it's `null`; see [rethrowing](#rethrowing).
 
 Methods of `Error`:
 - `(error.print_stack)` prints a stack trace. If the error has never been
@@ -174,59 +174,6 @@ errors. For example, if you would instead `throw (new ValueError ...)`,
 `ValueError`. Catching `ArticleNotFoundError` looks nice because it's easy to
 see what the code is doing, but it's also good because if `get_article`
 unexpectedly throws `ValueError` somewhere else, that won't get caught.
-
-
-## StackFrame objects
-
-If you run a program like this...
-
-```python
-func "f" { print 123; };
-func "g" { f; };
-func "h" { g; };
-h;
-```
-
-...you get a *stack trace* roughly like this one:
-
-```
-TypeError: expected an instance of String, got 123
-  in file fgh.ö, line 1
-  by file fgh.ö, line 2
-  by file fgh.ö, line 3
-  by file fgh.ö, line 4
-```
-
-This stack trace is created from the `stack` attribute of the error object. If
-you wrap everything in `catch` and [debug](builtins.md#debug) the `stack` of
-the error...
-
-```python3
-catch {
-    func "f" { print 123; };
-    func "g" { f; };
-    func "h" { g; };
-    h;
-} [TypeError "e"] {
-    debug e.stack;
-};
-```
-
-...you get something like this:
-
-```
-[<StackFrame: file fgh.ö, line 1> <StackFrame: file fgh.ö, line 5> <StackFrame:
-file fgh.ö, line 4> <StackFrame: file fgh.ö, line 3> <StackFrame: file fgh.ö, li
-ne 2>]
-```
-
-Each of the stack frames represents one line in the stack trace.
-
-Stack frames have these read-only attributes:
-- `stackframe.filename` is the file name displayed in the stack trace, as a
-  [String](builtins.md#string).
-- `stackframe.lineno` is the line number in the stack trace, as an
-  [Integer](builtins.md#integer).
 
 
 [built-in scope]: tutorial.md#scopes

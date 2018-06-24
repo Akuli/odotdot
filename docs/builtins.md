@@ -249,7 +249,7 @@ See [the documentation about errors](errors.md).
 
 ### import
 
-This function is documented [here](import.md).
+This function is documented [here](importing.md).
 
 ### assert
 
