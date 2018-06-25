@@ -270,7 +270,7 @@ struct Object *equals_builtin(struct Interpreter *interp, struct Object *args, s
 {
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	return operator_eq(interp, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1));
+	return operator_call(interp, OPERATOR_EQ, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1));
 }
 
 static struct Object *same_object(struct Interpreter *interp, struct Object *args, struct Object *opts)

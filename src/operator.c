@@ -1,4 +1,5 @@
 #include "operator.h"
+#include <assert.h>
 #include "check.h"
 #include "interpreter.h"
 #include "objectsystem.h"
@@ -10,16 +11,38 @@
 #include "unicode.h"
 
 
-// i couldn't come up with a better name for this
-// return values are not type checked to allow doing as much magic as possible in ö
-static struct Object *use_oparray(struct Interpreter *interp, struct Object *oparray, char *opstr, struct Object *a, struct Object *b)
+struct Object *operator_call(struct Interpreter *interp, enum Operator op, struct Object *lhs, struct Object *rhs)
 {
+	if (op == OPERATOR_EQ || op == OPERATOR_NE) {
+		int res = (op == OPERATOR_EQ)? operator_eqint(interp, lhs, rhs) : operator_neint(interp, lhs, rhs);
+		if (res < 0)
+			return NULL;
+		return interpreter_getbuiltin(interp, res ? "true" : "false");
+	}
+
+	struct Object *oparray;
+	char *opstr;
+	if (op == OPERATOR_ADD) {
+		oparray = interp->oparrays.add;
+		opstr = "+";
+	} else if (op == OPERATOR_SUB) {
+		oparray = interp->oparrays.sub;
+		opstr = "-";
+	} else if (op == OPERATOR_MUL) {
+		oparray = interp->oparrays.mul;
+		opstr = "*";
+	} else if (op == OPERATOR_DIV) {
+		oparray = interp->oparrays.div;
+		opstr = "/";
+	} else
+		assert(0);
+
 	for (size_t i=0; i < ARRAYOBJECT_LEN(oparray); i++) {
 		struct Object *func = ARRAYOBJECT_GET(oparray, i);
 		if (!check_type(interp, interp->builtins.Function, func))
 			return NULL;
 
-		struct Object *res = functionobject_call(interp, func, a, b, NULL);
+		struct Object *res = functionobject_call(interp, func, lhs, rhs, NULL);
 		if (res == interp->builtins.null) {
 			OBJECT_DECREF(interp, res);
 			continue;
@@ -29,16 +52,10 @@ static struct Object *use_oparray(struct Interpreter *interp, struct Object *opa
 
 	// nothing matching found from the oparray
 #define class_name(obj) (((struct ClassObjectData *) (obj)->klass->data)->name)
-	errorobject_throwfmt(interp, "TypeError", "%U %s %U", class_name(a), opstr, class_name(b));
+	errorobject_throwfmt(interp, "TypeError", "%U %s %U", class_name(lhs), opstr, class_name(rhs));
 #undef class_name
 	return NULL;
 }
-
-struct Object *operator_add(struct Interpreter *interp, struct Object *a, struct Object *b) { return use_oparray(interp, interp->oparrays.add, "+", a, b); }
-struct Object *operator_sub(struct Interpreter *interp, struct Object *a, struct Object *b) { return use_oparray(interp, interp->oparrays.sub, "-", a, b); }
-struct Object *operator_mul(struct Interpreter *interp, struct Object *a, struct Object *b) { return use_oparray(interp, interp->oparrays.mul, "*", a, b); }
-struct Object *operator_div(struct Interpreter *interp, struct Object *a, struct Object *b) { return use_oparray(interp, interp->oparrays.div, "/", a, b); }
-
 
 // TODO: use an oparray instead
 int operator_eqint(struct Interpreter *interp, struct Object *a, struct Object *b)
@@ -113,20 +130,4 @@ int operator_neint(struct Interpreter *interp, struct Object *a, struct Object *
 	if (res == -1)
 		return -1;
 	return !res;
-}
-
-struct Object *operator_eq(struct Interpreter *interp, struct Object *a, struct Object *b)
-{
-	int res = operator_eqint(interp, a, b);
-	if (res == -1)
-		return NULL;
-	return interpreter_getbuiltin(interp, res ? "true" : "false");
-}
-
-struct Object *operator_ne(struct Interpreter *interp, struct Object *a, struct Object *b)
-{
-	int res = operator_neint(interp, a, b);
-	if (res == -1)
-		return NULL;
-	return interpreter_getbuiltin(interp, res ? "true" : "false");
 }

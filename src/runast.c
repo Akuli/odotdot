@@ -133,19 +133,8 @@ static struct Object *runast_expression(struct Interpreter *interp, struct Objec
 			return NULL;
 		}
 
-		struct Object *res;
-		char op = INFO_AS(AstOpCallInfo)->op ;
-		if (op == '+')
-			res = operator_add(interp, lhs, rhs);
-		else if (op == '-')
-			res = operator_sub(interp, lhs, rhs);
-		else if (op == '*')
-			res = operator_mul(interp, lhs, rhs);
-		else if (op == '/')
-			res = operator_div(interp, lhs, rhs);
-		else
-			assert(0);
-
+		enum Operator op = INFO_AS(AstOpCallInfo)->op ;
+		struct Object *res = operator_call(interp, op, lhs, rhs);
 		OBJECT_DECREF(interp, lhs);
 		OBJECT_DECREF(interp, rhs);
 		return res;   // may be NULL

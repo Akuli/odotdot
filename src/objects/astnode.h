@@ -5,6 +5,7 @@
 #include "../interpreter.h"    // IWYU pragma: keep
 #include "../objectsystem.h"   // IWYU pragma: keep
 #include "../unicode.h"
+#include "../operator.h"
 
 struct AstNodeObjectData {
 	char kind;
@@ -62,9 +63,8 @@ struct AstSetAttrInfo { struct Object *objnode; struct UnicodeString attr; struc
 struct AstCallInfo { struct Object *funcnode; struct Object *args; struct Object *opts; };
 #define AST_CALL '('
 
-// op is one of:  '+' '-' '*' '/' '<' '>'
 // lhs and rhs are AstNodes
-struct AstOpCallInfo { char op; struct Object *lhs; struct Object *rhs; };
+struct AstOpCallInfo { enum Operator op; struct Object *lhs; struct Object *rhs; };
 #define AST_OPCALL '+'
 
 

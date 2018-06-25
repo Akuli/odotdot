@@ -240,7 +240,17 @@ static struct Object *parse_operator_call(struct Interpreter *interp, char *file
 		return NULL;
 	}
 
-	opcallinfo->op = op;
+	if (op == '+')
+		opcallinfo->op = OPERATOR_ADD;
+	else if (op == '-')
+		opcallinfo->op = OPERATOR_SUB;
+	else if (op == '*')
+		opcallinfo->op = OPERATOR_MUL;
+	else if (op == '/')
+		opcallinfo->op = OPERATOR_DIV;
+	else
+		assert(0);
+
 	opcallinfo->lhs = lhs;
 	OBJECT_INCREF(interp, lhs);
 	opcallinfo->rhs = rhs;
