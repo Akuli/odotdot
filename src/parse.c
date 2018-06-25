@@ -28,9 +28,10 @@ static bool expression_coming_up(struct Token *curtok)
 	if (curtok->kind == TOKEN_STR || curtok->kind == TOKEN_INT || curtok->kind == TOKEN_ID)
 		return true;
 	if (curtok->kind == TOKEN_OP)
-		return curtok->str.val[0] == '(' ||
+		return curtok->str.len == 1 && (
+			curtok->str.val[0] == '(' ||
 			curtok->str.val[0] == '{' ||
-			curtok->str.val[0] == '[';
+			curtok->str.val[0] == '[');
 	return false;
 }
 
@@ -221,13 +222,13 @@ error:
 }
 
 // arg1 OPERATOR arg2
-// where OPERATOR is one of: + - * / < >
+// where OPERATOR is one of: + - * / == !=
 static struct Object *parse_operator_call(struct Interpreter *interp, char *filename, struct Token **curtok, struct Object *lhs)
 {
 	size_t lineno = (*curtok)->lineno;
 
-	assert((*curtok)->str.len == 1);    // should be checked by parse_expression()
-	char op = (*curtok)->str.val[0];
+	assert((*curtok)->kind == TOKEN_OP);
+	struct UnicodeString op = (*curtok)->str;
 	*curtok = (*curtok)->next;
 
 	struct Object *rhs = parse_expression(interp, filename, curtok);
@@ -240,15 +241,25 @@ static struct Object *parse_operator_call(struct Interpreter *interp, char *file
 		return NULL;
 	}
 
-	if (op == '+')
-		opcallinfo->op = OPERATOR_ADD;
-	else if (op == '-')
-		opcallinfo->op = OPERATOR_SUB;
-	else if (op == '*')
-		opcallinfo->op = OPERATOR_MUL;
-	else if (op == '/')
-		opcallinfo->op = OPERATOR_DIV;
-	else
+	if (op.len == 1) {
+		if (op.val[0] == '+')
+			opcallinfo->op = OPERATOR_ADD;
+		else if (op.val[0] == '-')
+			opcallinfo->op = OPERATOR_SUB;
+		else if (op.val[0] == '*')
+			opcallinfo->op = OPERATOR_MUL;
+		else if (op.val[0] == '/')
+			opcallinfo->op = OPERATOR_DIV;
+		else
+			assert(0);
+	} else if (op.len == 2) {
+		if (op.val[0] == '=' && op.val[1] == '=')
+			opcallinfo->op = OPERATOR_EQ;
+		else if (op.val[0] == '!' && op.val[1] == '=')
+			opcallinfo->op = OPERATOR_NE;
+		else
+			assert(0);
+	} else
 		assert(0);
 
 	opcallinfo->lhs = lhs;
@@ -347,8 +358,10 @@ static struct Object *parse_call_expression(struct Interpreter *interp, char *fi
 #define f(x) ((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == (x))
 	if (f('`'))
 		res = parse_infix_call(interp, filename, curtok, first);
-	else if (f('+') || f('-') || f('*') || f('/') || f('<') || f('<'))
+#define g(x,y) ((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 2 && (*curtok)->str.val[0] == (x) && (*curtok)->str.val[1] == (y))
+	else if (f('+')||f('-')||f('*')||f('/')||f('<')||f('>')||g('!','=')||g('=','='))
 #undef f
+#undef g
 		res = parse_operator_call(interp, filename, curtok, first);
 	else
 		res = parse_call(interp, filename, curtok, first);

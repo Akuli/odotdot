@@ -96,6 +96,15 @@ struct Token *token_ize(struct Interpreter *interp, struct UnicodeString hugestr
 			continue;
 		}
 
+		// operators with 2 chars must be before 1-char operators
+		// e.g. == must be 1 operator, not 2
+#define f(x, y) (hugestring.len >= 2 && hugestring.val[0] == (x) && hugestring.val[1] == (y))
+		else if (f('=','=')||f('!','=')) {
+#undef f
+			kind = TOKEN_OP;
+			nchars = 2;
+		}
+
 #define f(x) (hugestring.val[0]==(x))
 		else if (f('{')||f('}')||f('[')||f(']')||f('(')||f(')')||f('=')||f(';')||f('.')||f(':')||f('`')||
 				f('+')||f('-')||f('*')||f('/')||f('<')||f('>')) {
