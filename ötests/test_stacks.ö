@@ -6,7 +6,7 @@ var stacks = (import "<stdlibs>/stacks");
 
 
 test "get_stack and StackFrame" {
-    assert (stacks.StackFrame.name `equals` "StackFrame");
+    assert (stacks.StackFrame.name == "StackFrame");
 
     var stack = (stacks.get_stack);
     var last_frame = (stack.get (stack.length - 1));

@@ -266,13 +266,6 @@ static struct Object *is_instance_of(struct Interpreter *interp, struct Object *
 	return BOOL(interp, classobject_isinstanceof(ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1)));
 }
 
-struct Object *equals_builtin(struct Interpreter *interp, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-	return operator_call(interp, OPERATOR_EQ, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1));
-}
-
 static struct Object *same_object(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
@@ -481,7 +474,6 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!add_function(interp, "throw", throw)) goto error;
 	if (!add_function(interp, "lambda", lambdabuiltin)) goto error;
 	if (!add_function(interp, "catch", catch)) goto error;
-	if (!add_function(interp, "equals", equals_builtin)) goto error;
 	if (!add_function(interp, "get_class", get_class)) goto error;
 	if (!add_function(interp, "is_instance_of", is_instance_of)) goto error;
 	if (!add_function(interp, "new", new)) goto error;

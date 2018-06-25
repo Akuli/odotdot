@@ -3,27 +3,27 @@ var throws = (import "utils").throws;
 
 
 test "concat and equals" {
-    assert ("" `equals` "");
-    assert ("ab" `equals` "ab");
-    assert (("a".concat "b") `equals` "ab");   # probably not relying on an optimization
+    assert ("" == "");
+    assert ("ab" == "ab");
+    assert (("a".concat "b") == "ab");   # probably not relying on an optimization
 };
 
 test "escape sequences" {
     # FIXME: there's not a good way to check the values yet
     # e.g. make sure that \n produces a newline character and \t produces a tab
     # so we need to rely on testing examples/escapes.ö
-    assert ("\n".length `equals` 1);
-    assert ("\t".length `equals` 1);
-    assert ("\"".length `equals` 1);
-    assert ("\\".length `equals` 1);
+    assert ("\n".length == 1);
+    assert ("\t".length == 1);
+    assert ("\"".length == 1);
+    assert ("\\".length == 1);
 
     # combining multiple things
     var string = "\n\t\\\\\n\n\"\"";
     var array = ["\n" "\t" "\\" "\\" "\n" "\n" "\"" "\""];
-    assert (string.length `equals` 8);
-    assert (array.length `equals` 8);
-    for { var i=0; } { (not (i `equals` array.length)) } { i = (i + 1); } {
-        assert ((string.get i) `equals` (array.get i));
+    assert (string.length == 8);
+    assert (array.length == 8);
+    for { var i=0; } { (i != array.length) } { i = (i + 1); } {
+        assert ((string.get i) == (array.get i));
     };
 };
 
@@ -36,13 +36,13 @@ test "to_string" {
 };
 
 test "to_debug_string" {
-    assert (("lol lmao".to_debug_string) `equals` "\"lol lmao\"");
+    assert (("lol lmao".to_debug_string) == "\"lol lmao\"");
 
     # https://xkcd.com/1638/
-    assert (("a\nb".to_debug_string) `equals` "\"a\\nb\"");
-    assert (("a\tb".to_debug_string) `equals` "\"a\\tb\"");
-    assert (("a\"b".to_debug_string) `equals` "\"a\\\"b\"");
-    assert (("a\\b".to_debug_string) `equals` "\"a\\\\b\"");
+    assert (("a\nb".to_debug_string) == "\"a\\nb\"");
+    assert (("a\tb".to_debug_string) == "\"a\\tb\"");
+    assert (("a\"b".to_debug_string) == "\"a\\\"b\"");
+    assert (("a\\b".to_debug_string) == "\"a\\\\b\"");
 
     # https://explainxkcd.com/wiki/index.php/1638:_Backslashes
     # the number of backslashes should grow exponentially, so let's test that :D
@@ -50,25 +50,25 @@ test "to_debug_string" {
     foreach "length" [2 4 8 16 32 64 128 256 512] {
         # call to_debug_string and remove " from both ends
         var debugged = (string.to_debug_string);
-        assert ((debugged.get 0) `equals` "\"");
-        assert ((debugged.get (debugged.length - 1)) `equals` "\"");
+        assert ((debugged.get 0) == "\"");
+        assert ((debugged.get (debugged.length - 1)) == "\"");
         string = (debugged.slice 1 (debugged.length - 1));        # no stripping method yet :(
 
-        assert (string.length `equals` length);
+        assert (string.length == length);
     };
 };
 
 test "array-like methods" {
-    assert ("abc".length `equals` 3);
+    assert ("abc".length == 3);
     throws AttribError { "abc".length = 100; };
 
-    assert (("abc".get 0) `equals` "a");
-    assert (("abc".get 2) `equals` "c");
+    assert (("abc".get 0) == "a");
+    assert (("abc".get 2) == "c");
     throws ValueError { "abc".get (0-1); };
     throws ValueError { "abc".get 3; };
 
-    assert (("abc".slice 1 2) `equals` "b");
-    assert (("abc".slice (0-123) 123) `equals` "abc");
+    assert (("abc".slice 1 2) == "b");
+    assert (("abc".slice (0-123) 123) == "abc");
 };
 
 test "split_by_whitespace" {
@@ -86,42 +86,42 @@ test "split_by_whitespace" {
     foreach "test" tests {
         var input = (test.get 0);
         var expected_output = (test.get 1);
-        assert ((input.split_by_whitespace) `equals` expected_output);
+        assert ((input.split_by_whitespace) == expected_output);
     };
 };
 
 test "replace" {
-    assert (("hello world".replace "worl" "asdd") `equals` "hello asddd");
-    assert (("lol xyzz".replace "xy" "ab") `equals` "lol abzz");
-    assert (("lol xyzz".replace "xy" "a") `equals` "lol azz");
-    assert (("lol xyzz".replace "xy" "asdasd") `equals` "lol asdasdzz");
+    assert (("hello world".replace "worl" "asdd") == "hello asddd");
+    assert (("lol xyzz".replace "xy" "ab") == "lol abzz");
+    assert (("lol xyzz".replace "xy" "a") == "lol azz");
+    assert (("lol xyzz".replace "xy" "asdasd") == "lol asdasdzz");
 
     # test which args can be empty
-    assert (("abcxyz".replace "x" "") `equals` "abcyz");
-    assert (("".replace "asd" "asda") `equals` "");
+    assert (("abcxyz".replace "x" "") == "abcyz");
+    assert (("".replace "asd" "asda") == "");
     throws ValueError { "lol".replace "" "asd"; };
 
     # characters that are results of a replace must not be replaced again
     # so this needs multiple replaces, not just one
     var string = "asdddddasddddda";
-    string = (string.replace "dasd" "as"); assert (string `equals` "asddddasdddda");
-    string = (string.replace "dasd" "as"); assert (string `equals` "asdddasddda");
-    string = (string.replace "dasd" "as"); assert (string `equals` "asddasdda");
-    string = (string.replace "dasd" "as"); assert (string `equals` "asdasda");
-    string = (string.replace "dasd" "as"); assert (string `equals` "asasa");
-    string = (string.replace "dasd" "as"); assert (string `equals` "asasa");
+    string = (string.replace "dasd" "as"); assert (string == "asddddasdddda");
+    string = (string.replace "dasd" "as"); assert (string == "asdddasddda");
+    string = (string.replace "dasd" "as"); assert (string == "asddasdda");
+    string = (string.replace "dasd" "as"); assert (string == "asdasda");
+    string = (string.replace "dasd" "as"); assert (string == "asasa");
+    string = (string.replace "dasd" "as"); assert (string == "asasa");
 
     string = "aaaab";
-    string = (string.replace "ab" "bb"); assert (string `equals` "aaabb");
-    string = (string.replace "ab" "bb"); assert (string `equals` "aabbb");
-    string = (string.replace "ab" "bb"); assert (string `equals` "abbbb");
-    string = (string.replace "ab" "bb"); assert (string `equals` "bbbbb");
-    string = (string.replace "ab" "bb"); assert (string `equals` "bbbbb");
+    string = (string.replace "ab" "bb"); assert (string == "aaabb");
+    string = (string.replace "ab" "bb"); assert (string == "aabbb");
+    string = (string.replace "ab" "bb"); assert (string == "abbbb");
+    string = (string.replace "ab" "bb"); assert (string == "bbbbb");
+    string = (string.replace "ab" "bb"); assert (string == "bbbbb");
 
     string = "abbbb";
-    string = (string.replace "ab" "aa"); assert (string `equals` "aabbb");
-    string = (string.replace "ab" "aa"); assert (string `equals` "aaabb");
-    string = (string.replace "ab" "aa"); assert (string `equals` "aaaab");
-    string = (string.replace "ab" "aa"); assert (string `equals` "aaaaa");
-    string = (string.replace "ab" "aa"); assert (string `equals` "aaaaa");
+    string = (string.replace "ab" "aa"); assert (string == "aabbb");
+    string = (string.replace "ab" "aa"); assert (string == "aaabb");
+    string = (string.replace "ab" "aa"); assert (string == "aaaab");
+    string = (string.replace "ab" "aa"); assert (string == "aaaaa");
+    string = (string.replace "ab" "aa"); assert (string == "aaaaa");
 };

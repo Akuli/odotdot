@@ -3,6 +3,7 @@ var throws = (import "utils").throws;
 
 
 test "important basic stuff" {
+    func "equals a b" { (a==b) };
     foreach "cmp" [equals same_object] {
         assert (not (true `cmp` false));
         assert (not (true `cmp` null));
@@ -18,8 +19,8 @@ test "classes" {
     assert (not (false `is_instance_of` (get_class null)));
     throws VariableError { debug Null; };
 
-    assert (Bool.name `equals` "Bool");
-    assert ((get_class null).name `equals` "Null");
+    assert (Bool.name == "Bool");
+    assert ((get_class null).name == "Null");
 };
 
 test "to_string" {
@@ -29,9 +30,9 @@ test "to_string" {
 };
 
 test "to_debug_string" {
-    assert ((true.to_debug_string) `equals` "true");
-    assert ((false.to_debug_string) `equals` "false");
-    assert ((null.to_debug_string) `equals` "null");
+    assert ((true.to_debug_string) == "true");
+    assert ((false.to_debug_string) == "false");
+    assert ((null.to_debug_string) == "null");
 };
 
 test "creating more instances that make no sense" {

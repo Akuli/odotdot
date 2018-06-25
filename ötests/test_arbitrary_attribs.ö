@@ -5,12 +5,12 @@ class "WeirdThingy" inherits:ArbitraryAttribs {
 
     attrib "x";
     method "setup arg" {
-        assert (arg `equals` "lol");
+        assert (arg == "lol");
         this.x = 1;
         this.y = 2;
     };
     method "lol z" {
-        assert (z `equals` 3);
+        assert (z == 3);
         return [this.x this.y];
     };
 };
@@ -18,9 +18,9 @@ class "WeirdThingy" inherits:ArbitraryAttribs {
 
 test "basic stuff" {
     var weird = (new WeirdThingy "lol");
-    assert (weird.x `equals` 1);
-    assert (weird.y `equals` 2);
-    assert ((weird.lol 3) `equals` [1 2]);
+    assert (weird.x == 1);
+    assert (weird.y == 2);
+    assert ((weird.lol 3) == [1 2]);
 
     # TODO: what should this do?
     #weird.lol = "heh";
@@ -32,6 +32,6 @@ test "basic stuff" {
             debug arbi_instance.wat;
         };
         arbi_instance.wat = 123;
-        assert (arbi_instance.wat `equals` 123);
+        assert (arbi_instance.wat == 123);
     };
 };

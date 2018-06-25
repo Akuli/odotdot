@@ -5,12 +5,12 @@ var ends_with = (import "utils").ends_with;
 
 test "message attribute" {
     var error = (new TypeError "asd asd");
-    assert (error.message `equals` "asd asd");
+    assert (error.message == "asd asd");
     var asd_debug_string = (error.to_debug_string);
 
     error.message = "toot";
-    assert (error.message `equals` "toot");
-    assert (not ((error.to_debug_string) `equals` asd_debug_string));
+    assert (error.message == "toot");
+    assert ((error.to_debug_string) != asd_debug_string);
 
     throws TypeError {
         error.message = 123;
@@ -101,7 +101,7 @@ test "the stack attribute" {
     # right now any arrays are allowed
     # because e.stack is an array, and anything can be added to arrays at any time
     e.stack = [1 2 3];
-    assert (e.stack `equals` [1 2 3]);
+    assert (e.stack == [1 2 3]);
     e.stack = null;
     assert (e.stack `same_object` null);
 };
@@ -134,11 +134,11 @@ test "that the stack doesn't get set on rethrowing" {
     var old_stack = e.stack;
     var old_stack_copy = (e.stack.slice 0);   # because rethrowing must not change the content of the array
     assert (not (old_stack `same_object` old_stack_copy));
-    assert (old_stack `equals` old_stack_copy);
+    assert (old_stack == old_stack_copy);
 
     throws AsdError {
         throw e;
     };
     assert (e.stack `same_object` old_stack);
-    assert (e.stack `equals` old_stack_copy);
+    assert (e.stack == old_stack_copy);
 };

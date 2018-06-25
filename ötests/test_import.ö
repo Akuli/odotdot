@@ -12,7 +12,7 @@ test "including .ö extension in the import string" {
     catch {
         import "asdasd.ö";
     } [ValueError "e"] {
-        assert (e.message `equals` "import \"asdasd\" instead of \"asdasd.ö\"");
+        assert (e.message == "import \"asdasd\" instead of \"asdasd.ö\"");
         caught = true;
     };
     assert caught;
@@ -27,8 +27,8 @@ test "simple importer" {
     func "importer string stackframe" {
         assert (stackframe `is_instance_of` (get_class (stack.get 0)));
 
-        if (string `equals` "testie") {
-            assert (stackframe.filename `equals` this_file_name);   # called from this file
+        if (string == "testie") {
+            assert (stackframe.filename == this_file_name);   # called from this file
             count = (count + 1);
             return lib;
         } else: {
@@ -37,17 +37,17 @@ test "simple importer" {
     };
 
     imports.importers.push importer;
-    assert (count `equals` 0);
+    assert (count == 0);
     assert ((import "testie") `same_object` lib);
-    assert (count `equals` 1);
+    assert (count == 1);
     assert ((import "testie") `same_object` lib);
-    assert (count `equals` 2);
+    assert (count == 2);
     assert ((imports.importers.pop) `same_object` importer);
 };
 
 test "bad importer" {
     func "importer string stackframe" {
-        if (string `equals` "testie") {
+        if (string == "testie") {
             return "lol";  # BAD!
         } else: {
             return null;

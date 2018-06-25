@@ -7,7 +7,7 @@ test "definition_scope" {
     assert ({}.definition_scope `is_instance_of` Scope);
     assert ({}.definition_scope `same_object` {print "Hi";}.definition_scope);
     var a = 123;
-    assert (({}.definition_scope.local_vars.get "a") `equals` 123);
+    assert (({}.definition_scope.local_vars.get "a") == 123);
 };
 
 test "run and run_with_return" {
@@ -18,14 +18,14 @@ test "run and run_with_return" {
         throws VariableError { return "lol"; };
         ran = (ran + 1);
     }.run scope;
-    assert (ran `equals` 1);
+    assert (ran == 1);
 
     assert (({
         ran = (ran + 1);
         return "lol";
         ran = (ran + 666);   # must not run
-    }.run_with_return scope) `equals` "lol");
-    assert (ran `equals` 2);
+    }.run_with_return scope) == "lol");
+    assert (ran == 2);
     # TODO: the return variable should get deleted from the scope
     # right now it doesn't get deleted
 
@@ -36,7 +36,7 @@ test "run and run_with_return" {
             ran = (ran + 666);
         }.run scope;
     };
-    assert (ran `equals` 3);
+    assert (ran == 3);
 
     throws ValueError {
         {
@@ -45,15 +45,15 @@ test "run and run_with_return" {
             ran = (ran + 666);
         }.run_with_return scope;
     };
-    assert (ran `equals` 4);
+    assert (ran == 4);
 
     assert (({ }.run_with_return scope) `same_object` null);
     assert (({ return; }.run_with_return scope) `same_object` null);
 };
 
 test "implicit returning" {
-    assert (({ 123 }.run_with_return {}.definition_scope) `equals` 123);
-    assert (({ ";;;" }.run_with_return {}.definition_scope) `equals` ";;;");
+    assert (({ 123 }.run_with_return {}.definition_scope) == 123);
+    assert (({ ";;;" }.run_with_return {}.definition_scope) == ";;;");
     assert (({ {
         throw (new ValueError "this wasn't supposed to run");
     } }.run_with_return {}.definition_scope) `is_instance_of` Block);

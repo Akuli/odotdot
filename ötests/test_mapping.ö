@@ -4,63 +4,63 @@ var throws = (import "utils").throws;
 
 test "basic stuff" {
     var m = (new Mapping);
-    assert (m.length `equals` 0);
+    assert (m.length == 0);
 
     throws KeyError { m.get "a"; };
-    assert (m.length `equals` 0);
+    assert (m.length == 0);
 
     var value = [];
     m.set "a" value;
-    assert (m.length `equals` 1);
+    assert (m.length == 1);
     assert ((m.get "a") `same_object` value);
 
     m.delete "a";
-    assert (m.length `equals` 0);
+    assert (m.length == 0);
 
     m.set "b" value;
-    assert (m.length `equals` 1);
+    assert (m.length == 1);
     assert ((m.get_and_delete "b") `same_object` value);
-    assert (m.length `equals` 0);
+    assert (m.length == 0);
 };
 
 test "equals and length" {
     var m1 = (new Mapping);
     var m2 = (new Mapping);
-    assert (m1.length `equals` 0);
-    assert (m2.length `equals` 0);
-    assert (m1 `equals` m2);
+    assert (m1.length == 0);
+    assert (m2.length == 0);
+    assert ((m1 == m2) `and` (m2 == m1));
 
     m1.set "a" "b";
-    assert (m1.length `equals` 1);
-    assert (m2.length `equals` 0);
-    assert (not (m1 `equals` m2));
+    assert (m1.length == 1);
+    assert (m2.length == 0);
+    assert ((m1 != m2) `and` (m2 != m1));
 
     m2.set "a" "b";
-    assert (m1.length `equals` 1);
-    assert (m2.length `equals` 1);
-    assert (m1 `equals` m2);
+    assert (m1.length == 1);
+    assert (m2.length == 1);
+    assert ((m1 == m2) `and` (m2 == m1));
 
     m2.set "a" "c";
-    assert (m1.length `equals` 1);
-    assert (m2.length `equals` 1);
-    assert (not (m1 `equals` m2));
+    assert (m1.length == 1);
+    assert (m2.length == 1);
+    assert ((m1 != m2) `and` (m2 != m1));
 
     m2.set "a" "b";
-    assert (m1.length `equals` 1);
-    assert (m2.length `equals` 1);
-    assert (m1 `equals` m2);
+    assert (m1.length == 1);
+    assert (m2.length == 1);
+    assert ((m1 == m2) `and` (m2 == m1));
 
     m2.set "c" "d";
-    assert (m1.length `equals` 1);
-    assert (m2.length `equals` 2);
-    assert (not (m1 `equals` m2));
+    assert (m1.length == 1);
+    assert (m2.length == 2);
+    assert ((m1 != m2) `and` (m2 != m1));
 };
 
 test "constructors" {
-    assert ((new Mapping).length `equals` 0);
-    assert ((new Mapping) `equals` (new Mapping []));
-    assert ((new Mapping a:1 b:2) `equals` (new Mapping [["a" 1] ["b" 2]]));
-    assert ((new Mapping a:1 b:2) `equals` (new Mapping [["a" 1]] b:2));
+    assert ((new Mapping).length == 0);
+    assert ((new Mapping) == (new Mapping []));
+    assert ((new Mapping a:1 b:2) == (new Mapping [["a" 1] ["b" 2]]));
+    assert ((new Mapping a:1 b:2) == (new Mapping [["a" 1]] b:2));
 
     throws ArgError { new Mapping [1 2] [3 4]; };
     throws TypeError { new Mapping "lol"; };
@@ -76,10 +76,10 @@ test "unhashable keys" {
 
         var m = (new Mapping []);
         throws TypeError { m.set bad 123; };
-        assert (m.length `equals` 0);
+        assert (m.length == 0);
         throws TypeError { m.get bad; };   # not a KeyError
         throws TypeError { m.delete bad; };
         throws TypeError { m.get_and_delete bad; };
-        assert (m.length `equals` 0);
+        assert (m.length == 0);
     };
 };

@@ -6,12 +6,12 @@ var MANY_ZEROS = "00000000000000000000000000000000000000000000000000000000000000
 var MANY_ASDS = "asdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasd";
 
 test "equals" {
-    assert (1 `equals` 1);
-    assert (2 `equals` 2);
-    assert ((0-1) `equals` (0-1));
-    assert (not (1 `equals` (0-1)));
-    assert (not (1 `equals` 0));
-    assert (not ((0-1) `equals` 0));
+    assert (1 == 1);
+    assert (2 == 2);
+    assert ((0-1) == (0-1));
+    assert (1 != (0-1));
+    assert (1 != 0);
+    assert ((0-1) != 0);
 };
 
 test "new and to_string" {
@@ -33,10 +33,10 @@ test "new and to_string" {
         var integer = (pair.get 1);
         var to_string_must_match = (pair.get 2);
 
-        assert ((new Integer string) `equals` integer);
+        assert ((new Integer string) == integer);
         if to_string_must_match {
-            assert ((integer.to_string) `equals` string);
-            assert ((integer.to_debug_string) `equals` string);
+            assert ((integer.to_string) == string);
+            assert ((integer.to_debug_string) == string);
         };
     };
 };
@@ -50,9 +50,9 @@ test "limits" {
     foreach "pair" should_work {
         var string = (pair.get 0);
         var integer = (pair.get 1);
-        assert ((new Integer string) `equals` integer);
-        assert ((integer.to_string) `equals` string);
-        assert ((integer.to_debug_string) `equals` string);
+        assert ((new Integer string) == integer);
+        assert ((integer.to_string) == string);
+        assert ((integer.to_debug_string) == string);
     };
 
     throws ValueError { new Integer "-9223372036854775808"; };
@@ -74,23 +74,29 @@ test "operators" {
     var numbers = [0 1 (0-1) 2 (0-2)];
     foreach "a" numbers {
         foreach "b" numbers {
+            if (a == b) {
+                assert (not (a != b));
+            } else {
+                assert (a != b);
+            };
+
             # TODO: need an operator for powers, this looks ugly
-            assert (((a+b)-b) `equals` a);
-            assert (((a-b)+b) `equals` a);
-            assert (((a+b)*(a+b)) `equals` (((a*a) + ((2*a)*b)) + (b*b)));
-            assert (((a-b)*(a-b)) `equals` (((a*a) - ((2*a)*b)) + (b*b)));
-            assert (((a+b)*(a-b)) `equals` ((a*a) - (b*b)));
-            assert ((((a+b)*(a+b))*(a+b)) `equals` (((((a*a)*a)+(((3*a)*a)*b))+(((3*a)*b)*b))+((b*b)*b)));
+            assert (((a+b)-b) == a);
+            assert (((a-b)+b) == a);
+            assert (((a+b)*(a+b)) == (((a*a) + ((2*a)*b)) + (b*b)));
+            assert (((a-b)*(a-b)) == (((a*a) - ((2*a)*b)) + (b*b)));
+            assert (((a+b)*(a-b)) == ((a*a) - (b*b)));
+            assert ((((a+b)*(a+b))*(a+b)) == (((((a*a)*a)+(((3*a)*a)*b))+(((3*a)*b)*b))+((b*b)*b)));
             foreach "c" numbers {
-                assert (((a+b)*c) `equals` ((a*c) + (b*c)));
-                assert (((a-b)*c) `equals` ((a*c) - (b*c)));
+                assert (((a+b)*c) == ((a*c) + (b*c)));
+                assert (((a-b)*c) == ((a*c) - (b*c)));
             };
         };
     };
-    assert ((1+2) `equals` 3);
-    assert ((1-2) `equals` (0-1));
+    assert ((1+2) == 3);
+    assert ((1-2) == (0-1));
 
-    assert ((3*4) `equals` 12);
-    assert ((3*(0-4)) `equals` (0-12));
-    assert ((3*(0-4)) `equals` (0-12));
+    assert ((3*4) == 12);
+    assert ((3*(0-4)) == (0-12));
+    assert ((3*(0-4)) == (0-12));
 };

@@ -15,7 +15,7 @@ func "throws errorclass body" {
 
 # TODO: make this a string method
 func "ends_with string substring" {
-    return ((string.slice (string.length - substring.length) string.length) `equals` substring);
+    return ((string.slice (string.length - substring.length) string.length) == substring);
 };
 
 test "the ends_with util function" {

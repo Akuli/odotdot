@@ -19,7 +19,7 @@ test "things that used to make my interpreter segfault" {
     class "C" { };
     C.getters.set "to_debug_string" (lambda "this" { return "lol"; });
     var c = (new C);
-    assert (c.to_debug_string `equals` "lol");
+    assert (c.to_debug_string == "lol");
     var mapping = (new Mapping);
     throws TypeError {
         mapping.get c;

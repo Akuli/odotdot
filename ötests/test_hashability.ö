@@ -34,7 +34,7 @@ var non_hashables = [
 test "hashables and not-hashables as mapping keys" {
     foreach "hashable" hashables {
         var m = (new Mapping [ [hashable 123] ]);
-        assert ((m.get hashable) `equals` 123);
+        assert ((m.get hashable) == 123);
     };
 
     foreach "non_hashable" non_hashables {
