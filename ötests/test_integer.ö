@@ -59,7 +59,7 @@ test "limits" {
     throws ValueError { new Integer "9223372036854775808"; };
 };
 
-test "to_string errors" {
+test "bad integer strings" {
     foreach "bad" ["1+2" "0000-123" "0-123" "--123" "+123" "++123" "+-123" "-+123" "asdasdasd"
                    "123asd" "asd123" "-asd123" MANY_ASDS] {
         throws ValueError { new Integer bad; };
