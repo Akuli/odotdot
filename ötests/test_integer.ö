@@ -68,7 +68,29 @@ test "to_string errors" {
 
 
 test "operators" {
-    # TODO: more tests
+    # test some math identities
+    # if the operators are broken, these should break too
+    # TODO: test limits with operators
+    var numbers = [0 1 (0-1) 2 (0-2)];
+    foreach "a" numbers {
+        foreach "b" numbers {
+            # TODO: need an operator for powers, this looks ugly
+            assert (((a+b)-b) `equals` a);
+            assert (((a-b)+b) `equals` a);
+            assert (((a+b)*(a+b)) `equals` (((a*a) + ((2*a)*b)) + (b*b)));
+            assert (((a-b)*(a-b)) `equals` (((a*a) - ((2*a)*b)) + (b*b)));
+            assert (((a+b)*(a-b)) `equals` ((a*a) - (b*b)));
+            assert ((((a+b)*(a+b))*(a+b)) `equals` (((((a*a)*a)+(((3*a)*a)*b))+(((3*a)*b)*b))+((b*b)*b)));
+            foreach "c" numbers {
+                assert (((a+b)*c) `equals` ((a*c) + (b*c)));
+                assert (((a-b)*c) `equals` ((a*c) - (b*c)));
+            };
+        };
+    };
     assert ((1+2) `equals` 3);
     assert ((1-2) `equals` (0-1));
+
+    assert ((3*4) `equals` 12);
+    assert ((3*(0-4)) `equals` (0-12));
+    assert ((3*(0-4)) `equals` (0-12));
 };
