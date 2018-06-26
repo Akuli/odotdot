@@ -20,6 +20,8 @@ struct Object *operator_call(struct Interpreter *interp, enum Operator op, struc
 		int res = operator_eqint(interp, lhs, rhs);
 		return res<0 ? NULL : boolobject_get(interp, !res);
 	}
+	if (op == OPERATOR_GT)
+		return operator_call(interp, OPERATOR_LT, rhs, lhs);   // flip lhs and rhs
 
 	struct Object *oparray;
 	char *opstr;
@@ -38,6 +40,9 @@ struct Object *operator_call(struct Interpreter *interp, enum Operator op, struc
 	} else if (op == OPERATOR_EQ) {
 		oparray = interp->oparrays.eq;
 		opstr = "==";
+	} else if (op == OPERATOR_LT) {
+		oparray = interp->oparrays.lt;
+		opstr = "<";
 	} else
 		assert(0);
 

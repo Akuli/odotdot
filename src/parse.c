@@ -250,6 +250,10 @@ static struct Object *parse_operator_call(struct Interpreter *interp, char *file
 			opcallinfo->op = OPERATOR_MUL;
 		else if (op.val[0] == '/')
 			opcallinfo->op = OPERATOR_DIV;
+		else if (op.val[0] == '>')
+			opcallinfo->op = OPERATOR_GT;
+		else if (op.val[0] == '<')
+			opcallinfo->op = OPERATOR_LT;
 		else
 			assert(0);
 	} else if (op.len == 2) {

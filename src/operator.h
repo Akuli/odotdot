@@ -10,7 +10,9 @@ enum Operator {
 	OPERATOR_MUL,  // *
 	OPERATOR_DIV,  // /
 	OPERATOR_EQ,   // ==
-	OPERATOR_NE    // !=
+	OPERATOR_NE,   // !=
+	OPERATOR_GT,   // >
+	OPERATOR_LT    // <
 };
 
 // implementation of "(lhs OPERATOR rhs)"

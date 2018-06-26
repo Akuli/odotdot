@@ -99,4 +99,8 @@ test "operators" {
     assert ((3*4) == 12);
     assert ((3*(0-4)) == (0-12));
     assert ((3*(0-4)) == (0-12));
+
+    assert (1 < 2);
+    assert ((0-1) < 0);
+    assert ((0-1) < 1);
 };

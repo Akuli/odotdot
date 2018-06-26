@@ -439,6 +439,7 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!(interp->oparrays.mul = arrayobject_newempty(interp))) goto error;
 	if (!(interp->oparrays.div = arrayobject_newempty(interp))) goto error;
 	if (!(interp->oparrays.eq = arrayobject_newempty(interp))) goto error;
+	if (!(interp->oparrays.lt = arrayobject_newempty(interp))) goto error;
 
 	if (!functionobject_add2array(interp, interp->oparrays.eq, "identity_eq", identity_eq)) goto error;
 	if (!stringobject_initoparrays(interp)) goto error;
@@ -539,7 +540,6 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(builtins.null);
 	TEARDOWN(builtins.nomemerr);
 	TEARDOWN(builtinscope);
-
 	TEARDOWN(importstuff.filelibcache);
 	TEARDOWN(importstuff.importers);
 	TEARDOWN(oparrays.add);
@@ -547,5 +547,6 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(oparrays.mul);
 	TEARDOWN(oparrays.div);
 	TEARDOWN(oparrays.eq);
+	TEARDOWN(oparrays.lt);
 #undef TEARDOWN
 }

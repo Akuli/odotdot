@@ -42,6 +42,7 @@ struct Interpreter *interpreter_new(char *argv0)
 	interp->oparrays.mul =
 	interp->oparrays.div =
 	interp->oparrays.eq =
+	interp->oparrays.lt =
 	interp->err =
 	interp->builtinscope =
 	interp->builtins.Array =

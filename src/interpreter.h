@@ -60,7 +60,8 @@ struct Interpreter {
 	// (x + y) loops through oparrays.add and calls the functions until one of them returns non-null
 	// see also operator.h
 	struct {
-		struct Object *add, *sub, *mul, *div, *eq;
+		// the Operator enum in operator.h shows what these short names mean
+		struct Object *add, *sub, *mul, *div, *eq, *lt;
 	} oparrays;
 
 	struct StackFrame stack[STACK_MAX];
