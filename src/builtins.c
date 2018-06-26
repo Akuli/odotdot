@@ -14,6 +14,7 @@
 #include "objects/array.h"
 #include "objects/astnode.h"
 #include "objects/block.h"
+#include "objects/bool.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
 #include "objects/function.h"
@@ -45,13 +46,7 @@ static struct Object *subscope_of_defscope(struct Interpreter *interp, struct Ob
 static struct Object *if_(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	// bool is created in builtins.ö
-	struct Object *boolclass = interpreter_getbuiltin(interp, "Bool");
-	if (!boolclass)
-		return NULL;
-
-	bool ok = check_args(interp, args, boolclass, interp->builtins.Block, NULL);
-	OBJECT_DECREF(interp, boolclass);
-	if (!ok) return NULL;
+	if (!check_args(interp, args, interp->builtins.Bool, interp->builtins.Block, NULL)) return NULL;
 	if (!check_opts(interp, opts, "else", interp->builtins.Block, NULL)) return NULL;
 
 	struct Object *cond = ARRAYOBJECT_GET(args, 0);
@@ -67,17 +62,7 @@ static struct Object *if_(struct Interpreter *interp, struct Object *args, struc
 	if (status == -1)
 		return NULL;
 
-	struct Object *truee = interpreter_getbuiltin(interp, "true");
-	if (!truee) {
-		if (elseblock)
-			OBJECT_DECREF(interp, elseblock);
-		return NULL;
-	}
-
-	bool doit = (cond == truee);
-	OBJECT_DECREF(interp, truee);
-
-	if (doit) {
+	if (cond == interp->builtins.yes) {
 		struct Object *scope = subscope_of_defscope(interp, ifblock);
 		if (!scope)
 			goto error;
@@ -120,52 +105,41 @@ static struct Object *for_(struct Interpreter *interp, struct Object *args, stru
 	if (!scope)
 		return NULL;
 
-	struct Object *yay = interpreter_getbuiltin(interp, "true");
-	if (!yay) {
+	if (!blockobject_run(interp, init, scope)) {
 		OBJECT_DECREF(interp, scope);
 		return NULL;
 	}
-	struct Object *nay = interpreter_getbuiltin(interp, "false");
-	if (!nay) {
-		OBJECT_DECREF(interp, yay);
-		OBJECT_DECREF(interp, scope);
-		return NULL;
-	}
-
-	if (!blockobject_run(interp, init, scope))
-		goto error;
 
 	while(1) {
 		struct Object *keepgoing = blockobject_runwithreturn(interp, cond, scope);
-		if (!keepgoing)
-			goto error;
+		if (!keepgoing) {
+			OBJECT_DECREF(interp, scope);
+			return NULL;
+		}
 
-		bool go = keepgoing==yay;
-		bool omg = (keepgoing!=yay && keepgoing!=nay);
+		bool go = keepgoing==interp->builtins.yes;
+		bool omg = (keepgoing != interp->builtins.yes && keepgoing != interp->builtins.no);
 		OBJECT_DECREF(interp, keepgoing);
 		if (omg) {
 			errorobject_throwfmt(interp, "TypeError", "the condition of a for loop must return true or false, but it returned %D", keepgoing);
-			goto error;
+			OBJECT_DECREF(interp, scope);
+			return NULL;
 		}
 		if (!go)
 			break;
 
-		if (!blockobject_run(interp, body, scope))
-			goto error;
-		if (!blockobject_run(interp, incr, scope))
-			goto error;
+		if (!blockobject_run(interp, body, scope)) {
+			OBJECT_DECREF(interp, scope);
+			return NULL;
+		}
+		if (!blockobject_run(interp, incr, scope)) {
+			OBJECT_DECREF(interp, scope);
+			return NULL;
+		}
 	}
 
-	OBJECT_DECREF(interp, yay);
-	OBJECT_DECREF(interp, nay);
 	OBJECT_DECREF(interp, scope);
 	return nullobject_get(interp);
-
-error:
-	OBJECT_DECREF(interp, yay);
-	OBJECT_DECREF(interp, nay);
-	OBJECT_DECREF(interp, scope);
-	return NULL;
 }
 
 static struct Object *throw(struct Interpreter *interp, struct Object *args, struct Object *opts)
@@ -257,22 +231,26 @@ static struct Object *get_class(struct Interpreter *interp, struct Object *args,
 	return obj->klass;
 }
 
-#define BOOL(interp, x) interpreter_getbuiltin((interp), (x) ? "true" : "false")
+static struct Object *getbool(struct Interpreter *interp, bool b) {
+	struct Object *res = b ? interp->builtins.yes : interp->builtins.no;
+	OBJECT_INCREF(interp, res);
+	return res;
+}
+
 static struct Object *is_instance_of(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	// TODO: shouldn't this be implemented in builtins.ö? classobject_isinstanceof() doesn't do anything fancy
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Class, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	return BOOL(interp, classobject_isinstanceof(ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1)));
+	return getbool(interp, classobject_isinstanceof(ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1)));
 }
 
 static struct Object *same_object(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	return BOOL(interp, ARRAYOBJECT_GET(args, 0) == ARRAYOBJECT_GET(args, 1));
+	return getbool(interp, ARRAYOBJECT_GET(args, 0) == ARRAYOBJECT_GET(args, 1));
 }
-#undef BOOL
 
 
 static struct Object *print(struct Interpreter *interp, struct Object *args, struct Object *opts)
@@ -383,6 +361,15 @@ static struct Object *get_attrdata(struct Interpreter *interp, struct Object *ar
 }
 
 
+// make sure that 'a == b' returns true if 'a `same_object` b'
+static struct Object *eq_optimization(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+	return ARRAYOBJECT_GET(args, 0)==ARRAYOBJECT_GET(args, 1) ? interpreter_getbuiltin(interp, "true") : nullobject_get(interp);
+}
+
+
 static bool add_function(struct Interpreter *interp, char *name, functionobject_cfunc cfunc)
 {
 	struct Object *func = functionobject_new(interp, cfunc, name);
@@ -433,6 +420,10 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!classobject_setname(interp, interp->builtins.Error, "Error")) goto error;
 	if (!classobject_setname(interp, interp->builtins.nomemerr->klass, "MemError")) goto error;
 
+	if (!boolobject_create(interp, &interp->builtins.yes, &interp->builtins.no)) goto error;
+	interp->builtins.Bool = interp->builtins.no->klass;
+	OBJECT_INCREF(interp, interp->builtins.Bool);
+
 	if (!(interp->builtins.Array = arrayobject_createclass(interp))) goto error;
 	if (!(interp->builtins.Integer = integerobject_createclass(interp))) goto error;
 	if (!(interp->builtins.AstNode = astnodeobject_createclass(interp))) goto error;
@@ -453,22 +444,30 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!(interp->oparrays.sub = arrayobject_newempty(interp))) goto error;
 	if (!(interp->oparrays.mul = arrayobject_newempty(interp))) goto error;
 	if (!(interp->oparrays.div = arrayobject_newempty(interp))) goto error;
+	if (!(interp->oparrays.eq = arrayobject_newempty(interp))) goto error;
+
+	if (!functionobject_add2array(interp, interp->oparrays.eq, "identity_eq", eq_optimization)) goto error;
+	if (!stringobject_initoparrays(interp)) goto error;
 	if (!integerobject_initoparrays(interp)) goto error;
+	if (!arrayobject_initoparrays(interp)) goto error;
+	if (!mappingobject_initoparrays(interp)) goto error;
+	if (!boolobject_initoparrays(interp)) goto error;
 
 	if (!interpreter_addbuiltin(interp, "ArbitraryAttribs", interp->builtins.ArbitraryAttribs)) goto error;
 	if (!interpreter_addbuiltin(interp, "Array", interp->builtins.Array)) goto error;
 	if (!interpreter_addbuiltin(interp, "Block", interp->builtins.Block)) goto error;
+	if (!interpreter_addbuiltin(interp, "Bool", interp->builtins.Bool)) goto error;
+	if (!interpreter_addbuiltin(interp, "Error", interp->builtins.Error)) goto error;
 	if (!interpreter_addbuiltin(interp, "Integer", interp->builtins.Integer)) goto error;
 	if (!interpreter_addbuiltin(interp, "Mapping", interp->builtins.Mapping)) goto error;
+	if (!interpreter_addbuiltin(interp, "MemError", interp->builtins.nomemerr->klass)) goto error;
 	if (!interpreter_addbuiltin(interp, "Object", interp->builtins.Object)) goto error;
 	if (!interpreter_addbuiltin(interp, "Scope", interp->builtins.Scope)) goto error;
 	if (!interpreter_addbuiltin(interp, "String", interp->builtins.String)) goto error;
-
-	if (!interpreter_addbuiltin(interp, "Error", interp->builtins.Error)) goto error;
-	if (!interpreter_addbuiltin(interp, "MemError", interp->builtins.nomemerr->klass)) goto error;
-
+	if (!interpreter_addbuiltin(interp, "false", interp->builtins.no)) goto error;
 	if (!interpreter_addbuiltin(interp, "importers", interp->importstuff.importers)) goto error;
 	if (!interpreter_addbuiltin(interp, "null", interp->builtins.null)) goto error;
+	if (!interpreter_addbuiltin(interp, "true", interp->builtins.yes)) goto error;
 
 	if (!add_function(interp, "if", if_)) goto error;
 	if (!add_function(interp, "throw", throw)) goto error;
@@ -529,6 +528,7 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(builtins.Array);
 	TEARDOWN(builtins.AstNode);
 	TEARDOWN(builtins.Block);
+	TEARDOWN(builtins.Bool);
 	TEARDOWN(builtins.Class);
 	TEARDOWN(builtins.Error);
 	TEARDOWN(builtins.Function);
@@ -540,6 +540,8 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(builtins.Scope);
 	TEARDOWN(builtins.StackFrame);
 	TEARDOWN(builtins.String);
+	TEARDOWN(builtins.yes);
+	TEARDOWN(builtins.no);
 	TEARDOWN(builtins.null);
 	TEARDOWN(builtins.nomemerr);
 	TEARDOWN(builtinscope);
@@ -550,5 +552,6 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(oparrays.sub);
 	TEARDOWN(oparrays.mul);
 	TEARDOWN(oparrays.div);
+	TEARDOWN(oparrays.eq);
 #undef TEARDOWN
 }

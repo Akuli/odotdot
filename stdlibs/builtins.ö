@@ -1,10 +1,5 @@
 var Class = (get_class String);
 
-# can't wait until the class builtin exists, bools are needed for creating that
-var Bool = (new Class "Bool" Object);
-var true = (new Bool);
-var false = (new Bool);
-
 # errors are defined as early as possible because rest of the code may throw them
 var ArgError = (new Class "ArgError" Error);
 var AssertError = (new Class "AssertError" Error);
@@ -16,7 +11,6 @@ var ValueError = (new Class "ValueError" Error);
 var VariableError = (new Class "VariableError" Error);
 
 {}.definition_scope.local_vars.delete "Class";
-
 
 var add_method = (lambda "klass name lambda_with_this" {
     var getter = (lambda "this" {
@@ -85,7 +79,7 @@ add_method String "to_debug_string" (lambda "this" {
     } [MathError "e"] {
         StackFrame = (get_class (e.stack.get 0));
     };
-    if (StackFrame == null) {
+    if (StackFrame `same_object` null) {
         throw (new AssertError "throw and catch don't seem to work");
     };
 

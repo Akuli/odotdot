@@ -4,6 +4,9 @@
 #include <stddef.h>
 #include "../objectsystem.h"    // IWYU pragma: keep
 
+// interpreter.h includes this
+struct Interpreter;
+
 
 /* should
       * RETURN A NEW REFERENCE on success
@@ -24,6 +27,11 @@ bool functionobject_addmethods(struct Interpreter *interp);
 // RETURNS A NEW REFERENCE or NULL on error
 // if partialarg is not NULL, it's added as the first argument when the function is called
 struct Object *functionobject_new(struct Interpreter *interp, functionobject_cfunc cfunc, char *name);
+
+// creates a Function object and adds it to an Array object
+// especially useful with interp->oparrays
+// returns false on error
+bool functionobject_add2array(struct Interpreter *interp, struct Object *arr, char *name, functionobject_cfunc cfunc);
 
 // add a partial argument
 // bad things happen if func is not a function object

@@ -10,14 +10,24 @@
 #include "objects/mapping.h"
 #include "unicode.h"
 
+#define class_name(obj) (((struct ClassObjectData *) (obj)->klass->data)->name)
+
 
 struct Object *operator_call(struct Interpreter *interp, enum Operator op, struct Object *lhs, struct Object *rhs)
 {
-	if (op == OPERATOR_EQ || op == OPERATOR_NE) {
-		int res = (op == OPERATOR_EQ)? operator_eqint(interp, lhs, rhs) : operator_neint(interp, lhs, rhs);
-		if (res < 0)
+	if (op == OPERATOR_NE) {
+		int res = operator_neint(interp, lhs, rhs);
+		if (res == -1)
 			return NULL;
-		return interpreter_getbuiltin(interp, res ? "true" : "false");
+		if (res == 0) {
+			OBJECT_INCREF(interp, interp->builtins.no);
+			return interp->builtins.no;
+		}
+		if (res == 1) {
+			OBJECT_INCREF(interp, interp->builtins.yes);
+			return interp->builtins.yes;
+		}
+		assert(0);
 	}
 
 	struct Object *oparray;
@@ -34,6 +44,9 @@ struct Object *operator_call(struct Interpreter *interp, enum Operator op, struc
 	} else if (op == OPERATOR_DIV) {
 		oparray = interp->oparrays.div;
 		opstr = "/";
+	} else if (op == OPERATOR_EQ) {
+		oparray = interp->oparrays.eq;
+		opstr = "==";
 	} else
 		assert(0);
 
@@ -51,83 +64,53 @@ struct Object *operator_call(struct Interpreter *interp, enum Operator op, struc
 	}
 
 	// nothing matching found from the oparray
-#define class_name(obj) (((struct ClassObjectData *) (obj)->klass->data)->name)
 	errorobject_throwfmt(interp, "TypeError", "%U %s %U", class_name(lhs), opstr, class_name(rhs));
-#undef class_name
 	return NULL;
 }
 
-// TODO: use an oparray instead
 int operator_eqint(struct Interpreter *interp, struct Object *a, struct Object *b)
 {
-	// mostly for optimization
-	if (a == b)
-		return 1;
+	if (!interp->oparrays.eq)
+	{
+		// called early from builtins_setup()
+		assert(a->klass == interp->builtins.String);
+		assert(b->klass == interp->builtins.String);
 
-	if (classobject_isinstanceof(a, interp->builtins.String) && classobject_isinstanceof(b, interp->builtins.String)) {
-		struct UnicodeString *astr = a->data, *bstr = b->data;
+		struct UnicodeString *astr = a->data;
+		struct UnicodeString *bstr = b->data;
+
 		if (astr->len != bstr->len)
 			return 0;
 
-		// memcmp is not reliable :( https://stackoverflow.com/a/11995514
-		for (size_t i=0; i < astr->len; i++) {
-			if (astr->val[i] != bstr->val[i])
-				return 0;
+		// memcmp isn't reliable :( grep for memcmp in the source for detailz
+		for (size_t i=0; i < astr->len; ++i)
+		{
+			if (astr->val[i]!=bstr->val[i])
+			 return 0;
 		}
 		return 1;
 	}
 
-	if (classobject_isinstanceof(a, interp->builtins.Integer) && classobject_isinstanceof(b, interp->builtins.Integer)) {
-		long long *aval = a->data, *bval = b->data;
-		return (*aval == *bval);
+	struct Object *res = operator_call(interp, OPERATOR_EQ, a, b);
+	int ret;
+	if (!res)
+		ret = -1;
+	else if (res == interp->builtins.yes)
+		ret = 1;
+	else if (res == interp->builtins.no)
+		ret = 0;
+	else {
+		errorobject_throwfmt(interp, "TypeError", "expected a Bool from %U == %U, but got %D", class_name(a), class_name(b), res);
+		ret = -1;
 	}
 
-	if (classobject_isinstanceof(a, interp->builtins.Array) && classobject_isinstanceof(b, interp->builtins.Array)) {
-		if (ARRAYOBJECT_LEN(a) != ARRAYOBJECT_LEN(b))
-			return 0;
-		for (size_t i=0; i < ARRAYOBJECT_LEN(a); i++) {
-			int res = operator_eqint(interp, ARRAYOBJECT_GET(a, i), ARRAYOBJECT_GET(b, i));
-			if (res != 1)    // -1 for error or 0 for not qeual
-				return res;
-		}
-		return 1;
-	}
-
-	if (classobject_isinstanceof(a, interp->builtins.Mapping) && classobject_isinstanceof(b, interp->builtins.Mapping)) {
-		// mappings are equal if they have same keys and values
-		// that's true if and only if for every key of a, a.get(key) == b.get(key)
-		// unless a and b are of different lengths
-		// or a and b have same number of keys but different keys, and .get() fails
-
-		if (MAPPINGOBJECT_SIZE(a) != MAPPINGOBJECT_SIZE(b))
-			return 0;
-
-		struct MappingObjectIter iter;
-		mappingobject_iterbegin(&iter, a);
-		while (mappingobject_iternext(&iter)) {
-			struct Object *bval;
-
-			int res = mappingobject_get(interp, b, iter.key, &bval);
-			if (res != 1)
-				return res;   // -1 for error or 0 for key not found
-
-			// ok, so we found the value... let's compare
-			res = operator_eqint(interp, iter.value, bval);
-			OBJECT_DECREF(interp, bval);
-			if (res != 1)
-				return res;    // -1 for error or 0 for not equal
-		}
-		return 1;
-	}
-
-	// TODO: is this a good default? an error for 1 == "1" might make debugging easier
-	return 0;
+	if (res)
+		OBJECT_DECREF(interp, res);
+	return ret;
 }
 
 int operator_neint(struct Interpreter *interp, struct Object *a, struct Object *b)
 {
 	int res = operator_eqint(interp, a, b);
-	if (res == -1)
-		return -1;
-	return !res;
+	return res<0 ? res : !res;
 }

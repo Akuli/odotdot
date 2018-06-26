@@ -208,6 +208,23 @@ error:
 
 
 // TODO: these are a lot of boilerplate
+static struct Object *eq(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+	struct Object *x = ARRAYOBJECT_GET(args, 0), *y = ARRAYOBJECT_GET(args, 1);
+	if (!(classobject_isinstanceof(x, interp->builtins.Integer) && classobject_isinstanceof(x, interp->builtins.Integer)))
+		return nullobject_get(interp);
+
+	struct Object *res;
+	if (integerobject_tolonglong(x) == integerobject_tolonglong(y))
+		res = interp->builtins.yes;
+	else
+		res = interp->builtins.no;
+	OBJECT_INCREF(interp, res);
+	return res;
+}
+
 static struct Object *add(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
@@ -233,7 +250,7 @@ static struct Object *mul(struct Interpreter *interp, struct Object *args, struc
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *x = ARRAYOBJECT_GET(args, 0), *y = ARRAYOBJECT_GET(args, 1);
-	if (classobject_isinstanceof(x, interp->builtins.Integer) && classobject_isinstanceof(x, interp->builtins.Integer))
+	if (classobject_isinstanceof(x, interp->builtins.Integer) && classobject_isinstanceof(y, interp->builtins.Integer))
 		return integerobject_newfromlonglong(interp, integerobject_tolonglong(x) * integerobject_tolonglong(y));
 	return nullobject_get(interp);
 }
@@ -241,21 +258,11 @@ static struct Object *mul(struct Interpreter *interp, struct Object *args, struc
 // TODO: div
 
 
-static bool create_opfunc(struct Interpreter *interp, struct Object *array, char *name, functionobject_cfunc func)
-{
-	struct Object *funcobj = functionobject_new(interp, func, name);
-	if (!funcobj)
-		return false;
-
-	bool ok = arrayobject_push(interp, array, funcobj);
-	OBJECT_DECREF(interp, funcobj);
-	return ok;
-}
-
 bool integerobject_initoparrays(struct Interpreter *interp)
 {
-	if (!create_opfunc(interp, interp->oparrays.add, "integer_add", add)) return false;
-	if (!create_opfunc(interp, interp->oparrays.sub, "integer_sub", sub)) return false;
-	if (!create_opfunc(interp, interp->oparrays.mul, "integer_mul", mul)) return false;
+	if (!functionobject_add2array(interp, interp->oparrays.eq, "integer_eq", eq)) return false;
+	if (!functionobject_add2array(interp, interp->oparrays.add, "integer_add", add)) return false;
+	if (!functionobject_add2array(interp, interp->oparrays.sub, "integer_sub", sub)) return false;
+	if (!functionobject_add2array(interp, interp->oparrays.mul, "integer_mul", mul)) return false;
 	return true;
 }

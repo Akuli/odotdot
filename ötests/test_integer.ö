@@ -76,7 +76,7 @@ test "operators" {
         foreach "b" numbers {
             if (a == b) {
                 assert (not (a != b));
-            } else {
+            } else: {
                 assert (a != b);
             };
 

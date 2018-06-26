@@ -23,6 +23,9 @@ struct Object *mappingobject_createclass(struct Interpreter *interp);
 // methods are stored in a Mapping, so this can't be a part of mappingobject_createclass()
 bool mappingobject_addmethods(struct Interpreter *interp);
 
+// for builtins_setup()
+bool mappingobject_initoparrays(struct Interpreter *interp);
+
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *mappingobject_newempty(struct Interpreter *interp);
 

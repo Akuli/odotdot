@@ -41,11 +41,13 @@ struct Interpreter *interpreter_new(char *argv0)
 	interp->oparrays.sub =
 	interp->oparrays.mul =
 	interp->oparrays.div =
+	interp->oparrays.eq =
 	interp->err =
 	interp->builtinscope =
 	interp->builtins.Array =
 	interp->builtins.AstNode =
 	interp->builtins.Block =
+	interp->builtins.Bool =
 	interp->builtins.Class =
 	interp->builtins.Error =
 	interp->builtins.Function =
@@ -56,6 +58,8 @@ struct Interpreter *interpreter_new(char *argv0)
 	interp->builtins.Scope =
 	interp->builtins.StackFrame =
 	interp->builtins.String =
+	interp->builtins.yes =
+	interp->builtins.no =
 	interp->builtins.null =
 	interp->builtins.nomemerr =
 	NULL;
@@ -87,6 +91,8 @@ bool interpreter_addbuiltin(struct Interpreter *interp, char *name, struct Objec
 
 struct Object *interpreter_getbuiltin(struct Interpreter *interp, char *name)
 {
+	assert(interp->builtinscope);
+
 	struct Object *keystr = stringobject_newfromcharptr(interp, name);
 	if (!keystr)
 		return NULL;

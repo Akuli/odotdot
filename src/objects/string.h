@@ -20,6 +20,9 @@ struct Object *stringobject_createclass_noerr(struct Interpreter *interp);
 // returns false on error
 bool stringobject_addmethods(struct Interpreter *interp);
 
+// for builtins_setup()
+bool stringobject_initoparrays(struct Interpreter *interp);
+
 // makes a copy of ustr with unicodestring_copy(), returns NULL on error
 // RETURNS A NEW REFERENCE
 struct Object *stringobject_newfromustr(struct Interpreter *interp, struct UnicodeString ustr);

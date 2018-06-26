@@ -216,6 +216,18 @@ struct Object *functionobject_new(struct Interpreter *interp, functionobject_cfu
 	return obj;
 }
 
+bool functionobject_add2array(struct Interpreter *interp, struct Object *arr, char *name, functionobject_cfunc cfunc)
+{
+	struct Object *func = functionobject_new(interp, cfunc, name);
+	if (!func)
+		return false;
+
+	bool ok = arrayobject_push(interp, arr, func);
+	OBJECT_DECREF(interp, func);
+	return ok;
+}
+
+
 struct Object *functionobject_call(struct Interpreter *interp, struct Object *func, ...)
 {
 	struct Object *args = arrayobject_newempty(interp);

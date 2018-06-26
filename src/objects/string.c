@@ -28,6 +28,7 @@ check these places instead:
 #include "errors.h"
 #include "function.h"
 #include "integer.h"
+#include "null.h"
 
 static void string_destructor(struct Object *s)
 {
@@ -258,6 +259,39 @@ bool stringobject_addmethods(struct Interpreter *interp)
 	if (!method_add(interp, interp->builtins.String, "split_by_whitespace", split_by_whitespace)) return false;
 	if (!method_add(interp, interp->builtins.String, "to_string", to_string)) return false;
 	return true;
+}
+
+
+static struct Object *eq(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	struct Object *s1 = ARRAYOBJECT_GET(args, 0), *s2 = ARRAYOBJECT_GET(args, 1);
+	if (!(classobject_isinstanceof(s1, interp->builtins.String) && classobject_isinstanceof(s2, interp->builtins.String)))
+		return nullobject_get(interp);
+
+	struct UnicodeString *u1 = s1->data;
+	struct UnicodeString *u2 = s2->data;
+	if (u1->len != u2->len) {
+		OBJECT_INCREF(interp, interp->builtins.no);
+		return interp->builtins.no;
+	}
+
+	// memcmp is not reliable :( https://stackoverflow.com/a/11995514
+	// TODO: use memcmp on systems where it works reliably (i have an idea for checking it)
+	for (size_t i=0; i < u1->len; i++) {
+		if (u1->val[i] != u2->val[i]) {
+			OBJECT_INCREF(interp, interp->builtins.no);
+			return interp->builtins.no;
+		}
+	}
+	OBJECT_INCREF(interp, interp->builtins.yes);
+	return interp->builtins.yes;
+}
+
+bool stringobject_initoparrays(struct Interpreter *interp) {
+	return functionobject_add2array(interp, interp->oparrays.eq, "string_eq", eq);
 }
 
 

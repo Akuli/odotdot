@@ -9,6 +9,7 @@
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"
+#include "../operator.h"
 #include "../unicode.h"
 #include "classobject.h"
 #include "errors.h"
@@ -234,6 +235,42 @@ error:
 	OBJECT_DECREF(interp, klass);
 	return NULL;
 }
+
+
+static struct Object *eq(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	struct Object *a1 = ARRAYOBJECT_GET(args, 0), *a2 = ARRAYOBJECT_GET(args, 1);
+	if (!(classobject_isinstanceof(a1, interp->builtins.Array) && classobject_isinstanceof(a2, interp->builtins.Array)))
+		return nullobject_get(interp);
+
+	if (ARRAYOBJECT_LEN(a1) != ARRAYOBJECT_LEN(a2)) {
+		OBJECT_INCREF(interp, interp->builtins.no);
+		return interp->builtins.no;
+	}
+
+	for (size_t i=0; i < ARRAYOBJECT_LEN(a1); i++) {
+		int res = operator_eqint(interp, ARRAYOBJECT_GET(a1, i), ARRAYOBJECT_GET(a2, i));
+		if (res == -1)
+			return NULL;
+		if (res == 0) {
+			OBJECT_INCREF(interp, interp->builtins.no);
+			return interp->builtins.no;
+		}
+		assert(res == 1);
+	}
+
+	OBJECT_INCREF(interp, interp->builtins.yes);
+	return interp->builtins.yes;
+}
+
+bool arrayobject_initoparrays(struct Interpreter *interp)
+{
+	return functionobject_add2array(interp, interp->oparrays.eq, "array_eq", eq);
+}
+
 
 struct Object *arrayobject_new(struct Interpreter *interp, struct Object **elems, size_t nelems)
 {

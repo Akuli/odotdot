@@ -3,12 +3,15 @@ var throws = (import "utils").throws;
 
 
 test "important basic stuff" {
-    func "equals a b" { (a==b) };
-    foreach "cmp" [equals same_object] {
-        assert (not (true `cmp` false));
-        assert (not (true `cmp` null));
-        assert (not (false `cmp` null));
-    };
+    assert (true == true);
+    assert (false == false);
+    assert (true != false);
+
+    func "ignore x" { };
+    throws TypeError { ignore (true == null); };
+    throws TypeError { ignore (false == null); };
+    throws TypeError { ignore (true != null); };
+    throws TypeError { ignore (false != null); };
 };
 
 test "classes" {

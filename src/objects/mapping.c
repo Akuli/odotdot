@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include "../attribute.h"
 #include "../check.h"
+#include "../interpreter.h"
 #include "../operator.h"
 #include "../method.h"
 #include "array.h"
@@ -91,8 +92,20 @@ static struct Object *new_empty(struct Interpreter *interp, struct Object *klass
 	return map;
 }
 
-struct Object *mappingobject_newempty(struct Interpreter *interp) { return new_empty(interp, interp->builtins.Mapping); }
-static struct Object *newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts) { return new_empty(interp, ARRAYOBJECT_GET(args, 0)); }
+struct Object *mappingobject_newempty(struct Interpreter *interp) {
+	return new_empty(interp, interp->builtins.Mapping);
+}
+
+static struct Object *newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	return new_empty(interp, ARRAYOBJECT_GET(args, 0));
+}
+
+struct Object *mappingobject_createclass(struct Interpreter *interp)
+{
+	return classobject_new(interp, "Mapping", interp->builtins.Object, newinstance);
+}
+
 
 static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
@@ -340,7 +353,6 @@ static struct Object *delete(struct Interpreter *interp, struct Object *args, st
 	return nullobject_get(interp);
 }
 
-
 bool mappingobject_addmethods(struct Interpreter *interp)
 {
 	if (!attribute_add(interp, interp->builtins.Mapping, "length", length_getter, NULL)) return false;
@@ -389,7 +401,56 @@ starthere:
 }
 
 
-struct Object *mappingobject_createclass(struct Interpreter *interp)
+static struct Object *eq(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	return classobject_new(interp, "Mapping", interp->builtins.Object, newinstance);
+	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	struct Object *map1 = ARRAYOBJECT_GET(args, 0), *map2 = ARRAYOBJECT_GET(args, 1);
+	if (!(classobject_isinstanceof(map1, interp->builtins.Mapping) && classobject_isinstanceof(map2, interp->builtins.Mapping)))
+		return nullobject_get(interp);
+
+	// mappings are equal if they have same keys and values
+	// that's true if and only if for every key of a, a.get(key) == b.get(key)
+	// unless a and b are of different lengths
+	// or a and b have same number of keys but different keys, and .get() fails
+
+	if (MAPPINGOBJECT_SIZE(map1) != MAPPINGOBJECT_SIZE(map2)) {
+		OBJECT_INCREF(interp, interp->builtins.no);
+		return interp->builtins.no;
+	}
+
+	struct MappingObjectIter iter;
+	mappingobject_iterbegin(&iter, map1);
+	while (mappingobject_iternext(&iter)) {
+		struct Object *map2val;
+
+		int res = mappingobject_get(interp, map2, iter.key, &map2val);
+		if (res == -1)
+			return NULL;
+		if (res == 0) {
+			OBJECT_INCREF(interp, interp->builtins.no);
+			return interp->builtins.no;
+		}
+		assert(res == 1);
+
+		// ok, so we found the value... let's compare
+		res = operator_eqint(interp, iter.value, map2val);
+		OBJECT_DECREF(interp, map2val);
+		if (res == -1)
+			return NULL;
+		if (res == 0) {
+			OBJECT_INCREF(interp, interp->builtins.no);
+			return interp->builtins.no;
+		}
+		assert(res == 1);
+	}
+
+	// no differences found
+	OBJECT_INCREF(interp, interp->builtins.yes);
+	return interp->builtins.yes;
+}
+
+bool mappingobject_initoparrays(struct Interpreter *interp) {
+	return functionobject_add2array(interp, interp->oparrays.eq, "mapping_eq", eq);
 }

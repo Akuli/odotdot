@@ -6,7 +6,6 @@
 
 // these are defined in other files that need to include this file
 // stupid IWYU doesn't get this.....
-struct Context;
 struct Object;
 struct StackFrame;
 
@@ -34,6 +33,7 @@ struct Interpreter {
 		struct Object *Array;
 		struct Object *AstNode;
 		struct Object *Block;
+		struct Object *Bool;
 		struct Object *Class;    // the class of class objects
 		struct Object *Error;
 		struct Object *Function;
@@ -46,7 +46,8 @@ struct Interpreter {
 		struct Object *StackFrame;
 		struct Object *String;
 
-		struct Object *null;   // NOT the (void*)0 NULL, see Objects/null.{c,h}
+		struct Object *null;       // NOT the (void*)0 NULL, see Objects/null.{c,h}
+		struct Object *yes, *no;   // Bool objects, avoid name clash with stdbool.h
 		struct Object *nomemerr;
 	} builtins;
 
@@ -59,7 +60,7 @@ struct Interpreter {
 	// (x + y) loops through oparrays.add and calls the functions until one of them returns non-null
 	// see also operator.h
 	struct {
-		struct Object *add, *sub, *mul, *div;
+		struct Object *add, *sub, *mul, *div, *eq;
 	} oparrays;
 
 	struct StackFrame stack[STACK_MAX];
