@@ -13,6 +13,7 @@
 #include "../objectsystem.h"
 #include "../unicode.h"
 #include "array.h"
+#include "bool.h"
 #include "classobject.h"
 #include "errors.h"
 #include "function.h"

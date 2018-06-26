@@ -8,6 +8,7 @@
 #include "array.h"
 #include "classobject.h"
 #include "errors.h"
+#include "null.h"
 
 static struct Object *newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {

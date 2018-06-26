@@ -11,6 +11,7 @@
 #include "../operator.h"
 #include "../method.h"
 #include "array.h"
+#include "bool.h"
 #include "classobject.h"
 #include "errors.h"
 #include "integer.h"

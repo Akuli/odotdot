@@ -4,6 +4,7 @@
 #include "interpreter.h"
 #include "objectsystem.h"
 #include "objects/array.h"
+#include "objects/bool.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
 #include "objects/function.h"

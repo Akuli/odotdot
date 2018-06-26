@@ -11,6 +11,7 @@
 #include "../objectsystem.h"
 #include "../operator.h"
 #include "../unicode.h"
+#include "bool.h"
 #include "classobject.h"
 #include "errors.h"
 #include "function.h"
