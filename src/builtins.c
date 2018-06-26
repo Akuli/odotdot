@@ -356,7 +356,7 @@ static struct Object *get_attrdata(struct Interpreter *interp, struct Object *ar
 
 
 // make sure that 'a == b' returns true if 'a `same_object` b'
-static struct Object *eq_optimization(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *identity_eq(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -440,7 +440,7 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!(interp->oparrays.div = arrayobject_newempty(interp))) goto error;
 	if (!(interp->oparrays.eq = arrayobject_newempty(interp))) goto error;
 
-	if (!functionobject_add2array(interp, interp->oparrays.eq, "identity_eq", eq_optimization)) goto error;
+	if (!functionobject_add2array(interp, interp->oparrays.eq, "identity_eq", identity_eq)) goto error;
 	if (!stringobject_initoparrays(interp)) goto error;
 	if (!integerobject_initoparrays(interp)) goto error;
 	if (!arrayobject_initoparrays(interp)) goto error;
