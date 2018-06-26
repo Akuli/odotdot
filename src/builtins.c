@@ -464,6 +464,13 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!interpreter_addbuiltin(interp, "null", interp->builtins.null)) goto error;
 	if (!interpreter_addbuiltin(interp, "true", interp->builtins.yes)) goto error;
 
+	if (!interpreter_addbuiltin(interp, "add_oparray", interp->oparrays.add)) goto error;
+	if (!interpreter_addbuiltin(interp, "sub_oparray", interp->oparrays.sub)) goto error;
+	if (!interpreter_addbuiltin(interp, "mul_oparray", interp->oparrays.mul)) goto error;
+	if (!interpreter_addbuiltin(interp, "div_oparray", interp->oparrays.div)) goto error;
+	if (!interpreter_addbuiltin(interp, "eq_oparray", interp->oparrays.eq)) goto error;
+	if (!interpreter_addbuiltin(interp, "lt_oparray", interp->oparrays.lt)) goto error;
+
 	if (!add_function(interp, "if", if_)) goto error;
 	if (!add_function(interp, "throw", throw)) goto error;
 	if (!add_function(interp, "lambda", lambdabuiltin)) goto error;

@@ -1,0 +1,10 @@
+assert ({}.definition_scope.parent_scope.parent_scope `same_object` null);   # parent_scope is built-in scope
+
+# the interpreter creates these as built-in functions
+# that's the only way to get stuff from the interpreter to an ö library (lol)
+var add_array = ({}.definition_scope.parent_scope.local_vars.get_and_delete "add_oparray");
+var sub_array = ({}.definition_scope.parent_scope.local_vars.get_and_delete "sub_oparray");
+var mul_array = ({}.definition_scope.parent_scope.local_vars.get_and_delete "mul_oparray");
+var div_array = ({}.definition_scope.parent_scope.local_vars.get_and_delete "div_oparray");
+var eq_array = ({}.definition_scope.parent_scope.local_vars.get_and_delete "eq_oparray");
+var lt_array = ({}.definition_scope.parent_scope.local_vars.get_and_delete "lt_oparray");

@@ -297,6 +297,7 @@ func "foreach varname array block" {
     {}.definition_scope.parent_scope.local_vars.set "import" import;
 }.run (new Scope {}.definition_scope);
 
-# this hides the importers list
-# see its comments for more details
+# these files do magic, they delete stuff from the built-in scope
+# see comments in these files for details
 import "<stdlibs>/imports";
+import "<stdlibs>/operators";
