@@ -4,6 +4,11 @@ var throws = (import "utils").throws;
 var imports = (import "<stdlibs>/imports");
 
 
+test "importing something that doesn't exist" {
+    throws ValueError { import "asdijoasdfojasdiofjoiasdjf"; };
+    throws ValueError { import "<stdlibs>/asdijoasdfojasdiofjoiasdjf"; };
+};
+
 test "including .ö extension in the import string" {
     import "<stdlibs>/imports";   # must work
 

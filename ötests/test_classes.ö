@@ -1,0 +1,13 @@
+# TODO: more tests!!
+
+var test = (import "utils").test;
+var throws = (import "utils").throws;
+
+
+test "attrib" {
+    throws TypeError {
+        class "Lol" {
+            attrib 123;
+        };
+    };
+};

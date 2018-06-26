@@ -88,7 +88,7 @@ add_method String "to_debug_string" (lambda "this" {
     });
 
     add_method StackFrame "to_debug_string" (lambda "this" {
-        return (("<StackFrame: ".concat (this.to_string)).concat ">");
+        return (("<StackFrame: " + (this.to_string)) + ">");
     });
 }.run (new Scope {}.definition_scope);
 
@@ -211,7 +211,7 @@ func "foreach varname array block" {
         func "attrib name" {
             # just to make debugging easier
             if (not (name `is_instance_of` String)) {
-                throw (new TypeError ("expected a string, got ".concat (name.to_debug_string)));
+                throw (new TypeError ("expected a string, got " + (name.to_debug_string)));
             };
 
             var getter = (lambda "this" {
@@ -291,7 +291,7 @@ func "foreach varname array block" {
         };
 
         # FIXME: ValueError feels wrong
-        throw (new ValueError ("cannot import ".concat (string.to_debug_string)));
+        throw (new ValueError ("cannot import " + (string.to_debug_string)));
     };
 
     {}.definition_scope.parent_scope.local_vars.set "import" import;

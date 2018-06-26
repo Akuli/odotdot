@@ -16,4 +16,8 @@ test "get_stack and StackFrame" {
     throws AttribError { last_frame.filename = "Ha Ha Haa"; };
     throws AttribError { last_frame.lineno = 123; };
     throws AttribError { last_frame.watwut = "Toot!"; };
+
+    # make sure it doesn't throw an exception
+    # TODO: test better
+    last_frame.to_debug_string;
 };
