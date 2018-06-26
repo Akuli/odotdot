@@ -68,19 +68,39 @@ test "bad integer strings" {
 
 
 test "operators" {
-    # test some math identities
-    # if the operators are broken, these should break too
     # TODO: test limits with operators
     var numbers = [0 1 (0-1) 2 (0-2)];
     foreach "a" numbers {
+        assert (a == a);
+        assert (a >= a);
+        assert (a <= a);
+
         foreach "b" numbers {
             if (a == b) {
+                assert (a >= b);
+                assert (a <= b);
                 assert (not (a != b));
+                assert (not (a > b));
+                assert (not (a < b));
             } else: {
                 assert (a != b);
+                if (a > b) {
+                    assert (not (a < b));
+                    assert (a >= b);
+                    assert (not (a <= b));
+                } else: {
+                    assert (a < b);
+                    assert (not (a >= b));
+                    assert (a <= b);
+                };
             };
 
+            # test some math identities
+            # if the operators are broken, these should break too
             # TODO: need an operator for powers, this looks ugly
+            assert ((a+b) == (b+a));
+            assert ((a-b) == ((0-1)*(b-a)));
+            assert ((a*b) == (b*a));
             assert (((a+b)-b) == a);
             assert (((a-b)+b) == a);
             assert (((a+b)*(a+b)) == (((a*a) + ((2*a)*b)) + (b*b)));
@@ -88,6 +108,8 @@ test "operators" {
             assert (((a+b)*(a-b)) == ((a*a) - (b*b)));
             assert ((((a+b)*(a+b))*(a+b)) == (((((a*a)*a)+(((3*a)*a)*b))+(((3*a)*b)*b))+((b*b)*b)));
             foreach "c" numbers {
+                assert (((a+b)+c) == (a+(b+c)));
+                assert (((a*b)*c) == (a*(b*c)));
                 assert (((a+b)*c) == ((a*c) + (b*c)));
                 assert (((a-b)*c) == ((a*c) - (b*c)));
             };
@@ -103,4 +125,7 @@ test "operators" {
     assert (1 < 2);
     assert ((0-1) < 0);
     assert ((0-1) < 1);
+
+    assert (not (1 >= 2));
+    assert (1 <= 2);
 };

@@ -261,6 +261,10 @@ static struct Object *parse_operator_call(struct Interpreter *interp, char *file
 			opcallinfo->op = OPERATOR_EQ;
 		else if (op.val[0] == '!' && op.val[1] == '=')
 			opcallinfo->op = OPERATOR_NE;
+		else if (op.val[0] == '>' && op.val[1] == '=')
+			opcallinfo->op = OPERATOR_GE;
+		else if (op.val[0] == '<' && op.val[1] == '=')
+			opcallinfo->op = OPERATOR_LE;
 		else
 			assert(0);
 	} else
@@ -363,7 +367,7 @@ static struct Object *parse_call_expression(struct Interpreter *interp, char *fi
 	if (f('`'))
 		res = parse_infix_call(interp, filename, curtok, first);
 #define g(x,y) ((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 2 && (*curtok)->str.val[0] == (x) && (*curtok)->str.val[1] == (y))
-	else if (f('+')||f('-')||f('*')||f('/')||f('<')||f('>')||g('!','=')||g('=','='))
+	else if (f('+')||f('-')||f('*')||f('/')||f('<')||f('>')||g('!','=')||g('=','=')||g('>','=')||g('<','='))
 #undef f
 #undef g
 		res = parse_operator_call(interp, filename, curtok, first);

@@ -20,8 +20,20 @@ struct Object *operator_call(struct Interpreter *interp, enum Operator op, struc
 		int res = operator_eqint(interp, lhs, rhs);
 		return res<0 ? NULL : boolobject_get(interp, !res);
 	}
+	if (op == OPERATOR_LE) {
+		int val1, val2;
+		if ((val1 = operator_ltint(interp, lhs, rhs)) < 0)
+			return NULL;
+		if ((val2 = operator_eqint(interp, lhs, rhs)) < 0)
+			return NULL;
+		return boolobject_get(interp, val1||val2);
+	}
+
+	// these can be implemented with other stuff by flipping lhs and rhs
 	if (op == OPERATOR_GT)
-		return operator_call(interp, OPERATOR_LT, rhs, lhs);   // flip lhs and rhs
+		return operator_call(interp, OPERATOR_LT, rhs, lhs);
+	if (op == OPERATOR_GE)
+		return operator_call(interp, OPERATOR_LE, rhs, lhs);
 
 	struct Object *oparray;
 	char *opstr;
@@ -64,16 +76,16 @@ struct Object *operator_call(struct Interpreter *interp, enum Operator op, struc
 	return NULL;
 }
 
-int operator_eqint(struct Interpreter *interp, struct Object *a, struct Object *b)
+int operator_eqint(struct Interpreter *interp, struct Object *lhs, struct Object *rhs)
 {
 	if (!interp->oparrays.eq)
 	{
 		// called early from builtins_setup()
-		assert(a->klass == interp->builtins.String);
-		assert(b->klass == interp->builtins.String);
+		assert(lhs->klass == interp->builtins.String);
+		assert(rhs->klass == interp->builtins.String);
 
-		struct UnicodeString *astr = a->data;
-		struct UnicodeString *bstr = b->data;
+		struct UnicodeString *astr = lhs->data;
+		struct UnicodeString *bstr = rhs->data;
 
 		if (astr->len != bstr->len)
 			return 0;
@@ -87,7 +99,7 @@ int operator_eqint(struct Interpreter *interp, struct Object *a, struct Object *
 		return 1;
 	}
 
-	struct Object *res = operator_call(interp, OPERATOR_EQ, a, b);
+	struct Object *res = operator_call(interp, OPERATOR_EQ, lhs, rhs);
 	int ret;
 	if (!res)
 		ret = -1;
@@ -96,7 +108,27 @@ int operator_eqint(struct Interpreter *interp, struct Object *a, struct Object *
 	else if (res == interp->builtins.no)
 		ret = 0;
 	else {
-		errorobject_throwfmt(interp, "TypeError", "expected a Bool from %U == %U, but got %D", class_name(a), class_name(b), res);
+		errorobject_throwfmt(interp, "TypeError", "expected a Bool from %U == %U, but got %D", class_name(lhs), class_name(rhs), res);
+		ret = -1;
+	}
+
+	if (res)
+		OBJECT_DECREF(interp, res);
+	return ret;
+}
+
+int operator_ltint(struct Interpreter *interp, struct Object *lhs, struct Object *rhs)
+{
+	struct Object *res = operator_call(interp, OPERATOR_LT, lhs, rhs);
+	int ret;
+	if (!res)
+		ret = -1;
+	else if (res == interp->builtins.yes)
+		ret = 1;
+	else if (res == interp->builtins.no)
+		ret = 0;
+	else {
+		errorobject_throwfmt(interp, "TypeError", "expected a Bool from %U < %U, but got %D", class_name(lhs), class_name(rhs), res);
 		ret = -1;
 	}
 
