@@ -19,6 +19,5 @@ struct Object *operator_call(struct Interpreter *interp, enum Operator op, struc
 
 // these convenience functions return 1 for yes, 0 for no and -1 for error
 int operator_eqint(struct Interpreter *interp, struct Object *a, struct Object *b);
-int operator_neint(struct Interpreter *interp, struct Object *a, struct Object *b);
 
 #endif   // OPERATOR_H

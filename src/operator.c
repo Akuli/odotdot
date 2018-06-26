@@ -17,10 +17,8 @@
 struct Object *operator_call(struct Interpreter *interp, enum Operator op, struct Object *lhs, struct Object *rhs)
 {
 	if (op == OPERATOR_NE) {
-		int res = operator_neint(interp, lhs, rhs);
-		if (res == -1)
-			return NULL;
-		return boolobject_get(interp, res);
+		int res = operator_eqint(interp, lhs, rhs);
+		return res<0 ? NULL : boolobject_get(interp, !res);
 	}
 
 	struct Object *oparray;
@@ -100,10 +98,4 @@ int operator_eqint(struct Interpreter *interp, struct Object *a, struct Object *
 	if (res)
 		OBJECT_DECREF(interp, res);
 	return ret;
-}
-
-int operator_neint(struct Interpreter *interp, struct Object *a, struct Object *b)
-{
-	int res = operator_eqint(interp, a, b);
-	return res<0 ? res : !res;
 }
