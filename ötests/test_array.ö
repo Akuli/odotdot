@@ -49,7 +49,7 @@ test "basic stuff" {
     assert (array == ["a" "b" "c"]);
     assert (["a" "b" "c"] == array);
 
-    foreach "nope" [["a" "b"] ["a" "b" "c" "d"] ["a" "b" "x"]] {
+    foreach "nope" [["a" "b"] ["a" "b" "c" "d"] ["a" "b" "x"] ["x" "y" "z"]] {
         assert ((array != nope) `and` (nope != array));
     };
 

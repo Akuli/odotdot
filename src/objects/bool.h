@@ -17,7 +17,4 @@ bool boolobject_create(struct Interpreter *interp, struct Object **yes, struct O
 // never fails
 struct Object *boolobject_get(struct Interpreter *interp, bool b);
 
-// builtins.c calls this
-bool boolobject_initoparrays(struct Interpreter *interp);
-
 #endif    // OBJECTS_BOOL_H

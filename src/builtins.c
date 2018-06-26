@@ -355,15 +355,6 @@ static struct Object *get_attrdata(struct Interpreter *interp, struct Object *ar
 }
 
 
-// make sure that 'a == b' returns true if 'a `same_object` b'
-static struct Object *identity_eq(struct Interpreter *interp, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-	return ARRAYOBJECT_GET(args, 0)==ARRAYOBJECT_GET(args, 1) ? boolobject_get(interp, true) : nullobject_get(interp);
-}
-
-
 static bool add_function(struct Interpreter *interp, char *name, functionobject_cfunc cfunc)
 {
 	struct Object *func = functionobject_new(interp, cfunc, name);
@@ -441,12 +432,9 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!(interp->oparrays.eq = arrayobject_newempty(interp))) goto error;
 	if (!(interp->oparrays.lt = arrayobject_newempty(interp))) goto error;
 
-	if (!functionobject_add2array(interp, interp->oparrays.eq, "identity_eq", identity_eq)) goto error;
 	if (!stringobject_initoparrays(interp)) goto error;
 	if (!integerobject_initoparrays(interp)) goto error;
-	if (!arrayobject_initoparrays(interp)) goto error;
 	if (!mappingobject_initoparrays(interp)) goto error;
-	if (!boolobject_initoparrays(interp)) goto error;
 
 	if (!interpreter_addbuiltin(interp, "ArbitraryAttribs", interp->builtins.ArbitraryAttribs)) goto error;
 	if (!interpreter_addbuiltin(interp, "Array", interp->builtins.Array)) goto error;

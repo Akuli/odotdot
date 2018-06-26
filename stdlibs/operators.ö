@@ -8,3 +8,45 @@ var mul_array = ({}.definition_scope.parent_scope.local_vars.get_and_delete "mul
 var div_array = ({}.definition_scope.parent_scope.local_vars.get_and_delete "div_oparray");
 var eq_array = ({}.definition_scope.parent_scope.local_vars.get_and_delete "eq_oparray");
 var lt_array = ({}.definition_scope.parent_scope.local_vars.get_and_delete "lt_oparray");
+
+
+# right now the arrays contain stuff that are needed for starting up the interpreter this far
+# but as much as possible is implemented here
+
+# TODO: add a way to insert to the beginning of an array
+# might be good for optimizing
+# behaviour doesn't change with built-in stuff, which is what's in the array before this
+eq_array.push (lambda "x y" {
+    if (x `same_object` y) {
+        return true;
+    };
+    return null;
+});
+
+eq_array.push (lambda "x y" {
+    if ((x `is_instance_of` Bool) `and` (y `is_instance_of` Bool)) {
+        # have fun figuring this out
+        return ((x `and` y) `or` ((not x) `and` (not y)));
+    };
+    return null;
+});
+
+eq_array.push (lambda "x y" {
+    if ((x `is_instance_of` Array) `and` (y `is_instance_of` Array)) {
+        if (x.length != y.length) {
+            return false;
+        };
+
+        # FIXME: putting a return in the for doesn't work??
+        var returning = true;
+        for { var i=0; } { (i < x.length) } { i = (i+1); } {
+            if ((x.get i) != (y.get i)) {
+                returning = false;
+            };
+        };
+        return returning;
+    };
+    return null;
+});
+
+# TODO: add some way to loop through Mappings and implement mapping eq here

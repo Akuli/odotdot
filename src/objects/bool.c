@@ -51,19 +51,3 @@ struct Object *boolobject_get(struct Interpreter *interp, bool b)
 	OBJECT_INCREF(interp, res);
 	return res;
 }
-
-
-static struct Object *eq(struct Interpreter *interp, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-	struct Object *a = ARRAYOBJECT_GET(args, 0), *b = ARRAYOBJECT_GET(args, 1);
-	if (!(classobject_isinstanceof(a, interp->builtins.Bool) && classobject_isinstanceof(b, interp->builtins.Bool)))
-		return nullobject_get(interp);
-	return boolobject_get(interp, a==b);
-}
-
-bool boolobject_initoparrays(struct Interpreter *interp)
-{
-	return functionobject_add2array(interp, interp->oparrays.eq, "bool_eq", eq);
-}

@@ -14,9 +14,6 @@ struct ArrayObjectData {
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *arrayobject_createclass(struct Interpreter *interp);
 
-// for builtins_setup()
-bool arrayobject_initoparrays(struct Interpreter *interp);
-
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *arrayobject_new(struct Interpreter *interp, struct Object **elems, size_t nelems);
 
