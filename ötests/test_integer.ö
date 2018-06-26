@@ -23,9 +23,9 @@ test "new and to_string" {
         ["-1" (0-1) true]
         ["-123" (0-123) true]
         ["0123" 123 false]
-        [(MANY_ZEROS.concat "123") 123 false]
+        [(MANY_ZEROS + "123") 123 false]
         ["-0123" (0-123) false]
-        [(("-".concat MANY_ZEROS).concat "123") (0-123) false]
+        [(("-" + MANY_ZEROS) + "123") (0-123) false]
     ];
 
     foreach "pair" tests {

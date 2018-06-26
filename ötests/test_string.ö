@@ -2,10 +2,10 @@ var test = (import "utils").test;
 var throws = (import "utils").throws;
 
 
-test "concat and equals" {
+test "+, ==" {
     assert ("" == "");
     assert ("ab" == "ab");
-    assert (("a".concat "b") == "ab");   # probably not relying on an optimization
+    assert (("a" + "b") == "ab");   # probably not relying on an optimization
 };
 
 test "escape sequences" {

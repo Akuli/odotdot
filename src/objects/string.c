@@ -69,22 +69,6 @@ static struct Object *length_getter(struct Interpreter *interp, struct Object *a
 	return integerobject_newfromlonglong(interp, ((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data)->len);
 }
 
-static struct Object *concat(struct Interpreter *interp, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, interp->builtins.String, interp->builtins.String, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-
-	struct UnicodeString u1 = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data);
-	struct UnicodeString u2 = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 1)->data);
-
-	unicode_char uval[u1.len + u2.len];     // this wörks because C99 magic
-	memcpy(uval, u1.val, u1.len * sizeof(unicode_char));
-	memcpy(uval + u1.len, u2.val, u2.len * sizeof(unicode_char));
-
-	struct UnicodeString u = { .len = u1.len + u2.len, .val = uval };   // moar C99 magicz
-	return stringobject_newfromustr(interp, u);
-}
-
 // forward decla
 static struct Object *new_string_from_ustr_with_no_copy(struct Interpreter *, struct UnicodeString *);
 
@@ -253,7 +237,6 @@ bool stringobject_addmethods(struct Interpreter *interp)
 {
 	// TODO: create many more string methods
 	if (!attribute_add(interp, interp->builtins.String, "length", length_getter, NULL)) return false;
-	if (!method_add(interp, interp->builtins.String, "concat", concat)) return false;
 	if (!method_add(interp, interp->builtins.String, "get", get)) return false;
 	if (!method_add(interp, interp->builtins.String, "replace", replace)) return false;
 	if (!method_add(interp, interp->builtins.String, "slice", slice)) return false;
@@ -286,8 +269,32 @@ static struct Object *eq(struct Interpreter *interp, struct Object *args, struct
 	return boolobject_get(interp, true);
 }
 
+// concatenates strings
+static struct Object *add(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	struct Object *s1 = ARRAYOBJECT_GET(args, 0);
+	struct Object *s2 = ARRAYOBJECT_GET(args, 1);
+	if (!(classobject_isinstanceof(s1, interp->builtins.String) && classobject_isinstanceof(s2, interp->builtins.String)))
+		return nullobject_get(interp);
+
+	struct UnicodeString u1 = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data);
+	struct UnicodeString u2 = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 1)->data);
+
+	unicode_char uval[u1.len + u2.len];     // this wörks because C99 magic
+	memcpy(uval, u1.val, u1.len * sizeof(unicode_char));
+	memcpy(uval + u1.len, u2.val, u2.len * sizeof(unicode_char));
+
+	struct UnicodeString u = { .len = u1.len + u2.len, .val = uval };   // moar C99 magicz
+	return stringobject_newfromustr(interp, u);
+}
+
 bool stringobject_initoparrays(struct Interpreter *interp) {
-	return functionobject_add2array(interp, interp->oparrays.eq, "string_eq", eq);
+	if (!functionobject_add2array(interp, interp->oparrays.eq, "string_eq", eq)) return false;
+	if (!functionobject_add2array(interp, interp->oparrays.add, "string_add", add)) return false;
+	return true;
 }
 
 

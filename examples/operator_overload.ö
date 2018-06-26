@@ -9,14 +9,14 @@ class "Lol" {
     };
 
     method "to_debug_string" {
-        return (("<Lol: ".concat this.thing).concat ">");
+        return (("<Lol: " + this.thing) + ">");
     };
 };
 
 
 operators.add_array.push (lambda "x y" {
     if ((x `is_instance_of` Lol) `and` (y `is_instance_of` Lol)) {
-        return (new Lol (x.thing.concat y.thing));
+        return (new Lol (x.thing + y.thing));
     };
     return null;
 });

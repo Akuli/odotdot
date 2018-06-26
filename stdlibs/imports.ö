@@ -14,7 +14,7 @@ var Library = (get_class (import "<stdlibs>/stacks"));   # any library would do
 importers.push (lambda "string stackframe" {
     if ((string.slice (string.length - 2)) == ".ö") {
         var no_dot_ö = (string.slice 0 (string.length-2));
-        throw (new ValueError ((("import ".concat (no_dot_ö.to_debug_string)).concat " instead of ").concat (string.to_debug_string)));
+        throw (new ValueError ((("import " + (no_dot_ö.to_debug_string)) + " instead of ") + (string.to_debug_string)));
     };
     return null;
 });

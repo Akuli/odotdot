@@ -15,11 +15,11 @@ var VariableError = (new Class "VariableError" Error);
 var add_method = (lambda "klass name lambda_with_this" {
     var getter = (lambda "this" {
         var result = (lambda_with_this.partial this);
-        result.name = (name.concat " method");
+        result.name = (name + " method");
         return result;
     });
 
-    getter.name = ("getter of ".concat name);
+    getter.name = ("getter of " + name);
     klass.getters.set name getter;
 });
 
@@ -48,25 +48,25 @@ add_method String "to_debug_string" (lambda "this" {
 
         # FIXME: need elif or switch/case or something
         if (character == "\n") {
-            result = (result.concat "\\n");
+            result = (result + "\\n");
         } else: {
             if (character == "\t") {
-                result = (result.concat "\\t");
+                result = (result + "\\t");
             } else: {
                 if (character == "\\") {
-                    result = (result.concat "\\\\");
+                    result = (result + "\\\\");
                 } else: {
                     if (character == "\"") {
-                        result = (result.concat "\\\"");
+                        result = (result + "\\\"");
                     } else: {
-                        result = (result.concat character);
+                        result = (result + character);
                     };
                 };
             };
         };
     };
 
-    return (("\"".concat result).concat "\"");
+    return (("\"" + result) + "\"");
 });
 
 
@@ -84,7 +84,7 @@ add_method String "to_debug_string" (lambda "this" {
     };
 
     add_method StackFrame "to_string" (lambda "this" {
-        return ((("file ".concat this.filename).concat ", line ").concat (this.lineno.to_string));
+        return ((("file " + this.filename) + ", line ") + (this.lineno.to_string));
     });
 
     add_method StackFrame "to_debug_string" (lambda "this" {
@@ -96,13 +96,13 @@ add_method String "to_debug_string" (lambda "this" {
 add_method Error "print_stack" (lambda "this" {
     # TODO: use stderr instead of stdout
     catch {
-        print (((get_class this).name.concat ": ").concat this.message);
+        print (((get_class this).name + ": ") + this.message);
 
         if (not (this.stack `same_object` null)) {
             var prefix = "in";
             for { var stack_copy = (this.stack.slice 0); } { (stack_copy.length != 0) } {} {
                 var frame = (stack_copy.pop);
-                print ((("  ".concat prefix).concat " ").concat (frame.to_string));
+                print ((("  " + prefix) + " ") + (frame.to_string));
                 # TODO: print the source line
 
                 if (prefix == "in") {
@@ -126,8 +126,8 @@ var func = (lambda "funcname_and_argnames block" {
     # initial i=1 skips the function name
     var argnames = "";
     for { var i = 1; } { ((i == splitted.length) `same_object` false) } { i = (i + 1); } {
-        argnames = (argnames.concat (splitted.get i));
-        argnames = (argnames.concat " ");
+        argnames = (argnames + (splitted.get i));
+        argnames = (argnames + " ");
     };
 
     var result = (lambda argnames block);
@@ -224,8 +224,8 @@ func "foreach varname array block" {
                 attrdata.set name value;
             });
 
-            getter.name = ("getter of ".concat name);
-            setter.name = ("setter of ".concat name);
+            getter.name = ("getter of " + name);
+            setter.name = ("setter of " + name);
             klass.getters.set name getter;
             klass.setters.set name setter;
         };
@@ -240,8 +240,8 @@ func "foreach varname array block" {
             # i=1 skips the method name
             var this_and_args = "this";
             for { var i = 1; } { (i != splitted.length) } { i = (i + 1); } {
-                this_and_args = (this_and_args.concat " ");
-                this_and_args = (this_and_args.concat (splitted.get i));
+                this_and_args = (this_and_args + " ");
+                this_and_args = (this_and_args + (splitted.get i));
             };
 
             add_method klass (splitted.get 0) (lambda this_and_args block);
@@ -282,8 +282,8 @@ func "foreach varname array block" {
                 } else: {
                     if (not (lib `is_instance_of` Library)) {
                         # need string formatting :(
-                        throw (new TypeError ((("importers should return a Library object or null, but ".concat
-                            (importer.to_debug_string)).concat " returned ").concat (lib.to_debug_string)));
+                        throw (new TypeError ((("importers should return a Library object or null, but " +
+                            (importer.to_debug_string)) + " returned ") + (lib.to_debug_string)));
                     };
                 };
                 return lib;
