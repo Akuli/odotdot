@@ -1,0 +1,27 @@
+var operators = (import "<stdlibs>/operators");
+
+
+class "Lol" {
+    attrib "thing";
+
+    method "setup thing" {
+        this.thing = thing;
+    };
+
+    method "to_debug_string" {
+        return (("<Lol: ".concat this.thing).concat ">");
+    };
+};
+
+
+operators.add_array.push (lambda "x y" {
+    if ((x `is_instance_of` Lol) `and` (y `is_instance_of` Lol)) {
+        return (new Lol (x.thing.concat y.thing));
+    };
+    return null;
+});
+
+var lol1 = (new Lol "hello");
+var lol2 = (new Lol "world");
+var lol3 = (lol1 + lol2);
+debug lol3;
