@@ -246,24 +246,18 @@ static struct Object *eq(struct Interpreter *interp, struct Object *args, struct
 	if (!(classobject_isinstanceof(a1, interp->builtins.Array) && classobject_isinstanceof(a2, interp->builtins.Array)))
 		return nullobject_get(interp);
 
-	if (ARRAYOBJECT_LEN(a1) != ARRAYOBJECT_LEN(a2)) {
-		OBJECT_INCREF(interp, interp->builtins.no);
-		return interp->builtins.no;
-	}
+	if (ARRAYOBJECT_LEN(a1) != ARRAYOBJECT_LEN(a2))
+		return boolobject_get(interp, false);
 
 	for (size_t i=0; i < ARRAYOBJECT_LEN(a1); i++) {
 		int res = operator_eqint(interp, ARRAYOBJECT_GET(a1, i), ARRAYOBJECT_GET(a2, i));
 		if (res == -1)
 			return NULL;
-		if (res == 0) {
-			OBJECT_INCREF(interp, interp->builtins.no);
-			return interp->builtins.no;
-		}
+		if (res == 0)
+			return boolobject_get(interp, false);
 		assert(res == 1);
 	}
-
-	OBJECT_INCREF(interp, interp->builtins.yes);
-	return interp->builtins.yes;
+	return boolobject_get(interp, true);
 }
 
 bool arrayobject_initoparrays(struct Interpreter *interp)

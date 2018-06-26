@@ -13,6 +13,10 @@ struct Object;
 // yes and no are left untouched on error
 bool boolobject_create(struct Interpreter *interp, struct Object **yes, struct Object **no);
 
+// returns interp->builtins.yes or interp->builtins.no as a new reference depending on b
+// never fails
+struct Object *boolobject_get(struct Interpreter *interp, bool b);
+
 // builtins.c calls this
 bool boolobject_initoparrays(struct Interpreter *interp);
 

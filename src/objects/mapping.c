@@ -415,10 +415,8 @@ static struct Object *eq(struct Interpreter *interp, struct Object *args, struct
 	// unless a and b are of different lengths
 	// or a and b have same number of keys but different keys, and .get() fails
 
-	if (MAPPINGOBJECT_SIZE(map1) != MAPPINGOBJECT_SIZE(map2)) {
-		OBJECT_INCREF(interp, interp->builtins.no);
-		return interp->builtins.no;
-	}
+	if (MAPPINGOBJECT_SIZE(map1) != MAPPINGOBJECT_SIZE(map2))
+		return boolobject_get(interp, false);
 
 	struct MappingObjectIter iter;
 	mappingobject_iterbegin(&iter, map1);
@@ -428,10 +426,8 @@ static struct Object *eq(struct Interpreter *interp, struct Object *args, struct
 		int res = mappingobject_get(interp, map2, iter.key, &map2val);
 		if (res == -1)
 			return NULL;
-		if (res == 0) {
-			OBJECT_INCREF(interp, interp->builtins.no);
-			return interp->builtins.no;
-		}
+		if (res == 0)
+			return boolobject_get(interp, false);
 		assert(res == 1);
 
 		// ok, so we found the value... let's compare
@@ -439,16 +435,13 @@ static struct Object *eq(struct Interpreter *interp, struct Object *args, struct
 		OBJECT_DECREF(interp, map2val);
 		if (res == -1)
 			return NULL;
-		if (res == 0) {
-			OBJECT_INCREF(interp, interp->builtins.no);
-			return interp->builtins.no;
-		}
+		if (res == 0)
+			return boolobject_get(interp, false);
 		assert(res == 1);
 	}
 
 	// no differences found
-	OBJECT_INCREF(interp, interp->builtins.yes);
-	return interp->builtins.yes;
+	return boolobject_get(interp, true);
 }
 
 bool mappingobject_initoparrays(struct Interpreter *interp) {

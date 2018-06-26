@@ -44,7 +44,14 @@ bool boolobject_create(struct Interpreter *interp, struct Object **yes, struct O
 	return true;
 }
 
-// TODO: these are a lot of boilerplate
+struct Object *boolobject_get(struct Interpreter *interp, bool b)
+{
+	struct Object *res = b? interp->builtins.yes : interp->builtins.no;
+	OBJECT_INCREF(interp, res);
+	return res;
+}
+
+
 static struct Object *eq(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
@@ -52,14 +59,7 @@ static struct Object *eq(struct Interpreter *interp, struct Object *args, struct
 	struct Object *a = ARRAYOBJECT_GET(args, 0), *b = ARRAYOBJECT_GET(args, 1);
 	if (!(classobject_isinstanceof(a, interp->builtins.Bool) && classobject_isinstanceof(b, interp->builtins.Bool)))
 		return nullobject_get(interp);
-
-	struct Object *res;
-	if (a == b)
-		res = interp->builtins.yes;
-	else
-		res = interp->builtins.no;
-	OBJECT_INCREF(interp, res);
-	return res;
+	return boolobject_get(interp, a==b);
 }
 
 bool boolobject_initoparrays(struct Interpreter *interp)

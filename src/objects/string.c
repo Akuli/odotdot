@@ -273,21 +273,16 @@ static struct Object *eq(struct Interpreter *interp, struct Object *args, struct
 
 	struct UnicodeString *u1 = s1->data;
 	struct UnicodeString *u2 = s2->data;
-	if (u1->len != u2->len) {
-		OBJECT_INCREF(interp, interp->builtins.no);
-		return interp->builtins.no;
-	}
+	if (u1->len != u2->len)
+		return boolobject_get(interp, false);
 
 	// memcmp is not reliable :( https://stackoverflow.com/a/11995514
 	// TODO: use memcmp on systems where it works reliably (i have an idea for checking it)
 	for (size_t i=0; i < u1->len; i++) {
-		if (u1->val[i] != u2->val[i]) {
-			OBJECT_INCREF(interp, interp->builtins.no);
-			return interp->builtins.no;
-		}
+		if (u1->val[i] != u2->val[i])
+			return boolobject_get(interp, false);
 	}
-	OBJECT_INCREF(interp, interp->builtins.yes);
-	return interp->builtins.yes;
+	return boolobject_get(interp, true);
 }
 
 bool stringobject_initoparrays(struct Interpreter *interp) {

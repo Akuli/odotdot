@@ -231,25 +231,19 @@ static struct Object *get_class(struct Interpreter *interp, struct Object *args,
 	return obj->klass;
 }
 
-static struct Object *getbool(struct Interpreter *interp, bool b) {
-	struct Object *res = b ? interp->builtins.yes : interp->builtins.no;
-	OBJECT_INCREF(interp, res);
-	return res;
-}
-
 static struct Object *is_instance_of(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	// TODO: shouldn't this be implemented in builtins.ö? classobject_isinstanceof() doesn't do anything fancy
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Class, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	return getbool(interp, classobject_isinstanceof(ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1)));
+	return boolobject_get(interp, classobject_isinstanceof(ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1)));
 }
 
 static struct Object *same_object(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	return getbool(interp, ARRAYOBJECT_GET(args, 0) == ARRAYOBJECT_GET(args, 1));
+	return boolobject_get(interp, ARRAYOBJECT_GET(args, 0) == ARRAYOBJECT_GET(args, 1));
 }
 
 

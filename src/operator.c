@@ -19,15 +19,7 @@ struct Object *operator_call(struct Interpreter *interp, enum Operator op, struc
 		int res = operator_neint(interp, lhs, rhs);
 		if (res == -1)
 			return NULL;
-		if (res == 0) {
-			OBJECT_INCREF(interp, interp->builtins.no);
-			return interp->builtins.no;
-		}
-		if (res == 1) {
-			OBJECT_INCREF(interp, interp->builtins.yes);
-			return interp->builtins.yes;
-		}
-		assert(0);
+		return boolobject_get(interp, res);
 	}
 
 	struct Object *oparray;

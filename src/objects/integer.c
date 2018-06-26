@@ -215,14 +215,7 @@ static struct Object *eq(struct Interpreter *interp, struct Object *args, struct
 	struct Object *x = ARRAYOBJECT_GET(args, 0), *y = ARRAYOBJECT_GET(args, 1);
 	if (!(classobject_isinstanceof(x, interp->builtins.Integer) && classobject_isinstanceof(x, interp->builtins.Integer)))
 		return nullobject_get(interp);
-
-	struct Object *res;
-	if (integerobject_tolonglong(x) == integerobject_tolonglong(y))
-		res = interp->builtins.yes;
-	else
-		res = interp->builtins.no;
-	OBJECT_INCREF(interp, res);
-	return res;
+	return boolobject_get(interp, integerobject_tolonglong(x)==integerobject_tolonglong(y));
 }
 
 static struct Object *add(struct Interpreter *interp, struct Object *args, struct Object *opts)
