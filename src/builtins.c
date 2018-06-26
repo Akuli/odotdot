@@ -360,7 +360,7 @@ static struct Object *eq_optimization(struct Interpreter *interp, struct Object 
 {
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	return ARRAYOBJECT_GET(args, 0)==ARRAYOBJECT_GET(args, 1) ? interpreter_getbuiltin(interp, "true") : nullobject_get(interp);
+	return ARRAYOBJECT_GET(args, 0)==ARRAYOBJECT_GET(args, 1) ? boolobject_get(interp, true) : nullobject_get(interp);
 }
 
 
