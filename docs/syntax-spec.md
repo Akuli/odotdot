@@ -69,7 +69,10 @@ Here's a list of *all* supported kinds of tokens:
   `0`. I'm not sure if this is a good thing or if the Ö interpreter does it
   right now (I'm tired and I don't feel like trying it out). I might change
   this later.
-- *Operators* are `{`, `}`, `[`, `]`, `(`, `)`, `=`, `;`, `:`, `.`  or `` ` ``.
+- *Operators* are `{`, `}`, `[`, `]`, `(`, `)`, `=`, `;`, `:`, `.`, `` ` ``,
+  `+`, `-`, `*`, `/`. `<`, `>`, `==`, `!=`, `>=` and `<=`. The 2-character
+  operators must be tokenized to one operator, not two; e.g. `==` (1 operator)
+  is not same as `= =` (2 operators).
 - `var` is parsed with similar rules as identifiers, but it's best for the
   tokenizer to output `var` tokens as non-identifiers. This way `thing.var`
   will cause errors when parsing to AST. Note that e.g. `var_statement` and
@@ -157,6 +160,11 @@ Here's a list of all supported kinds of expressions:
 - Infixed function call expressions: ``(arg1 `function` arg2)`` is equivalent
   to `(function arg1 arg2)`. Here `func`, `arg1` and `arg2` can be any
   expressions. There must be exactly 2 arguments and no options.
+- Operator calls: `(a == b)`, `(a != b)`, `(a > b)`, `(a < b)`, `(a >= b)`,
+  `(a <= b)`, `(a + b)`, `(a - b)`, `(a * b)` and `(a / b)` behave a lot like
+  infixed function calls: `a` and `b` can be any expressions, and the
+  parentheses are required. Note that `(a + b + c)` is invalid syntax, just
+  like ``(a `function` b `function` c)``.
 - Blocks: `{ statement1; statement2; }` returns a block object. You can have
   any number of [statements](#statements) inside the block you want. `{ }` is a
   block that does nothing, and `{ expression }` without a `;` is equivalent to
@@ -176,6 +184,11 @@ Here's a list of statements:
   for details.
 - Setting attributes: `a.b = c;` sets the `b` attribute of `a` to `c`. `b` must
   be an identifier, and `a` and `c` can be any expressions.
+
+Note that `a + b;` and `a == b;` are not valid statements, even though
+``(a `some_function` b)`` *is* a valid statement. This is because `a + b;` is
+probably an error because `+` isn't supposed to have side effects, but
+``a `some_function` b;`` might do something useful.
 
 When parsing a file or the content of a `Block`, the parser simply parses the
 tokens statement by statement until there are no more tokens left. The
