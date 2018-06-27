@@ -125,7 +125,7 @@ var func = (lambda "funcname_and_argnames block" {
     # a stupid way to join strings by spaces
     # initial i=1 skips the function name
     var argnames = "";
-    for { var i = 1; } { ((i == splitted.length) `same_object` false) } { i = (i + 1); } {
+    for { var i = 1; } { (i < splitted.length) } { i = (i + 1); } {
         argnames = (argnames + (splitted.get i));
         argnames = (argnames + " ");
     };
