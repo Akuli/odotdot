@@ -70,3 +70,21 @@ test "basic stuff" {
     assert ((array.slice 1 2) == ["b"]);
     assert ((array.slice (0-123) 123) == array);    # out-of-bounds indexes are ok
 };
+
+test "to_debug_string" {
+    class "Broken" {
+        method "to_debug_string" {
+            throw (new MathError "numberphile is wrong, it's not -1/12");
+        };
+    };
+
+    assert (([].to_debug_string) == "[]");
+    assert (([1].to_debug_string) == "[1]");
+    assert (([1 2 3].to_debug_string) == "[1 2 3]");
+    assert (([ 1 [2] [ [3] ] ].to_debug_string) == "[1 [2] [[3]]]");
+    assert (([ "asd" "lol" ].to_debug_string) == "[\"asd\" \"lol\"]");
+    throws MathError {
+        [(new Broken)].to_debug_string;
+    };
+    print "ok";
+};
