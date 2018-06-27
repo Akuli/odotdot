@@ -69,6 +69,16 @@ add_method String "to_debug_string" (lambda "this" {
     return (("\"" + result) + "\"");
 });
 
+add_method Integer "to_debug_string" (lambda "this" {
+    if (this >= 0) {
+        # "123"
+        return (this.to_string);
+    };
+
+    # -1234 is not valid Ö code, but (0-1234) is
+    return (("(0" + (this.to_string)) + ")");
+});
+
 
 # scope magic: variables created inside this thing are not visible outside it
 {

@@ -199,7 +199,6 @@ struct Object *integerobject_createclass(struct Interpreter *interp)
 
 	if (!method_add(interp, klass, "setup", setup)) goto error;
 	if (!method_add(interp, klass, "to_string", to_string)) goto error;
-	if (!method_add(interp, klass, "to_debug_string", to_string)) goto error;
 	return klass;
 
 error:

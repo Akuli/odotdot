@@ -16,29 +16,40 @@ test "equals" {
 
 test "new and to_string" {
     var tests = [
-        # [string integer to_string_must_match]
-        ["123" 123 true]
-        ["0" 0 true]
-        ["-0" 0 false]
-        ["-1" (0-1) true]
-        ["-123" (0-123) true]
-        ["0123" 123 false]
-        [(MANY_ZEROS + "123") 123 false]
-        ["-0123" (0-123) false]
-        [(("-" + MANY_ZEROS) + "123") (0-123) false]
+        # [string integer to_string_must_match to_debug_string_must_match]
+        ["123" 123 true true]
+        ["0" 0 true true]
+        ["-0" 0 false false]
+        ["-1" (0-1) true false]
+        ["-123" (0-123) true false]
+        ["0123" 123 false false]
+        [(MANY_ZEROS + "123") 123 false false]
+        ["-0123" (0-123) false false]
+        [(("-" + MANY_ZEROS) + "123") (0-123) false false]
     ];
 
-    foreach "pair" tests {
-        var string = (pair.get 0);
-        var integer = (pair.get 1);
-        var to_string_must_match = (pair.get 2);
+    foreach "array" tests {
+        var string = (array.get 0);
+        var integer = (array.get 1);
+        var to_string_must_match = (array.get 2);
+        var to_debug_string_must_match = (array.get 3);
 
         assert ((new Integer string) == integer);
         if to_string_must_match {
             assert ((integer.to_string) == string);
-            assert ((integer.to_debug_string) == string);
+            if (integer >= 0) {
+                assert ((integer.to_debug_string) == string);
+            };
         };
     };
+};
+
+test "to_debug_string" {
+    assert ((123.to_debug_string) == "123");
+    assert ((1.to_debug_string) == "1");
+    assert ((0.to_debug_string) == "0");
+    assert (((1-2).to_debug_string) == "(0-1)");
+    assert (((123-456).to_debug_string) == "(0-333)");
 };
 
 test "limits" {
@@ -52,7 +63,6 @@ test "limits" {
         var integer = (pair.get 1);
         assert ((new Integer string) == integer);
         assert ((integer.to_string) == string);
-        assert ((integer.to_debug_string) == string);
     };
 
     throws ValueError { new Integer "-9223372036854775808"; };
@@ -60,7 +70,8 @@ test "limits" {
 };
 
 test "bad integer strings" {
-    foreach "bad" ["1+2" "0000-123" "0-123" "--123" "+123" "++123" "+-123" "-+123" "asdasdasd"
+    foreach "bad" [" 1" "1 " "\t1" "1\n"
+                   "1+2" "0000-123" "0-123" "--123" "+123" "++123" "+-123" "-+123" "asdasdasd"
                    "123asd" "asd123" "-asd123" MANY_ASDS] {
         throws ValueError { new Integer bad; };
     };
