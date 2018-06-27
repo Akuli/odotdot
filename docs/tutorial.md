@@ -125,29 +125,46 @@ var x = (some_function a b c);    # assigns the return value to x
 
 ## Infixes
 
-The `equals` function takes two arguments, and it returns `true` if they are
-equal and `false` otherwise. For example:
+The `is_instance_of` function can be used for checking types of objects like
+this:
 
 ```python
-if (equals 1 1) {
-    print "this runs every time";
-};
-if (equals 1 2) {
-    print "this never runs";
+if (is_instance_of thingy String) {
+    print "it's a string";
 };
 ```
 
-This code works, but `equals 1 2` is not very readable. You probably want to
-read it as "1 equals 2", but it's forcing you to read it like "equals 1 2".
-Infixes are the solution:
+This code works, but `is_instance_of thingy String` is not very readable. You
+probably want to read it as "`thingy` is an instance of `String`", but it's
+forcing you to read it like "is instance of `thingy` `String`". Haskell-style
+infixes are the solution:
 
 ```python
-if (1 `equals` 2) { ... };
+if (thingy `is_instance_of` String) {
+    print "it's a string";
+};
 ```
 
-Look carefully: `equals` is surrounded by *backticks* `` ` ``, not single
-quotes `'`. So, ``a `f` b`` is just a handy shorthand, aka "syntactic sugar",
-for `f a b`.
+Look carefully: `is_instance_of` is surrounded by *backticks* `` ` ``, not
+single quotes `'`. So, ``(a `f` b)`` is just a handy shorthand, aka "syntactic
+sugar", for `(f a b)`.
+
+
+## Operators
+
+Operators follow similar rules as infixed function calls (see above). You need
+to parenthesize a function call every time you want to use its return value for
+something, and the same rule applies to operators calls: you need to
+parenthesize them.
+
+```python
+debug ("hello" + "world");  # prints "helloworld"
+debug (1 + 2);              # prints 3
+debug (1 == 2);             # prints false
+```
+
+Ö supports these operators with similar meanings as in many other programming
+languages: `==`, `!=`, `>`, `<`, `>=`, `<=`, `+`, `-`, `*`, `/`.
 
 
 ## Arrays
@@ -176,14 +193,21 @@ debug thing.length;     # prints 3 because there are 3 elements in the array
 Here `thing.length` looks up an attribute, and the value of this attribute is
 an [Integer](builtins.md#integer).
 
-Most objects have many attributes whose values are functions; these attributes
-are called methods. For example, arrays have a `push` method that adds an
+Most objects have many attributes whose values are functions. These attributes
+are called *methods*. For example, arrays have a `push` method that adds an
 element to the end of the array:
 
 ```python
 debug thing.push;   # prints <Function "push method" at 0xblablabla>
 thing.push "d";
 debug thing;        # prints ["a" "b" "c" "d"]
+```
+
+Arrays can be compared with `==`.
+
+```python
+debug (thing == ["a" "b" "c" "d"]);           # prints true
+debug (thing == ["a" "b" "c" "dd lol wat"]);  # prints false
 ```
 
 [Click here](builtins.md#array) for a complete list of array attributes and
