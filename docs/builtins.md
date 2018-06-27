@@ -91,27 +91,6 @@ returns [false].
 
 `x` and `y` must both be [true] or [false]; otherwise a [TypeError] is thrown.
 
-### equals
-
-``(x `equals` y)`` returns [true] if `x` and `y` should be considered equal,
-and [false] otherwise.
-
-Right now Ö has only these rules for comparing equality of objects:
-- If `x` and `y` are [the same object](#same-object), they compare equal.
-- If `x` and `y` are [Strings](#string), their contents are compared.
-- If `x` and `y` are [Integers](#integer), their values are compared.
-- If `x` and `y` are [Arrays](#array), they compare equal if they have the same
-  number of elements and the elements of `x` and `y` compare equal. Order
-  matters, so `[1 2]` is not equal to `[2 1]`.
-- If `x` and `y` are [Mappings](#mapping), the keys and values are checked for
-  equality similarly to arrays.
-- Otherwise, `x` and `y` are considered not equal.
-
-Bugs:
-- There's no way to override the default `equals` behaviour in custom classes.
-- There really should be a `==` operator. Even though infix notation isn't too
-  bad, `(x == y)` would be more readable than ``(x `equals` y)``.
-
 ### same_object
 
 ``(x `same_object` y)`` returns [true] if `x` and `y` point to the same object,
@@ -125,8 +104,7 @@ var y = x;
 ```
 
 ...so you get behaviour like this:
-- `x` and `y` are both empty, so ``(x `equals` y)`` returns [true]; see
-  [equals](#equals).
+- `x` and `y` are both empty, so `(x == y)` returns [true].
 - ``(x `same_object` y)`` returns [true].
 - If you do `x.push "hi";` and then `print (y.to_debug_string)`, you'll get
   `["hi"]`. The `x` and `y` variables point to the same [array](#array), so
@@ -141,8 +119,8 @@ var y = [];
 ```
 
 ...and things behave a bit differently:
-- `x` and `y` are both empty, so ``(x `equals` y)`` still returns [true].
-- This time, ``(x `same_object` y)`` returns [false]!
+- `x` and `y` are both empty, so `(x == y)` still returns [true].
+- This time, ``(x `same_object` y)`` returns [false].
 - Doing something to `x` doesn't do the same thing to `y`.
 
 ### while
@@ -165,7 +143,7 @@ Example:
 ```python
 # print numbers from 0 to 9
 var i = 0;
-while { (not (i `equals` 10)) } {
+while { (i < 10) } {
     print (i.to_string);
     i = (i.plus 1);   # yes, this sucks... no + operator yet
 };
@@ -182,19 +160,18 @@ languages call `for`. Here's an example:
 
 ```python
 # print numbers 0 to 9
-for { var i = 0; } { (not (i `equals` 10)) } { i = (i.plus 1); } {
+for { var i = 0; } { (i < 10) } { i = (i+1); } {
     print (i.to_string);
 };
 
 debug i;   # an error!
 ```
 
-Everything is ran in a subscope, so unlike the `while` example above, the `i`
-isn't leaked outside the loop. Note that there's no `;` after
-``(not (i `equals` 10))`` because `{ x }` is syntactic sugar for
-`{ return x; }`, and that was used in the example.
+Everything is ran in a subscope, so unlike in the `while` example above, the
+`i` isn't accessible anymore after the loop. Note that there's no `;` after
+`(i < 10)`; see the while example above.
 
-The `for` loop is more powerful than `while`; everything that can be done with
+The `for` loop is more powerful than `while`. Everything that can be done with
 `while` can also be done with `for`, but with `for` you can also have init and
 increment blocks. In fact, `while` is implemented like this:
 

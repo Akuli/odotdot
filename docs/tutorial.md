@@ -360,7 +360,7 @@ func "fake_if condition block" {
     (mapping.get condition).run {}.definition_scope;
 };
 
-fake_if (1 `equals` 1) {
+fake_if (1 == 1) {
     print "yay";
 };
 ```
@@ -401,7 +401,7 @@ This is useful with functions like [while](builtins.md#while):
 ```python
 # print numbers 0 to 9
 var i = 0;
-while { (not (i `equals` 10)) } {
+while { (i < 10) } {
     print (i.to_string);
     i = (i.plus 1);   # there's no + operator yet and it sucks
 };
@@ -423,7 +423,7 @@ Here's an example:
 
 ```python
 func "thingy message twice:" {   # twice is an option
-    if (twice `equals` null) {
+    if (twice `same_object` null) {
         # the twice option wasn't given
         twice = false;
     };
@@ -437,6 +437,11 @@ func "thingy message twice:" {   # twice is an option
 thingy "hello";              # prints hello
 thingy "hello" twice:true;   # prints hello two times
 ```
+
+Here we need to use [same_object](builtins.md#same_object) instead of `==`
+because otherwise passing `twice:true` gives an error. Things like
+`true == null` silently return `false` in many other programming languages, but
+Ö throws an error instead to make finding problems like `("1" == 1)` easier.
 
 The `twice:` in `"thingy message twice:"` looks a lot like the beginning of
 `twice:true`, and that's why we add `:` at the end of an argument name to make
@@ -461,16 +466,16 @@ func "better_fake_if condition block else:" {
         block.run (new Scope block.definition_scope);
     };
     fake_if (not condition) {
-        fake_if (not (else `equals` null)) {
+        fake_if (not (else `same_object` null)) {
             else.run (new Scope else.definition_scope);
         };
     };
 };
 
-better_fake_if (1 `equals` 2) {
-    print "yay";
+better_fake_if (1 == 2) {
+    print "IT BROKE  :(";
 } else: {
-    print "nay";    # this runs because 1 is not equal to 2
+    print "wörks";
 };
 ```
 

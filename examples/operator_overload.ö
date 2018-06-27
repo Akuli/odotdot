@@ -8,6 +8,7 @@ class "Lol" {
         this.thing = thing;
     };
 
+    # debug calls this method
     method "to_debug_string" {
         return (("<Lol: " + this.thing) + ">");
     };
