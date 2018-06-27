@@ -86,5 +86,4 @@ test "to_debug_string" {
     throws MathError {
         [(new Broken)].to_debug_string;
     };
-    print "ok";
 };

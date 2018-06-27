@@ -41,82 +41,6 @@ static struct Object *newinstance(struct Interpreter *interp, struct Object *arg
 	return NULL;
 }
 
-/* joins string objects together and adds [ ] around the whole thing
-to_debug_string was becoming huge, had to break into two functions
-TODO: how about putting the array inside itself? python does this:
->>> asd = [1, 2, 3]
->>> asd.append(asd)
->>> asd
-[1, 2, 3, [...]]
-
-python's reprlib.recursive_repr() handles this, maybe check how it's implemented? */
-static struct Object *joiner(struct Interpreter *interp, struct Object **strings, size_t nstrings)
-{
-	// first compute total length, then malloc at once, should be more efficient than many reallocs
-	// TODO: check for overflow? the length may be huge if the array is huge and elements have huge reprs
-	struct UnicodeString ustr;
-	ustr.len = 0;
-	for (size_t i=0; i < nstrings; i++)
-		ustr.len += ((struct UnicodeString *) strings[i]->data)->len;
-	ustr.len += nstrings - 1;   // spaces between the items
-	ustr.len += 2;     // [ ]
-
-	ustr.val = malloc(sizeof(unicode_char) * ustr.len);
-	if (!ustr.val) {
-		errorobject_thrownomem(interp);
-		return NULL;
-	}
-
-	unicode_char *ptr = ustr.val;
-	*ptr++ = '[';
-	for (size_t i=0; i < nstrings; i++) {
-		struct UnicodeString *part = strings[i]->data;
-		memcpy(ptr, part->val, sizeof(unicode_char) * part->len);
-		ptr += part->len;
-		*ptr++ = (i==nstrings-1 ? ']' : ' ');
-	}
-
-	// TODO: this copies res and it might be very big, add something like stringobject_newfromustr_nocopy
-	struct Object *res = stringobject_newfromustr(interp, ustr);
-	free(ustr.val);
-	return res;
-}
-
-static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, interp->builtins.Array, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-	struct Object *arr = ARRAYOBJECT_GET(args, 0);
-
-	// this is handeled specially because malloc(0) may return NULL
-	if (ARRAYOBJECT_LEN(arr) == 0)
-		return stringobject_newfromcharptr(interp, "[]");
-
-	// TODO: check for overflow with * or use calloc?
-	struct Object **strings = malloc(sizeof(struct Object*) * ARRAYOBJECT_LEN(arr));
-	if (!strings) {
-		errorobject_thrownomem(interp);
-		return NULL;
-	}
-
-	for (size_t i = 0; i < ARRAYOBJECT_LEN(arr); i++) {
-		struct Object *stringed = method_call_todebugstring(interp, ARRAYOBJECT_GET(arr, i));
-		if (!stringed) {
-			for (size_t j=0; j<i; j++)
-				OBJECT_DECREF(interp, strings[i]);
-			free(strings);
-			return NULL;
-		}
-		strings[i] = stringed;
-	}
-
-	struct Object *res = joiner(interp, strings, ARRAYOBJECT_LEN(arr));
-	for (size_t i=0; i < ARRAYOBJECT_LEN(arr); i++)
-		OBJECT_DECREF(interp, strings[i]);
-	free(strings);
-	return res;
-}
-
 static bool validate_index(struct Interpreter *interp, struct Object *arr, long long i)
 {
 	if (i < 0) {
@@ -229,7 +153,6 @@ struct Object *arrayobject_createclass(struct Interpreter *interp)
 	if (!method_add(interp, klass, "push", push)) goto error;
 	if (!method_add(interp, klass, "pop", pop)) goto error;
 	if (!method_add(interp, klass, "slice", slice)) goto error;
-	if (!method_add(interp, klass, "to_debug_string", to_debug_string)) goto error;
 	return klass;
 
 error:
