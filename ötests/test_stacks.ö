@@ -2,7 +2,7 @@ var test = (import "utils").test;
 var throws = (import "utils").throws;
 var ends_with = (import "utils").ends_with;
 
-var stacks = (import "<stdlibs>/stacks");
+var stacks = (import "<std>/stacks");
 
 
 test "get_stack and StackFrame" {

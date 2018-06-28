@@ -127,8 +127,8 @@ static int read_and_run_file(struct Interpreter *interp, char *path, struct Obje
 
 bool run_builtinsfile(struct Interpreter *interp)
 {
-	// interp->stdlibspath should be absolute
-	char *path = path_concat(interp->stdlibspath, "builtins.ö");
+	// interp->stdpath should be absolute
+	char *path = path_concat(interp->stdpath, "builtins.ö");
 	if (!path) {
 		errorobject_thrownomem(interp);
 		return false;

@@ -4,7 +4,7 @@ if you're looking for how escapes like \n and \t are implemented, you also came 
 check these places instead:
 	* src/tokenizer.c makes sure that escapes in string literals are valid and returns the literals as-is
 	* src/parse.c assumes that the literals are valid and parses them
-	* stdlibs/builtins.ö implements String's to_debug_string
+	* std/builtins.ö implements String's to_debug_string
 
 */
 

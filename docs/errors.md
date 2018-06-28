@@ -54,7 +54,7 @@ Attributes of `Error`:
   after creating the error object, but setting it to something else than a
   [String](builtins.md#string) throws `TypeError`.
 - `error.stack` is an [Array] of StackFrame objects, or `null` if the error has
-  never been thrown. See [the stacks library's documentation](stdlibs/stacks.md)
+  never been thrown. See [the stacks library's documentation](std/stacks.md)
   for more information about stack frames. When throwing an error, `error.stack`
   is set to a new array, but only if it's `null`; see [rethrowing](#rethrowing).
 

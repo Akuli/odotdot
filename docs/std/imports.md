@@ -1,6 +1,6 @@
 # imports
 
-`<stdlibs>/imports` contains things that are useful for doing magic with the
+`<std>/imports` contains things that are useful for doing magic with the
 import function. See [the importing documentation](../importing.md) if you just
 want to use libraries the usual way.
 
@@ -17,10 +17,10 @@ a `Library` object or `null`. `imports.importers` is an [array] of importers.
 Here's an example, let's call it `importer.ö`:
 
 ```python3
-var imports = (import "<stdlibs>/imports");
+var imports = (import "<std>/imports");
 
 func "lol_importer string stackframe" {
-    if (string `equals` "<stdlibs>/lol") {
+    if (string `equals` "<std>/lol") {
         var lib = (new imports.Library);
         lib.wat = "woot";
         return lib;
@@ -34,16 +34,16 @@ imports.importers.push lol_importer;
 Add this `testie.ö` file to the same directory with `importer.ö`:
 
 ```python3
-var lol = (import "<stdlibs>/lol");
+var lol = (import "<std>/lol");
 debug lol.wat;       # prints "woot"
 ```
 
 Customizing the behaviour of `import` is that simple. There's no `lol.ö` file
-anywhere; `(import "<stdlibs>/lol")` just called the `lol_importer`, and it
+anywhere; `(import "<std>/lol")` just called the `lol_importer`, and it
 returned `lib`.
 
 Note that our `lol_importer` is not [cached] in any way; it's called again
-every time `<stdlibs>/lol` is imported. You can make a cached importer e.g.
+every time `<std>/lol` is imported. You can make a cached importer e.g.
 like this:
 
 ```python3

@@ -1,6 +1,6 @@
 # operators
 
-`<stdlibs>/operators` lets you customize the behaviour of things like
+`<std>/operators` lets you customize the behaviour of things like
 `(a == b)` and `(a + b)`.
 
 
@@ -13,11 +13,11 @@ no more functions will be called. If all functions in the array return `null`,
 a [TypeError] is thrown.
 
 The array used for `(x + y)` is accessible as
-`(import "<stdlibs>/operators").add_array`. This function behaves as if it was
+`(import "<std>/operators").add_array`. This function behaves as if it was
 defined as `func "do_plus x y" { return (x+y); };`:
 
 ```python
-var operators = (import "<stdlibs>/operators");
+var operators = (import "<std>/operators");
 
 func "do_plus x y" {
     foreach "function" operators.add_array {
@@ -35,7 +35,7 @@ This means that you can overload operators by pushing your own functions to the
 `add_array`. [lambda] and [is_instance_of] are useful here. Here's an example:
 
 ```python
-var operators = (import "<stdlibs>/operators");
+var operators = (import "<std>/operators");
 
 class "Lol" {
     attrib "thing";
@@ -62,7 +62,7 @@ as shown above, but you don't need to do that; you can check the values in any
 way you want. However, note that the function should silently return `null` for
 any values that it doesn't care about.
 
-`<stdlibs>/operators` contains more arrays for customizing operators:
+`<std>/operators` contains more arrays for customizing operators:
 
 | This...       | ...loops through this array and calls the functions as described above    |
 | ------------- | ------------------------------------------------------------------------- |

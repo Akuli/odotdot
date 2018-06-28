@@ -35,13 +35,13 @@ Common path tricks are supported; for example, running `(import "../thingy.ö")`
 in `asd/toot/wat.ö` imports `asd/thingy.ö` because `..` means the parent
 directory of `asd/toot`, which is `asd`.
 
-If the string passed to `import` contains `<stdlibs>`, it will be replaced with
-a path to Ö's [stdlibs](../stdlibs) directory. For example, the
-[imports](stdlibs/imports.md) library contains functions for customizing
+If the string passed to `import` contains `<std>`, it will be replaced with a
+path to Ö's [std](../std) directory. For example, the
+[imports](std/imports.md) library contains functions for customizing
 `import` behaviour, and you can load it like this:
 
 ```python
-var imports = (import "<stdlibs>/imports");
+var imports = (import "<std>/imports");
 ```
 
 

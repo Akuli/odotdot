@@ -43,7 +43,7 @@ ne 1>]
 ```
 
 The `stacks` attribute is documented [here](../errors.md), and rest of this
-page documents the `<stdlibs>/stacks` library. It contains things for working
+page documents the `<std>/stacks` library. It contains things for working
 with stack frames.
 
 
@@ -70,7 +70,7 @@ func "who_called_me" {
 ## StackFrame
 
 Stack frames are instances of this class, and this class is available in the
-`<stdlibs>/stacks` library.
+`<std>/stacks` library.
 
 Stack frames have these read-only attributes:
 - `stackframe.filename` is the file name displayed in the stack trace, as a

@@ -15,7 +15,7 @@ struct Interpreter {
 
 	// set by builtins_setup(), it calls
 	// TODO: paths aren't char* on windows, so choose another type here
-	char *stdlibspath;
+	char *stdpath;
 
 	// this is a Scope object
 	// some builtins are also available here (e.g. String), others (e.g. AstNode) are not

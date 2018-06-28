@@ -1,4 +1,4 @@
-var operators = (import "<stdlibs>/operators");
+var operators = (import "<std>/operators");
 
 
 class "Lol" {

@@ -28,7 +28,7 @@
 
 
 // TODO: make this not rely on cwd
-char *import_findstdlibs(char *argv0)
+char *import_findstd(char *argv0)
 {
 	char *cwd = path_getcwd();
 	if (!cwd) {
@@ -40,7 +40,7 @@ char *import_findstdlibs(char *argv0)
 	assert(len >= 1);
 	bool needslash = (cwd[len-1] != PATH_SLASH);
 
-	void *tmp = realloc(cwd, strlen(cwd) + (size_t)needslash + sizeof("stdlibs") /* includes \0 */);
+	void *tmp = realloc(cwd, strlen(cwd) + (size_t)needslash + sizeof("std") /* includes \0 */);
 	if (!tmp) {
 		fprintf(stderr, "%s: not enough memory\n", argv0);
 		free(cwd);
@@ -48,7 +48,7 @@ char *import_findstdlibs(char *argv0)
 	}
 	cwd = tmp;
 
-	strcat(cwd, needslash ? PATH_SLASHSTR"stdlibs" : "stdlibs");
+	strcat(cwd, needslash ? PATH_SLASHSTR"std" : "std");
 	return cwd;
 }
 
@@ -93,7 +93,7 @@ static char *get_source_dir(struct Interpreter *interp, struct Object *stackfram
 	return srcdir;
 }
 
-static unicode_char stdlibsmarker[] = { '<','s','t','d','l','i','b','s','>' };
+static unicode_char stdmarker[] = { '<','s','t','d','>' };
 
 static struct Object *file_importer(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
@@ -101,8 +101,8 @@ static struct Object *file_importer(struct Interpreter *interp, struct Object *a
 	if (!check_no_opts(interp, opts)) return NULL;
 	struct UnicodeString name = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data);
 
-	struct UnicodeString ustdlibspath;
-	if (!utf8_decode(interp, interp->stdlibspath, strlen(interp->stdlibspath), &ustdlibspath))
+	struct UnicodeString ustdpath;
+	if (!utf8_decode(interp, interp->stdpath, strlen(interp->stdpath), &ustdpath))
 		return NULL;
 
 #if PATH_SLASH != '/'
@@ -117,7 +117,7 @@ static struct Object *file_importer(struct Interpreter *interp, struct Object *a
 #if PATH_SLASH != '/'
 		{ (struct UnicodeString){ .len = 1, .val = &badslash }, (struct UnicodeString){ .len = 1, .val = &goodslash } },
 #endif
-		{ (struct UnicodeString){ .len = sizeof(stdlibsmarker)/sizeof(unicode_char), .val = stdlibsmarker }, ustdlibspath }
+		{ (struct UnicodeString){ .len = sizeof(stdmarker)/sizeof(unicode_char), .val = stdmarker }, ustdpath }
 	};
 
 	for (size_t i=0; i < sizeof(replaces)/sizeof(replaces[0]); i++) {
@@ -126,13 +126,13 @@ static struct Object *file_importer(struct Interpreter *interp, struct Object *a
 			free(name.val);
 
 		if (!tmp) {
-			free(ustdlibspath.val);
+			free(ustdpath.val);
 			return NULL;
 		}
 		name = *tmp;
 		free(tmp);
 	}
-	free(ustdlibspath.val);
+	free(ustdpath.val);
 
 	char *fname;
 	size_t fnamelen;   // without .ö or \0

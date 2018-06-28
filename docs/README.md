@@ -9,6 +9,6 @@ Currently there's very little documentation :(
 - [Importing](syntax-spec.md)
 - [Errros](errors.md)
 - [Syntax specification](syntax-spec.md)
-- Standard Libraries (see [stdlibs](../stdlibs) for source code):
-    - [imports](stdlibs/imports.md)
-    - [stacks](stdlibs/stacks.md)
+- Standard Libraries (see [std](../std) for source code):
+    - [imports](std/imports.md)
+    - [stacks](std/stacks.md)

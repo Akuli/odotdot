@@ -7,11 +7,11 @@
 struct Interpreter;
 struct Object;
 
-// for interpreter_new() only, other files should use interp->stdlibspath
+// for interpreter_new() only, other files should use interp->stdpath
 // returns a string that must be free()'d
 // prints an error message to stderr and returns NULL on failure
 // argv0 is used in error messages
-char *import_findstdlibs(char *argv0);
+char *import_findstd(char *argv0);
 
 // for builtins_setup()
 // adds the built-in importer(s) to interp->importstuff.importers

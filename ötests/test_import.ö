@@ -1,16 +1,16 @@
 var test = (import "utils").test;
 var throws = (import "utils").throws;
 
-var imports = (import "<stdlibs>/imports");
+var imports = (import "<std>/imports");
 
 
 test "importing something that doesn't exist" {
     throws ValueError { import "asdijoasdfojasdiofjoiasdjf"; };
-    throws ValueError { import "<stdlibs>/asdijoasdfojasdiofjoiasdjf"; };
+    throws ValueError { import "<std>/asdijoasdfojasdiofjoiasdjf"; };
 };
 
 test "including .ö extension in the import string" {
-    import "<stdlibs>/imports";   # must work
+    import "<std>/imports";   # must work
 
     # the throws util doesn't support accessing the error object yet :(
     var caught = false;
@@ -68,8 +68,8 @@ test "bad importer" {
 
 # TODO: implement and test this stuff with case-insensitive file systems
 test "built-in importer caching" {
-    var lib1 = (import "<stdlibs>/imports");
-    var lib2 = (import "<stdlibs>/imports");
+    var lib1 = (import "<std>/imports");
+    var lib2 = (import "<std>/imports");
     var lib3 = (import "testfiles/hello");
     var lib4 = (import "testfiles/hello");
     var lib5 = ((import "testfiles/import_hello").get_hello);
