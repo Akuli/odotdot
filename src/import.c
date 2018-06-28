@@ -70,19 +70,25 @@ static char *get_source_dir(struct Interpreter *interp, struct Object *stackfram
 	if (!ok)
 		return NULL;
 
-	char filename0[filenamelen+1];
-	memcpy(filename0, filename, filenamelen);
-	free(filename);
-	filename0[filenamelen] = 0;
-	assert(path_isabsolute(filename0));
+	void *tmp = realloc(filename, filenamelen+1);
+	if (!tmp) {
+		free(filename);
+		return NULL;
+	}
+	filename = tmp;
+	filename[filenamelen] = 0;
+	assert(path_isabsolute(filename));
 
-	size_t i = path_findlastslash(filename0);
+	size_t i = path_findlastslash(filename);
 	char *srcdir = malloc(i+1);
 	if (!srcdir) {
 		errorobject_thrownomem(interp);
+		free(filename);
 		return NULL;
 	}
-	memcpy(srcdir, filename0, i);
+
+	memcpy(srcdir, filename, i);
+	free(filename);
 	srcdir[i] = 0;
 	return srcdir;
 }
@@ -128,41 +134,43 @@ static struct Object *file_importer(struct Interpreter *interp, struct Object *a
 	}
 	free(ustdlibspath.val);
 
-	char *fname_noext;
-	size_t fname_noextlen;
-	bool ok = utf8_encode(interp, name, &fname_noext, &fname_noextlen);
+	char *fname;
+	size_t fnamelen;   // without .ö or \0
+	bool ok = utf8_encode(interp, name, &fname, &fnamelen);
 	free(name.val);
 	if (!ok)
 		return NULL;
 
-	char fname[fname_noextlen + sizeof(".ö") /* includes \0 */];
-	memcpy(fname, fname_noext, fname_noextlen);
-	free(fname_noext);
-	memcpy(fname+fname_noextlen, ".ö", sizeof(".ö"));
+	void *tmp = realloc(fname, fnamelen + sizeof(".ö") /* includes \0 */);
+	if (!tmp) {
+		free(fname);
+		return NULL;
+	}
+	fname = tmp;
+	memcpy(fname+fnamelen, ".ö", sizeof(".ö"));
 
 	char *fullpath;
-	bool mustfreefullpath;
-	if (path_isabsolute(fname)) {
+	if (path_isabsolute(fname))
 		fullpath = fname;
-		mustfreefullpath = false;
-	} else {
+	else {
 		char *sourcedir = get_source_dir(interp, ARRAYOBJECT_GET(args, 1));
-		if (!sourcedir)
+		if (!sourcedir) {
+			free(fname);
 			return NULL;
+		}
 		fullpath = path_concat(sourcedir, fname);
 		free(sourcedir);
+		free(fname);
 		if (!fullpath) {
 			errorobject_thrownomem(interp);
 			return NULL;
 		}
-		mustfreefullpath = true;
 	}
 
 	// check if the lib is cached
 	struct Object *fullpathobj = stringobject_newfromcharptr(interp, fullpath);
 	if (!fullpathobj) {
-		if (mustfreefullpath)
-			free(fullpath);
+		free(fullpath);
 		return NULL;
 	}
 
@@ -174,8 +182,7 @@ static struct Object *file_importer(struct Interpreter *interp, struct Object *a
 	int status = mappingobject_get(interp, interp->importstuff.filelibcache, fullpathobj, &cachedlib);
 	if (status != 0) {   // gonna return soon
 		OBJECT_DECREF(interp, fullpathobj);
-		if (mustfreefullpath)
-			free(fullpath);
+		free(fullpath);
 	}
 	if (status == 1)
 		return cachedlib;
@@ -186,8 +193,7 @@ static struct Object *file_importer(struct Interpreter *interp, struct Object *a
 	// TODO: check file not found error
 	struct Object *vars;
 	status = run_libfile(interp, fullpath, &vars);
-	if (mustfreefullpath)
-		free(fullpath);
+	free(fullpath);
 	if (status == -1) {    // file not found, try another importer
 		OBJECT_DECREF(interp, fullpathobj);
 		return nullobject_get(interp);

@@ -283,12 +283,23 @@ static struct Object *add(struct Interpreter *interp, struct Object *args, struc
 	struct UnicodeString u1 = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data);
 	struct UnicodeString u2 = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 1)->data);
 
-	unicode_char uval[u1.len + u2.len];     // this wörks because C99 magic
-	memcpy(uval, u1.val, u1.len * sizeof(unicode_char));
-	memcpy(uval + u1.len, u2.val, u2.len * sizeof(unicode_char));
+	struct UnicodeString *u = malloc(sizeof(struct UnicodeString));
+	if (!u) {
+		errorobject_thrownomem(interp);
+		return NULL;
+	}
 
-	struct UnicodeString u = { .len = u1.len + u2.len, .val = uval };   // moar C99 magicz
-	return stringobject_newfromustr(interp, u);
+	u->len = u1.len + u2.len;
+	u->val = malloc(sizeof(unicode_char) * u->len);
+	if (!u->val) {
+		errorobject_thrownomem(interp);
+		free(u);
+		return NULL;
+	}
+
+	memcpy(u->val, u1.val, u1.len * sizeof(unicode_char));
+	memcpy(u->val + u1.len, u2.val, u2.len * sizeof(unicode_char));
+	return new_string_from_ustr_with_no_copy(interp, u);
 }
 
 bool stringobject_initoparrays(struct Interpreter *interp) {
@@ -465,34 +476,47 @@ struct Object *stringobject_newfromvfmt(struct Interpreter *interp, char *fmt, v
 		nparts++;
 	}
 
-	struct UnicodeString everything;
-	everything.len = 0;
+	size_t totallen = 0;
 	for (int i=0; i < nparts; i++)
-		everything.len += parts[i].len;
+		totallen += parts[i].len;
 
 	struct Object *res;
-	if (everything.len == 0)    // malloc(0) may return NULL on success, avoid that
-		res = stringobject_newfromcharptr(interp, "");
-	else {
-		unicode_char everythingval[everything.len];
-		everything.val = everythingval;
+	if (totallen == 0) {    // malloc(0) may return NULL on success, avoid that
+		if (!(res = stringobject_newfromcharptr(interp, "")))
+			goto error;
+	} else {
+		struct UnicodeString *ures = malloc(sizeof(struct UnicodeString));
+		if (!ures)
+			goto nomem;
 
-		unicode_char *ptr = everythingval;
+		ures->len = totallen;
+		ures->val = malloc(sizeof(unicode_char) * totallen);
+		if (!ures->val) {
+			free(ures);
+			goto nomem;
+		}
+
+		unicode_char *ptr = ures->val;
 		for (int i=0; i < nparts; i++) {
 			memcpy(ptr, parts[i].val, sizeof(unicode_char) * parts[i].len);
 			ptr += parts[i].len;
 		}
-		res = stringobject_newfromustr(interp, everything);
+
+		if (!(res = new_string_from_ustr_with_no_copy(interp, ures))) {
+			free(ures->val);
+			free(ures);
+			goto error;
+		}
 	}
 
+	assert(res);
 	for (int i=0; i < nparts; i++) {
 		if (!skipfreeval[i])
 			free(parts[i].val);
 	}
 	for (int i=0; gonnadecref[i]; i++)
 		OBJECT_DECREF(interp, gonnadecref[i]);
-
-	return res;      // may be NULL
+	return res;
 
 nomem:
 	errorobject_thrownomem(interp);

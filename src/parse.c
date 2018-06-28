@@ -54,13 +54,16 @@ static struct Object *parse_string(struct Interpreter *interp, char *filename, s
 	// and 2-character escape sequences represent 1 character in the string
 	// e.g. \n (2 characters) represents a newline (1 character)
 	// so length of a \n representation is bigger than length of a string with newlines
-	unicode_char dst[(*curtok)->str.len - 2];
+	unicode_char *dst = malloc(sizeof(unicode_char) * ((*curtok)->str.len - 2));
+	if (!dst) {
+		errorobject_thrownomem(interp);
+		return NULL;
+	}
 	size_t dstlen = 0;
 
 	// skip initial "
 	src++;
 
-	// add the characters to dst
 	while (*src != '"') {
 		if (*src == '\\') {
 			src++;
@@ -81,6 +84,7 @@ static struct Object *parse_string(struct Interpreter *interp, char *filename, s
 	}
 
 	struct Object *info = stringobject_newfromustr(interp, (struct UnicodeString) { .len = dstlen, .val = dst });
+	free(dst);
 	if (!info)
 		return NULL;
 

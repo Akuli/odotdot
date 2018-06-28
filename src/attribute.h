@@ -12,7 +12,7 @@
 
 // returns false on error
 // setter and getter can be NULL (but not both, that would do nothing)
-// bad things happen if klass is not a class object
+// bad things happen if klass is not a class object or name is very long
 bool attribute_add(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc getter, functionobject_cfunc setter);
 bool attribute_addwithfuncobjs(struct Interpreter *interp, struct Object *klass, char *name, struct Object *getter, struct Object *setter);
 

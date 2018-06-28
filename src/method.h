@@ -9,7 +9,7 @@
 
 // returns false on error
 // name must be valid UTF-8
-// bad things happen if klass is not a class object
+// bad things happen if klass is not a class object or name is very long
 bool method_add(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc cfunc);
 
 // RETURNS A NEW REFERENCE or NULL on error
