@@ -157,6 +157,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 	return nullobject_get(interp);
 }
 
+// TODO: implement in pure ö when division works
 static struct Object *to_string(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Integer, NULL)) return NULL;

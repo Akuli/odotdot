@@ -353,23 +353,12 @@ static struct Object *get_and_delete(struct Interpreter *interp, struct Object *
 	return val;
 }
 
-static struct Object *delete(struct Interpreter *interp, struct Object *args, struct Object *opts)
-{
-	struct Object *res = get_and_delete(interp, args, opts);
-	if (!res)
-		return NULL;
-
-	OBJECT_DECREF(interp, res);
-	return nullobject_get(interp);
-}
-
 bool mappingobject_addmethods(struct Interpreter *interp)
 {
 	if (!attribute_add(interp, interp->builtins.Mapping, "length", length_getter, NULL)) return false;
 	if (!method_add(interp, interp->builtins.Mapping, "setup", setup)) return false;
 	if (!method_add(interp, interp->builtins.Mapping, "set", set)) return false;
 	if (!method_add(interp, interp->builtins.Mapping, "get", get)) return false;
-	if (!method_add(interp, interp->builtins.Mapping, "delete", delete)) return false;
 	if (!method_add(interp, interp->builtins.Mapping, "get_and_delete", get_and_delete)) return false;
 	// TODO: to_debug_string
 	return true;

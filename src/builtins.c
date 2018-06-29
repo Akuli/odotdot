@@ -231,14 +231,6 @@ static struct Object *get_class(struct Interpreter *interp, struct Object *args,
 	return obj->klass;
 }
 
-static struct Object *is_instance_of(struct Interpreter *interp, struct Object *args, struct Object *opts)
-{
-	// TODO: shouldn't this be implemented in builtins.ö? classobject_isinstanceof() doesn't do anything fancy
-	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Class, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-	return boolobject_get(interp, classobject_isinstanceof(ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1)));
-}
-
 static struct Object *same_object(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
@@ -264,17 +256,6 @@ static struct Object *print(struct Interpreter *interp, struct Object *args, str
 	putchar('\n');
 
 	return nullobject_get(interp);
-}
-
-// returns a list of [filename lineno] sublists
-// see stack.c and stack.h
-// TODO: implement this in pure ö with exceptions
-static struct Object *get_stack(struct Interpreter *interp, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-
-	return stackframeobject_getstack(interp);
 }
 
 
@@ -388,7 +369,6 @@ bool builtins_setup(struct Interpreter *interp)
 
 	// these classes must exist before methods exist, so they are handled specially
 	// TODO: rename addmethods to addattrib(ute)s functions? methods are attributes
-	if (!nullobject_addmethods(interp)) goto error;
 	if (!classobject_addmethods(interp)) goto error;
 	if (!objectobject_addmethods(interp)) goto error;
 	if (!stringobject_addmethods(interp)) goto error;
@@ -447,10 +427,10 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!interpreter_addbuiltin(interp, "Object", interp->builtins.Object)) goto error;
 	if (!interpreter_addbuiltin(interp, "Scope", interp->builtins.Scope)) goto error;
 	if (!interpreter_addbuiltin(interp, "String", interp->builtins.String)) goto error;
-	if (!interpreter_addbuiltin(interp, "false", interp->builtins.no)) goto error;
-	if (!interpreter_addbuiltin(interp, "importers", interp->importstuff.importers)) goto error;
-	if (!interpreter_addbuiltin(interp, "null", interp->builtins.null)) goto error;
 	if (!interpreter_addbuiltin(interp, "true", interp->builtins.yes)) goto error;
+	if (!interpreter_addbuiltin(interp, "false", interp->builtins.no)) goto error;
+	if (!interpreter_addbuiltin(interp, "null", interp->builtins.null)) goto error;
+	if (!interpreter_addbuiltin(interp, "importers", interp->importstuff.importers)) goto error;
 
 	if (!interpreter_addbuiltin(interp, "add_oparray", interp->oparrays.add)) goto error;
 	if (!interpreter_addbuiltin(interp, "sub_oparray", interp->oparrays.sub)) goto error;
@@ -464,12 +444,10 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!add_function(interp, "lambda", lambdabuiltin)) goto error;
 	if (!add_function(interp, "catch", catch)) goto error;
 	if (!add_function(interp, "get_class", get_class)) goto error;
-	if (!add_function(interp, "is_instance_of", is_instance_of)) goto error;
 	if (!add_function(interp, "new", new)) goto error;
 	if (!add_function(interp, "print", print)) goto error;
 	if (!add_function(interp, "same_object", same_object)) goto error;
 	if (!add_function(interp, "get_attrdata", get_attrdata)) goto error;
-	if (!add_function(interp, "get_stack", get_stack)) goto error;     // TODO: get rid of this??
 	if (!add_function(interp, "for", for_)) goto error;
 
 	// compile like this:   $ CFLAGS=-DDEBUG_BUILTINS make clean all

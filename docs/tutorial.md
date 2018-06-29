@@ -198,7 +198,7 @@ are called *methods*. For example, arrays have a `push` method that adds an
 element to the end of the array:
 
 ```python
-debug thing.push;   # prints <Function "push method" at 0xblablabla>
+debug thing.push;   # prints <Function "push method">
 thing.push "d";
 debug thing;        # prints ["a" "b" "c" "d"]
 ```
@@ -336,9 +336,9 @@ name in the string.
 Function objects behave nicely with [the debug function](#debugging):
 
 ```python
-debug print_twice;   # prints <Function "print_twice" at 0xblablabla>
-debug print;         # prints <Function "print" at 0xblablabla>
-debug func;          # prints <Function "func" at 0xblablabla>
+debug print_twice;   # prints <Function "print_twice">
+debug print;         # prints <Function "print">
+debug func;          # prints <Function "func">
 ```
 
 It's time to write our own **pure-Ö implementation of if** without using the
@@ -507,7 +507,7 @@ f.toot "asd";           # prints "tooting with asd"
 As you should have guessed by now, `class` is just a function...
 
 ```python
-debug class;      # prints <Function "class" at 0xblablabla>
+debug class;      # prints <Function "class">
 ```
 
 ...and `Foo` is just a `Class` object, just like e.g. `Mapping`:
@@ -541,7 +541,7 @@ debug method;       # error: no variable named 'method'
 
 ```python
 class "Baz" {
-    debug method;   # prints <Function "method" at 0xblablabla>
+    debug method;   # prints <Function "method">
 };
 ```
 

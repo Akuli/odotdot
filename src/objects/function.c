@@ -155,19 +155,6 @@ bool functionobject_setname(struct Interpreter *interp, struct Object *func, cha
 }
 
 
-static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, interp->builtins.Function, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-
-	struct Object *func = ARRAYOBJECT_GET(args, 0);
-	/* TODO: get rid of the "at" part?
-		good because hexadecimal is confusing to people not familiar with it
-		bad because right now partials are not named differently from the original functions
-	*/
-	return stringobject_newfromfmt(interp, "<Function %D at %p>", ((struct FunctionData*) func->data)->name, (void*)func);
-}
-
 static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	// FIXME: ValueError feels wrong for this
@@ -181,7 +168,6 @@ bool functionobject_addmethods(struct Interpreter *interp)
 	if (!attribute_add(interp, interp->builtins.Function, "name", name_getter, name_setter)) return false;
 	if (!method_add(interp, interp->builtins.Function, "setup", setup)) return false;
 	if (!method_add(interp, interp->builtins.Function, "partial", partial)) return false;
-	if (!method_add(interp, interp->builtins.Function, "to_debug_string", to_debug_string)) return false;
 	return true;
 }
 

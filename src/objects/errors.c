@@ -180,24 +180,12 @@ static struct Object *print_stack(struct Interpreter *interp, struct Object *arg
 	return nullobject_get(interp);
 }
 
-static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-	struct Object *err = ARRAYOBJECT_GET(args, 0);
-
-	struct ClassObjectData *classdata = err->klass->data;
-	struct ErrorData *errdata = err->data;
-	return stringobject_newfromfmt(interp, "<%U: %D>", classdata->name, errdata->message);
-}
-
 bool errorobject_addmethods(struct Interpreter *interp)
 {
 	if (!attribute_add(interp, interp->builtins.Error, "message", message_getter, message_setter)) return false;
 	if (!attribute_add(interp, interp->builtins.Error, "stack", stack_getter, stack_setter)) return false;
 	if (!method_add(interp, interp->builtins.Error, "setup", setup)) return false;
 	if (!method_add(interp, interp->builtins.Error, "print_stack", print_stack)) return false;
-	if (!method_add(interp, interp->builtins.Error, "to_debug_string", to_debug_string)) return false;
 	return true;
 }
 

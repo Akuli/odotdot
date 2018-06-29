@@ -11,3 +11,33 @@ test "attrib" {
         };
     };
 };
+
+class "AB" { };
+class "A" inherits:AB { };
+class "B" inherits:AB { };
+
+test "to_debug_string" {
+    assert ((String.to_debug_string) == "<Class \"String\">");
+    assert ((A.to_debug_string) == "<Class \"A\">");
+    assert ((AB.to_debug_string) == "<Class \"AB\">");
+};
+
+
+test "is_instance_of" {
+    assert ("lol" `is_instance_of` String);
+    assert (123 `is_instance_of` Integer);
+    assert (not (123 `is_instance_of` String));
+    assert (not ("lol" `is_instance_of` Integer));
+
+    assert ((new A) `is_instance_of` A);
+    assert (not ((new A) `is_instance_of` B));
+    assert ((new A) `is_instance_of` AB);
+
+    assert (not ((new B) `is_instance_of` A));
+    assert ((new B) `is_instance_of` B);
+    assert ((new B) `is_instance_of` AB);
+
+    assert (not ((new AB) `is_instance_of` A));
+    assert (not ((new AB) `is_instance_of` B));
+    assert ((new AB) `is_instance_of` AB);
+};

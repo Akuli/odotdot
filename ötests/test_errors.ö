@@ -23,6 +23,12 @@ class "AsdError" inherits:AsdTootError { };
 class "TootError" inherits:AsdTootError { };
 
 
+test "to_debug_string" {
+    assert (((new TypeError "omg").to_debug_string) == "<TypeError: \"omg\">");
+    assert (((new Error "").to_debug_string) == "<Error: \"\">");
+    assert (((new AsdError "wtf").to_debug_string) == "<AsdError: \"wtf\">");
+};
+
 test "throw" {
     throws TypeError { throw "asd"; };
     throws ArgError { throw 1 2 3; };

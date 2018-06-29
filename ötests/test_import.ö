@@ -2,6 +2,7 @@ var test = (import "utils").test;
 var throws = (import "utils").throws;
 
 import "<std>/imports" as: "imports";
+import "<std>/stacks" as: "stacks";
 
 
 test "basic stuff" {
@@ -45,7 +46,7 @@ test "including .ö extension in the import string" {
 };
 
 test "simple importer" {
-    var stack = (get_stack);
+    var stack = (stacks.get_stack);
     var this_file_name = (stack.get (stack.length - 1)).filename;
     var lib = (new (get_class imports));
     var count = 0;

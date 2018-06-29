@@ -675,8 +675,8 @@ Methods:
   function as arguments. So, `var g = (f.partial a b); g x y;` runs
   `f a b x y;`.
 - `(function.to_debug_string)` returns a string like
-  `<Function "the name of the function is here" at 0xblablabla>`. See also the
-  `.name` attribute above. This overrides [Object](#object)'s `to_debug_string`.
+  `<Function "the name of the function is here">`. See also the `.name`
+  attribute above. This overrides [Object](#object)'s `to_debug_string`.
 
 
 ## Other objects in the built-in namespace

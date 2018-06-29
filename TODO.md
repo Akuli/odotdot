@@ -208,6 +208,13 @@ things that I would like to do some day. It's a mess.
 - ask friends for help? writing tests is a lot of work
     - although not as much work as i expected, ö is quite nice to work with :)
 
+## std/builtins.ö
+
+this shouldn't be in std imo, i have no idea what happens if you
+`import "<std>/builtins";`
+
+probably something horrible
+
 ## tokenizer.{c,h}
 - tokenizing an empty file fails
     - `token_ize()` returns a linked list, and an empty linked list is

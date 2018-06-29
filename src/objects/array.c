@@ -147,6 +147,7 @@ struct Object *arrayobject_createclass(struct Interpreter *interp)
 	if (!klass)
 		return NULL;
 
+	// TODO: figure out better names for push and pop?
 	if (!attribute_add(interp, klass, "length", length_getter, NULL)) goto error;
 	if (!method_add(interp, klass, "set", set)) goto error;
 	if (!method_add(interp, klass, "get", get)) goto error;

@@ -223,18 +223,9 @@ static struct Object *setters_getter(struct Interpreter *interp, struct Object *
 	return data->setters;
 }
 
-static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, interp->builtins.Class, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-	struct ClassObjectData *data = ARRAYOBJECT_GET(args, 0)->data;
-	return stringobject_newfromfmt(interp, "<Class \"%U\">", data->name);
-}
-
 bool classobject_addmethods(struct Interpreter *interp)
 {
 	if (!method_add(interp, interp->builtins.Class, "setup", setup)) return false;
-	if (!method_add(interp, interp->builtins.Class, "to_debug_string", to_debug_string)) return false;
 	if (!attribute_add(interp, interp->builtins.Class, "name", name_getter, NULL)) return false;
 	if (!attribute_add(interp, interp->builtins.Class, "baseclass", baseclass_getter, NULL)) return false;
 	if (!attribute_add(interp, interp->builtins.Class, "getters", getters_getter, NULL)) return false;
