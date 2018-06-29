@@ -170,8 +170,11 @@ static struct Object *name_getter(struct Interpreter *interp, struct Object *arg
 	if (!check_args(interp, args, interp->builtins.Class, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
+	// allocating more memory in newfromustr_copy is not a problem
+	// performance-critical stuff doesn't access class names in a tight loop
+	// unless something's wrong
 	struct ClassObjectData *data = ARRAYOBJECT_GET(args, 0)->data;
-	return stringobject_newfromustr(interp, data->name);
+	return stringobject_newfromustr_copy(interp, data->name);
 }
 
 static struct Object *baseclass_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)

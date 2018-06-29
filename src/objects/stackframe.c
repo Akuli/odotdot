@@ -49,7 +49,6 @@ static struct Object *new_frame_object(struct Interpreter *interp, struct StackF
 		goto error;
 
 	struct Object *filename = stringobject_newfromustr(interp, u);
-	free(u.val);
 	if (!filename)
 		goto error;
 

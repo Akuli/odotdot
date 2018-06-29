@@ -161,7 +161,7 @@ static bool parse_arg_and_opt_names(struct Interpreter *interp, struct Object *s
 			if (!check_identifier(interp, u))
 				goto error;
 
-			struct Object *tmp = stringobject_newfromustr(interp, u);
+			struct Object *tmp = stringobject_newfromustr_copy(interp, u);
 			if (!tmp)
 				goto error;
 			bool ok = arrayobject_push(interp, optnames, tmp);

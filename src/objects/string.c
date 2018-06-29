@@ -69,9 +69,6 @@ static struct Object *length_getter(struct Interpreter *interp, struct Object *a
 	return integerobject_newfromlonglong(interp, ((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data)->len);
 }
 
-// forward decla
-static struct Object *new_string_from_ustr_with_no_copy(struct Interpreter *, struct UnicodeString *);
-
 static struct Object *replace(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	// TODO: allow passing in a Mapping of things to replace?
@@ -86,12 +83,8 @@ static struct Object *replace(struct Interpreter *interp, struct Object *args, s
 	if (!replaced)
 		return NULL;
 
-	struct Object *res = new_string_from_ustr_with_no_copy(interp, replaced);
-	if (!res) {
-		free(replaced->val);
-		free(replaced);
-		return NULL;
-	}
+	struct Object *res = stringobject_newfromustr(interp, *replaced);
+	free(replaced);
 	return res;
 }
 
@@ -116,7 +109,7 @@ static struct Object *get(struct Interpreter *interp, struct Object *args, struc
 
 	ustr.val += i;
 	ustr.len = 1;
-	return stringobject_newfromustr(interp, ustr);
+	return stringobject_newfromustr_copy(interp, ustr);
 }
 
 static struct Object *slice(struct Interpreter *interp, struct Object *args, struct Object *opts)
@@ -159,7 +152,7 @@ static struct Object *slice(struct Interpreter *interp, struct Object *args, str
 
 	ustr.val += start;
 	ustr.len = end - start;
-	return stringobject_newfromustr(interp, ustr);
+	return stringobject_newfromustr_copy(interp, ustr);
 }
 
 struct Object *stringobject_splitbywhitespace(struct Interpreter *interp, struct Object *s)
@@ -185,7 +178,7 @@ struct Object *stringobject_splitbywhitespace(struct Interpreter *interp, struct
 			struct UnicodeString subu = *((struct UnicodeString*) s->data);
 			subu.val += offset;
 			subu.len = nows_end - offset;
-			struct Object *sub = stringobject_newfromustr(interp, subu);
+			struct Object *sub = stringobject_newfromustr_copy(interp, subu);
 			if (!sub)
 				goto error;
 			bool ok = arrayobject_push(interp, result, sub);
@@ -207,7 +200,7 @@ struct Object *stringobject_splitbywhitespace(struct Interpreter *interp, struct
 			struct UnicodeString lastu = *((struct UnicodeString*) s->data);
 			lastu.val += offset;
 			lastu.len -= offset;
-			struct Object *last = stringobject_newfromustr(interp, lastu);
+			struct Object *last = stringobject_newfromustr_copy(interp, lastu);
 			if (!last)
 				goto error;
 			bool ok = arrayobject_push(interp, result, last);
@@ -283,23 +276,17 @@ static struct Object *add(struct Interpreter *interp, struct Object *args, struc
 	struct UnicodeString u1 = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data);
 	struct UnicodeString u2 = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 1)->data);
 
-	struct UnicodeString *u = malloc(sizeof(struct UnicodeString));
-	if (!u) {
+	struct UnicodeString u;
+	u.len = u1.len + u2.len;
+	u.val = malloc(sizeof(unicode_char) * u.len);
+	if (!u.val) {
 		errorobject_thrownomem(interp);
 		return NULL;
 	}
 
-	u->len = u1.len + u2.len;
-	u->val = malloc(sizeof(unicode_char) * u->len);
-	if (!u->val) {
-		errorobject_thrownomem(interp);
-		free(u);
-		return NULL;
-	}
-
-	memcpy(u->val, u1.val, u1.len * sizeof(unicode_char));
-	memcpy(u->val + u1.len, u2.val, u2.len * sizeof(unicode_char));
-	return new_string_from_ustr_with_no_copy(interp, u);
+	memcpy(u.val, u1.val, u1.len * sizeof(unicode_char));
+	memcpy(u.val+u1.len, u2.val, u2.len * sizeof(unicode_char));
+	return stringobject_newfromustr(interp, u);
 }
 
 bool stringobject_initoparrays(struct Interpreter *interp) {
@@ -319,51 +306,45 @@ static long string_hash(struct UnicodeString u)
 	return (long)hash;
 }
 
-// TODO: expose this and use it everywhere
-static struct Object *new_string_from_ustr_with_no_copy(struct Interpreter *interp, struct UnicodeString *ustr)
+struct Object *stringobject_newfromustr(struct Interpreter *interp, struct UnicodeString ustr)
 {
-	struct Object *s = object_new_noerr(interp, interp->builtins.String, ustr, NULL, string_destructor);
-	if (!s) {
+	struct UnicodeString *data = malloc(sizeof(struct UnicodeString));
+	if (!data) {
 		errorobject_thrownomem(interp);
 		return NULL;
 	}
-	s->hash = string_hash(*ustr);
-	return s;
-}
+	data->len = ustr.len;
+	data->val = ustr.val;
 
-struct Object *stringobject_newfromustr(struct Interpreter *interp, struct UnicodeString ustr)
-{
-	struct UnicodeString *data = unicodestring_copy(interp, ustr);
-	if (!data)
-		return NULL;
-
-	struct Object *res = new_string_from_ustr_with_no_copy(interp, data);
-	if (!res) {
+	struct Object *s = object_new_noerr(interp, interp->builtins.String, data, NULL, string_destructor);
+	if (!s) {
+		errorobject_thrownomem(interp);
 		free(data->val);
 		free(data);
 		return NULL;
 	}
+	s->hash = string_hash(ustr);
+	return s;
+}
+
+struct Object *stringobject_newfromustr_copy(struct Interpreter *interp, struct UnicodeString ustr)
+{
+	// TODO: this does 1 malloc more than needed
+	struct UnicodeString *ustr2 = unicodestring_copy(interp, ustr);
+	if (!ustr2)
+		return NULL;
+
+	struct Object *res = stringobject_newfromustr(interp, *ustr2);
+	free(ustr2);
 	return res;
 }
 
 struct Object *stringobject_newfromcharptr(struct Interpreter *interp, char *ptr)
 {
-	struct UnicodeString *data = malloc(sizeof(struct UnicodeString));
-	if (!data)
+	struct UnicodeString data;
+	if (!utf8_decode(interp, ptr, strlen(ptr), &data))
 		return NULL;
-
-	if (!utf8_decode(interp, ptr, strlen(ptr), data)) {
-		free(data);
-		return NULL;
-	}
-
-	struct Object *res = new_string_from_ustr_with_no_copy(interp, data);
-	if (!res) {
-		free(data->val);
-		free(data);
-		return NULL;
-	}
-	return res;
+	return stringobject_newfromustr(interp, data);
 }
 
 
@@ -485,28 +466,18 @@ struct Object *stringobject_newfromvfmt(struct Interpreter *interp, char *fmt, v
 		if (!(res = stringobject_newfromcharptr(interp, "")))
 			goto error;
 	} else {
-		struct UnicodeString *ures = malloc(sizeof(struct UnicodeString));
-		if (!ures)
+		struct UnicodeString ures = { .len = totallen, .val = malloc(sizeof(unicode_char) * totallen) };
+		if (!ures.val)
 			goto nomem;
 
-		ures->len = totallen;
-		ures->val = malloc(sizeof(unicode_char) * totallen);
-		if (!ures->val) {
-			free(ures);
-			goto nomem;
-		}
-
-		unicode_char *ptr = ures->val;
+		unicode_char *ptr = ures.val;
 		for (int i=0; i < nparts; i++) {
 			memcpy(ptr, parts[i].val, sizeof(unicode_char) * parts[i].len);
 			ptr += parts[i].len;
 		}
 
-		if (!(res = new_string_from_ustr_with_no_copy(interp, ures))) {
-			free(ures->val);
-			free(ures);
+		if (!(res = stringobject_newfromustr(interp, ures)))
 			goto error;
-		}
 	}
 
 	assert(res);

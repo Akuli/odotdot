@@ -84,7 +84,6 @@ static struct Object *parse_string(struct Interpreter *interp, char *filename, s
 	}
 
 	struct Object *info = stringobject_newfromustr(interp, (struct UnicodeString) { .len = dstlen, .val = dst });
-	free(dst);
 	if (!info)
 		return NULL;
 
@@ -178,7 +177,7 @@ static struct Object *parse_call(struct Interpreter *interp, char *filename, str
 			(*curtok)->next->kind == TOKEN_OP && (*curtok)->next->str.len == 1 && (*curtok)->next->str.val[0] == ':')
 		{
 			// opt:val
-			struct Object *optstr = stringobject_newfromustr(interp, (*curtok)->str);
+			struct Object *optstr = stringobject_newfromustr_copy(interp, (*curtok)->str);
 			if (!optstr)
 				goto error;
 			*curtok = (*curtok)->next->next;    // skip opt and :

@@ -19,6 +19,8 @@
 #include "operator.h"
 #include "parse.h"
 
+// TODO: this creates lots of new strings, avoid that to speed up the interpreter
+
 // RETURNS A NEW REFERENCE
 static struct Object *runast_expression(struct Interpreter *interp, struct Object *scope, struct Object *exprnode)
 {
@@ -26,7 +28,7 @@ static struct Object *runast_expression(struct Interpreter *interp, struct Objec
 
 #define INFO_AS(X) ((struct X *) nodedata->info)
 	if (nodedata->kind == AST_GETVAR) {
-		struct Object *name = stringobject_newfromustr(interp, INFO_AS(AstGetVarInfo)->varname);
+		struct Object *name = stringobject_newfromustr_copy(interp, INFO_AS(AstGetVarInfo)->varname);
 		if (!name)
 			return NULL;
 
@@ -46,7 +48,7 @@ static struct Object *runast_expression(struct Interpreter *interp, struct Objec
 		if (!obj)
 			return NULL;
 
-		struct Object *s = stringobject_newfromustr(interp, INFO_AS(AstGetAttrInfo)->name);
+		struct Object *s = stringobject_newfromustr_copy(interp, INFO_AS(AstGetAttrInfo)->name);
 		if (!s) {
 			OBJECT_DECREF(interp, obj);
 			return NULL;
@@ -188,7 +190,7 @@ bool runast_statement(struct Interpreter *interp, struct Object *scope, struct O
 		if (!val)
 			return false;
 
-		struct Object *keystr = stringobject_newfromustr(interp, INFO_AS(AstCreateOrSetVarInfo)->varname);
+		struct Object *keystr = stringobject_newfromustr_copy(interp, INFO_AS(AstCreateOrSetVarInfo)->varname);
 		if (!keystr) {
 			OBJECT_DECREF(interp, val);
 		}
@@ -200,7 +202,7 @@ bool runast_statement(struct Interpreter *interp, struct Object *scope, struct O
 	}
 
 	if (nodedata->kind == AST_SETVAR) {
-		struct Object *namestr = stringobject_newfromustr(interp, INFO_AS(AstCreateOrSetVarInfo)->varname);
+		struct Object *namestr = stringobject_newfromustr_copy(interp, INFO_AS(AstCreateOrSetVarInfo)->varname);
 		if (!namestr)
 			return false;
 
@@ -233,7 +235,7 @@ bool runast_statement(struct Interpreter *interp, struct Object *scope, struct O
 			return false;
 		}
 
-		struct Object *stringobj = stringobject_newfromustr(interp, INFO_AS(AstSetAttrInfo)->attr);
+		struct Object *stringobj = stringobject_newfromustr_copy(interp, INFO_AS(AstSetAttrInfo)->attr);
 		if (!stringobj) {
 			OBJECT_DECREF(interp, val);
 			OBJECT_DECREF(interp, obj);

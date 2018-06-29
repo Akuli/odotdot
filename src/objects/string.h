@@ -23,9 +23,13 @@ bool stringobject_addmethods(struct Interpreter *interp);
 // for builtins_setup()
 bool stringobject_initoparrays(struct Interpreter *interp);
 
-// makes a copy of ustr with unicodestring_copy(), returns NULL on error
-// RETURNS A NEW REFERENCE
+// RETURNS A NEW REFERENCE or NULL on error
+// ustr.val must be from malloc(), and must NOT be mutated or freed by the caller, even in error cases
 struct Object *stringobject_newfromustr(struct Interpreter *interp, struct UnicodeString ustr);
+
+// RETURNS A NEW REFERENCE or NULL on error
+// ustr can come from anywhere, it'll be copied
+struct Object *stringobject_newfromustr_copy(struct Interpreter *interp, struct UnicodeString ustr);
 
 // ptr must be \0-terminated
 // RETURNS A NEW REFERENCE
