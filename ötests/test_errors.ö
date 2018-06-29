@@ -120,7 +120,7 @@ test "how throw sets the stack attribute" {
 
     # lineno isn't cheked exactly because changing the tests changes line numbers
     var last_frame = (e.stack.get (e.stack.length - 1));
-    #assert (last_frame.scope `same_object` throwscope);
+    assert (last_frame.scope `same_object` throwscope);
     assert (last_frame.filename `ends_with` "ötests/test_errors.ö");
     assert (last_frame.lineno `is_instance_of` Integer);
 };

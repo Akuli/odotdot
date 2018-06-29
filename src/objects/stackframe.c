@@ -12,6 +12,7 @@
 
 ATTRIBUTE_DEFINE_SIMPLE_GETTER(filename, StackFrame)
 ATTRIBUTE_DEFINE_SIMPLE_GETTER(lineno, StackFrame)
+ATTRIBUTE_DEFINE_SIMPLE_GETTER(scope, StackFrame)
 
 static struct Object *newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
@@ -27,6 +28,7 @@ struct Object *stackframeobject_createclass(struct Interpreter *interp)
 
 	if (!attribute_add(interp, klass, "filename", filename_getter, NULL)) goto error;
 	if (!attribute_add(interp, klass, "lineno", lineno_getter, NULL)) goto error;
+	if (!attribute_add(interp, klass, "scope", scope_getter, NULL)) goto error;
 	return klass;
 
 error:
@@ -64,6 +66,9 @@ static struct Object *new_frame_object(struct Interpreter *interp, struct StackF
 	ok = attribute_settoattrdata(interp, fobj, "lineno", lineno);
 	OBJECT_DECREF(interp, lineno);
 	if (!ok)
+		goto error;
+
+	if (!attribute_settoattrdata(interp, fobj, "scope", f.scope))
 		goto error;
 
 	return fobj;
