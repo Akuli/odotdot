@@ -135,13 +135,13 @@ things that I would like to do some day. It's a mess.
     this is the only thing that can be done now:
 
     ```
-    if (x `equals` 1) {
+    if (x == 1) {
         print "a";
     } else: {
-        if (x `equals` 2) {
+        if (x == 2) {
             print "b";
         } else: {
-            if (x `equals` 3) {
+            if (x == 3) {
                 print "c";
             } else: {
                 print "d";
@@ -179,7 +179,7 @@ things that I would like to do some day. It's a mess.
     });
     ```
 
-    both of these can be implemented in pure ö with
+    both of these can be implemented in pure ö
 
 - string formatting
 
