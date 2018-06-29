@@ -192,7 +192,7 @@ static bool make_bigger(struct Interpreter *interp, struct MappingObjectData *da
 	return true;
 }
 
-bool hashable_check(struct Interpreter *interp, struct Object *key)
+static bool hashable_check(struct Interpreter *interp, struct Object *key)
 {
 	if (!(key->hashable)) {
 		struct ClassObjectData *keyclassdata = key->klass->data;
