@@ -287,6 +287,40 @@ int mappingobject_get(struct Interpreter *interp, struct Object *map, struct Obj
 	return 0;
 }
 
+int mappingobject_getanddelete(struct Interpreter *interp, struct Object *map, struct Object *key, struct Object **val)
+{
+	if (!hashable_check(interp, key))
+		return -1;
+
+	struct MappingObjectData *data = map->data;
+	unsigned long i = HASH_MODULUS(key->hash, data->nbuckets);
+
+	struct MappingObjectItem *prev = NULL;
+	for (struct MappingObjectItem *item = data->buckets[i]; item; item=item->next) {
+		int eqres = operator_eqint(interp, item->key, key);
+		if (eqres == -1)
+			return -1;
+		if (eqres == 1) {
+			// if you modify this, keep in mind that item->next may be NULL
+			if (prev)   // skip this item
+				prev->next = item->next;
+			else      // this is the first item of the bucket
+				data->buckets[i] = item->next;
+			data->size--;
+
+			OBJECT_DECREF(interp, item->key);
+			*val = item->value;   // don't decref this, the reference is put to *val
+			free(item);
+			return 1;
+		}
+		assert(eqres == 0);
+		prev = item;
+	}
+
+	return 0;
+}
+
+
 static struct Object *get(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Mapping, interp->builtins.Object, NULL)) return NULL;
@@ -303,7 +337,6 @@ static struct Object *get(struct Interpreter *interp, struct Object *args, struc
 	return val;
 }
 
-
 static struct Object *get_and_delete(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Mapping, interp->builtins.Object, NULL)) return NULL;
@@ -311,37 +344,13 @@ static struct Object *get_and_delete(struct Interpreter *interp, struct Object *
 	struct Object *map = ARRAYOBJECT_GET(args, 0);
 	struct Object *key = ARRAYOBJECT_GET(args, 1);
 
-	if (!hashable_check(interp, key))
+	struct Object *val;
+	int status = mappingobject_getanddelete(interp, map, key, &val);
+	if (status == 0)
+		errorobject_throwfmt(interp, "KeyError", "cannot find key %D", key);
+	if (status != 1)
 		return NULL;
-
-	struct MappingObjectData *data = map->data;
-	unsigned long i = HASH_MODULUS(key->hash, data->nbuckets);
-
-	struct MappingObjectItem *prev = NULL;
-	for (struct MappingObjectItem *item = data->buckets[i]; item; item=item->next) {
-		int eqres = operator_eqint(interp, item->key, key);
-		if (eqres == -1)
-			return NULL;
-		if (eqres == 1) {
-			// if you modify this, keep in mind that item->next may be NULL
-			if (prev)   // skip this item
-				prev->next = item->next;
-			else      // this is the first item of the bucket
-				data->buckets[i] = item->next;
-			data->size--;
-
-			OBJECT_DECREF(interp, item->key);
-			struct Object *res = item->value;   // don't decref this, the reference is returned
-			free(item);
-			return res;
-		}
-		assert(eqres == 0);
-		prev = item;
-	}
-
-	// empty buckets or nothing but hash collisions
-	errorobject_throwfmt(interp, "KeyError", "cannot find key %D", key);
-	return NULL;
+	return val;
 }
 
 static struct Object *delete(struct Interpreter *interp, struct Object *args, struct Object *opts)

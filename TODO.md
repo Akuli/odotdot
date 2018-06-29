@@ -125,37 +125,6 @@ things that I would like to do some day. It's a mess.
         };
         ```
 
-- returning in a `for` loop doesn't work
-
-    this function should return `6`
-
-    ```
-    func "asd" {
-        for { var i=0; } { (i<10) } { i=(i+1); } {
-            if (i > 5) {
-                return i;
-            };
-        };
-    };
-    ```
-
-    but instead it throws
-
-    ```
-    MarkerError: if you see this error, something is wrong
-      in file /home/akuli/ö/wut.ö, line 2
-      by file /home/akuli/ö/wut.ö, line 2
-      by file /home/akuli/ö/wut.ö, line 9
-    ```
-
-    because `return i;` calls a local `return` variable, and this happens to be
-    local to the *loop*, not the *function*; the loop uses a local return
-    variable for checking the return value of the `{ (i<10) }` part
-
-    the loop should delete its `return` so that `return i;` would call the
-    function's `return` as intended
-
-
 - interactive repl? would be awesome!
     - multiline input could be a problem, would need to implement the parser so
       that it returns a different value for end-of-file than other errors

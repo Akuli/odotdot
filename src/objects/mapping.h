@@ -45,6 +45,9 @@ bad things happen if map is not a Mapping
 */
 int mappingobject_get(struct Interpreter *interp, struct Object *map, struct Object *key, struct Object **val);
 
+// like mappingobject_get, but deletes the key from the mapping as well
+int mappingobject_getanddelete(struct Interpreter *interp, struct Object *map, struct Object *key, struct Object **val);
+
 
 struct MappingObjectIter {
 	struct Object *key;

@@ -37,14 +37,13 @@ eq_array.push (lambda "x y" {
             return false;
         };
 
-        # FIXME: putting a return in the for doesn't work??
-        var returning = true;
         for { var i=0; } { (i < x.length) } { i = (i+1); } {
             if ((x.get i) != (y.get i)) {
-                returning = false;
+                return false;
             };
         };
-        return returning;
+
+        return true;
     };
     return null;
 });

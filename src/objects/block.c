@@ -103,6 +103,21 @@ static struct Object *returner_cfunc(struct Interpreter *interp, struct Object *
 	return NULL;
 }
 
+static bool delete_returner(struct Interpreter *interp, struct Object *scope, struct Object *returnstr)
+{
+	struct Object *returner;
+	int status = mappingobject_getanddelete(interp, SCOPEOBJECT_LOCALVARS(scope), returnstr, &returner);
+	if (status == 0)    // someone deleted the returner... why not i guess
+		return true;
+	if (status == 1) {
+		OBJECT_DECREF(interp, returner);
+		return true;
+	}
+
+	assert(status == -1);   // error from mappingobject_get
+	return false;
+}
+
 struct Object *blockobject_runwithreturn(struct Interpreter *interp, struct Object *block, struct Object *scope)
 {
 	struct Object *markermsg = stringobject_newfromcharptr(interp, "if you see this error, something is wrong");
@@ -137,19 +152,19 @@ struct Object *blockobject_runwithreturn(struct Interpreter *interp, struct Obje
 	}
 
 	bool ok = mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), returnstr, returner);
-	OBJECT_DECREF(interp, returnstr);
 	OBJECT_DECREF(interp, returner);
 	if (!ok) {
+		OBJECT_DECREF(interp, returnstr);
 		OBJECT_DECREF(interp, marker);
 		return NULL;
 	}
 
-	// TODO: delete the returner from the scope after running
-
 	if (blockobject_run(interp, block, scope)) {
 		// it didn't return
+		bool ok = delete_returner(interp, scope, returnstr);
+		OBJECT_DECREF(interp, returnstr);
 		OBJECT_DECREF(interp, marker);
-		return nullobject_get(interp);
+		return ok ? nullobject_get(interp) : NULL;
 	}
 	assert(interp->err);
 
@@ -158,12 +173,34 @@ struct Object *blockobject_runwithreturn(struct Interpreter *interp, struct Obje
 		OBJECT_DECREF(interp, interp->err);
 		interp->err = NULL;
 
+		bool ok = delete_returner(interp, scope, returnstr);
+		OBJECT_DECREF(interp, returnstr);
+		if (!ok) {
+			OBJECT_DECREF(interp, marker);
+			return NULL;
+		}
+
 		struct Object *retval = attribute_getfromattrdata(interp, marker, "value");
 		OBJECT_DECREF(interp, marker);
 		return retval;    // may be NULL
 	}
 
-	// it failed
+	// it failed, but delete_returner() calls mappingobject_get()
+	// for that, we need interp->err set to NULL temporarily
+	struct Object *errsave = interp->err;
+	interp->err = NULL;
+
+	ok = delete_returner(interp, scope, returnstr);
+	OBJECT_DECREF(interp, returnstr);
+	if (!ok) {
+		// these cases are very rare, so discarding the original error is not bad imo
+		OBJECT_DECREF(interp, errsave);
+		OBJECT_DECREF(interp, marker);
+		return NULL;
+	}
+
+	errorobject_throw(interp, errsave);
+	OBJECT_DECREF(interp, errsave);
 	OBJECT_DECREF(interp, marker);
 	return NULL;
 }

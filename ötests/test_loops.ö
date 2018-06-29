@@ -82,3 +82,28 @@ test "scopes" {
     };
     assert (not ((scopes.get 0) `same_object` {}.definition_scope));
 };
+
+test "return in loop" {
+    # the condition of a for or while loop works with a return
+    # { x } is same as { return x; }
+    # there was a bug that the return variable wasn't removed after running that
+    # so returning in the loop would call the condition's return instead of the function's return
+    func "does_this_break" {
+        for { var i=0; } { (i<10) } { i = (i+1); } {
+            if (i > 5) {
+                return i;
+            };
+        };
+    };
+    assert ((does_this_break) == 6);   # must not throw an exception
+
+    # returning from other places must be allowed too
+    func "f" {
+        for { return "x"; } { true } { } { };
+    };
+    func "g" {
+        for { } { true } { return "y"; } { };
+    };
+    assert ((f) == "x");
+    assert ((g) == "y");
+};
