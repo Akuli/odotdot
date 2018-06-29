@@ -446,7 +446,7 @@ Integers are immutable; see
 [String](#string) for more details about what this means practically.
 
 The smallest allowed value of an integer is
--(2<sup>63</sup>) = -9223372036854775808, and the biggest value is
+-(2<sup>63</sup> - 1) = -9223372036854775807, and the biggest value is
 2<sup>63</sup> - 1 = 9223372036854775807. I'm planning on implementing
 `Integer` differently so that it won't have these restrictions.
 
