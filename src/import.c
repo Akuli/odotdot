@@ -93,14 +93,12 @@ static char *get_source_dir(struct Interpreter *interp, struct Object *stackfram
 	return srcdir;
 }
 
+
 static unicode_char stdmarker[] = { '<','s','t','d','>' };
 
-static struct Object *file_importer(struct Interpreter *interp, struct Object *args, struct Object *opts)
+// returns a mallocced and \0-terminated string, throws an error and returns NULL on failure
+static char *get_import_path(struct Interpreter *interp, struct UnicodeString name, struct Object *stackframe)
 {
-	if (!check_args(interp, args, interp->builtins.String, interp->builtins.StackFrame, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-	struct UnicodeString name = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data);
-
 	struct UnicodeString ustdpath;
 	if (!utf8_decode(interp, interp->stdpath, strlen(interp->stdpath), &ustdpath))
 		return NULL;
@@ -121,7 +119,7 @@ static struct Object *file_importer(struct Interpreter *interp, struct Object *a
 
 	for (size_t i=0; i < sizeof(replaces)/sizeof(replaces[0]); i++) {
 		struct UnicodeString *tmp = unicodestring_replace(interp, name, replaces[i][0], replaces[i][1]);
-		if (i != 0) {    // the name came from unicodestring_replace
+		if (i != 0) {    // the name came from unicodestring_replace, not from an argument
 			// if name.len == 0, name.val can be NULL
 			// but free(NULL) does nothing
 			free(name.val);
@@ -155,7 +153,7 @@ static struct Object *file_importer(struct Interpreter *interp, struct Object *a
 	if (path_isabsolute(fname))
 		fullpath = fname;
 	else {
-		char *sourcedir = get_source_dir(interp, ARRAYOBJECT_GET(args, 1));
+		char *sourcedir = get_source_dir(interp, stackframe);
 		if (!sourcedir) {
 			free(fname);
 			return NULL;
@@ -168,6 +166,20 @@ static struct Object *file_importer(struct Interpreter *interp, struct Object *a
 			return NULL;
 		}
 	}
+
+	return fullpath;
+}
+
+
+static struct Object *file_importer(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.String, interp->builtins.StackFrame, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+	struct UnicodeString name = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data);
+
+	char *fullpath = get_import_path(interp, name, ARRAYOBJECT_GET(args, 1));
+	if (!fullpath)
+		return NULL;
 
 	// check if the lib is cached
 	struct Object *fullpathobj = stringobject_newfromcharptr(interp, fullpath);
@@ -192,7 +204,6 @@ static struct Object *file_importer(struct Interpreter *interp, struct Object *a
 		return NULL;
 	assert(status == 0);
 
-	// TODO: check file not found error
 	struct Object *vars;
 	status = run_libfile(interp, fullpath, &vars);
 	free(fullpath);
@@ -228,7 +239,7 @@ static struct Object *file_importer(struct Interpreter *interp, struct Object *a
 	}
 	OBJECT_DECREF(interp, vars);
 
-	ok = mappingobject_set(interp, interp->importstuff.filelibcache, fullpathobj, lib);
+	bool ok = mappingobject_set(interp, interp->importstuff.filelibcache, fullpathobj, lib);
 	OBJECT_DECREF(interp, fullpathobj);
 	if (!ok) {
 		OBJECT_DECREF(interp, lib);
