@@ -47,7 +47,7 @@ test "including .ö extension in the import string" {
 test "simple importer" {
     var stack = (get_stack);
     var this_file_name = (stack.get (stack.length - 1)).filename;
-    var lib = (new imports.Library);
+    var lib = (new (get_class imports));
     var count = 0;
 
     func "importer string stackframe" {
