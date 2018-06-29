@@ -26,7 +26,7 @@ import "<std>/imports" as: "imports";
 var Library = (get_class imports);
 
 func "lol_importer string stackframe" {
-    if (string `equals` "<std>/lol") {
+    if (string == "<std>/lol") {
         var lib = (new Library);
         lib.wat = "woot";
         return lib;
@@ -64,7 +64,7 @@ func "cached_importer string stackframe" {
         return (cache.get string);
     } KeyError { };
 
-    if (string `equals` "something") {
+    if (string == "something") {
         var lib = (new imports.Library);
         ...add stuff to the lib...
         cache.set string lib;
