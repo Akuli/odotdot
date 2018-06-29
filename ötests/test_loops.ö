@@ -68,26 +68,32 @@ test "for" {
 
 test "scopes" {
     var scopes = [];
+
+    # good luck with understanding this code
+    var funny_body = ((lambda "" { {scopes.push {}.definition_scope;} }));
+    assert (funny_body.definition_scope.parent_scope `same_object` {}.definition_scope);
+
     for { scopes.push {}.definition_scope; var i = 0; }
         { scopes.push {}.definition_scope; return (i != 2); }
         { scopes.push {}.definition_scope; i = (i + 1); }
-    {
-        scopes.push {}.definition_scope;
-    };
+        funny_body;
 
     # a scope should have gotten pushed exactly 8 times, and must be the same scope every time
     assert (scopes.length == 8);
     foreach "scope" scopes {
         assert (scope `same_object` (scopes.get 0));
     };
-    assert (not ((scopes.get 0) `same_object` {}.definition_scope));
+
+    # that scope should be a subscope of the body's definition scope
+    assert ((scopes.get 0).parent_scope `same_object` funny_body.definition_scope);
 };
 
 test "return in loop" {
     # the condition of a for or while loop works with a return
     # { x } is same as { return x; }
     # there was a bug that the return variable wasn't removed after running that
-    # so returning in the loop would call the condition's return instead of the function's return
+    # returning in the loop would call the condition's return instead of the function's return
+    # functions like this one threw MarkerError
     func "does_this_break" {
         for { var i=0; } { (i<10) } { i = (i+1); } {
             if (i > 5) {
@@ -95,7 +101,7 @@ test "return in loop" {
             };
         };
     };
-    assert ((does_this_break) == 6);   # must not throw an exception
+    assert ((does_this_break) == 6);
 
     # returning from other places must be allowed too
     func "f" {
