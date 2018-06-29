@@ -5,6 +5,34 @@ things that I would like to do some day. It's a mess.
 
 ## Language design stuff
 
+- want an `export` function for libraries
+
+    example:
+
+    ```
+    var private_magic = 40;
+
+    export {
+        func "get_magic" {
+            return (private_magic + 2);
+        };
+    };
+
+    func "private_func" {
+        # must be able to use both private_magic and the public get_magic
+    };
+    ```
+
+    `export` could simply run the block in a subscope, and then put all created
+    variables to both the subscope's definition scope and the `Library` object
+
+    or alternatively, get a list of variables in the definition scope before
+    and after running the block in the definition scope, and put those
+    variables to the `Library` object
+
+    i can't think of any practical situations when this choice would make a
+    difference
+
 - `class`: support attributes with custom getters and setters
     - maybe something like this inside the `{ }`:
 
