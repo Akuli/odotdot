@@ -4,18 +4,12 @@ This list contains things that are horribly broken, things that annoy me and
 things that I would like to do some day. It's a mess.
 
 ## Language design stuff
-- operators
-    - syntactic sugar for infixes? e.g. ``a + b`` might be
-      ``a `(import "<stdlibs>/operators").add` b``
-    - `a + b*c` would be invalid syntax, would need to be written `(a + (b*c))`
-        - good because people won't be confused by `a + b * c`, which means
-          evaluating `b * c` first in math and many other programming languages
-        - real mathematicians (tm) write `a + bc` to avoid this problem, but
-          `ab` doesn't mean `a` times `b` in ö so parentheses would be ö's
-          solution
 - StackInfo objects should contain the scope
     - local variables are more debuggable?
         - but i'm not planning on implementing a debugger any time soon
+    - would allow nice imports syntax:
+      `import "<std>/something" as:"something";` instead of
+      `var something = (import "<std>/something");`
 - `class`: support attributes with custom getters and setters
     - maybe something like this inside the `{ }`:
 
@@ -25,13 +19,13 @@ things that I would like to do some day. It's a mess.
         attrib "thingy" {
             # get and set would be functions
             get {
-                return = this._thingy_value;
+                return this._thingy_value;
             };
             set "new_value" {
                 if (new_value `sucks` too_much) {
-                    throw "it sucks!";
+                    throw (new ValueError "it sucks!");
                 };
-                this._custom_value = new_value
+                this._thingy_value = new_value
             };
         };
         ```
@@ -44,11 +38,11 @@ things that I would like to do some day. It's a mess.
         attrib "_thingy_value";
 
         getter "thingy" {
-            return = this._thingy_value;
+            return this._thingy_value;
         };
         setter "thingy new_value" {
             if (new_value `sucks` too_much) {
-                throw "it sucks!";
+                throw (new ValueError "it sucks!");
             };
             this._thingy_value = new_value;
         };
@@ -57,6 +51,9 @@ things that I would like to do some day. It's a mess.
         straight-forward to implement, makes people new to ö think wtf are
         getter and setter doing
 
+        then again, getter and setter are words that are also used in other
+        programming languages, e.g. python
+
     - how about keyword arguments?
 
         ```
@@ -64,23 +61,35 @@ things that I would like to do some day. It's a mess.
 
         attrib "thingy"
         get: {
-            return = this._thingy_value;
+            return this._thingy_value;
         }
         set: {     # how to pass variable name "new_value" here??
             this._thingy_value = new_value;
         };
         ```
 
-        `;` goes to an unintuitive place, looks like it's missing
+        several problems:
+        - `;` goes to an unintuitive place, looks like it's missing
+        - no nice way to pass the variable name
 
-        big problem: no nice way to pass the variable name
+        indentation problem can be fixed with different coding style:
 
-    boilerplate getters can be simplified with the `{ asd }` means
-    `{ return = asd; }` syntax:
+        ```
+        attrib "thingy" get: {
+            ...
+        } set: {
+            ...
+        };
+        ```
+
+    in all cases, boilerplate getters can be simplified with the `{ asd }`
+    means `{ return asd; }` syntax:
 
     ```
     attrib "thingy" {
         get { this._thingy_value };
+        ...
+    };
     ```
 
 - `for`: want break and continue
@@ -92,6 +101,42 @@ things that I would like to do some day. It's a mess.
             for {} condition {} body;
         };
         ```
+
+- returning in a `for` loop doesn't work
+
+    this function should return `6`
+
+    ```
+    func "asd" {
+        for { var i=0; } { (i<10) } { i=(i+1); } {
+            if (i > 5) {
+                return i;
+            };
+        };
+    };
+    ```
+
+    but instead it throws
+
+    ```
+    MarkerError: if you see this error, something is wrong
+      in file /home/akuli/ö/wut.ö, line 2
+      by file /home/akuli/ö/wut.ö, line 2
+      by file /home/akuli/ö/wut.ö, line 9
+    ```
+
+    because `return i;` calls a local `return` variable, and this happens to be
+    local to the *loop*, not the *function*; the loop uses a local return
+    variable for checking the return value of the `{ (i<10) }` part
+
+    the loop should delete its `return` so that `return i;` would call the
+    function's `return` as intended
+
+
+- interactive repl? would be awesome!
+    - multiline input could be a problem, would need to implement the parser so
+      that it returns a different value for end-of-file than other errors
+        - maybe (ab)use the EOF constant from i think `<stdlib.h>`? :D
 
 - need `switch` and `case`
 
@@ -131,17 +176,28 @@ things that I would like to do some day. It's a mess.
     };
     ```
 
-    it can be implemented in pure ö
+    or maybe this would be even better:
+
+    ```
+    var y = (switch x {
+        case 1 { "a" };
+        case 2 { "b" };
+        case 3 { "c" };
+        default { "d" };
+    });
+    ```
+
+    both of these can be implemented in pure ö with
 
 - string formatting
 
-    this sucks:
+    this is not very good:
 
     ```
-    var lol = ((((a.concat ", ").concat b).concat " and ").concat c);
+    var lol = ((((a + ", ") + b) + " and ") + c);
     ```
 
-    and is hard to debug and maintain and write and everything and i hate it
+    is hard to debug and maintain and write and everything and i hate it
 
     i want something like
 
@@ -149,6 +205,8 @@ things that I would like to do some day. It's a mess.
     var lol = "${a}, ${b} and ${c}";
     var wut = "it costs \$100";   # escaping the $ for a literal dollar sign
     ```
+
+    which could be implemented with an `eval` function
 
 
 ## testing
@@ -171,42 +229,10 @@ things that I would like to do some day. It's a mess.
     - more debugger-friendly (maybe? not sure if that's a big deal)
     - then again, values like `'1'` for numbers and `'.'` for attributes are
       quite debuggable
+
+## parse.{c,h}
 - error handling in ast.c sucks dick, should use error objects instead
 - make ast nodes possible to inspect, manipulate and create from ö code?
-
-## equals.{c,h}
-these suck, must figure out a more customizable alternative
-
-if dispatchable functions will exist some day, maybe like this:
-
-```
-# this stuff would go to a special file, e.g. stdlibs/operators.ö
-
-dispatchable_func "equals a b";
-equals.dispatch [Integer Integer] {
-    return something;
-};
-equals.dispatch [String String] {
-    return something;
-};
-
-# now ("a" == "b") would call the string thing and (1 == 2) would call the integer thing
-```
-
-but i'm thinking of *not* making customizable callables, so maybe something
-like this:
-
-```
-var equals_dispatches = [];
-equals_dispatches.push (lambda "x y" {
-    if ((x `isinstance` String) `and` (y `isinstance` String)) {
-        return (some magic that checks the equality);   # returns true or false
-    };
-    return null;
-});
-
-# then something that loops through the array and checks for not-nulls
-```
 
 ## gc.{c,h}
 - add some way to clean up reference cycles while the interpreter is running?
@@ -218,3 +244,5 @@ equals_dispatches.push (lambda "x y" {
 
 see [builtins documentation](builtins.md) and ctrl+f for e.g. "annoyances" or
 "missing features"
+
+also `grep -r 'TODO\|FIXME' src` if you dare!
