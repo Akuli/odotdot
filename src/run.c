@@ -140,24 +140,11 @@ bool run_builtinsfile(struct Interpreter *interp)
 }
 
 
-int run_libfile(struct Interpreter *interp, char *abspath, struct Object **res)
+// TODO: move the scope creating stuff here
+int run_libfile(struct Interpreter *interp, char *abspath, struct Object *scope)
 {
 	assert(path_isabsolute(abspath));
-
-	struct Object *subscope = scopeobject_newsub(interp, interp->builtinscope);
-	if (!subscope)
-		return 0;
-
-	int status = read_and_run_file(interp, abspath, subscope, false, true);
-	if (status != 1 /* not ok */) {
-		OBJECT_DECREF(interp, subscope);
-		return status;
-	}
-
-	*res = SCOPEOBJECT_LOCALVARS(subscope);
-	OBJECT_INCREF(interp, *res);
-	OBJECT_DECREF(interp, subscope);
-	return 1;
+	return read_and_run_file(interp, abspath, scope, false, true);
 }
 
 

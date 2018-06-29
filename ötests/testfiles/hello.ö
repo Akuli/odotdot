@@ -1,3 +1,10 @@
-func "hello" {
+# TODO: test that this is not exported
+func "private_hello" {
     print "hello";
+};
+
+export {
+    func "hello" {
+        return (private_hello);
+    };
 };

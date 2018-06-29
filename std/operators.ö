@@ -2,12 +2,18 @@ assert ({}.definition_scope.parent_scope.parent_scope `same_object` null);   # p
 
 # the interpreter creates these as built-in functions
 # that's the only way to get stuff from the interpreter to an ö library (lol)
-var add_array = ({}.definition_scope.parent_scope.local_vars.get_and_delete "add_oparray");
-var sub_array = ({}.definition_scope.parent_scope.local_vars.get_and_delete "sub_oparray");
-var mul_array = ({}.definition_scope.parent_scope.local_vars.get_and_delete "mul_oparray");
-var div_array = ({}.definition_scope.parent_scope.local_vars.get_and_delete "div_oparray");
-var eq_array = ({}.definition_scope.parent_scope.local_vars.get_and_delete "eq_oparray");
-var lt_array = ({}.definition_scope.parent_scope.local_vars.get_and_delete "lt_oparray");
+var builtin_scope = {}.definition_scope.parent_scope;
+assert (builtin_scope.parent_scope `same_object` null);   # it's really the builtin scope
+var get_and_hide_builtin = builtin_scope.local_vars.get_and_delete;
+
+export {
+    var add_array = (get_and_hide_builtin "add_oparray");
+    var sub_array = (get_and_hide_builtin "sub_oparray");
+    var mul_array = (get_and_hide_builtin "mul_oparray");
+    var div_array = (get_and_hide_builtin "div_oparray");
+    var eq_array = (get_and_hide_builtin "eq_oparray");
+    var lt_array = (get_and_hide_builtin "lt_oparray");
+};
 
 
 # right now the arrays contain stuff that are needed for starting up the interpreter this far

@@ -1,3 +1,5 @@
-func "get_hello" {
-    return (import "hello");
+export {
+    func "get_hello" {
+        return (import "hello");
+    };
 };

@@ -30,6 +30,6 @@ bool run_mainfile(struct Interpreter *interp, char *path);
 //  0   an error has been thrown
 //  -1  opening the file returned ENOENT, the file doesn't exist
 // throws an error and returns NULL on failure
-int run_libfile(struct Interpreter *interp, char *abspath, struct Object **vars);
+int run_libfile(struct Interpreter *interp, char *abspath, struct Object *scope);
 
 #endif   // RUN_H

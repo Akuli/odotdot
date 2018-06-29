@@ -4,7 +4,11 @@
 # builtins.ö imports this file automatically when setting up other stuff is done
 
 assert ({}.definition_scope.parent_scope.parent_scope `same_object` null);   # parent_scope is built-in scope
-var importers = ({}.definition_scope.parent_scope.local_vars.get_and_delete "importers");
+
+export {
+    # FIXME: refcounts fuck up if this throws an error
+    var importers = ({}.definition_scope.parent_scope.parent_scope.local_vars.get_and_delete "importers");
+};
 
 
 # a mistake that i just spent some time debugging: i did 'import "somefile.ö";'

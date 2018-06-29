@@ -1,21 +1,23 @@
-func "test what how" {
-    how.run (new Scope how.definition_scope);
-};
-
-func "throws errorclass body" {
-    var threw = null;
-    catch {
-        body.run (new Scope body.definition_scope);
-        threw = false;
-    } errorclass {
-        threw = true;
+export {
+    func "test what how" {
+        how.run (new Scope how.definition_scope);
     };
-    assert threw;
-};
 
-# TODO: make this a string method
-func "ends_with string substring" {
-    return ((string.slice (string.length - substring.length) string.length) == substring);
+    func "throws errorclass body" {
+        var threw = null;
+        catch {
+            body.run (new Scope body.definition_scope);
+            threw = false;
+        } errorclass {
+            threw = true;
+        };
+        assert threw;
+    };
+
+    # TODO: make this a string method
+    func "ends_with string substring" {
+        return ((string.slice (string.length - substring.length) string.length) == substring);
+    };
 };
 
 test "the ends_with util function" {
