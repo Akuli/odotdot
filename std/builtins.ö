@@ -228,16 +228,15 @@ func "assert condition" {
 
 func "is_instance_of instance klass" {
     # TODO: throw a good error if klass is not actually a class
-    var super = klass;
-    var sub = (get_class instance);
+    var subclass = (get_class instance);
 
-    while { (not (sub `same_object` null)) } {
-        if (sub `same_object` super) {
+    # check if 'subclass' is a subclass of 'klass'
+    while { (not (subclass `same_object` null)) } {
+        if (subclass `same_object` klass) {
             return true;
         };
-        sub = sub.baseclass;
+        subclass = subclass.baseclass;
     };
-
     return false;
 };
 
