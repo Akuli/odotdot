@@ -33,7 +33,7 @@ char *path_toabsolute(char *path);
 // return value must be free()'d
 char *path_concat(char *path1, char *path2);
 
-// on non-windows, path_find_last_slash("a/b/c.ö) returns the index of "/" before "c"
+// on non-windows, path_findlastslash("a/b/c.ö) returns the index of "/" before "c"
 // on windows, same gibberish with backslashes
 // useful for separating dirnames and basenames
 size_t path_findlastslash(char *path);

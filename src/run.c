@@ -21,9 +21,8 @@ static int read_and_run_file(struct Interpreter *interp, char *path, struct Obje
 {
 	assert(path_isabsolute(path));
 
-	// ValueError can't be used when running builtins.ö because it's defined in builtins.ö
-	// TODO: create an IOError class or something?
-	char *ioerrorclass = runningbuiltinsfile ? "Error" : "ValueError";
+	// IoError can't be used when running builtins.ö because it's defined in builtins.ö
+	char *ioerrorclass = runningbuiltinsfile ? "Error" : "IoError";
 
 	// read the file
 	FILE *f = fopen(path, "rb");   // b because the content is decoded below... i think this is good
@@ -57,13 +56,13 @@ static int read_and_run_file(struct Interpreter *interp, char *path, struct Obje
 
 	if (ferror(f)) {    // ferror doesn't set errno
 		// TODO: use a more appropriate error class if/when it will be available
-		errorobject_throwfmt(interp, ioerrorclass, "an error occurred while reading '%s': %s", path, strerror(errno));
+		errorobject_throwfmt(interp, ioerrorclass, "cannot read '%s': %s", path, strerror(errno));
 		free(huge);
 		return 0;
 	}
 
 	if (fclose(f) != 0) {
-		errorobject_throwfmt(interp, ioerrorclass, "an error occurred while closing a file opened from '%s': %s", path, strerror(errno));
+		errorobject_throwfmt(interp, ioerrorclass, "cannot close a file opened from '%s': %s", path, strerror(errno));
 		free(huge);
 		return 0;
 	}
@@ -168,8 +167,8 @@ bool run_mainfile(struct Interpreter *interp, char *path)
 	if (!abspath) {
 		if (errno == ENOMEM)
 			errorobject_thrownomem(interp);
-		else    // ValueError sucks for this .....
-			errorobject_throwfmt(interp, "ValueError", "cannot get absolute path of '%s': %s", path, strerror(errno));
+		else
+			errorobject_throwfmt(interp, "IoError", "cannot get absolute path of '%s': %s", path, strerror(errno));
 		return false;
 	}
 

@@ -4,6 +4,7 @@ var Class = (get_class String);
 var ArgError = (new Class "ArgError" Error);
 var AssertError = (new Class "AssertError" Error);
 var AttribError = (new Class "AttribError" Error);
+var IoError = (new Class "IoError" Error);
 var KeyError = (new Class "KeyError" Error);
 var MathError = (new Class "MathError" Error);
 var TypeError = (new Class "TypeError" Error);

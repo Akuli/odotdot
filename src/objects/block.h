@@ -6,7 +6,6 @@
 #include "../objectsystem.h"   // IWYU pragma: keep
 
 // the data of block objects is NULL, instead they have an ast_nodes attribute set to an array object
-// TODO: add a definition_context attribute?
 
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *blockobject_createclass(struct Interpreter *interp);

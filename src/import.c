@@ -109,7 +109,6 @@ static struct Object *file_importer(struct Interpreter *interp, struct Object *a
 	unicode_char badslash = '/', goodslash = PATH_SLASH;
 #endif
 
-	// TODO: check what happens with an empty name
 	// FIXME: unicodestring_replace() should take a mapping
 	// this doesn't work if the replaced strings contain something to replace
 	// in that case, the already replaced bits should never get replaced again
@@ -122,8 +121,11 @@ static struct Object *file_importer(struct Interpreter *interp, struct Object *a
 
 	for (size_t i=0; i < sizeof(replaces)/sizeof(replaces[0]); i++) {
 		struct UnicodeString *tmp = unicodestring_replace(interp, name, replaces[i][0], replaces[i][1]);
-		if (i != 0)    // the name came from unicodestring_replace
+		if (i != 0) {    // the name came from unicodestring_replace
+			// if name.len == 0, name.val can be NULL
+			// but free(NULL) does nothing
 			free(name.val);
+		}
 
 		if (!tmp) {
 			free(ustdpath.val);

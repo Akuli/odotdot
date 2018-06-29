@@ -30,6 +30,9 @@ their [setup methods] take 1 argument, the error message string.
 - `AssertError` is thrown by [assert](builtins.md#assert).
 - `AttribError` is thrown when an attribute is not found. For example,
   `[].aasdasd` and `[].aasdasd = "lol";` throw `AttribError`.
+- `IoError` is thrown when an input or output operation fails; that is, usually
+  when reading or writing a file fails. There's no API for reading or writing
+  files from Ö code yet, but importing can throw this in some cases.
 - `KeyError` is thrown when a key of a mapping is not found.
   `(new Mapping [[1 2] [3 4]]).get 5;` throws a `KeyError`.
 - `MarkerError` is used internally by `return`. It's not in the
