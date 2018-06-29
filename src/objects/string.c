@@ -329,14 +329,10 @@ struct Object *stringobject_newfromustr(struct Interpreter *interp, struct Unico
 
 struct Object *stringobject_newfromustr_copy(struct Interpreter *interp, struct UnicodeString ustr)
 {
-	// TODO: this does 1 malloc more than needed
-	struct UnicodeString *ustr2 = unicodestring_copy(interp, ustr);
-	if (!ustr2)
+	struct UnicodeString copy;
+	if (!unicodestring_copyinto(interp, ustr, &copy))
 		return NULL;
-
-	struct Object *res = stringobject_newfromustr(interp, *ustr2);
-	free(ustr2);
-	return res;
+	return stringobject_newfromustr(interp, copy);
 }
 
 struct Object *stringobject_newfromcharptr(struct Interpreter *interp, char *ptr)
