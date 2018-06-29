@@ -67,7 +67,7 @@ things that I would like to do some day. It's a mess.
         - `;` goes to an unintuitive place, looks like it's missing
         - no nice way to pass the variable name
 
-        indentation problem can be fixed with different coding style:
+        `;` problem can be fixed with different coding style:
 
         ```
         attrib "thingy" get: {
