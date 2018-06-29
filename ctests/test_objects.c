@@ -90,10 +90,16 @@ void test_objects_string(void)
 	u.val[0] = ODOTDOT;
 	u.val[1] = odotdot;
 
+	// u is used in 2 places here
+	// newfromustr guarantees that u.val is eventually freed
+	// newfromustr_copy copies u.val
 	struct Object *strs[] = {
 		stringobject_newfromcharptr(testinterp, "Öö"),
-		stringobject_newfromustr(testinterp, u) };
-	free(u.val);    // must not break anything, newfromustr should copy
+		stringobject_newfromustr_copy(testinterp, u),
+		stringobject_newfromustr_copy(testinterp, u),
+		stringobject_newfromustr_copy(testinterp, u),
+		stringobject_newfromustr(testinterp, u),
+	};
 
 	for (size_t i=0; i < sizeof(strs)/sizeof(strs[0]); i++) {
 		buttert(strs[i]);
