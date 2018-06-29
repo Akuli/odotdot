@@ -145,7 +145,7 @@ Example:
 var i = 0;
 while { (i < 10) } {
     print (i.to_string);
-    i = (i.plus 1);   # yes, this sucks... no + operator yet
+    i = (i + 1);
 };
 
 # the i variable is not cleaned up
@@ -451,7 +451,6 @@ The smallest allowed value of an integer is
 `Integer` differently so that it won't have these restrictions.
 
 Methods (`x` and `y` are Integers):
-- `(x.plus y)` returns x+y. Yes, I know, Ö really needs a `+` operator...
 - `(x.to_string)` converts the integer to a string without leading zeros.
 - `(x.to_debug_string)` returns `(x.to_string)`. This overrides
   [Object](#object)'s `to_debug_string`.
@@ -462,8 +461,6 @@ Missing features:
   people in high-level languages), but syntax like `(new Integer "ff" 16)`
   would be useful for e.g. dealing with hexadecimal colors. Similarly,
   `(255.to_string 16)` could return `"ff"`.
-- `.plus` is the only way to do arithmetic with integers right now. It really
-  sucks!
 
 ### Array
 

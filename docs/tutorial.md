@@ -403,9 +403,11 @@ This is useful with functions like [while](builtins.md#while):
 var i = 0;
 while { (i < 10) } {
     print (i.to_string);
-    i = (i.plus 1);   # there's no + operator yet and it sucks
+    i = (i + 1);
 };
 ```
+
+Here `{ (i < 10) }` returns the value of `(i < 10)` to the `while` function.
 
 Rust-style `{ something; the_return_value }` syntax is not supported because
 `{ value }` is meant to be used when writing `return` everywhere would be
