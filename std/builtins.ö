@@ -292,7 +292,7 @@ func "foreach varname array block" {
     var importers = importers;
     var Library = null;
 
-    func "import string" {
+    func "import string as:" {
         # last frame is this function, get the one before that
         var stack = (get_stack);
         var frame = (stack.get (stack.length - 2));
@@ -312,6 +312,10 @@ func "foreach varname array block" {
                         throw (new TypeError ((("importers should return a Library object or null, but " +
                             (importer.to_debug_string)) + " returned ") + (lib.to_debug_string)));
                     };
+                };
+
+                if (not (as `same_object` null)) {
+                    frame.scope.local_vars.set as lib;
                 };
                 return lib;
             };

@@ -1,8 +1,29 @@
 var test = (import "utils").test;
 var throws = (import "utils").throws;
 
-var imports = (import "<std>/imports");
+import "<std>/imports" as: "imports";
 
+
+test "basic stuff" {
+    var a = (import "<std>/imports" as: "x");
+    var b = (import "<std>/imports" as: "y");
+    var c = (import "<std>/imports" as: "z");
+    var d = (import "<std>/imports");   # no as
+
+    # x, y and z should be local variables
+    # get throws an exception if the variable is not found
+    {}.definition_scope.local_vars.get "x";
+    {}.definition_scope.local_vars.get "y";
+    {}.definition_scope.local_vars.get "z";
+
+    # all these things should be the same now
+    assert (a `same_object` b);
+    assert (b `same_object` c);
+    assert (c `same_object` d);
+    assert (d `same_object` x);
+    assert (x `same_object` y);
+    assert (y `same_object` z);
+};
 
 test "importing something that doesn't exist" {
     throws ValueError { import "asdijoasdfojasdiofjoiasdjf"; };

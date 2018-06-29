@@ -4,12 +4,7 @@ This list contains things that are horribly broken, things that annoy me and
 things that I would like to do some day. It's a mess.
 
 ## Language design stuff
-- StackInfo objects should contain the scope
-    - local variables are more debuggable?
-        - but i'm not planning on implementing a debugger any time soon
-    - would allow nice imports syntax:
-      `import "<std>/something" as:"something";` instead of
-      `var something = (import "<std>/something");`
+
 - `class`: support attributes with custom getters and setters
     - maybe something like this inside the `{ }`:
 
