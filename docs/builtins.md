@@ -386,12 +386,14 @@ Subclasses of `ArbitraryAttribs` also behave this way.
 
 There are two `Bool` objects, `true` and `false`. Creating more Bools wouldn't
 make sense, so `(new Bool)` always throws an error. This means that
-``(x `is_instance_of` Bool)`` means that either ``(x `same_object` true)`` or
-``(x `same_object` false)``.
+``(x `is_instance_of` Bool)`` means
+``((x `same_object` true) `or` (x `same_object` false))``
 
 Methods:
 - `(true.to_debug_string)` returns `"true"` and `(false.to_debug_string)`
   returns `"false"`. This overrides [Object](#object)'s `to_debug_string`.
+
+**See also:** [and](#and), [or](#or), [not](#not), [if](#if)
 
 ### String
 
@@ -410,8 +412,6 @@ Methods:
 - `string.get` is like the array `.get` method.
 - `string.slice` is like the array `.slice` method, but it returns a string
   instead of an array of characters.
-- `(string1.concat string2)` returns the strings added together. For example,
-  `("hello".concat "world")` returns `"helloworld"`.
 - `(string.split_by_whitespace)` splits the string into an array of substrings
   separated by one or more Unicode whitespace characters (e.g. spaces, tabs or
   newlines). For example, `(" hello world test ".split_by_whitespace)` returns
@@ -429,10 +429,16 @@ Methods:
 - `(string.to_debug_string)` returns the string with quotes around it. This
   overrides [Object](#object)'s `to_debug_string`.
 
+Strings can be concatenated with the `+` operator: `("hello" + "world")`
+returns `"helloworld"`.
+
 Missing features:
-- There's no `get_length` method.
-- There's no way to concatenate strings; `"hello" + "world"` doesn't work
-  because there's no `+` operator yet.
+- There's no `length` attribute.
+- There are very little methods; there's no way to e.g. make the string
+  uppercase or join by a separator efficiently.
+- There's no string formatting, so you need to do
+  `((((a + ", ") + b) + " and ") + c)`. I know, it's hard to get right and ugly
+  and unmaintainable and bad in every possible way.
 
 ### Integer
 
@@ -455,7 +461,25 @@ Methods (`x` and `y` are Integers):
 - `(x.to_debug_string)` returns `(x.to_string)`. This overrides
   [Object](#object)'s `to_debug_string`.
 
+The following operators work with integers like you would expect them to work,
+returning Integer or [Bool](#bool) objects.
+
+| Ö Code        | Mathematical Notation     |
+| ------------- | ------------------------- |
+| `(x + y)`     | x + y                     |
+| `(x - y)`     | x - y                     |
+| `(x * y)`     | xy                        |
+| `(x == y)`    | x = y                     |
+| `(x < y)`     | x < y                     |
+| `(x > y)`     | x > y                     |
+| `(x <= y)`    | x ≤ y                     |
+| `(x >= y)`    | x ≥ y                     |
+
 Missing features:
+- There's no `/` because it would require floats, `Fraction` objects or integer
+  division. Fraction objects and integer division would be doable, but I think
+  floats are usually what people want. I'll probably add floats to Ö
+  eventually.
 - There's no support for other bases than 10. I think there's no need to add
   special syntax (`0xff` is useful in low-level languages like C, but confuses
   people in high-level languages), but syntax like `(new Integer "ff" 16)`
