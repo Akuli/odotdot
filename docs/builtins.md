@@ -155,7 +155,7 @@ returns [false].
 
 ### or
 
-``(x `and` y)`` returns [true] if `x` is [true], `y` is [true] or they are both
+``(x `or` y)`` returns [true] if `x` is [true], `y` is [true] or they are both
 [true]. Otherwise it returns [false].
 
 `x` and `y` must both be [true] or [false]; otherwise a [TypeError] is thrown.
