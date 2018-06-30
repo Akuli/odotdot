@@ -595,9 +595,7 @@ the methods are called from. In this example, `this` was `tooter`.
 You can also do inheritance a lot like in other languages:
 
 ```python
-class "FancyTooter"
-    inherits: Tooter
-{
+class "FancyTooter" inherits:Tooter {
     method "fancy_toot" {
         print "*** Fancy Fanciness ***";
         this.toot;
@@ -607,18 +605,6 @@ class "FancyTooter"
 var tooter2 = (new FancyTooter "hello there");
 tooter2.fancy_toot;
 ```
-
-Here `inherits: Tooter` is just an option to `class`, and the code could have
-been written like this...
-
-```python
-class "FancyTooter" inherits:Tooter {
-    ...
-};
-```
-
-...but adding `inherits: Tooter` on a line of its own makes it a bit more
-readable.
 
 Multiple inheritance is not supported, only one class can be inherited. There's
 also no way to call a superclass method yet :(
