@@ -62,41 +62,6 @@ add_method Mapping "get_with_fallback" (lambda "this key fallback" {
     };
 });
 
-# TODO: how about putting the array inside itself? python does this:
-# >>> asd = [1, 2, 3]
-# >>> asd.append(asd)
-# >>> asd
-# [1, 2, 3, [...]]
-add_method String "to_debug_string" (lambda "this" {
-    var result = "";
-
-    # not very efficient, but that's not a problem because this method is just for debugging anyway
-    for { var i=0; } { (i != this.length) } { i = (i + 1); } {
-        var character = (this.get i);
-
-        # FIXME: need elif or switch/case or something
-        if (character == "\n") {
-            result = (result + "\\n");
-        } else: {
-            if (character == "\t") {
-                result = (result + "\\t");
-            } else: {
-                if (character == "\\") {
-                    result = (result + "\\\\");
-                } else: {
-                    if (character == "\"") {
-                        result = (result + "\\\"");
-                    } else: {
-                        result = (result + character);
-                    };
-                };
-            };
-        };
-    };
-
-    return (("\"" + result) + "\"");
-});
-
 add_method Integer "to_debug_string" (lambda "this" {
     if (this >= 0) {
         # "123"
@@ -189,6 +154,55 @@ func.name = "func";
 func "while condition body" {
     for {} condition {} body;
 };
+
+
+func "switch value switchblock" {
+    var switchscope = (new Scope switchblock.definition_scope);
+
+    func "case matched block" {
+        if (value == matched) {
+            # if the block calls return, it's the switchscope's return
+            # that is added by the run_with_return
+            # if the block doesn't call return, executing the cases continues
+            # aka fall through
+            block.run (new Scope switchscope);
+        };
+    };
+
+    func "default block" {
+        # always run, because this is after cases that return
+        block.run (new Scope switchscope);
+    };
+
+    switchscope.local_vars.set "case" case;
+    switchscope.local_vars.set "default" default;
+    return (switchblock.run_with_return switchscope);
+};
+
+# TODO: how about putting the array inside itself? python does this:
+# >>> asd = [1, 2, 3]
+# >>> asd.append(asd)
+# >>> asd
+# [1, 2, 3, [...]]
+add_method String "to_debug_string" (lambda "this" {
+    var result = "";
+
+    for { var i=0; } { (i != this.length) } { i = (i + 1); } {
+        var character = (this.get i);
+
+        # not very efficient, but that's not a problem because this method is just for debugging anyway
+        result = (result + (switch character {
+            case "\n" { "\\n" };
+            case "\t" { "\\t" };
+            case "\\" { "\\\\" };
+            case "\"" { "\\\"" };
+            default { character };
+        }));
+    };
+
+    return (("\"" + result) + "\"");
+});
+
 
 func "debug x" {
     print (x.to_debug_string);

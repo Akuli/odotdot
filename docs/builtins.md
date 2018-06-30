@@ -60,16 +60,85 @@ If `condition` is [true], `block` will be ran in a new [subscope] of its
 [definition scope]. [TypeError] is thrown if the `condition` is not [true] or
 [false] or the block is not a [Block](#block) object.
 
-I'm sorry, there's no way to do `else` yet :( If you need an else, do this:
+`if` can also take another block with an `else` option, and it's ran in a new
+subscope of its definition scope if the condition turns out to be false. For
+example:
 
 ```python
-if something {
-    ...
-};
-if (not something) {
-    ...
+if (1 == 2) {
+    print "something is very broken!";
+} else: {
+    print "seems to work";
 };
 ```
+
+### switch
+
+This is ugly...
+
+```python
+var y = null;    # needed to bring y out of the if scopes
+if (x == 1) {
+    y = "a";
+} else: {
+    if (x == 2) {
+        y = "b";
+    } else: {
+        if (x == 3) {
+            y = "c";
+        } else: {
+            y = "d";
+        };
+    };
+};
+print y;
+```
+
+...and is best written with `switch` instead:
+
+```python
+var y = (switch x {
+    case 1 { "a" };
+    case 2 { "b" };
+    case 3 { "c" };
+    default { "d" };
+});
+print y;
+```
+
+Here the `{ "a" }` blocks use [implicit returns].
+
+You can put any code you want to the `case` and `default` blocks:
+
+```python
+switch x {
+    case 1 { print "a"; return; };
+    case 2 { print "b"; return; };
+    case 3 { print "c"; return; };
+    default { print "d"; };
+};
+```
+
+The `return`s are needed to prevent falling through; without them, both `a` and
+`d` would be printed if `x` is `1`.
+
+Here's a more detailed description of what `switch x switchblock` does:
+
+1. A new subscope of `switchblock`'s definition scope is created. Let's call
+   this scope the switch scope.
+2. `case` and `default` functions are added to the switch scope. They work like
+   this:
+    - `case y block;` runs `block` in a new subscope of the switch scope if
+      `(x == y)`.
+    - `default block;` always runs `block` in a new subscope of the switch
+      scope.
+3. `switchblock` is ran with return in the switch scope, and `switch` returns
+   the result. See [Block](#block)'s `run_with_return` method. This means that
+   a `return` function is inserted to the switch scope, and the `switch` will
+   return whatever that `return` is called with. However, `case` and `default`
+   do *not* run their scopes using `run_with_return`, so they get the `return`
+   variable from the switch scope, and returning in them makes the whole
+   `switch` return.
 
 ### not
 
@@ -704,6 +773,7 @@ it has no methods or other attributes. You can access the class with
 [hash table]: https://en.wikipedia.org/wiki/Hash_table
 [options]: tutorial.md#options
 [the debugging section of the tutorial]: tutorial.md#debugging
+[implicit returns]: tutorial.md#returning
 
 [ArgError]: errors.md
 [TypeError]: errors.md

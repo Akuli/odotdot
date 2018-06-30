@@ -1,0 +1,49 @@
+var test = (import "utils").test;
+var throws = (import "utils").throws;
+
+
+test "simple stuff" {
+    var result = [];
+    foreach "letter" ["x" "y" "z" "ö"] {
+        switch letter {
+            case "x" { result.push 1; return; };
+            case "y" { result.push 2; return; };
+            case "z" { result.push 3; return; };
+            default { result.push 4; };
+        };
+    };
+    assert (result == [1 2 3 4]);
+
+    result = [];
+    foreach "letter" ["x" "y" "z" "ö"] {
+        result.push (switch letter {
+            case "x" { 1 };
+            case "y" { 2 };
+            case "z" { 3 };
+            default { 4 };
+        });
+    };
+    assert (result == [1 2 3 4]);
+};
+
+test "fall through" {
+    var result = [];
+    foreach "letter" ["x" "y" "z" "ö"] {
+        switch letter {
+            case "x" { result.push 1; };
+            case "y" { result.push 2; };
+            case "z" { result.push 3; };
+            default { result.push 4; };
+        };
+    };
+    assert (result == [1 4 2 4 3 4 4]);
+};
+
+test "scopes" {
+    throws VariableError {
+        switch "x" {
+            case "x" { var y = 1; };
+            case "x" { y };
+        };
+    };
+};
