@@ -103,10 +103,10 @@ static struct Object *returner_cfunc(struct Interpreter *interp, struct Object *
 	return NULL;
 }
 
-static bool delete_returner(struct Interpreter *interp, struct Object *scope, struct Object *returnstr)
+static bool delete_returner(struct Interpreter *interp, struct Object *scope)
 {
 	struct Object *returner;
-	int status = mappingobject_getanddelete(interp, SCOPEOBJECT_LOCALVARS(scope), returnstr, &returner);
+	int status = mappingobject_getanddelete(interp, SCOPEOBJECT_LOCALVARS(scope), interp->strings.return_, &returner);
 	if (status == 0)    // someone deleted the returner... why not i guess
 		return true;
 	if (status == 1) {
@@ -143,26 +143,16 @@ struct Object *blockobject_runwithreturn(struct Interpreter *interp, struct Obje
 		return NULL;
 	}
 
-	// TODO: optimize by not creating this every time?
-	struct Object *returnstr = stringobject_newfromcharptr(interp, "return");
-	if (!returnstr) {
-		OBJECT_DECREF(interp, returner);
-		OBJECT_DECREF(interp, marker);
-		return NULL;
-	}
-
-	bool ok = mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), returnstr, returner);
+	bool ok = mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), interp->strings.return_, returner);
 	OBJECT_DECREF(interp, returner);
 	if (!ok) {
-		OBJECT_DECREF(interp, returnstr);
 		OBJECT_DECREF(interp, marker);
 		return NULL;
 	}
 
 	if (blockobject_run(interp, block, scope)) {
 		// it didn't return
-		bool ok = delete_returner(interp, scope, returnstr);
-		OBJECT_DECREF(interp, returnstr);
+		bool ok = delete_returner(interp, scope);
 		OBJECT_DECREF(interp, marker);
 		return ok ? nullobject_get(interp) : NULL;
 	}
@@ -173,9 +163,7 @@ struct Object *blockobject_runwithreturn(struct Interpreter *interp, struct Obje
 		OBJECT_DECREF(interp, interp->err);
 		interp->err = NULL;
 
-		bool ok = delete_returner(interp, scope, returnstr);
-		OBJECT_DECREF(interp, returnstr);
-		if (!ok) {
+		if (!delete_returner(interp, scope)) {
 			OBJECT_DECREF(interp, marker);
 			return NULL;
 		}
@@ -190,9 +178,7 @@ struct Object *blockobject_runwithreturn(struct Interpreter *interp, struct Obje
 	struct Object *errsave = interp->err;
 	interp->err = NULL;
 
-	ok = delete_returner(interp, scope, returnstr);
-	OBJECT_DECREF(interp, returnstr);
-	if (!ok) {
+	if (!delete_returner(interp, scope)) {
 		// these cases are very rare, so discarding the original error is not bad imo
 		OBJECT_DECREF(interp, errsave);
 		OBJECT_DECREF(interp, marker);

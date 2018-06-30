@@ -337,6 +337,12 @@ struct Object *stringobject_newfromustr_copy(struct Interpreter *interp, struct 
 
 struct Object *stringobject_newfromcharptr(struct Interpreter *interp, char *ptr)
 {
+	// avoid allocating more memory for empty strings
+	if (!ptr[0] && interp->strings.empty) {
+		OBJECT_INCREF(interp, interp->strings.empty);
+		return interp->strings.empty;
+	}
+
 	struct UnicodeString data;
 	if (!utf8_decode(interp, ptr, strlen(ptr), &data))
 		return NULL;

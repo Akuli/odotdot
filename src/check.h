@@ -32,13 +32,15 @@ bool check_args_with_array(struct Interpreter *interp, struct Object *args, stru
 
 /* this...
 
-	if (!check_opts(interp, opts, "message", interp->builtins.String, "id", interp->builtins.Integer, NULL))
+	if (!check_opts(interp, opts, messagestr, interp->builtins.String, idstr, interp->builtins.Integer, NULL))
 		return NULL;
 
-...makes sure that:
+...where messagestr is stringobject_newfromcharptr(interp, "message") and idstr similarly, makes sure that:
 	* the function was called with other options than "message" or "id"
 	* id is an Integer if it was given
 	* message is a String if it was given
+
+btw, consider adding string constants to interp->strings
 */
 bool check_opts(struct Interpreter *interp, struct Object *opts, ...);
 

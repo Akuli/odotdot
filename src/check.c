@@ -93,15 +93,9 @@ bool check_opts(struct Interpreter *interp, struct Object *opts, ...)
 	va_start(ap, opts);
 
 	while(true){
-		char *name = va_arg(ap, char *);
-		if (!name)
+		struct Object *nameobj = va_arg(ap, struct Object *);
+		if (!nameobj)
 			break;      // end of argument list, not an error
-
-		struct Object *nameobj = stringobject_newfromcharptr(interp, name);
-		if (!nameobj) {
-			OBJECT_DECREF(interp, types);
-			return false;
-		}
 
 		struct Object *klass = va_arg(ap, struct Object *);
 		assert(klass);
@@ -112,9 +106,7 @@ bool check_opts(struct Interpreter *interp, struct Object *opts, ...)
 				return false;
 		}
 
-		bool ok = mappingobject_set(interp, types, nameobj, klass);
-		OBJECT_DECREF(interp, nameobj);
-		if (!ok) {
+		if (!mappingobject_set(interp, types, nameobj, klass)) {
 			OBJECT_DECREF(interp, types);
 			return false;
 		}
@@ -126,7 +118,7 @@ bool check_opts(struct Interpreter *interp, struct Object *opts, ...)
 		if (MAPPINGOBJECT_SIZE(opts) == 0)
 			return true;
 
-		// choose 1 option randomly for consistency with check_opts_with_mapping
+		// pick 1 option for consistency with check_opts_with_mapping (lol)
 		struct MappingObjectIter iter;
 		mappingobject_iterbegin(&iter, opts);
 		mappingobject_iternext(&iter);

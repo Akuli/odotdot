@@ -438,10 +438,8 @@ static struct Object *create_return_getvar(struct Interpreter *interp, char *fil
 		return NULL;
 	}
 
-	if (!(info->varname = stringobject_newfromcharptr(interp, "return"))) {
-		free(info);
-		return NULL;
-	}
+	info->varname = interp->strings.return_;
+	OBJECT_INCREF(interp, info->varname);
 
 	struct Object *res = astnodeobject_new(interp, AST_GETVAR, filename, lineno, info);
 	if (!res) {

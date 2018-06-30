@@ -47,18 +47,13 @@ static struct Object *if_(struct Interpreter *interp, struct Object *args, struc
 {
 	// bool is created in builtins.ö
 	if (!check_args(interp, args, interp->builtins.Bool, interp->builtins.Block, NULL)) return NULL;
-	if (!check_opts(interp, opts, "else", interp->builtins.Block, NULL)) return NULL;
+	if (!check_opts(interp, opts, interp->strings.else_, interp->builtins.Block, NULL)) return NULL;
 
 	struct Object *cond = ARRAYOBJECT_GET(args, 0);
 	struct Object *ifblock = ARRAYOBJECT_GET(args, 1);
 
-	// TODO: create a utility function that does this?
-	struct Object *elsestr = stringobject_newfromcharptr(interp, "else");
-	if (!elsestr)
-		return NULL;
 	struct Object *elseblock = NULL;
-	int status = mappingobject_get(interp, opts, elsestr, &elseblock);
-	OBJECT_DECREF(interp, elsestr);
+	int status = mappingobject_get(interp, opts, interp->strings.else_, &elseblock);
 	if (status == -1)
 		return NULL;
 
@@ -363,7 +358,13 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!(interp->builtins.nomemerr = errorobject_createnomemerr_noerr(interp))) goto nomem;
 
 	// now interp->err stuff works
-	// but note that error printing must NOT use any methods because methods don't actually exist yet
+	// but note that error printing must not use any methods because methods don't actually exist yet
+#define INIT_STRING(NAME, VALUE) if (!(interp->strings.NAME = stringobject_newfromcharptr(interp, VALUE))) goto error;
+	INIT_STRING(else_, "else")
+	INIT_STRING(empty, "")
+	INIT_STRING(return_, "return")
+#undef INIT_STRING
+
 	if (!(interp->builtins.Function = functionobject_createclass(interp))) goto error;
 	if (!(interp->builtins.Mapping = mappingobject_createclass(interp))) goto error;
 
@@ -521,5 +522,8 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(oparrays.div);
 	TEARDOWN(oparrays.eq);
 	TEARDOWN(oparrays.lt);
+	TEARDOWN(strings.else_);
+	TEARDOWN(strings.empty);
+	TEARDOWN(strings.return_);
 #undef TEARDOWN
 }

@@ -51,6 +51,13 @@ struct Interpreter {
 		struct Object *nomemerr;
 	} builtins;
 
+	// String objects that are often needed, mostly for optimizing
+	struct {
+		struct Object *else_;
+		struct Object *empty;
+		struct Object *return_;
+	} strings;
+
 	struct {
 		struct Object *filelibcache;   // Mapping, keys are path strings, values are Library objects
 		struct Object *importers;      // Array of importer functions, see docs
