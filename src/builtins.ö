@@ -1,3 +1,7 @@
+# this file runs in the built-in scope on interpreter startup
+# when the interpreter is compiled, this file is included in the executable in a funny way
+# see the Makefile and run.c for more about how running this code works
+
 var Class = (get_class String);
 
 # errors are defined as early as possible because rest of the code may throw them
