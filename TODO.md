@@ -162,7 +162,7 @@ probably something horrible
 
 ## more problems!
 
-see [builtins documentation](builtins.md) and ctrl+f for e.g. "annoyances" or
-"missing features"
+see [builtins documentation](docs/builtins.md) and ctrl+f for e.g. "annoyances"
+or "missing features"
 
 also `grep -r 'TODO\|FIXME' src` if you dare!
