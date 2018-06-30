@@ -42,9 +42,9 @@ struct Object {
 	long gcflag;
 };
 
-// THIS IS LOWLEVEL, see classobject_newinstance()
+// low-level function for creating a new object, see also classobject_newinstance()
 // create a new object, add it to interp->allobjects and return it, returns NULL on no mem
-// CANNOT BE USED with classes that want their instances to have attributes
+// shouldn't be used with classes that have a newinstance, except when implementing newinstance
 // see above for descriptions of data and destructor
 // RETURNS A NEW REFERENCE, i.e. refcount is set to 1
 struct Object *object_new_noerr(struct Interpreter *interp, struct Object *klass,
