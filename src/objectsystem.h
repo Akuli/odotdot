@@ -58,7 +58,7 @@ struct Object *object_new_noerr(struct Interpreter *interp, struct Object *klass
 } while (0)
 
 // like the name says, this is pretty much an implementation detail
-// it's here just because OBJECT_{INCREF,DECREF} need it
+// it's here just because OBJECT_{IN,DE}CREF need it
 // use OBJECT_DECREF instead of calling this
 // you may need to modify gc_run() if you modify this
 void object_free_impl(struct Interpreter *interp, struct Object *obj, bool calledfromgc);
