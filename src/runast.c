@@ -28,14 +28,8 @@ static struct Object *runast_expression(struct Interpreter *interp, struct Objec
 
 #define INFO_AS(X) ((struct X *) nodedata->info)
 	if (nodedata->kind == AST_GETVAR) {
-		struct Object *name = stringobject_newfromustr_copy(interp, INFO_AS(AstGetVarInfo)->varname);
-		if (!name)
-			return NULL;
-
 		// TODO: expose scope get_var in C to avoid method_call?
-		struct Object *res = method_call(interp, scope, "get_var", name, NULL);
-		OBJECT_DECREF(interp, name);
-		return res;
+		return method_call(interp, scope, "get_var", INFO_AS(AstGetVarInfo)->varname, NULL);
 	}
 
 	if (nodedata->kind == AST_STR || nodedata->kind == AST_INT) {
@@ -48,16 +42,10 @@ static struct Object *runast_expression(struct Interpreter *interp, struct Objec
 		if (!obj)
 			return NULL;
 
-		struct Object *s = stringobject_newfromustr_copy(interp, INFO_AS(AstGetAttrInfo)->name);
-		if (!s) {
-			OBJECT_DECREF(interp, obj);
-			return NULL;
-		}
-
-		struct Object *res = attribute_getwithstringobj(interp, obj, s);
+		struct Object *res = attribute_getwithstringobj(interp, obj, INFO_AS(AstGetAttrInfo)->name);
 		OBJECT_DECREF(interp, obj);
-		OBJECT_DECREF(interp, s);
 		return res;
+
 	}
 
 	if (nodedata->kind == AST_CALL) {
@@ -190,31 +178,18 @@ bool runast_statement(struct Interpreter *interp, struct Object *scope, struct O
 		if (!val)
 			return false;
 
-		struct Object *keystr = stringobject_newfromustr_copy(interp, INFO_AS(AstCreateOrSetVarInfo)->varname);
-		if (!keystr) {
-			OBJECT_DECREF(interp, val);
-		}
-
-		bool res = mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), keystr, val);
-		OBJECT_DECREF(interp, keystr);
+		bool res = mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), INFO_AS(AstCreateOrSetVarInfo)->varname, val);
 		OBJECT_DECREF(interp, val);
 		return res;
 	}
 
 	if (nodedata->kind == AST_SETVAR) {
-		struct Object *namestr = stringobject_newfromustr_copy(interp, INFO_AS(AstCreateOrSetVarInfo)->varname);
-		if (!namestr)
-			return false;
-
 		struct Object *val = runast_expression(interp, scope, INFO_AS(AstCreateOrSetVarInfo)->valnode);
-		if (!val) {
-			OBJECT_DECREF(interp, namestr);
+		if (!val)
 			return false;
-		}
 
 		// TODO: expose Scope.set_var?
-		struct Object *res = method_call(interp, scope, "set_var", namestr, val, NULL);
-		OBJECT_DECREF(interp, namestr);
+		struct Object *res = method_call(interp, scope, "set_var", INFO_AS(AstCreateOrSetVarInfo)->varname, val, NULL);
 		OBJECT_DECREF(interp, val);
 
 		if (res) {
@@ -235,17 +210,9 @@ bool runast_statement(struct Interpreter *interp, struct Object *scope, struct O
 			return false;
 		}
 
-		struct Object *stringobj = stringobject_newfromustr_copy(interp, INFO_AS(AstSetAttrInfo)->attr);
-		if (!stringobj) {
-			OBJECT_DECREF(interp, val);
-			OBJECT_DECREF(interp, obj);
-			return false;
-		}
-
-		bool res = attribute_setwithstringobj(interp, obj, stringobj, val);
+		bool res = attribute_setwithstringobj(interp, obj, INFO_AS(AstSetAttrInfo)->attr, val);
 		OBJECT_DECREF(interp, obj);
 		OBJECT_DECREF(interp, val);
-		OBJECT_DECREF(interp, stringobj);
 		return res;
 	}
 #undef INFO_AS

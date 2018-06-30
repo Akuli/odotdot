@@ -7,6 +7,7 @@
 #include <src/objects/classobject.h>
 #include <src/objects/integer.h>
 #include <src/objects/mapping.h>
+#include <src/operator.h>
 #include <src/objects/string.h>
 #include <src/parse.h>
 #include <stddef.h>
@@ -21,14 +22,6 @@ static struct Object *newnode(char kind, void *info)
 	struct Object *res = astnodeobject_new(testinterp, kind, "<test>", 123, info);
 	buttert(res);
 	return res;
-}
-
-static void setup_string(struct UnicodeString *target)
-{
-	target->len = 2;
-	target->val = bmalloc(sizeof(unicode_char) * 2);
-	target->val[0] = 'x';
-	target->val[1] = 'y';
 }
 
 // not really random at all, that's why lol
@@ -55,25 +48,25 @@ void test_ast_nodes_and_their_refcount_stuff(void)
 	struct Object *arrnode = newnode(RANDOM_CHOICE_LOL(AST_ARRAY, AST_BLOCK), arrinfo);
 
 	struct AstGetVarInfo *getvarinfo = bmalloc(sizeof(struct AstGetVarInfo));
-	setup_string(&(getvarinfo->varname));
+	buttert((getvarinfo->varname = stringobject_newfromcharptr(testinterp, "toottoot")));
 	struct Object *getvarnode = newnode(AST_GETVAR, getvarinfo);
 
 	// this references getvarnode
 	struct AstGetAttrInfo *getattrinfo = bmalloc(sizeof(struct AstGetAttrInfo));
 	getattrinfo->objnode = getvarnode;
-	setup_string(&(getattrinfo->name));
+	buttert((getattrinfo->name = stringobject_newfromcharptr(testinterp, "wwut")));
 	struct Object *getattrnode = newnode(AST_GETATTR, getattrinfo);
 
 	// this references arrnode
 	struct AstCreateOrSetVarInfo *cosvinfo = bmalloc(sizeof(struct AstCreateOrSetVarInfo));
-	setup_string(&(cosvinfo->varname));
+	buttert((cosvinfo->varname = stringobject_newfromcharptr(testinterp, "wow")));
 	cosvinfo->valnode = arrnode;
 	struct Object *cosvnode = newnode(RANDOM_CHOICE_LOL(AST_CREATEVAR, AST_SETVAR), cosvinfo);
 
 	// this references getattrnode and cosvnode
 	struct AstSetAttrInfo *setattrinfo = bmalloc(sizeof(struct AstSetAttrInfo));
 	setattrinfo->objnode = getattrnode;
-	setup_string(&(setattrinfo->attr));
+	buttert((setattrinfo->attr = stringobject_newfromcharptr(testinterp, "lol")));
 	setattrinfo->valnode = cosvnode;
 	struct Object *setattrnode = newnode(AST_SETATTR, setattrinfo);
 
@@ -190,7 +183,12 @@ void test_ast_getvars(void)
 	struct AstGetVarInfo *info = data->info;
 
 	buttert(data->kind == AST_GETVAR);
-	buttert(ustr_equals_charp(info->varname, "abc"));
+
+	struct Object *abc = stringobject_newfromcharptr(testinterp, "abc");
+	buttert(abc);
+	buttert(operator_eqint(testinterp, info->varname, abc) == 1);
+	OBJECT_DECREF(testinterp, abc);
+
 	OBJECT_DECREF(testinterp, node);
 }
 
@@ -200,7 +198,9 @@ struct Object *check_attribute(struct Object *node, char *name)
 	struct AstGetAttrInfo *info = data->info;
 
 	buttert(data->kind == AST_GETATTR);
-	buttert(ustr_equals_charp(info->name, name));
+	struct Object *s = stringobject_newfromcharptr(testinterp, name);
+	buttert(operator_eqint(testinterp, info->name, s) == 1);
+	OBJECT_DECREF(testinterp, s);
 
 	// funny convenience weirdness
 	return info->objnode;
@@ -222,7 +222,10 @@ static void check_getvar(struct Object *node, char *varname)
 	struct AstNodeObjectData *data = node->data;
 	buttert(data->kind == AST_GETVAR);
 	struct AstGetVarInfo *info = data->info;
-	buttert(ustr_equals_charp(info->varname, varname));
+
+	struct Object *s = stringobject_newfromcharptr(testinterp, varname);
+	buttert(operator_eqint(testinterp, info->varname, s) == 1);
+	OBJECT_DECREF(testinterp, s);
 }
 
 void test_ast_function_call_statement(void)

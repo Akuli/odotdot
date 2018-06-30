@@ -38,21 +38,21 @@ struct Object *astnodeobject_new(struct Interpreter *interp, char kind, char *fi
 #define AST_ARRAY '['
 #define AST_BLOCK '{'
 
-// TODO: replace this with UnicodeString, kinda like AstIntOrStringInfo?
-struct AstGetVarInfo { struct UnicodeString varname; };
+// TODO: replace this with a //lol
+struct AstGetVarInfo { struct Object *varname; };
 #define AST_GETVAR 'x'
 
-struct AstGetAttrInfo { struct Object *objnode; struct UnicodeString name; };
+struct AstGetAttrInfo { struct Object *objnode; struct Object *name; };
 #define AST_GETATTR '.'
 
 
 // statements
 
-struct AstCreateOrSetVarInfo { struct UnicodeString varname; struct Object *valnode; };
+struct AstCreateOrSetVarInfo { struct Object *varname; struct Object *valnode; };
 #define AST_CREATEVAR 'v'
 #define AST_SETVAR '='
 
-struct AstSetAttrInfo { struct Object *objnode; struct UnicodeString attr; struct Object *valnode; };
+struct AstSetAttrInfo { struct Object *objnode; struct Object *attr; struct Object *valnode; };
 #define AST_SETATTR '*'    // many other characters are already used, this one isn't
 
 

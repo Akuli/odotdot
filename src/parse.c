@@ -129,14 +129,14 @@ static struct Object *parse_getvar(struct Interpreter *interp, char *filename, s
 	if (!info)
 		return NULL;
 
-	if (!unicodestring_copyinto(interp, (*curtok)->str, &(info->varname))) {
+	if (!(info->varname = stringobject_newfromustr_copy(interp, (*curtok)->str))) {
 		free(info);
 		return NULL;
 	}
 
 	struct Object *res = astnodeobject_new(interp, AST_GETVAR, filename, (*curtok)->lineno, info);
 	if (!res) {
-		free(info->varname.val);
+		OBJECT_DECREF(interp, info->varname);
 		free(info);
 		return NULL;
 	}
@@ -438,19 +438,14 @@ static struct Object *create_return_getvar(struct Interpreter *interp, char *fil
 		return NULL;
 	}
 
-	info->varname.len = 6;
-	info->varname.val = malloc(sizeof(unicode_char)*6);
-	if (!info->varname.val) {
-		errorobject_thrownomem(interp);
+	if (!(info->varname = stringobject_newfromcharptr(interp, "return"))) {
 		free(info);
 		return NULL;
 	}
-	for (int i=0; i < 6; i++)
-		info->varname.val[i] = "return"[i];
 
 	struct Object *res = astnodeobject_new(interp, AST_GETVAR, filename, lineno, info);
 	if (!res) {
-		free(info->varname.val);
+		OBJECT_DECREF(interp, info->varname);
 		free(info);
 		return NULL;
 	}
@@ -649,16 +644,16 @@ struct Object *parse_expression(struct Interpreter *interp, char *filename, stru
 		// no need to incref, this function is already holding a reference to res
 		getattrinfo->objnode = res;
 
-		if (!unicodestring_copyinto(interp, (*curtok)->str, &(getattrinfo->name))) {
-			OBJECT_DECREF(interp, res);
+		if (!(getattrinfo->name = stringobject_newfromustr_copy(interp, (*curtok)->str))) {
 			free(getattrinfo);
+			OBJECT_DECREF(interp, res);
 			return NULL;
 		}
 		*curtok = (*curtok)->next;
 
 		struct Object *getattr = astnodeobject_new(interp, AST_GETATTR, filename, lineno, getattrinfo);
 		if(!getattr) {
-			free(getattrinfo->name.val);
+			OBJECT_DECREF(interp, getattrinfo->name);
 			free(getattrinfo);
 			OBJECT_DECREF(interp, res);
 			return NULL;
@@ -685,8 +680,8 @@ static struct Object *parse_var_statement(struct Interpreter *interp, char *file
 	// TODO: report error
 	assert((*curtok)->kind == TOKEN_ID);
 
-	struct UnicodeString varname;
-	if (!unicodestring_copyinto(interp, (*curtok)->str, &varname))
+	struct Object *varname = stringobject_newfromustr_copy(interp, (*curtok)->str);
+	if (!varname)
 		return NULL;
 	*curtok = (*curtok)->next;
 
@@ -698,7 +693,7 @@ static struct Object *parse_var_statement(struct Interpreter *interp, char *file
 
 	struct Object *value = parse_expression(interp, filename, curtok);
 	if (!value) {
-		free(varname.val);
+		OBJECT_DECREF(interp, varname);
 		return NULL;
 	}
 
@@ -706,7 +701,7 @@ static struct Object *parse_var_statement(struct Interpreter *interp, char *file
 	if (!info) {
 		// TODO: set no mem error
 		OBJECT_DECREF(interp, value);
-		free(varname.val);
+		OBJECT_DECREF(interp, varname);
 		return NULL;
 	}
 	info->varname = varname;
@@ -717,7 +712,7 @@ static struct Object *parse_var_statement(struct Interpreter *interp, char *file
 		// TODO: set no mem error
 		free(info);
 		OBJECT_DECREF(interp, value);
-		free(varname.val);
+		OBJECT_DECREF(interp, varname);
 		return NULL;
 	}
 	return res;
@@ -748,15 +743,13 @@ static struct Object *parse_assignment(struct Interpreter *interp, char *filenam
 		if (!info)
 			goto error;
 
-		if (!unicodestring_copyinto(interp, lhsinfo->varname, &(info->varname))) {
-			free(info);
-			goto error;
-		}
+		info->varname = lhsinfo->varname;
+		OBJECT_INCREF(interp, info->varname);
 		info->valnode = rhs;
 
 		struct Object *result = astnodeobject_new(interp, AST_SETVAR, filename, lhsdata->lineno, info);
 		if (!result) {
-			free(info->varname.val);
+			OBJECT_DECREF(interp, info->varname);
 			free(info);
 			goto error;
 		}
@@ -768,18 +761,16 @@ static struct Object *parse_assignment(struct Interpreter *interp, char *filenam
 		if (!info)
 			goto error;
 
-		if (!unicodestring_copyinto(interp, lhsinfo->name, &(info->attr))) {
-			free(info);
-			goto error;
-		}
+		info->attr = lhsinfo->name;
+		OBJECT_INCREF(interp, lhsinfo->name);
 		info->objnode = lhsinfo->objnode;
 		OBJECT_INCREF(interp, lhsinfo->objnode);
 		info->valnode = rhs;
 
 		struct Object *result = astnodeobject_new(interp, AST_SETATTR, filename, lhsdata->lineno, info);
 		if (!result) {
+			OBJECT_DECREF(interp, lhsinfo->name);
 			OBJECT_DECREF(interp, lhsinfo->objnode);
-			free(info->attr.val);
 			free(info);
 			goto error;
 		}

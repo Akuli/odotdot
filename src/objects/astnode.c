@@ -26,13 +26,16 @@ static void astnode_foreachref(struct Object *node, void *cbdata, object_foreach
 		break;
 	case AST_GETATTR:
 		cb(info_as(AstGetAttrInfo)->objnode, cbdata);
+		cb(info_as(AstGetAttrInfo)->name, cbdata);
 		break;
 	case AST_CREATEVAR:
 	case AST_SETVAR:
 		cb(info_as(AstCreateOrSetVarInfo)->valnode, cbdata);
+		cb(info_as(AstCreateOrSetVarInfo)->varname, cbdata);
 		break;
 	case AST_SETATTR:
 		cb(info_as(AstSetAttrInfo)->objnode, cbdata);
+		cb(info_as(AstSetAttrInfo)->attr, cbdata);
 		cb(info_as(AstSetAttrInfo)->valnode, cbdata);
 		break;
 	case AST_CALL:
@@ -43,8 +46,9 @@ static void astnode_foreachref(struct Object *node, void *cbdata, object_foreach
 	case AST_OPCALL:
 		cb(info_as(AstOpCallInfo)->lhs, cbdata);
 		cb(info_as(AstOpCallInfo)->rhs, cbdata);
+		break;
 	case AST_GETVAR:
-		// do nothing
+		cb(info_as(AstGetVarInfo)->varname, cbdata);
 		break;
 #undef info_as
 	default:
@@ -58,31 +62,19 @@ static void astnode_destructor(struct Object *node)
 	switch (data->kind) {
 #define info_as(X) ((struct X *) data->info)
 	case AST_GETVAR:
-		free(info_as(AstGetVarInfo)->varname.val);
-		free(data->info);
-		break;
 	case AST_GETATTR:
-		free(info_as(AstGetAttrInfo)->name.val);
-		free(data->info);
-		break;
 	case AST_CREATEVAR:
 	case AST_SETVAR:
-		free(info_as(AstCreateOrSetVarInfo)->varname.val);
-		free(data->info);
-		break;
-	case AST_SETATTR:
-		free(info_as(AstSetAttrInfo)->attr.val);
-		free(data->info);
-		break;
 	case AST_CALL:
 	case AST_OPCALL:
+	case AST_SETATTR:
 		free(data->info);
 		break;
 	case AST_INT:
 	case AST_STR:
 	case AST_ARRAY:
 	case AST_BLOCK:
-		// do nothing
+		// do nothing, the info is an Object handled by astnode_foreachref
 		break;
 #undef info_as
 	default:
