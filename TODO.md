@@ -97,6 +97,14 @@ things that I would like to do some day. It's a mess.
         };
         ```
 
+- oopy List baseclass and stuff to `std/datastructures.ö` or something,
+  or maybe `std/lists.ö`?
+    - similar stuff for Mapping
+
+    - maybe it'd be best to rename Mapping to HashTable, and have
+      Mapping be an abstract class
+    - obtw need to implement abstract base classes first
+
 - interactive repl? would be awesome!
     - multiline input could be a problem, would need to implement the parser so
       that it returns a different value for end-of-file than other errors
@@ -128,13 +136,6 @@ things that I would like to do some day. It's a mess.
     - also look through the source and try to find funny corner cases
 - ask friends for help? writing tests is a lot of work
     - although not as much work as i expected, ö is quite nice to work with :)
-
-## std/builtins.ö
-
-this shouldn't be in std imo, i have no idea what happens if you
-`import "<std>/builtins";`
-
-probably something horrible
 
 ## tokenizer.{c,h}
 - tokenizing an empty file fails
