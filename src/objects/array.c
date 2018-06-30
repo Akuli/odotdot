@@ -201,6 +201,47 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **elems
 	return arr;
 }
 
+struct Object *arrayobject_concat(struct Interpreter *interp, struct Object *arr1, struct Object *arr2)
+{
+	struct ArrayObjectData *data1 = arr1->data;
+	struct ArrayObjectData *data2 = arr2->data;
+	struct ArrayObjectData *data = malloc(sizeof(struct ArrayObjectData));
+	if (!data) {
+		errorobject_thrownomem(interp);
+		return NULL;
+	}
+
+	data->len = data1->len + data2->len;
+	if (data->len <= 3)   // 3 feels good, can't be 0 because malloc(0) may return NULL on success
+		data->nallocated = 3;
+	else
+		data->nallocated = data->len;
+
+	data->elems = malloc(data->nallocated * sizeof(struct Object*));
+	if (!data->elems) {
+		errorobject_thrownomem(interp);
+		free(data);
+		return NULL;
+	}
+
+	struct Object *arr = object_new_noerr(interp, interp->builtins.Array, data, array_foreachref, array_destructor);
+	if (!arr) {
+		errorobject_thrownomem(interp);
+		free(data->elems);
+		free(data);
+		return NULL;
+	}
+
+	// rest of this can't fail
+	memcpy(data->elems, data1->elems, sizeof(struct Object*) * data1->len);
+	memcpy(data->elems + data1->len, data2->elems, sizeof(struct Object*) * data2->len);
+	for (size_t i=0; i < data->len; i++)
+		OBJECT_INCREF(interp, data->elems[i]);
+
+	arr->hashable = false;
+	return arr;
+}
+
 static bool resize(struct Interpreter *interp, struct ArrayObjectData *data)
 {
 	assert(data->nallocated > 0);

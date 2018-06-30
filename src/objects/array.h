@@ -26,6 +26,10 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **elems
 #define ARRAYOBJECT_GET(arr, i) (((struct ArrayObjectData *) (arr)->data)->elems[(i)])
 #define ARRAYOBJECT_LEN(arr)    (((struct ArrayObjectData *) (arr)->data)->len)
 
+// returns a new array with elements from arr1 and arr2
+// bad things happen if arr1 ir arr2 is not an array
+struct Object *arrayobject_concat(struct Interpreter *interp, struct Object *arr1, struct Object *arr2);
+
 // returns false on error
 // bad things happen if arr is not an array object
 bool arrayobject_push(struct Interpreter *interp, struct Object *arr, struct Object *elem);

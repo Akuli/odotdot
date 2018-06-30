@@ -19,25 +19,19 @@
 struct FunctionData {
 	struct Object *name;
 	functionobject_cfunc cfunc;
-	struct Object **partialargs;
-	size_t npartialargs;
+	struct Object *partialargs;  // an Array
 };
 
 static void function_foreachref(struct Object *func, void *cbdata, object_foreachrefcb cb)
 {
 	struct FunctionData *data = func->data;    // casts implicitly
 	cb(data->name, cbdata);
-	for (size_t i=0; i < data->npartialargs; i++)
-		cb(data->partialargs[i], cbdata);
+	cb(data->partialargs, cbdata);
 }
 
 static void function_destructor(struct Object *func)
 {
-	// object_free_impl() takes care of name and partial args using function_foreachref()
-	struct FunctionData *data = func->data;
-	if (data->partialargs)
-		free(data->partialargs);
-	free(data);
+	free(func->data);
 }
 
 static struct Object *newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts)
@@ -54,7 +48,6 @@ struct Object *functionobject_createclass(struct Interpreter *interp)
 
 static struct Object *create_a_partial(struct Interpreter *interp, struct Object *func, struct Object **partialargs, size_t npartialargs)
 {
-	// shortcut to avoid malloc(0), important because malloc(0) may return NULL on success
 	if (npartialargs == 0)
 		return func;
 
@@ -66,20 +59,27 @@ static struct Object *create_a_partial(struct Interpreter *interp, struct Object
 	}
 
 	newdata->cfunc = data->cfunc;
-	newdata->npartialargs = data->npartialargs + npartialargs;
-	newdata->partialargs = malloc(sizeof(struct Object*) * newdata->npartialargs);
-	if (!newdata->partialargs) {
-		errorobject_thrownomem(interp);
+	if (!(newdata->partialargs = arrayobject_newempty(interp))) {
 		free(newdata);
 		return NULL;
 	}
 
-	memcpy(newdata->partialargs, data->partialargs, sizeof(struct Object*) * data->npartialargs);
-	memcpy(newdata->partialargs + data->npartialargs, partialargs, sizeof(struct Object*) * npartialargs);
-	for (size_t i=0; i < newdata->npartialargs; i++)
-		OBJECT_INCREF(interp, newdata->partialargs[i]);
+	for (size_t i=0; i < ARRAYOBJECT_LEN(data->partialargs); i++) {
+		if (!arrayobject_push(interp, newdata->partialargs, ARRAYOBJECT_GET(data->partialargs, i))){
+			OBJECT_DECREF(interp, newdata->partialargs);
+			free(newdata);
+			return NULL;
+		}
+	}
+	for (size_t i=0; i < npartialargs; i++) {
+		if (!arrayobject_push(interp, newdata->partialargs, partialargs[i])){
+			OBJECT_DECREF(interp, newdata->partialargs);
+			free(newdata);
+			return NULL;
+		}
+	}
 
-	// TODO: should this be changed?
+	// TODO: should this be changed? if it should, must check all uses of this
 	newdata->name = data->name;
 	OBJECT_INCREF(interp, newdata->name);
 
@@ -87,9 +87,7 @@ static struct Object *create_a_partial(struct Interpreter *interp, struct Object
 	if (!obj) {
 		errorobject_thrownomem(interp);
 		OBJECT_DECREF(interp, newdata->name);
-		for (size_t i=0; i < newdata->npartialargs; i++)
-			OBJECT_DECREF(interp, newdata->partialargs[i]);
-		free(newdata->partialargs);
+		OBJECT_DECREF(interp, newdata->partialargs);
 		free(newdata);
 		return NULL;
 	}
@@ -188,12 +186,16 @@ struct Object *functionobject_new(struct Interpreter *interp, functionobject_cfu
 
 	data->name = nameobj;
 	data->cfunc = cfunc;
-	data->partialargs = NULL;
-	data->npartialargs = 0;
+	if (!(data->partialargs = arrayobject_newempty(interp))) {
+		OBJECT_DECREF(interp, nameobj);
+		free(data);
+		return NULL;
+	}
 
 	struct Object *obj = object_new_noerr(interp, interp->builtins.Function, data, function_foreachref, function_destructor);
 	if (!obj) {
 		errorobject_thrownomem(interp);
+		OBJECT_DECREF(interp, data->partialargs);
 		OBJECT_DECREF(interp, nameobj);
 		free(data);
 		return NULL;
@@ -246,34 +248,23 @@ struct Object *functionobject_call(struct Interpreter *interp, struct Object *fu
 
 struct Object *functionobject_vcall(struct Interpreter *interp, struct Object *func, struct Object *args, struct Object *opts)
 {
-	struct Object *theargs;
 	struct FunctionData *data = func->data;     // casts implicitly
 
-	if (data->npartialargs > 0) {
-		// TODO: add a more efficient way to concatenate arrays
-		// TODO: data->partialargs should be an array
-		theargs = arrayobject_newempty(interp);
+	struct Object *theargs;
+	bool decreftheargs = false;
+	if (ARRAYOBJECT_LEN(data->partialargs) == 0) {
+		theargs = args;
+	} else if (ARRAYOBJECT_LEN(args) == 0) {
+		theargs = data->partialargs;
+	} else {
+		theargs = arrayobject_concat(interp, data->partialargs, args);
 		if (!theargs)
 			return NULL;
-
-		for (size_t i=0; i < data->npartialargs; i++) {
-			if (!arrayobject_push(interp, theargs, data->partialargs[i])) {
-				OBJECT_DECREF(interp, theargs);
-				return NULL;
-			}
-		}
-		for (size_t i=0; i < ARRAYOBJECT_LEN(args); i++) {
-			if (!arrayobject_push(interp, theargs, ARRAYOBJECT_GET(args, i))) {
-				OBJECT_DECREF(interp, theargs);
-				return NULL;
-			}
-		}
-	} else {
-		theargs = args;
+		decreftheargs = true;
 	}
 
 	struct Object *res = data->cfunc(interp, theargs, opts);
-	if (theargs != args)
+	if (decreftheargs)
 		OBJECT_DECREF(interp, theargs);
 	return res;   // may be NULL
 }
