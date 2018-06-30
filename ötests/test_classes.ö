@@ -22,6 +22,40 @@ test "to_debug_string" {
     assert ((AB.to_debug_string) == "<Class \"AB\">");
 };
 
+# TODO: document getter and setter!!
+test "getter and setter" {
+    var log = null;   # pushing to this throws an error for now, which is good
+
+    class "Thingy" {
+        getter "thing" {
+            log.push "getter";
+            return "lol";
+        };
+        setter "thing" "new_value" {
+            log.push "setter";
+            log.push new_value;
+        };
+    };
+
+    class "SubThingy" inherits:Thingy {
+        getter "thing" {
+            log.push "subgetter";
+            return "lol";
+        };
+    };
+
+    foreach "pair" [[Thingy "getter"] [SubThingy "subgetter"]] {
+        var thingy = (new (pair.get 0));
+        var get_message = (pair.get 1);
+
+        log = [];
+        assert (thingy.thing == "lol");
+        assert (log == [get_message]);
+        thingy.thing = "asd";
+        assert (log == [get_message "setter" "asd"]);
+    };
+};
+
 test "abstract" {
     class "AbstractThing" {
         abstract "thing";

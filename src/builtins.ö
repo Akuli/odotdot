@@ -290,39 +290,35 @@ func "foreach varname array block" {
 
         var klass = (new (get_class String) class_name inherits);
 
-        func "abstract name" {
-            # just to make debugging easier
-            if (not (name `is_instance_of` String)) {
-                throw (new TypeError ("expected a string, got " + (name.to_debug_string)));
-            };
+        func "getter name block" {
+            var function = (lambda "this" block);
+            function.name = ("getter of " + name);
+            klass.getters.set name function;
+        };
 
-            var getter = (lambda "this" {
+        func "setter name varname block" {
+            var function = (lambda ("this " + varname) block);
+            function.name = ("setter of " + name);
+            klass.setters.set name function;
+        };
+
+        func "abstract name" {
+            getter name {
                 throw (new AttribError ("cannot get abstract attribute " + (name.to_debug_string)));
-            });
-            getter.name = ("getter of " + name);
-            klass.getters.set name getter;
+            };
         };
 
         func "attrib name" {
-            # just to make debugging easier
-            if (not (name `is_instance_of` String)) {
-                throw (new TypeError ("expected a string, got " + (name.to_debug_string)));
+            getter name {
+                catch {
+                    return ((get_attrdata this).get name);
+                } KeyError {
+                    throw (new AttribError (("the value of " + (name.to_debug_string)) + " hasn't been set"));
+                };
             };
-
-            var getter = (lambda "this" {
-                # TODO: throw an error with a descriptive message if the name is missing
-                var attrdata = (get_attrdata this);
-                return (attrdata.get name);
-            });
-            var setter = (lambda "this value" {
-                var attrdata = (get_attrdata this);
-                attrdata.set name value;
-            });
-
-            getter.name = ("getter of " + name);
-            setter.name = ("setter of " + name);
-            klass.getters.set name getter;
-            klass.setters.set name setter;
+            setter name "new_value" {
+                return ((get_attrdata this).set name new_value);
+            };
         };
 
         func "method methname_and_argnames block" {
@@ -343,6 +339,8 @@ func "foreach varname array block" {
         };
 
         var init_scope = (new Scope initializer_block.definition_scope);
+        init_scope.local_vars.set "getter" getter;
+        init_scope.local_vars.set "setter" setter;
         init_scope.local_vars.set "abstract" abstract;
         init_scope.local_vars.set "attrib" attrib;
         init_scope.local_vars.set "method" method;
@@ -351,7 +349,7 @@ func "foreach varname array block" {
         initializer_block.definition_scope.local_vars.set class_name klass;
     };
 
-    # export class to the built-in scope, but keep get_attrdata here
+    # export class to the built-in scope, but keep get_attrdata and stuff here
     {}.definition_scope.parent_scope.local_vars.set "class" class;
 }.run (new Scope {}.definition_scope);
 
