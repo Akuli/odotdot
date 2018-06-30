@@ -7,8 +7,10 @@ files, and `import` lets those files use each other.
 Let's start with a simple example. Here's `hello.ö`:
 
 ```python
-func "say_hello" {
-    print "Hellö Wörld!";
+export {
+    func "say_hello" {
+        print "Hellö Wörld!";
+    };
 };
 ```
 
@@ -23,6 +25,12 @@ hello.say_hello;   # prints "Hellö Wörld!"
 `import` takes one string argument and returns a `Library` object. The
 `Library` class is not in the [built-in scope], but you can access it easily
 with `(get_class (import "something"))` if you need it.
+
+`export` takes one argument, a block, and it runs that block in a new subscope
+of its definition scope. Then it puts all local variables from the block to
+both the definition scope and the attributes of the `Library` object that
+`import` returns. Variables defined outside `export` are not added to the
+`Library` object.
 
 The string that `import` takes as an argument is treated as a path to a file
 relative to the location of the file that imports, and without the `.ö` part.
