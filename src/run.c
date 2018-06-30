@@ -142,7 +142,9 @@ static int read_and_run_file(struct Interpreter *interp, char *path, struct Obje
 		return 0;
 	}
 
-	return run_code(interp, path, huge, hugelen, scope, runningbuiltinsfile);
+	int res = run_code(interp, path, huge, hugelen, scope, runningbuiltinsfile);
+	free(huge);
+	return res;
 }
 
 // this is partialled to a Library
