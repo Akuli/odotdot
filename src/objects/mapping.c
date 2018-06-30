@@ -64,7 +64,7 @@ static struct MappingObjectData *create_empty_data(void)
 		return NULL;
 
 	data->size = 0;
-	data->nbuckets = 50;     // TODO: make this smaller?
+	data->nbuckets = 10;     // i experimented with different values, this was good
 	data->buckets = calloc(data->nbuckets, sizeof(struct MappingObjectItem));
 	if (!(data->buckets)) {
 		free(data);
