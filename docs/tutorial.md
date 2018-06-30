@@ -160,8 +160,13 @@ parenthesize them.
 ```python
 debug ("hello" + "world");  # prints "helloworld"
 debug (1 + 2);              # prints 3
-debug (1 == 2);             # prints false
+debug ((1 + 2) == 4);       # prints false
 ```
+
+Note that `(1 + 2 == 4)` is invalid syntax, and we need `((1 + 2) == 4)`
+instead. Ö doesn't know anything about operator precedence; sometimes that
+makes operators a little bit more painful to use, but this way it's much easier
+to create an Ö interpreter.
 
 Ö supports these operators with similar meanings as in many other programming
 languages: `==`, `!=`, `>`, `<`, `>=`, `<=`, `+`, `-`, `*`, `/`.
@@ -175,7 +180,6 @@ languages: `==`, `!=`, `>`, `<`, `>=`, `<=`, `+`, `-`, `*`, `/`.
 var thing = ["a" "b" "c"];
 ```
 
-There are no fixed sizes; you can put as many elements as you want to an array.
 If you want to display the content of the array, you need to use `debug`
 instead of `print` as explained [above](#debugging).
 
@@ -203,7 +207,9 @@ thing.push "d";
 debug thing;        # prints ["a" "b" "c" "d"]
 ```
 
-Arrays can be compared with `==`.
+There are no fixed sizes; you can put as many elements as you want to an array.
+
+Arrays can be compared with `==` and `!=`:
 
 ```python
 debug (thing == ["a" "b" "c" "d"]);           # prints true
