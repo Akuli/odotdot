@@ -4,11 +4,17 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include "attribute.h"
+#include "check.h"
 #include "interpreter.h"
 #include "objects/array.h"
 #include "objects/astnode.h"
+#include "objects/block.h"
 #include "objects/errors.h"
+#include "objects/mapping.h"
+#include "objects/null.h"
 #include "objects/scope.h"
+#include "objects/string.h"
 #include "objectsystem.h"
 #include "parse.h"
 #include "path.h"
@@ -140,11 +146,83 @@ bool run_builtinsfile(struct Interpreter *interp)
 }
 
 
-// TODO: move the scope creating stuff here
-int run_libfile(struct Interpreter *interp, char *abspath, struct Object *scope)
+// this is partialled to a Library
+static struct Object *export_cfunc(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	assert(path_isabsolute(abspath));
-	return read_and_run_file(interp, abspath, scope, false, true);
+	if (!check_args(interp, args, interp->builtins.Library, interp->builtins.Block, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+	struct Object *lib = ARRAYOBJECT_GET(args, 0);
+	struct Object *block = ARRAYOBJECT_GET(args, 1);
+
+	struct Object *filescope = attribute_get(interp, block, "definition_scope");
+	if (!filescope)
+		return NULL;
+
+	struct Object *subscope = scopeobject_newsub(interp, filescope);
+	if (!subscope) {
+		OBJECT_DECREF(interp, filescope);
+		return NULL;
+	}
+
+	if (!blockobject_run(interp, block, subscope))
+		goto error;
+
+	struct MappingObjectIter iter;
+	mappingobject_iterbegin(&iter, SCOPEOBJECT_LOCALVARS(subscope));
+	while (mappingobject_iternext(&iter)) {
+		if (!attribute_setwithstringobj(interp, lib, iter.key, iter.value))
+			goto error;
+		if (!mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(filescope), iter.key, iter.value))
+			goto error;
+	}
+
+	OBJECT_DECREF(interp, subscope);
+	OBJECT_DECREF(interp, filescope);
+	return nullobject_get(interp);
+
+error:
+	OBJECT_DECREF(interp, subscope);
+	OBJECT_DECREF(interp, filescope);
+	return NULL;
+}
+
+int run_libfile(struct Interpreter *interp, char *abspath, struct Object *lib)
+{
+	struct Object *scope = scopeobject_newsub(interp, interp->builtinscope);
+	if (!scope)
+		return 0;
+
+	struct Object *exportstr = stringobject_newfromcharptr(interp, "export");
+	if (!exportstr) {
+		OBJECT_DECREF(interp, scope);
+		return 0;
+	}
+
+	struct Object *rawexport = functionobject_new(interp, export_cfunc, "export");
+	if (!rawexport) {
+		OBJECT_DECREF(interp, exportstr);
+		OBJECT_DECREF(interp, scope);
+		return 0;
+	}
+
+	struct Object *export = functionobject_newpartial(interp, rawexport, lib);
+	OBJECT_DECREF(interp, rawexport);
+	if (!export) {
+		OBJECT_DECREF(interp, exportstr);
+		OBJECT_DECREF(interp, scope);
+	}
+
+	bool ok = mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), exportstr, export);
+	OBJECT_DECREF(interp, exportstr);
+	OBJECT_DECREF(interp, export);
+	if (!ok) {
+		OBJECT_DECREF(interp, scope);
+		return 0;
+	}
+
+	int status = read_and_run_file(interp, abspath, scope, false, true);
+	OBJECT_DECREF(interp, scope);
+	return status;
 }
 
 

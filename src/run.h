@@ -23,13 +23,14 @@ bool run_builtinsfile(struct Interpreter *interp);
 // throws an error and returns false on failure
 bool run_mainfile(struct Interpreter *interp, char *path);
 
-// for import.c, the path must be absolute
-// sets a Mapping of variables defined in the file to vars on success
+// for import.c, abspath must be absolute
+// runs a file in a scope that contains an export function
+// exported variables are added as attributes to lib
+//
 // return values:
 //  1   success
 //  0   an error has been thrown
 //  -1  opening the file returned ENOENT, the file doesn't exist
-// throws an error and returns NULL on failure
-int run_libfile(struct Interpreter *interp, char *abspath, struct Object *scope);
+int run_libfile(struct Interpreter *interp, char *abspath, struct Object *lib);
 
 #endif   // RUN_H

@@ -9,12 +9,10 @@
 #include "check.h"
 #include "interpreter.h"
 #include "objects/array.h"
-#include "objects/block.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
 #include "objects/mapping.h"
 #include "objects/null.h"
-#include "objects/scope.h"
 #include "objects/string.h"
 #include "objectsystem.h"
 #include "path.h"
@@ -172,90 +170,6 @@ static char *get_import_path(struct Interpreter *interp, struct UnicodeString na
 	return fullpath;
 }
 
-// this is partialled to a Library
-static struct Object *export_cfunc(struct Interpreter *interp, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, interp->builtins.Library, interp->builtins.Block, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-	struct Object *lib = ARRAYOBJECT_GET(args, 0);
-	struct Object *block = ARRAYOBJECT_GET(args, 1);
-
-	struct Object *filescope = attribute_get(interp, block, "definition_scope");
-	if (!filescope)
-		return NULL;
-
-	struct Object *subscope = scopeobject_newsub(interp, filescope);
-	if (!subscope) {
-		OBJECT_DECREF(interp, filescope);
-		return NULL;
-	}
-
-	if (!blockobject_run(interp, block, subscope))
-		goto error;
-
-	struct MappingObjectIter iter;
-	mappingobject_iterbegin(&iter, SCOPEOBJECT_LOCALVARS(subscope));
-	while (mappingobject_iternext(&iter)) {
-		if (!attribute_setwithstringobj(interp, lib, iter.key, iter.value))
-			goto error;
-		if (!mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(filescope), iter.key, iter.value))
-			goto error;
-	}
-
-	OBJECT_DECREF(interp, subscope);
-	OBJECT_DECREF(interp, filescope);
-	return nullobject_get(interp);
-
-error:
-	OBJECT_DECREF(interp, subscope);
-	OBJECT_DECREF(interp, filescope);
-	return NULL;
-}
-
-static struct Object *create_exporter(struct Interpreter *interp, struct Object *lib)
-{
-	struct Object *rawexport = functionobject_new(interp, export_cfunc, "export");
-	if (!rawexport)
-		return NULL;
-
-	struct Object *export = functionobject_newpartial(interp, rawexport, lib);
-	OBJECT_DECREF(interp, rawexport);
-	return export;   // may be NULL
-}
-
-// returns 1 for success, 0 for error, or -1 for ENOENT when opening the file
-int run_with_export(struct Interpreter *interp, char *fullpath, struct Object *lib)
-{
-	struct Object *scope = scopeobject_newsub(interp, interp->builtinscope);
-	if (!scope)
-		return 0;
-
-	struct Object *exportstr = stringobject_newfromcharptr(interp, "export");
-	if (!exportstr) {
-		OBJECT_DECREF(interp, scope);
-		return 0;
-	}
-
-	struct Object *exporter = create_exporter(interp, lib);
-	if (!exporter) {
-		OBJECT_DECREF(interp, exportstr);
-		OBJECT_DECREF(interp, scope);
-		return 0;
-	}
-
-	bool ok = mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), exportstr, exporter);
-	OBJECT_DECREF(interp, exportstr);
-	OBJECT_DECREF(interp, exporter);
-	if (!ok) {
-		OBJECT_DECREF(interp, scope);
-		return 0;
-	}
-
-	int res = run_libfile(interp, fullpath, scope);
-	OBJECT_DECREF(interp, scope);
-	return res;
-}
-
 static struct Object *file_importer(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.String, interp->builtins.StackFrame, NULL)) return NULL;
@@ -299,7 +213,7 @@ static struct Object *file_importer(struct Interpreter *interp, struct Object *a
 		return NULL;
 	}
 
-	status = run_with_export(interp, fullpath, lib);
+	status = run_libfile(interp, fullpath, lib);
 	free(fullpath);
 	if (status == -1) {    // file not found, try another importer
 		OBJECT_DECREF(interp, lib);
