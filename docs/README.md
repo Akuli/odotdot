@@ -1,9 +1,5 @@
 # Ö Documentation
 
-Currently there's very little documentation :(
-
-## List of Contents
-
 - [Tutorial: start here](tutorial.md)
 - [Builtins Reference](builtins.md)
 - [Importing](syntax-spec.md)
