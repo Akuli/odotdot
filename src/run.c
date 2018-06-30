@@ -99,9 +99,6 @@ static int read_and_run_file(struct Interpreter *interp, char *path, struct Obje
 {
 	assert(path_isabsolute(path));
 
-	// IoError can't be used when running builtins.ö because it's defined in builtins.ö
-	char *ioerrorclass = runningbuiltinsfile ? "Error" : "IoError";
-
 	// read the file
 	FILE *f = fopen(path, "rb");   // b because the content is decoded below... i think this is good
 	if (!f) {
@@ -110,7 +107,8 @@ static int read_and_run_file(struct Interpreter *interp, char *path, struct Obje
 			errno = 0;
 			return -1;
 		}
-		errorobject_throwfmt(interp, ioerrorclass, "cannot open '%s': %s", path, strerror(errno));
+		// IoError must be there because it's from builtins.ö, and that runs funnily without this
+		errorobject_throwfmt(interp, "IoError", "cannot open '%s': %s", path, strerror(errno));
 		return 0;
 	}
 
@@ -133,13 +131,13 @@ static int read_and_run_file(struct Interpreter *interp, char *path, struct Obje
 
 	if (ferror(f)) {    // ferror doesn't set errno
 		// TODO: use a more appropriate error class if/when it will be available
-		errorobject_throwfmt(interp, ioerrorclass, "cannot read '%s': %s", path, strerror(errno));
+		errorobject_throwfmt(interp, "IoError", "cannot read '%s': %s", path, strerror(errno));
 		free(huge);
 		return 0;
 	}
 
 	if (fclose(f) != 0) {
-		errorobject_throwfmt(interp, ioerrorclass, "cannot close a file opened from '%s': %s", path, strerror(errno));
+		errorobject_throwfmt(interp, "IoError", "cannot close a file opened from '%s': %s", path, strerror(errno));
 		free(huge);
 		return 0;
 	}
