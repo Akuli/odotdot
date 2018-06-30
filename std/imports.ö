@@ -3,11 +3,11 @@
 # so it's best to put it here imo
 # builtins.ö imports this file automatically when setting up other stuff is done
 
-assert ({}.definition_scope.parent_scope.parent_scope `same_object` null);   # parent_scope is built-in scope
+var builtin_scope = {}.definition_scope.parent_scope;
+assert (builtin_scope.parent_scope `same_object` null);
 
 export {
-    # FIXME: refcounts fuck up if this throws an error
-    var importers = ({}.definition_scope.parent_scope.parent_scope.local_vars.get_and_delete "importers");
+    var importers = (builtin_scope.local_vars.get_and_delete "importers");
 };
 
 

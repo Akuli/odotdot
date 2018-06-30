@@ -30,7 +30,8 @@ with `(get_class (import "something"))` if you need it.
 of its definition scope. Then it puts all local variables from the block to
 both the definition scope and the attributes of the `Library` object that
 `import` returns. Variables defined outside `export` are not added to the
-`Library` object.
+`Library` object. `export` is not in the built-in scope; it's just added to the
+scope that the library's code runs in.
 
 The string that `import` takes as an argument is treated as a path to a file
 relative to the location of the file that imports, and without the `.ö` part.
