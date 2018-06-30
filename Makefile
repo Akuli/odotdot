@@ -26,7 +26,7 @@ clean:
 # "apt show vim-common" says that even the most minimal vim packages need it
 # don't get me wrong... i'm not a vim fan!
 src/builtinscode.h:
-	xxd -i < src/builtins.ö > src/builtinscode.h
+	./xd < src/builtins.ö > src/builtinscode.h
 
 # right now src/run.c is the only file that uses src/builtinscode.h
 src/run.c: src/builtinscode.h

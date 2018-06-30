@@ -24,22 +24,16 @@
 
 // see Makefile
 // this uses unsigned char instead of char because char may be signed, and utf8 Ö doesn't fit in signed char
-const unsigned char builtinscode[] = {
+unicode_char builtinscode[] = {
 #include "builtinscode.h"
 };
 
 
-static bool run_code(struct Interpreter *interp, char *path, char *code, size_t codelen, struct Object *scope, bool runningbuiltinsfile)
+static bool run_code(struct Interpreter *interp, char *path, struct UnicodeString ucode, struct Object *scope, bool runningbuiltinsfile)
 {
-	// convert to UnicodeString
-	struct UnicodeString ucode;
-	if (!utf8_decode(interp, code, codelen, &ucode))
-		return false;
-
 	// tokenize
 	// TODO: handle errors in tokenizer.c :(
 	struct Token *tok1st = token_ize(interp, ucode);
-	free(ucode.val);
 
 	// parse
 	struct Object *statements = arrayobject_newempty(interp);
@@ -88,10 +82,8 @@ static bool run_code(struct Interpreter *interp, char *path, char *code, size_t 
 
 bool run_builtinsfile(struct Interpreter *interp)
 {
-	// TODO: avoid casting unsigned char* to char* ?
-	// i'm not sure if that's guaranteed to work correctly, but rest of my code casts unsigned char to char
-	// and that is guaranteed to work: if char is signed, some of the values will be negative
-	return run_code(interp, "<builtins>", (char *) builtinscode, sizeof(builtinscode), interp->builtinscope, true);
+	struct UnicodeString code = { .len = sizeof(builtinscode)/sizeof(builtinscode[0]), .val = builtinscode };
+	return run_code(interp, "<builtins>", code, interp->builtinscope, true);
 }
 
 
@@ -142,8 +134,14 @@ static int read_and_run_file(struct Interpreter *interp, char *path, struct Obje
 		return 0;
 	}
 
-	int res = run_code(interp, path, huge, hugelen, scope, runningbuiltinsfile);
+	struct UnicodeString uhuge;
+	bool ok = utf8_decode(interp, huge, hugelen, &uhuge);
 	free(huge);
+	if (!ok)
+		return false;
+
+	int res = run_code(interp, path, uhuge, scope, runningbuiltinsfile);
+	free(uhuge.val);
 	return res;
 }
 
