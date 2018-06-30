@@ -380,8 +380,7 @@ func "foreach varname array block" {
             if (not (lib `same_object` null)) {
                 if (Library `same_object` null) {
                     # this is a funny way to get the Library class
-                    # imports.ö gets it by importing a library
-                    # but that's what we're doing here all the time, so...
+                    # the only way to access it is to import something
                     Library = (get_class lib);
                 } else: {
                     if (not (lib `is_instance_of` Library)) {
