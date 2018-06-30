@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "attribute.h"
+#include "builtinscode.h"   // see Makefile
 #include "check.h"
 #include "interpreter.h"
 #include "objects/array.h"
@@ -21,6 +22,72 @@
 #include "runast.h"
 #include "tokenizer.h"
 #include "utf8.h"
+
+
+static bool run_code(struct Interpreter *interp, char *path, char *code, size_t codelen, struct Object *scope, bool runningbuiltinsfile)
+{
+	// convert to UnicodeString
+	struct UnicodeString ucode;
+	if (!utf8_decode(interp, code, codelen, &ucode))
+		return false;
+
+	// tokenize
+	// TODO: handle errors in tokenizer.c :(
+	struct Token *tok1st = token_ize(interp, ucode);
+	free(ucode.val);
+
+	// parse
+	struct Object *statements = arrayobject_newempty(interp);
+	if (!statements) {
+		token_freeall(tok1st);
+		return false;
+	}
+
+	struct Token *curtok = tok1st;
+	while (curtok) {
+		struct Object *stmtnode = parse_statement(interp, path, &curtok);
+		if (!stmtnode) {
+			token_freeall(tok1st);
+			OBJECT_DECREF(interp, statements);
+			return false;
+		}
+
+		bool ok = arrayobject_push(interp, statements, stmtnode);
+		OBJECT_DECREF(interp, stmtnode);
+		if (!ok) {
+			token_freeall(tok1st);
+			OBJECT_DECREF(interp, statements);
+			return false;
+		}
+	}
+	token_freeall(tok1st);
+
+	// run
+	for (size_t i=0; i < ARRAYOBJECT_LEN(statements); i++) {
+		struct AstNodeObjectData *astdata = ARRAYOBJECT_GET(statements, i)->data;
+		if (!stack_push(interp, path, astdata->lineno, scope)) {
+			OBJECT_DECREF(interp, statements);
+			return false;
+		}
+		bool ok = runast_statement(interp, scope, ARRAYOBJECT_GET(statements, i));
+		stack_pop(interp);
+		if (!ok) {
+			OBJECT_DECREF(interp, statements);
+			return false;
+		}
+	}
+
+	OBJECT_DECREF(interp, statements);
+	return true;
+}
+
+bool run_builtinsfile(struct Interpreter *interp)
+{
+	// TODO: avoid casting unsigned char* to char* ?
+	// i'm not sure if that's guaranteed to work correctly, but rest of my code casts unsigned char to char
+	// and that is guaranteed to work: if char is signed, some of the values will be negative
+	return run_code(interp, "<builtins>", (char *) builtinscode, sizeof(builtinscode), interp->builtinscope, true);
+}
 
 
 static int read_and_run_file(struct Interpreter *interp, char *path, struct Object *scope, bool runningbuiltinsfile, bool handleENOENT)
@@ -50,8 +117,7 @@ static int read_and_run_file(struct Interpreter *interp, char *path, struct Obje
 		// <jp> if s is NULL in realloc(s, sz), it acts like malloc
 		char *ptr = realloc(huge, hugelen+nread);
 		if (!ptr) {
-			// free(NULL) does nothing
-			free(huge);
+			free(huge);   // free(NULL) does nothing
 			errorobject_thrownomem(interp);
 			return 0;
 		}
@@ -73,78 +139,8 @@ static int read_and_run_file(struct Interpreter *interp, char *path, struct Obje
 		return 0;
 	}
 
-	// convert to UnicodeString
-	struct UnicodeString code;
-	bool ok = utf8_decode(interp, huge, hugelen, &code);
-	free(huge);
-	if (!ok)
-		return 0;
-
-	// tokenize
-	// TODO: handle errors in tokenizer.c :(
-	struct Token *tok1st = token_ize(interp, code);
-	free(code.val);
-
-	// parse
-	struct Object *statements = arrayobject_newempty(interp);
-	if (!statements) {
-		token_freeall(tok1st);
-		return 0;
-	}
-
-	struct Token *curtok = tok1st;
-	while (curtok) {
-		struct Object *stmtnode = parse_statement(interp, path, &curtok);
-		if (!stmtnode) {
-			token_freeall(tok1st);
-			OBJECT_DECREF(interp, statements);
-			return 0;
-		}
-
-		ok = arrayobject_push(interp, statements, stmtnode);
-		OBJECT_DECREF(interp, stmtnode);
-		if (!ok) {
-			token_freeall(tok1st);
-			OBJECT_DECREF(interp, statements);
-			return 0;
-		}
-	}
-	token_freeall(tok1st);
-
-	// run
-	for (size_t i=0; i < ARRAYOBJECT_LEN(statements); i++) {
-		struct AstNodeObjectData *astdata = ARRAYOBJECT_GET(statements, i)->data;
-		if (!stack_push(interp, path, astdata->lineno, scope)) {
-			OBJECT_DECREF(interp, statements);
-			return 0;
-		}
-		ok = runast_statement(interp, scope, ARRAYOBJECT_GET(statements, i));
-		stack_pop(interp);
-		if (!ok) {
-			OBJECT_DECREF(interp, statements);
-			return 0;
-		}
-	}
-
-	OBJECT_DECREF(interp, statements);
-	return 1;
+	return run_code(interp, path, huge, hugelen, scope, runningbuiltinsfile);
 }
-
-bool run_builtinsfile(struct Interpreter *interp)
-{
-	// interp->stdpath should be absolute
-	char *path = path_concat(interp->stdpath, "builtins.ö");
-	if (!path) {
-		errorobject_thrownomem(interp);
-		return false;
-	}
-
-	int status = read_and_run_file(interp, path, interp->builtinscope, true, false);
-	free(path);
-	assert(status >= 0);
-	return (bool)status;
-}
-
 
 // this is partialled to a Library
 static struct Object *export_cfunc(struct Interpreter *interp, struct Object *args, struct Object *opts)

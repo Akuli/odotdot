@@ -160,3 +160,4 @@ dkms.conf
 *-compiled/
 ctestsrunner
 ö
+src/builtinscode.h
