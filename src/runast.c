@@ -49,6 +49,7 @@ static struct Object *runast_expression(struct Interpreter *interp, struct Objec
 	}
 
 	if (nodedata->kind == AST_CALL) {
+		// TODO: optimize this
 		struct Object *func = runast_expression(interp, scope, INFO_AS(AstCallInfo)->funcnode);
 		if (!func)
 			return NULL;
@@ -173,7 +174,6 @@ bool runast_statement(struct Interpreter *interp, struct Object *scope, struct O
 	}
 
 	if (nodedata->kind == AST_CREATEVAR) {
-		// TODO: optimize ://(///((((
 		struct Object *val = runast_expression(interp, scope, INFO_AS(AstCreateOrSetVarInfo)->valnode);
 		if (!val)
 			return false;
