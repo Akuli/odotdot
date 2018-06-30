@@ -22,6 +22,23 @@ test "to_debug_string" {
     assert ((AB.to_debug_string) == "<Class \"AB\">");
 };
 
+test "abstract" {
+    class "AbstractThing" {
+        abstract "thing";
+    };
+
+    var at = (new AbstractThing);   # must not throw yet
+    throws AttribError {
+        debug at.thing;
+    };
+
+    class "AbstractSetup" {
+        abstract "setup";
+    };
+    throws AttribError {
+        new AbstractSetup;
+    };
+};
 
 test "is_instance_of" {
     assert ("lol" `is_instance_of` String);

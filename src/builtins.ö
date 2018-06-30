@@ -290,6 +290,19 @@ func "foreach varname array block" {
 
         var klass = (new (get_class String) class_name inherits);
 
+        func "abstract name" {
+            # just to make debugging easier
+            if (not (name `is_instance_of` String)) {
+                throw (new TypeError ("expected a string, got " + (name.to_debug_string)));
+            };
+
+            var getter = (lambda "this" {
+                throw (new AttribError ("cannot get abstract attribute " + (name.to_debug_string)));
+            });
+            getter.name = ("getter of " + name);
+            klass.getters.set name getter;
+        };
+
         func "attrib name" {
             # just to make debugging easier
             if (not (name `is_instance_of` String)) {
@@ -330,6 +343,7 @@ func "foreach varname array block" {
         };
 
         var init_scope = (new Scope initializer_block.definition_scope);
+        init_scope.local_vars.set "abstract" abstract;
         init_scope.local_vars.set "attrib" attrib;
         init_scope.local_vars.set "method" method;
         initializer_block.run init_scope;

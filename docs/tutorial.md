@@ -622,3 +622,17 @@ readable.
 
 Multiple inheritance is not supported, only one class can be inherited. There's
 also no way to call a superclass method yet :(
+
+Adding `abstract "thingy";` to the class body defines a `"thingy"` attribute
+that throws `AttribError` when it's looked up.
+
+```python
+class "AbstractTooter" {
+    abstract "toot";    # meant to be overridden in a subclass
+};
+
+(new AbstractTooter).toot;   # AttribError
+```
+
+Use `abstract "setup";` if you want to prevent creating instances of the class
+without subclassing.
