@@ -119,7 +119,7 @@ static struct Object *runast_expression(struct Interpreter *interp, struct Objec
 		if (!lhs)
 			return NULL;
 		struct Object *rhs = runast_expression(interp, scope, INFO_AS(AstOpCallInfo)->rhs);
-		if (!lhs) {
+		if (!rhs) {
 			OBJECT_DECREF(interp, lhs);
 			return NULL;
 		}
