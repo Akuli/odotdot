@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "attribute.h"
-#include "builtinscode.h"   // see Makefile
 #include "check.h"
 #include "interpreter.h"
 #include "objects/array.h"
@@ -22,6 +21,12 @@
 #include "runast.h"
 #include "tokenizer.h"
 #include "utf8.h"
+
+// see Makefile
+// this uses unsigned char instead of char because char may be signed, and utf8 Ö doesn't fit in signed char
+const unsigned char builtinscode[] = {
+#include "builtinscode.h"
+};
 
 
 static bool run_code(struct Interpreter *interp, char *path, char *code, size_t codelen, struct Object *scope, bool runningbuiltinsfile)
