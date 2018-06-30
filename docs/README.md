@@ -7,4 +7,5 @@
 - [Syntax specification](syntax-spec.md)
 - Standard Libraries (see [std](../std) for source code):
     - [imports](std/imports.md)
+    - [operators](std/operators.md)
     - [stacks](std/stacks.md)
