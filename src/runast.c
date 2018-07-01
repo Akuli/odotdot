@@ -27,10 +27,8 @@ static struct Object *runast_expression(struct Interpreter *interp, struct Objec
 	struct AstNodeObjectData *nodedata = exprnode->data;
 
 #define INFO_AS(X) ((struct X *) nodedata->info)
-	if (nodedata->kind == AST_GETVAR) {
-		// TODO: expose scope get_var in C to avoid method_call?
-		return method_call(interp, scope, "get_var", INFO_AS(AstGetVarInfo)->varname, NULL);
-	}
+	if (nodedata->kind == AST_GETVAR)
+		return scopeobject_getvar(interp, scope, INFO_AS(AstGetVarInfo)->varname);
 
 	if (nodedata->kind == AST_STR || nodedata->kind == AST_INT) {
 		OBJECT_INCREF(interp, (struct Object *) nodedata->info);
@@ -188,15 +186,9 @@ bool runast_statement(struct Interpreter *interp, struct Object *scope, struct O
 		if (!val)
 			return false;
 
-		// TODO: expose Scope.set_var?
-		struct Object *res = method_call(interp, scope, "set_var", INFO_AS(AstCreateOrSetVarInfo)->varname, val, NULL);
+		bool ok = scopeobject_setvar(interp, scope, INFO_AS(AstCreateOrSetVarInfo)->varname, val);
 		OBJECT_DECREF(interp, val);
-
-		if (res) {
-			OBJECT_DECREF(interp, res);
-			return true;
-		}
-		return false;
+		return ok;
 	}
 
 	if (nodedata->kind == AST_SETATTR) {
