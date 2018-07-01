@@ -124,14 +124,8 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 	return nullobject_get(interp);
 }
 
-static struct Object *set_var(struct Interpreter *interp, struct Object *args, struct Object *opts)
+bool scopeobject_setvar(struct Interpreter *interp, struct Object *scope, struct Object *varname, struct Object *val)
 {
-	if (!check_args(interp, args, interp->builtins.Scope, interp->builtins.String, interp->builtins.Object, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-	struct Object *scope = ARRAYOBJECT_GET(args, 0);
-	struct Object *varname = ARRAYOBJECT_GET(args, 1);
-	struct Object *val = ARRAYOBJECT_GET(args, 2);
-
 	struct ScopeObjectData *scopedata = scope->data;
 	assert(scopedata);
 
@@ -141,36 +135,33 @@ static struct Object *set_var(struct Interpreter *interp, struct Object *args, s
 	if (res == 1) {
 		// yes
 		OBJECT_DECREF(interp, oldval);
-		return mappingobject_set(interp, scopedata->local_vars, varname, val) ? nullobject_get(interp) : NULL;
+		return mappingobject_set(interp, scopedata->local_vars, varname, val);
 	}
 	if (res == -1)
-		return NULL;
+		return false;
 	assert(res == 0);    // not found
 
 	// but do we have a parent scope?
 	if (scope == interp->builtinscope) {
 		// no, all scopes were already checked
 		errorobject_throwfmt(interp, "VariableError", "no variable named %D", varname);
-		return NULL;
+		return false;
 	}
 
 	// maybe the variable is defined in the parent scope?
-	struct Object *newargs = arrayobject_new(interp, (struct Object *[]) { scopedata->parent_scope, varname, val }, 3);
-	if (!newargs)
-		return NULL;
-
-	struct Object *ret = set_var(interp, newargs, opts);
-	OBJECT_DECREF(interp, newargs);
-	return ret;
+	return scopeobject_setvar(interp, scopedata->parent_scope, varname, val);
 }
 
-static struct Object *get_var(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *set_var(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Scope, interp->builtins.String, NULL)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Scope, interp->builtins.String, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	struct Object *scope = ARRAYOBJECT_GET(args, 0);
-	struct Object *varname = ARRAYOBJECT_GET(args, 1);
+	return scopeobject_setvar(interp, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1), ARRAYOBJECT_GET(args, 2))
+		? nullobject_get(interp) : NULL;
+}
 
+struct Object *scopeobject_getvar(struct Interpreter *interp, struct Object *scope, struct Object *varname)
+{
 	// is the variable defined here?
 	struct ScopeObjectData *scopedata = scope->data;
 	struct Object *val;
@@ -186,13 +177,14 @@ static struct Object *get_var(struct Interpreter *interp, struct Object *args, s
 		return NULL;
 	}
 
-	struct Object *newargs = arrayobject_new(interp, (struct Object *[]) { scopedata->parent_scope, varname }, 2);
-	if (!newargs)
-		return NULL;
+	return scopeobject_getvar(interp, scopedata->parent_scope, varname);
+}
 
-	struct Object *ret = get_var(interp, newargs, opts);
-	OBJECT_DECREF(interp, newargs);
-	return ret;
+static struct Object *get_var(struct Interpreter *interp, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Scope, interp->builtins.String, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+	return scopeobject_getvar(interp, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1));
 }
 
 

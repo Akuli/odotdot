@@ -22,4 +22,9 @@ struct Object *scopeobject_newbuiltin(struct Interpreter *interp);
 // RETURNS A NEW REFERENCE
 struct Object *scopeobject_newsub(struct Interpreter *interp, struct Object *parent_scope);
 
+// varname must be a String object
+// bad things happen if scope is not a Scope object
+bool scopeobject_setvar(struct Interpreter *interp, struct Object *scope, struct Object *varname, struct Object *val);
+struct Object *scopeobject_getvar(struct Interpreter *interp, struct Object *scope, struct Object *varname);
+
 #endif   // OBJECTS_SCOPE_H
