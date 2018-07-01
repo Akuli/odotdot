@@ -162,21 +162,22 @@ error:
 }
 
 
-struct Object *arrayobject_new(struct Interpreter *interp, struct Object **elems, size_t nelems)
+struct Object *arrayobject_newwithcapacity(struct Interpreter *interp, size_t capacity)
 {
+	if (capacity == 0) {
+		// malloc(0) may return NULL on success, avoid that
+		capacity = 1;
+	}
+
 	struct ArrayObjectData *data = malloc(sizeof(struct ArrayObjectData));
 	if (!data) {
 		errorobject_thrownomem(interp);
 		return NULL;
 	}
 
-	data->len = nelems;
-	if (nelems <= 3)   // 3 feels good, can't be 0 because malloc(0) may return NULL on success
-		data->nallocated = 3;
-	else
-		data->nallocated = nelems;
-
-	data->elems = malloc(data->nallocated * sizeof(struct Object*));
+	data->len = 0;
+	data->nallocated = capacity;
+	data->elems = calloc(data->nallocated, sizeof(struct Object*));
 	if (!data->elems) {
 		errorobject_thrownomem(interp);
 		free(data);
@@ -190,14 +191,23 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **elems
 		free(data);
 		return NULL;
 	}
+	arr->hashable = false;
+	return arr;
+}
 
-	// rest of this can't fail
-	// TODO: which is more efficient, memcpy and a loop or 1 loop and assignments?
-	memcpy(data->elems, elems, sizeof(struct Object *) * nelems);
+struct Object *arrayobject_new(struct Interpreter *interp, struct Object **elems, size_t nelems)
+{
+	struct Object *arr = arrayobject_newwithcapacity(interp, nelems);
+	if (!arr)
+		return NULL;
+
+	// memcpy should be faster than arrayobject_push
+	struct ArrayObjectData *data = arr->data;
+	memcpy(data->elems, elems, sizeof(struct Object*) * nelems);
 	for (size_t i=0; i < nelems; i++)
 		OBJECT_INCREF(interp, elems[i]);
+	data->len = nelems;
 
-	arr->hashable = false;
 	return arr;
 }
 
@@ -205,40 +215,18 @@ struct Object *arrayobject_concat(struct Interpreter *interp, struct Object *arr
 {
 	struct ArrayObjectData *data1 = arr1->data;
 	struct ArrayObjectData *data2 = arr2->data;
-	struct ArrayObjectData *data = malloc(sizeof(struct ArrayObjectData));
-	if (!data) {
-		errorobject_thrownomem(interp);
-		return NULL;
-	}
 
+	struct Object *arr = arrayobject_newwithcapacity(interp, data1->len + data2->len);
+	if (!arr)
+		return NULL;
+
+	struct ArrayObjectData *data = arr->data;
+	memcpy(data->elems, data1->elems, data1->len * sizeof(struct Object *));
+	memcpy(data->elems + data1->len, data2->elems, data2->len * sizeof(struct Object *));
 	data->len = data1->len + data2->len;
-	if (data->len <= 3)   // 3 feels good, can't be 0 because malloc(0) may return NULL on success
-		data->nallocated = 3;
-	else
-		data->nallocated = data->len;
-
-	data->elems = malloc(data->nallocated * sizeof(struct Object*));
-	if (!data->elems) {
-		errorobject_thrownomem(interp);
-		free(data);
-		return NULL;
-	}
-
-	struct Object *arr = object_new_noerr(interp, interp->builtins.Array, data, array_foreachref, array_destructor);
-	if (!arr) {
-		errorobject_thrownomem(interp);
-		free(data->elems);
-		free(data);
-		return NULL;
-	}
-
-	// rest of this can't fail
-	memcpy(data->elems, data1->elems, sizeof(struct Object*) * data1->len);
-	memcpy(data->elems + data1->len, data2->elems, sizeof(struct Object*) * data2->len);
 	for (size_t i=0; i < data->len; i++)
 		OBJECT_INCREF(interp, data->elems[i]);
 
-	arr->hashable = false;
 	return arr;
 }
 

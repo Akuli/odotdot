@@ -17,8 +17,11 @@ struct Object *arrayobject_createclass(struct Interpreter *interp);
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *arrayobject_new(struct Interpreter *interp, struct Object **elems, size_t nelems);
 
-// for convenience
-#define arrayobject_newempty(interp) arrayobject_new((interp), NULL, 0)
+// for convenience, 3 feels good
+#define arrayobject_newempty(interp) arrayobject_newwithcapacity((interp), 3)
+
+// like arrayobject_newempty, capacity is the number of items that can be pushed efficiently
+struct Object *arrayobject_newwithcapacity(struct Interpreter *interp, size_t capacity);
 
 // bad things happen if arr is not an array object or i < ARRAYOBJECT_LEN(arr)
 // otherwise these never fail

@@ -58,8 +58,9 @@ static struct Object *create_a_partial(struct Interpreter *interp, struct Object
 		return NULL;
 	}
 
+	// TODO: take the new partialargs as an array and use arrayobject_concat?
 	newdata->cfunc = data->cfunc;
-	if (!(newdata->partialargs = arrayobject_newempty(interp))) {
+	if (!(newdata->partialargs = arrayobject_newwithcapacity(interp, ARRAYOBJECT_LEN(data->partialargs) + npartialargs))) {
 		free(newdata);
 		return NULL;
 	}

@@ -56,7 +56,7 @@ static struct Object *runast_expression(struct Interpreter *interp, struct Objec
 			return NULL;
 		}
 
-		struct Object *args = arrayobject_newempty(interp);
+		struct Object *args = arrayobject_newwithcapacity(interp, ARRAYOBJECT_LEN(INFO_AS(AstCallInfo)->args));
 		if (!args) {
 			OBJECT_DECREF(interp, func);
 			return NULL;
@@ -130,7 +130,7 @@ static struct Object *runast_expression(struct Interpreter *interp, struct Objec
 	}
 
 	if (nodedata->kind == AST_ARRAY) {
-		struct Object *result = arrayobject_newempty(interp);
+		struct Object *result = arrayobject_newwithcapacity(interp, ARRAYOBJECT_LEN(INFO_AS(AstArrayOrBlockInfo)));
 		if (!result)
 			return NULL;
 

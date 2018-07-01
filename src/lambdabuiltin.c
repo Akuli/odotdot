@@ -30,7 +30,7 @@ static struct Object *runner(struct Interpreter *interp, struct Object *args, st
 
 	// create mappings for check_args_with_array and check_opts_with_mapping
 	// TODO: partial these in lambdabuiltin(), allocating more memory every time the function runs is bad
-	struct Object *argtypes = arrayobject_newempty(interp);
+	struct Object *argtypes = arrayobject_newwithcapacity(interp, ARRAYOBJECT_LEN(argnames));
 	if (!argtypes) {
 		OBJECT_DECREF(interp, theargs);
 		return NULL;

@@ -80,7 +80,7 @@ error:
 
 struct Object *stackframeobject_getstack(struct Interpreter *interp)
 {
-	struct Object *result = arrayobject_newempty(interp);
+	struct Object *result = arrayobject_newwithcapacity(interp, interp->stackptr - interp->stack);
 	if (!result)
 		return NULL;
 
