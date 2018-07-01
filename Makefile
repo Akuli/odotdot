@@ -25,14 +25,17 @@ clean:
 # xxd seems to come from vim-common on ubuntu, so i think pretty much everyone have it
 # "apt show vim-common" says that even the most minimal vim packages need it
 # don't get me wrong... i'm not a vim fan!
-src/builtinscode.h:
-	./xd < src/builtins.ö > src/builtinscode.h
+src/builtinscode.h: misc-compiled/xd
+	misc-compiled/xd < src/builtins.ö > src/builtinscode.h
 
 # right now src/run.c is the only file that uses src/builtinscode.h
 src/run.c: src/builtinscode.h
 
-misc-compiled/%: misc/%.c $(OBJ)
+misc-compiled/%: misc/%.c $(filter-out obj/run.o, $(OBJ))
 	mkdir -p $(@D) && $(CC) -o $@ $(OBJ) $(CFLAGS) $< -I.
+
+misc-compiled/xd: misc/xd.c
+	mkdir -p $(@D) && $(CC) -o $@ $(CFLAGS) $<
 
 obj/%.o: src/%.c
 	mkdir -p $(@D) && $(CC) -c -o $@ $< $(CFLAGS)
