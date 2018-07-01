@@ -4,9 +4,9 @@
 // error handling is assert because i don't feel like doing it better :D
 
 #include <assert.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #define CHUNKSIZE 4096
 
