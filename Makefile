@@ -22,9 +22,6 @@ all: ö
 clean:
 	rm -vrf obj ctestsrunner *-compiled ö src/builtinscode.h
 
-# xxd seems to come from vim-common on ubuntu, so i think pretty much everyone have it
-# "apt show vim-common" says that even the most minimal vim packages need it
-# don't get me wrong... i'm not a vim fan!
 src/builtinscode.h: misc-compiled/xd
 	misc-compiled/xd < src/builtins.ö > src/builtinscode.h
 
