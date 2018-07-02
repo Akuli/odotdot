@@ -23,7 +23,6 @@
 #include "utf8.h"
 
 // see Makefile
-// this uses unsigned char instead of char because char may be signed, and utf8 Ö doesn't fit in signed char
 unicode_char builtinscode[] = {
 #include "builtinscode.h"
 };
