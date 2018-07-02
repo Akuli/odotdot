@@ -139,14 +139,14 @@ static int ustr_equals_charp(struct UnicodeString ustr, char *charp)
 // THIS USES ASCII
 static int stringobject_equals_charp(struct Object *strobj, char *charp)
 {
-	return ustr_equals_charp(*((struct UnicodeString *) strobj->data), charp);
+	return ustr_equals_charp(*((struct UnicodeString *) strobj->objdata.data), charp);
 }
 
 
 void test_ast_strings(void)
 {
 	struct Object *node = parse_expression_string("\"hello\"");
-	struct AstNodeObjectData *data = node->data;
+	struct AstNodeObjectData *data = node->objdata.data;
 
 	buttert(data->kind == AST_STR);
 	buttert(stringobject_equals_charp(data->info, "hello"));
@@ -156,7 +156,7 @@ void test_ast_strings(void)
 void test_ast_ints(void)
 {
 	struct Object *node = parse_expression_string("123");
-	struct AstNodeObjectData *data = node->data;
+	struct AstNodeObjectData *data = node->objdata.data;
 
 	buttert(data->kind == AST_INT);
 	buttert(integerobject_tolonglong(data->info) == 123);
@@ -166,20 +166,20 @@ void test_ast_ints(void)
 void test_ast_arrays(void)
 {
 	struct Object *node = parse_expression_string("[ \"a\" 123 ]");
-	struct AstNodeObjectData *data = node->data;
+	struct AstNodeObjectData *data = node->objdata.data;
 	struct AstArrayOrBlockInfo *info = data->info;
 
 	buttert(data->kind == AST_ARRAY);
 	buttert(ARRAYOBJECT_LEN(info) == 2);
-	buttert(((struct AstNodeObjectData *) ARRAYOBJECT_GET(info, 0)->data)->kind == AST_STR);
-	buttert(((struct AstNodeObjectData *) ARRAYOBJECT_GET(info, 1)->data)->kind == AST_INT);
+	buttert(((struct AstNodeObjectData *) ARRAYOBJECT_GET(info, 0)->objdata.data)->kind == AST_STR);
+	buttert(((struct AstNodeObjectData *) ARRAYOBJECT_GET(info, 1)->objdata.data)->kind == AST_INT);
 	OBJECT_DECREF(testinterp, node);
 }
 
 void test_ast_getvars(void)
 {
 	struct Object *node = parse_expression_string("abc");
-	struct AstNodeObjectData *data = node->data;
+	struct AstNodeObjectData *data = node->objdata.data;
 	struct AstGetVarInfo *info = data->info;
 
 	buttert(data->kind == AST_GETVAR);
@@ -194,7 +194,7 @@ void test_ast_getvars(void)
 
 struct Object *check_attribute(struct Object *node, char *name)
 {
-	struct AstNodeObjectData *data = node->data;
+	struct AstNodeObjectData *data = node->objdata.data;
 	struct AstGetAttrInfo *info = data->info;
 
 	buttert(data->kind == AST_GETATTR);
@@ -212,14 +212,14 @@ void test_ast_attributes_and_methods(void)
 	struct Object *dotb = check_attribute(dotc, "c");
 	struct Object *dota = check_attribute(dotb, "b");
 	struct Object *str = check_attribute(dota, "a");
-	buttert(((struct AstNodeObjectData *) str->data)->kind == AST_STR);
+	buttert(((struct AstNodeObjectData *) str->objdata.data)->kind == AST_STR);
 
 	OBJECT_DECREF(testinterp, dotc);
 }
 
 static void check_getvar(struct Object *node, char *varname)
 {
-	struct AstNodeObjectData *data = node->data;
+	struct AstNodeObjectData *data = node->objdata.data;
 	buttert(data->kind == AST_GETVAR);
 	struct AstGetVarInfo *info = data->info;
 
@@ -231,7 +231,7 @@ static void check_getvar(struct Object *node, char *varname)
 void test_ast_function_call_statement(void)
 {
 	struct Object *call = parse_statement_string("a b c;");
-	struct AstNodeObjectData *calldata = call->data;
+	struct AstNodeObjectData *calldata = call->objdata.data;
 	struct AstCallInfo *callinfo = calldata->info;
 	buttert(calldata->kind == AST_CALL);
 	buttert(ARRAYOBJECT_LEN(callinfo->args) == 2);

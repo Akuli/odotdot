@@ -39,7 +39,7 @@ error:
 
 static struct Object *new_frame_object(struct Interpreter *interp, struct StackFrame f)
 {
-	struct Object *fobj = object_new_noerr(interp, interp->builtins.StackFrame, NULL, NULL, NULL);
+	struct Object *fobj = object_new_noerr(interp, interp->builtins.StackFrame, (struct ObjectData){.data=NULL, .foreachref=NULL, .destructor=NULL});
 	if (!fobj) {
 		errorobject_thrownomem(interp);
 		return NULL;

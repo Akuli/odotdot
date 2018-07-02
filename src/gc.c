@@ -10,9 +10,9 @@
 // this thing works by setting gcflag to what refcount SHOULD be and then checking it
 // Object.refcount and Object.gcflag are both longs
 
-static void mark_reference(struct Object *referred, void *junkdata)
+static void mark_reference(struct Object *ref, void *junkdata)
 {
-	referred->gcflag++;
+	ref->gcflag++;
 }
 
 #define PROBLEMS_MAX 500    // any more problems than this is an ACTUAL problem :D
@@ -31,8 +31,8 @@ void gc_run(struct Interpreter *interp)
 			iter.obj->klass->gcflag++;
 		if (iter.obj->attrdata)
 			iter.obj->attrdata->gcflag++;
-		if (iter.obj->foreachref)
-			iter.obj->foreachref(iter.obj, NULL, mark_reference);
+		if (iter.obj->objdata.foreachref)
+			iter.obj->objdata.foreachref(iter.obj->objdata.data, mark_reference, NULL);
 	}
 
 	bool gotproblems = false;

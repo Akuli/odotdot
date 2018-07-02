@@ -83,10 +83,9 @@ mustBbetween:
 	return false;
 }
 
-static void integer_destructor(struct Object *integer)
+static void integer_destructor(void *data)
 {
-	if (integer->data)
-		free(integer->data);
+	free(data);
 }
 
 // (new Integer "123") converts a string to an integer
@@ -101,12 +100,12 @@ static struct Object *newinstance(struct Interpreter *interp, struct Object *arg
 		errorobject_thrownomem(interp);
 		return NULL;
 	}
-	if (!parse_ustr(interp, *((struct UnicodeString*) string->data), data)) {
+	if (!parse_ustr(interp, *((struct UnicodeString*) string->objdata.data), data)) {
 		free(data);
 		return NULL;
 	}
 
-	struct Object *integer = object_new_noerr(interp, ARRAYOBJECT_GET(args, 0), data, NULL, integer_destructor);
+	struct Object *integer = object_new_noerr(interp, ARRAYOBJECT_GET(args, 0), (struct ObjectData){.data=data, .foreachref=NULL, .destructor=integer_destructor});
 	if (!integer) {
 		free(data);
 		return NULL;
@@ -127,7 +126,7 @@ struct Object *integerobject_newfromlonglong(struct Interpreter *interp, long lo
 	}
 	*data = val;
 
-	struct Object *integer = object_new_noerr(interp, interp->builtins.Integer, data, NULL, integer_destructor);
+	struct Object *integer = object_new_noerr(interp, interp->builtins.Integer, (struct ObjectData){.data=data, .foreachref=NULL, .destructor=integer_destructor});
 	if (!integer) {
 		errorobject_thrownomem(interp);
 		free(data);
@@ -147,7 +146,7 @@ struct Object *integerobject_newfromustr(struct Interpreter *interp, struct Unic
 
 long long integerobject_tolonglong(struct Object *integer)
 {
-	return *((long long *) integer->data);
+	return *((long long *) integer->objdata.data);
 }
 
 
@@ -163,7 +162,7 @@ static struct Object *to_string(struct Interpreter *interp, struct Object *args,
 	if (!check_args(interp, args, interp->builtins.Integer, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	long long val = *((long long *) ARRAYOBJECT_GET(args, 0)->data);
+	long long val = *((long long *) ARRAYOBJECT_GET(args, 0)->objdata.data);
 	if (val == 0)   // special case
 		return stringobject_newfromcharptr(interp, "0");
 

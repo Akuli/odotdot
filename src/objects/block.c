@@ -25,7 +25,8 @@ static struct Object *newinstance(struct Interpreter *interp, struct Object *arg
 	if (!check_args(interp, args, interp->builtins.Class, interp->builtins.Scope, interp->builtins.Array, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct Object *block = object_new_noerr(interp, ARRAYOBJECT_GET(args, 0), NULL, NULL, NULL);
+	// TODO: avoid attrdata, it's probably slowing things down
+	struct Object *block = object_new_noerr(interp, ARRAYOBJECT_GET(args, 0), (struct ObjectData){.data=NULL, .foreachref=NULL, .destructor=NULL});
 	if (!block) {
 		errorobject_thrownomem(interp);
 		return NULL;
@@ -61,7 +62,7 @@ bool blockobject_run(struct Interpreter *interp, struct Object *block, struct Ob
 			goto error;
 
 		// TODO: optimize by not pushing a new frame every time?
-		struct AstNodeObjectData *astdata = ARRAYOBJECT_GET(ast, i)->data;
+		struct AstNodeObjectData *astdata = ARRAYOBJECT_GET(ast, i)->objdata.data;
 		if (!stack_push(interp, astdata->filename, astdata->lineno, scope))
 			goto error;
 		bool ok = runast_statement(interp, scope, ARRAYOBJECT_GET(ast, i));
@@ -227,7 +228,7 @@ error:
 
 struct Object *blockobject_new(struct Interpreter *interp, struct Object *definition_scope, struct Object *astnodearr)
 {
-	struct Object *block = object_new_noerr(interp, interp->builtins.Block, NULL, NULL, NULL);
+	struct Object *block = object_new_noerr(interp, interp->builtins.Block, (struct ObjectData){.data=NULL, .foreachref=NULL, .destructor=NULL});
 	if (!block) {
 		errorobject_thrownomem(interp);
 		return NULL;

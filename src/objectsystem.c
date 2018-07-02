@@ -9,8 +9,7 @@
 #include "objects/classobject.h"
 #include "objects/mapping.h"
 
-struct Object *object_new_noerr(struct Interpreter *interp, struct Object *klass,
-	void *data, void (*foreachref)(struct Object *, void *, object_foreachrefcb), void (*destructor)(struct Object *))
+struct Object *object_new_noerr(struct Interpreter *interp, struct Object *klass, struct ObjectData objdata)
 {
 	struct Object *obj = malloc(sizeof(struct Object));
 	if(!obj)
@@ -20,10 +19,7 @@ struct Object *object_new_noerr(struct Interpreter *interp, struct Object *klass
 	if (klass)
 		OBJECT_INCREF(interp, klass);
 
-	obj->data = data;
-	obj->foreachref = foreachref;
-	obj->destructor = destructor;
-
+	obj->objdata = objdata;
 	obj->attrdata = NULL;
 
 	// the rightmost bits are often used for alignment
@@ -58,15 +54,15 @@ void object_free_impl(struct Interpreter *interp, struct Object *obj, bool calle
 		// gc_run() takes care of calling this for each object
 		if (obj->attrdata)
 			OBJECT_DECREF(interp, obj->attrdata);
-		if (obj->foreachref)
-			obj->foreachref(obj, (void*)interp, decref_the_ref);
+		if (obj->objdata.foreachref)
+			obj->objdata.foreachref(obj->objdata.data, decref_the_ref, (void*)interp);
 		if (obj->klass)   // can be NULL, see builtins_setup()
 			OBJECT_DECREF(interp, obj->klass);
 	}
 
 	// this is called AFTER decreffing the refs, makes a difference for e.g. Array
-	if (obj->destructor)
-		obj->destructor(obj);
+	if (obj->objdata.destructor)
+		obj->objdata.destructor(obj->objdata.data);
 
 	if (!calledfromgc)
 		assert(allobjects_remove(&(interp->allobjects), obj));

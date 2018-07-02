@@ -29,31 +29,28 @@ struct MappingObjectItem {
 	struct MappingObjectItem *next;
 };
 
-static void mapping_foreachref(struct Object *map, void *cbdata, object_foreachrefcb cb)
+static void iterbegin_with_data(struct MappingObjectIter *it, struct MappingObjectData *data);   // fwd dcl
+static void mapping_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
 {
-	if (!map->data)
-		return;
-
 	struct MappingObjectIter iter;
-	mappingobject_iterbegin(&iter, map);
+	iterbegin_with_data(&iter, data);
 	while (mappingobject_iternext(&iter)) {
 		cb(iter.key, cbdata);
 		cb(iter.value, cbdata);
 	}
 }
 
-static void mapping_destructor(struct Object *map)
+static void mapping_destructor(void *data)
 {
-	struct MappingObjectData *data = map->data;
-	for (unsigned long i=0; i < data->nbuckets; i++) {
-		struct MappingObjectItem *item = data->buckets[i];
+	for (unsigned long i=0; i < ((struct MappingObjectData *)data)->nbuckets; i++) {
+		struct MappingObjectItem *item = ((struct MappingObjectData *)data)->buckets[i];
 		while (item) {
 			void *gonnafree = item;
 			item = item->next;   // must be before the free
 			free(gonnafree);
 		}
 	}
-	free(data->buckets);
+	free(((struct MappingObjectData *)data)->buckets);
 	free(data);
 }
 
@@ -81,7 +78,7 @@ static struct Object *new_empty(struct Interpreter *interp, struct Object *klass
 		return NULL;
 	}
 
-	struct Object *map = object_new_noerr(interp, klass, data, mapping_foreachref, mapping_destructor);
+	struct Object *map = object_new_noerr(interp, klass, (struct ObjectData){.data=data, .foreachref=mapping_foreachref, .destructor=mapping_destructor});
 	if (!map) {
 		errorobject_thrownomem(interp);
 		free(data->buckets);
@@ -195,7 +192,7 @@ static bool make_bigger(struct Interpreter *interp, struct MappingObjectData *da
 static bool hashable_check(struct Interpreter *interp, struct Object *key)
 {
 	if (!(key->hashable)) {
-		struct ClassObjectData *keyclassdata = key->klass->data;
+		struct ClassObjectData *keyclassdata = key->klass->objdata.data;
 		errorobject_throwfmt(interp, "TypeError", "%U objects are not hashable, so %D can't be used as a Mapping key", keyclassdata->name, key);
 		return false;
 	}
@@ -207,7 +204,7 @@ bool mappingobject_set(struct Interpreter *interp, struct Object *map, struct Ob
 	if (!hashable_check(interp, key))
 		return false;
 
-	struct MappingObjectData *data = map->data;
+	struct MappingObjectData *data = map->objdata.data;
 	unsigned long i = HASH_MODULUS(key->hash, data->nbuckets);
 	for (struct MappingObjectItem *olditem = data->buckets[i]; olditem; olditem=olditem->next) {
 		int eqres = operator_eqint(interp, olditem->key, key);
@@ -272,7 +269,7 @@ int mappingobject_get(struct Interpreter *interp, struct Object *map, struct Obj
 	if (!hashable_check(interp, key))
 		return -1;
 
-	struct MappingObjectData *data = map->data;
+	struct MappingObjectData *data = map->objdata.data;
 	for (struct MappingObjectItem *item = data->buckets[HASH_MODULUS(key->hash, data->nbuckets)]; item; item=item->next) {
 		int eqres = operator_eqint(interp, item->key, key);
 		if (eqres == -1)
@@ -292,7 +289,7 @@ int mappingobject_getanddelete(struct Interpreter *interp, struct Object *map, s
 	if (!hashable_check(interp, key))
 		return -1;
 
-	struct MappingObjectData *data = map->data;
+	struct MappingObjectData *data = map->objdata.data;
 	unsigned long i = HASH_MODULUS(key->hash, data->nbuckets);
 
 	struct MappingObjectItem *prev = NULL;
@@ -365,11 +362,16 @@ bool mappingobject_addmethods(struct Interpreter *interp)
 }
 
 
-void mappingobject_iterbegin(struct MappingObjectIter *it, struct Object *map)
+static void iterbegin_with_data(struct MappingObjectIter *it, struct MappingObjectData *data)
 {
-	it->data = map->data;
+	it->data = data;
 	it->started = 0;
 	it->lastbucketno = 0;
+}
+
+void mappingobject_iterbegin(struct MappingObjectIter *it, struct Object *map)
+{
+	iterbegin_with_data(it, map->objdata.data);
 }
 
 bool mappingobject_iternext(struct MappingObjectIter *it)

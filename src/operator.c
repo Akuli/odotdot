@@ -11,7 +11,7 @@
 #include "objects/mapping.h"
 #include "unicode.h"
 
-#define class_name(obj) (((struct ClassObjectData *) (obj)->klass->data)->name)
+#define class_name(obj) (((struct ClassObjectData *) (obj)->klass->objdata.data)->name)
 
 
 struct Object *operator_call(struct Interpreter *interp, enum Operator op, struct Object *lhs, struct Object *rhs)
@@ -84,8 +84,8 @@ int operator_eqint(struct Interpreter *interp, struct Object *lhs, struct Object
 		assert(lhs->klass == interp->builtins.String);
 		assert(rhs->klass == interp->builtins.String);
 
-		struct UnicodeString *astr = lhs->data;
-		struct UnicodeString *bstr = rhs->data;
+		struct UnicodeString *astr = lhs->objdata.data;
+		struct UnicodeString *bstr = rhs->objdata.data;
 
 		if (astr->len != bstr->len)
 			return 0;

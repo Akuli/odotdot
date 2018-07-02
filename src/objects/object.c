@@ -31,7 +31,7 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct Object 
 	check_no_opts(interp, opts);
 
 	struct Object *obj = ARRAYOBJECT_GET(args, 0);
-	struct ClassObjectData *classdata = obj->klass->data;
+	struct ClassObjectData *classdata = obj->klass->objdata.data;
 	return stringobject_newfromfmt(interp, "<%U at %p>", classdata->name, (void*)obj);
 }
 

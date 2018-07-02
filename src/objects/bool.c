@@ -24,14 +24,14 @@ bool boolobject_create(struct Interpreter *interp, struct Object **yes, struct O
 	if (!klass)
 		return false;
 
-	struct Object *yay = object_new_noerr(interp, klass, NULL, NULL, NULL);
+	struct Object *yay = object_new_noerr(interp, klass, (struct ObjectData){.data=NULL, .foreachref=NULL, .destructor=NULL});
 	if (!yay) {
 		OBJECT_DECREF(interp, klass);
 		errorobject_thrownomem(interp);
 		return false;
 	}
 
-	struct Object *nay = object_new_noerr(interp, klass, NULL, NULL, NULL);
+	struct Object *nay = object_new_noerr(interp, klass, (struct ObjectData){.data=NULL, .foreachref=NULL, .destructor=NULL});
 	if (!nay) {
 		OBJECT_DECREF(interp, yay);
 		OBJECT_DECREF(interp, klass);

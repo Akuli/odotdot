@@ -30,7 +30,7 @@ bool mappingobject_initoparrays(struct Interpreter *interp);
 struct Object *mappingobject_newempty(struct Interpreter *interp);
 
 // returns number of elements in the mapping
-#define MAPPINGOBJECT_SIZE(map) (((struct MappingObjectData *) (map)->data)->size)
+#define MAPPINGOBJECT_SIZE(map) (((struct MappingObjectData *) (map)->objdata.data)->size)
 
 // returns false on error
 // bad things happen if map is not a Mapping

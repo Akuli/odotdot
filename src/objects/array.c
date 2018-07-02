@@ -19,18 +19,15 @@
 #include "null.h"
 #include "string.h"
 
-static void array_foreachref(struct Object *arr, void *cbdata, object_foreachrefcb cb)
+static void array_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
 {
-	struct ArrayObjectData *data = arr->data;
-	for (size_t i=0; i < data->len; i++)
-		cb(data->elems[i], cbdata);
+	for (size_t i=0; i < ((struct ArrayObjectData *)data)->len; i++)
+		cb(((struct ArrayObjectData *)data)->elems[i], cbdata);
 }
 
-static void array_destructor(struct Object *arr)
+static void array_destructor(void *data)
 {
-	// the elements have already been decreffed because array_foreachref
-	struct ArrayObjectData *data = arr->data;
-	free(data->elems);
+	free(((struct ArrayObjectData *)data)->elems);
 	free(data);
 }
 
@@ -82,7 +79,7 @@ static struct Object *set(struct Interpreter *interp, struct Object *args, struc
 	if (!validate_index(interp, arr, i))
 		return NULL;
 
-	struct ArrayObjectData *data = arr->data;
+	struct ArrayObjectData *data = arr->objdata.data;
 	OBJECT_DECREF(interp, data->elems[i]);
 	data->elems[i] = obj;
 	OBJECT_INCREF(interp, obj);
@@ -184,7 +181,7 @@ struct Object *arrayobject_newwithcapacity(struct Interpreter *interp, size_t ca
 		return NULL;
 	}
 
-	struct Object *arr = object_new_noerr(interp, interp->builtins.Array, data, array_foreachref, array_destructor);
+	struct Object *arr = object_new_noerr(interp, interp->builtins.Array, (struct ObjectData){.data=data, .foreachref=array_foreachref, .destructor=array_destructor});
 	if (!arr) {
 		errorobject_thrownomem(interp);
 		free(data->elems);
@@ -202,7 +199,7 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **elems
 		return NULL;
 
 	// memcpy should be faster than arrayobject_push
-	struct ArrayObjectData *data = arr->data;
+	struct ArrayObjectData *data = arr->objdata.data;
 	memcpy(data->elems, elems, sizeof(struct Object*) * nelems);
 	for (size_t i=0; i < nelems; i++)
 		OBJECT_INCREF(interp, elems[i]);
@@ -213,14 +210,14 @@ struct Object *arrayobject_new(struct Interpreter *interp, struct Object **elems
 
 struct Object *arrayobject_concat(struct Interpreter *interp, struct Object *arr1, struct Object *arr2)
 {
-	struct ArrayObjectData *data1 = arr1->data;
-	struct ArrayObjectData *data2 = arr2->data;
+	struct ArrayObjectData *data1 = arr1->objdata.data;
+	struct ArrayObjectData *data2 = arr2->objdata.data;
 
 	struct Object *arr = arrayobject_newwithcapacity(interp, data1->len + data2->len);
 	if (!arr)
 		return NULL;
 
-	struct ArrayObjectData *data = arr->data;
+	struct ArrayObjectData *data = arr->objdata.data;
 	memcpy(data->elems, data1->elems, data1->len * sizeof(struct Object *));
 	memcpy(data->elems + data1->len, data2->elems, data2->len * sizeof(struct Object *));
 	data->len = data1->len + data2->len;
@@ -259,7 +256,7 @@ static bool resize(struct Interpreter *interp, struct ArrayObjectData *data)
 
 bool arrayobject_push(struct Interpreter *interp, struct Object *arr, struct Object *obj)
 {
-	struct ArrayObjectData *data = arr->data;
+	struct ArrayObjectData *data = arr->objdata.data;
 	if (data->len + 1 > data->nallocated) {
 		if (!resize(interp, data))
 			return false;
@@ -272,7 +269,7 @@ bool arrayobject_push(struct Interpreter *interp, struct Object *arr, struct Obj
 
 struct Object *arrayobject_pop(struct Interpreter *interp, struct Object *arr)
 {
-	struct ArrayObjectData *data = arr->data;
+	struct ArrayObjectData *data = arr->objdata.data;
 	if (data->len == 0)
 		return NULL;
 

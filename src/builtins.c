@@ -175,7 +175,7 @@ static struct Object *catch(struct Interpreter *interp, struct Object *args, str
 	}
 
 	if (!classobject_issubclassof(errclass, interp->builtins.Error)) {
-		errorobject_throwfmt(interp, "TypeError", "cannot catch %U, it doesn't inherit from Error", ((struct ClassObjectData*)errclass->data)->name);
+		errorobject_throwfmt(interp, "TypeError", "cannot catch %U, it doesn't inherit from Error", ((struct ClassObjectData*)errclass->objdata.data)->name);
 		return NULL;
 	}
 
@@ -241,7 +241,7 @@ static struct Object *print(struct Interpreter *interp, struct Object *args, str
 
 	char *utf8;
 	size_t utf8len;
-	if (!utf8_encode(interp, *((struct UnicodeString *) ARRAYOBJECT_GET(args, 0)->data), &utf8, &utf8len))
+	if (!utf8_encode(interp, *((struct UnicodeString *) ARRAYOBJECT_GET(args, 0)->objdata.data), &utf8, &utf8len))
 		return NULL;
 
 	// TODO: avoid writing 1 byte at a time... seems to be hard with c \0 strings
@@ -266,11 +266,11 @@ static struct Object *new(struct Interpreter *interp, struct Object *args, struc
 
 	struct Object *obj;
 
-	struct ClassObjectData *data = klass->data;
+	struct ClassObjectData *data = klass->objdata.data;
 	if (data->newinstance)
 		obj = data->newinstance(interp, args, opts);
 	else {
-		obj = object_new_noerr(interp, ARRAYOBJECT_GET(args, 0), NULL, NULL, NULL);
+		obj = object_new_noerr(interp, ARRAYOBJECT_GET(args, 0), (struct ObjectData){.data=NULL, .foreachref=NULL, .destructor=NULL});
 		if (!obj)
 			errorobject_thrownomem(interp);
 	}

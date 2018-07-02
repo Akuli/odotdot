@@ -20,28 +20,28 @@
 #define DEADBEEFPTR ( (void*)(uintptr_t)0xdeadbeef )
 #define ABCPTR ( (struct Object*)(uintptr_t)0xabc123 )
 
-int cleaner_ran = 0;
-void cleaner(struct Object *obj)
+int cleaned = 0;
+void cleaner(void *data)
 {
-	buttert(obj->data == DEADBEEFPTR);
-	cleaner_ran++;
+	buttert(data == DEADBEEFPTR);
+	cleaned++;
 }
 
 void test_objects_simple(void)
 {
-	buttert(cleaner_ran == 0);
-	struct Object *obj = object_new_noerr(testinterp, testinterp->builtins.Object, DEADBEEFPTR, NULL, cleaner);
+	buttert(cleaned == 0);
+	struct Object *obj = object_new_noerr(testinterp, testinterp->builtins.Object, (struct ObjectData){.data=DEADBEEFPTR, .foreachref=NULL, .destructor=cleaner});
 	buttert(obj);
-	buttert(obj->data == DEADBEEFPTR);
-	buttert(obj->foreachref == NULL);
-	buttert(obj->destructor == cleaner);
+	buttert(obj->objdata.data == DEADBEEFPTR);
+	buttert(obj->objdata.foreachref == NULL);
+	buttert(obj->objdata.destructor == cleaner);
 
-	buttert(cleaner_ran == 0);
+	buttert(cleaned == 0);
 	OBJECT_INCREF(testinterp, obj);
 	OBJECT_DECREF(testinterp, obj);
-	buttert(cleaner_ran == 0);
+	buttert(cleaned == 0);
 	OBJECT_DECREF(testinterp, obj);
-	buttert(cleaner_ran == 1);
+	buttert(cleaned == 1);
 }
 
 
@@ -103,7 +103,7 @@ void test_objects_string(void)
 
 	for (size_t i=0; i < sizeof(strs)/sizeof(strs[0]); i++) {
 		buttert(strs[i]);
-		struct UnicodeString *data = strs[i]->data;
+		struct UnicodeString *data = strs[i]->objdata.data;
 		buttert(data);
 		buttert(data->len == 2);
 		buttert(data->val[0] == ODOTDOT);
@@ -129,7 +129,7 @@ void test_objects_string_newfromfmt(void)
 	OBJECT_DECREF(testinterp, i);
 
 	char shouldB[] = "-a-b-c-123-123-%-";
-	struct UnicodeString *s = res->data;
+	struct UnicodeString *s = res->objdata.data;
 	buttert(s->len == strlen(shouldB));
 	for (unsigned int i=0; i < s->len; i++)
 		buttert(s->val[i] == (unsigned char) shouldB[i]);
@@ -155,7 +155,7 @@ void test_objects_array_many_elems(void)
 		buttert((objs[i] = integerobject_newfromlonglong(testinterp, i+10)));
 
 	struct Object *arr = arrayobject_new(testinterp, objs, HOW_MANY);
-	check(arr->data);
+	check(arr->objdata.data);
 
 	for (int i = HOW_MANY-1; i >= 0; i--) {
 		struct Object *obj = arrayobject_pop(testinterp, arr);
@@ -166,7 +166,7 @@ void test_objects_array_many_elems(void)
 
 	for (size_t i=0; i < HOW_MANY; i++)
 		buttert(arrayobject_push(testinterp, arr, objs[i]) == true);
-	check(arr->data);
+	check(arr->objdata.data);
 
 	OBJECT_DECREF(testinterp, arr);
 	for (size_t i=0; i < HOW_MANY; i++)
@@ -200,14 +200,14 @@ void test_objects_mapping_huge(void)
 			buttert(ret);
 			OBJECT_DECREF(testinterp, ret);
 		}
-		buttert(((struct MappingObjectData *) map->data)->size == HUGE);
+		buttert(((struct MappingObjectData *) map->objdata.data)->size == HUGE);
 
 		for (int i=0; i < HUGE; i++) {
 			ret = method_call(testinterp, map, "delete", keys[i], NULL);
 			buttert(ret);
 			OBJECT_DECREF(testinterp, ret);
 		}
-		buttert(((struct MappingObjectData *) map->data)->size == 0);
+		buttert(((struct MappingObjectData *) map->objdata.data)->size == 0);
 	}
 
 	OBJECT_DECREF(testinterp, map);

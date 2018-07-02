@@ -9,8 +9,8 @@ struct ScopeObjectData {
 	struct Object *local_vars;
 };
 
-#define SCOPEOBJECT_PARENTSCOPE(obj) ((struct ScopeObjectData *) (obj)->data)->parent_scope
-#define SCOPEOBJECT_LOCALVARS(obj) ((struct ScopeObjectData *) (obj)->data)->local_vars
+#define SCOPEOBJECT_PARENTSCOPE(obj) ((struct ScopeObjectData *) (obj)->objdata.data)->parent_scope
+#define SCOPEOBJECT_LOCALVARS(obj) ((struct ScopeObjectData *) (obj)->objdata.data)->local_vars
 
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *scopeobject_createclass(struct Interpreter *interp);

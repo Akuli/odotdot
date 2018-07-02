@@ -15,7 +15,7 @@
 bool check_type(struct Interpreter *interp, struct Object *klass, struct Object *obj)
 {
 	if (!classobject_isinstanceof(obj, klass)) {
-		struct UnicodeString name = ((struct ClassObjectData*) klass->data)->name;
+		struct UnicodeString name = ((struct ClassObjectData*) klass->objdata.data)->name;
 		errorobject_throwfmt(interp, "TypeError", "expected an instance of %U, got %D", name, obj);
 		return false;
 	}

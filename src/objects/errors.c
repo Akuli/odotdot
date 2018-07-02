@@ -26,19 +26,15 @@ struct ErrorData {
 };
 
 
-static void error_foreachref(struct Object *err, void *cbdata, object_foreachrefcb cb)
+static void error_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
 {
-	struct ErrorData *data = err->data;
-	if (data) {
-		cb(data->message, cbdata);
-		cb(data->stack, cbdata);
-	}
+	cb(((struct ErrorData *)data)->message, cbdata);
+	cb(((struct ErrorData *)data)->stack, cbdata);
 }
 
-static void error_destructor(struct Object *err)
+static void error_destructor(void *data)
 {
-	if (err->data)
-		free(err->data);
+	free(data);
 }
 
 static struct Object *newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts)
@@ -60,7 +56,7 @@ static struct Object *newinstance(struct Interpreter *interp, struct Object *arg
 	data->stack = interp->builtins.null;
 	OBJECT_INCREF(interp, interp->builtins.null);
 
-	struct Object *err = object_new_noerr(interp, ARRAYOBJECT_GET(args, 0), data, error_foreachref, error_destructor);
+	struct Object *err = object_new_noerr(interp, ARRAYOBJECT_GET(args, 0), (struct ObjectData){.data=data, .foreachref=error_foreachref, .destructor=error_destructor});
 	if (!err) {
 		errorobject_thrownomem(interp);
 		return NULL;
@@ -78,7 +74,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 {
 	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.String, NULL)) return NULL;
 
-	struct ErrorData *data = ARRAYOBJECT_GET(args, 0)->data;
+	struct ErrorData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
 	assert(data);
 
 	OBJECT_DECREF(interp, data->message);
@@ -94,7 +90,7 @@ static struct Object *message_getter(struct Interpreter *interp, struct Object *
 	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct ErrorData *data = ARRAYOBJECT_GET(args, 0)->data;
+	struct ErrorData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
 	OBJECT_INCREF(interp, data->message);
 	return data->message;
 }
@@ -104,7 +100,7 @@ static struct Object *message_setter(struct Interpreter *interp, struct Object *
 	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.String, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct ErrorData *data = ARRAYOBJECT_GET(args, 0)->data;
+	struct ErrorData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
 	OBJECT_DECREF(interp, data->message);
 	data->message = ARRAYOBJECT_GET(args, 1);
 	OBJECT_INCREF(interp, data->message);
@@ -116,7 +112,7 @@ static struct Object *stack_getter(struct Interpreter *interp, struct Object *ar
 	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct ErrorData *data = ARRAYOBJECT_GET(args, 0)->data;
+	struct ErrorData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
 	OBJECT_INCREF(interp, data->stack);
 	return data->stack;
 }
@@ -136,7 +132,7 @@ static struct Object *stack_setter(struct Interpreter *interp, struct Object *ar
 		return NULL;
 	}
 
-	struct ErrorData *data = err->data;
+	struct ErrorData *data = err->objdata.data;
 	OBJECT_DECREF(interp, data->stack);
 	data->stack = newstack;
 	OBJECT_INCREF(interp, newstack);
@@ -169,11 +165,11 @@ static struct Object *print_stack(struct Interpreter *interp, struct Object *arg
 		return nullobject_get(interp);
 	}
 
-	if (!print_ustr(interp, ((struct ClassObjectData *) err->klass->data)->name))
+	if (!print_ustr(interp, ((struct ClassObjectData *) err->klass->objdata.data)->name))
 		return NULL;
 	fputs(": ", stderr);
-	struct ErrorData *data = err->data;
-	if (!print_ustr( interp, *((struct UnicodeString *) data->message->data) ))
+	struct ErrorData *data = err->objdata.data;
+	if (!print_ustr( interp, *((struct UnicodeString *) data->message->objdata.data) ))
 		return NULL;
 	fputc('\n', stderr);
 
@@ -198,10 +194,10 @@ struct Object *errorobject_createmarkererrorclass(struct Interpreter *interp)
 
 
 // TODO: stop copy/pasting this from string.c and actually fix things
-static void string_destructor(struct Object *str)
+// rn the "not enough memory" string has the wrong hash!
+static void string_destructor(void *data)
 {
-	struct UnicodeString *data = str->data;
-	free(data->val);
+	free(((struct UnicodeString *)data)->val);
 	free(data);
 }
 
@@ -226,7 +222,7 @@ struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 		ustr->val[i] = MESSAGE[i];
 #undef MESSAGE
 
-	struct Object *str = object_new_noerr(interp, interp->builtins.String, ustr, NULL, string_destructor);
+	struct Object *str = object_new_noerr(interp, interp->builtins.String, (struct ObjectData){.data=ustr, .foreachref=NULL, .destructor=string_destructor});
 	if (!str) {
 		free(ustr->val);
 		free(ustr);
@@ -252,7 +248,7 @@ struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 	data->stack = interp->builtins.null;
 	OBJECT_INCREF(interp, interp->builtins.null);
 
-	struct Object *err = object_new_noerr(interp, klass, data, error_foreachref, error_destructor);
+	struct Object *err = object_new_noerr(interp, klass, (struct ObjectData){.data=data, .foreachref=error_foreachref, .destructor=error_destructor});
 	OBJECT_DECREF(interp, klass);
 	if (!err) {
 		OBJECT_DECREF(interp, data->message);
@@ -278,7 +274,7 @@ struct Object *errorobject_new(struct Interpreter *interp, struct Object *errorc
 	OBJECT_INCREF(interp, interp->builtins.null);
 
 	// builtins.ö must not define any errors that can't be constructed like this
-	struct Object *err = object_new_noerr(interp, errorclass, data, error_foreachref, error_destructor);
+	struct Object *err = object_new_noerr(interp, errorclass, (struct ObjectData){.data=data, .foreachref=error_foreachref, .destructor=error_destructor});
 	if (!err) {
 		errorobject_thrownomem(interp);
 		OBJECT_DECREF(interp, data->message);
@@ -294,7 +290,7 @@ void errorobject_throw(struct Interpreter *interp, struct Object *err)
 {
 	assert(!interp->err);
 
-	struct ErrorData *data = err->data;
+	struct ErrorData *data = err->objdata.data;
 	if (data->stack == interp->builtins.null) {
 		// the stack hasn't been set yet, so we're throwing this error for the 1st time
 		struct Object *stack = stackframeobject_getstack(interp);

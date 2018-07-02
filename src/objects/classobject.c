@@ -17,24 +17,18 @@
 #include "null.h"
 #include "string.h"
 
-static void class_foreachref(struct Object *klass, void *cbdata, object_foreachrefcb cb)
+static void class_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
 {
-	struct ClassObjectData *data = klass->data;
-	if (!data)     // setup method failed
-		return;
-	if (data->baseclass) cb(data->baseclass, cbdata);
-	if (data->setters) cb(data->setters, cbdata);
-	if (data->getters) cb(data->getters, cbdata);
+	struct ClassObjectData *casteddata = data;
+	if (casteddata->baseclass) cb(casteddata->baseclass, cbdata);
+	if (casteddata->setters) cb(casteddata->setters, cbdata);
+	if (casteddata->getters) cb(casteddata->getters, cbdata);
 }
 
-static void class_destructor(struct Object *klass)
+static void class_destructor(void *data)
 {
-	// class_foreachref takes care of most other things
-	struct ClassObjectData *data = klass->data;
-	if (data) {
-		free(data->name.val);    // free(NULL) does nothing
-		free(data);
-	}
+	free(((struct ClassObjectData *)data)->name.val);    // free(NULL) does nothing
+	free(data);
 }
 
 
@@ -49,7 +43,7 @@ static struct ClassObjectData *create_data(struct Interpreter *interp, struct Ob
 	data->baseclass = baseclass;
 	if (baseclass) {
 		OBJECT_INCREF(interp, baseclass);
-		data->newinstance = ((struct ClassObjectData *) baseclass->data)->newinstance;   // may be NULL
+		data->newinstance = ((struct ClassObjectData *) baseclass->objdata.data)->newinstance;   // may be NULL
 	} else
 		data->newinstance = NULL;
 	data->setters = NULL;
@@ -76,7 +70,7 @@ struct Object *classobject_new_noerr(struct Interpreter *interp, struct Object *
 	// else, use the baseclass newinstance, see create_data
 
 	// interp->Class can be NULL, see builtins_setup()
-	struct Object *klass = object_new_noerr(interp, interp->builtins.Class, data, class_foreachref, class_destructor);
+	struct Object *klass = object_new_noerr(interp, interp->builtins.Class, (struct ObjectData){.data=data, .foreachref=class_foreachref, .destructor=class_destructor});
 	if (!klass) {
 		free_data(interp, data);
 		return NULL;
@@ -86,7 +80,7 @@ struct Object *classobject_new_noerr(struct Interpreter *interp, struct Object *
 
 bool classobject_setname(struct Interpreter *interp, struct Object *klass, char *name)
 {
-	struct ClassObjectData *data = klass->data;
+	struct ClassObjectData *data = klass->objdata.data;
 
 	void *maybegonnafree = data->name.val;
 	bool ok = utf8_decode(interp, name, strlen(name), &data->name);
@@ -119,7 +113,7 @@ bool classobject_issubclassof(struct Object *sub, struct Object *super)
 	do {
 		if (sub == super)
 			return true;
-	} while ((sub = ((struct ClassObjectData*) sub->data)->baseclass));
+	} while ((sub = ((struct ClassObjectData*) sub->objdata.data)->baseclass));
 	return false;
 }
 
@@ -139,12 +133,12 @@ static struct Object *class_newinstance(struct Interpreter *interp, struct Objec
 	}
 
 	assert(!data->name.val);   // shouldn't need a free() here
-	if (!unicodestring_copyinto(interp, *((struct UnicodeString *) name->data), &data->name)) {
+	if (!unicodestring_copyinto(interp, *((struct UnicodeString *) name->objdata.data), &data->name)) {
 		free_data(interp, data);
 		return NULL;
 	}
 
-	struct Object *klass = object_new_noerr(interp, classclass, data, class_foreachref, class_destructor);
+	struct Object *klass = object_new_noerr(interp, classclass, (struct ObjectData){.data=data, .foreachref=class_foreachref, .destructor=class_destructor});
 	if (!klass) {
 		free(data->name.val);
 		free_data(interp, data);
@@ -173,7 +167,7 @@ static struct Object *name_getter(struct Interpreter *interp, struct Object *arg
 	// allocating more memory in newfromustr_copy is not a problem
 	// performance-critical stuff doesn't access class names in a tight loop
 	// unless something's wrong
-	struct ClassObjectData *data = ARRAYOBJECT_GET(args, 0)->data;
+	struct ClassObjectData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
 	return stringobject_newfromustr_copy(interp, data->name);
 }
 
@@ -182,7 +176,7 @@ static struct Object *baseclass_getter(struct Interpreter *interp, struct Object
 	if (!check_args(interp, args, interp->builtins.Class, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct ClassObjectData *data = ARRAYOBJECT_GET(args, 0)->data;
+	struct ClassObjectData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
 
 	if (!data->baseclass) {
 		// it's Object
@@ -198,7 +192,7 @@ static struct Object *getters_getter(struct Interpreter *interp, struct Object *
 	if (!check_args(interp, args, interp->builtins.Class, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct ClassObjectData *data = ARRAYOBJECT_GET(args, 0)->data;
+	struct ClassObjectData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
 	if (!data->getters) {
 		if (!(data->getters = mappingobject_newempty(interp)))
 			return NULL;
@@ -213,7 +207,7 @@ static struct Object *setters_getter(struct Interpreter *interp, struct Object *
 	if (!check_args(interp, args, interp->builtins.Class, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct ClassObjectData *data = ARRAYOBJECT_GET(args, 0)->data;
+	struct ClassObjectData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
 	if (!data->setters) {
 		if (!(data->setters = mappingobject_newempty(interp)))
 			return NULL;

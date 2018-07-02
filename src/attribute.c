@@ -73,7 +73,7 @@ bool attribute_addwithfuncobjs(struct Interpreter *interp, struct Object *klass,
 	assert(interp->builtins.Mapping && interp->builtins.Function);   // must not be called tooo early by builtins_setup()
 	assert(setter || getter);
 
-	struct ClassObjectData *data = klass->data;
+	struct ClassObjectData *data = klass->objdata.data;
 	if (!init_class_mappings(interp, data))
 		return false;
 
@@ -130,7 +130,7 @@ struct Object *attribute_getwithstringobj(struct Interpreter *interp, struct Obj
 	struct ClassObjectData *klassdata;
 
 	do {
-		klassdata = klass->data;
+		klassdata = klass->objdata.data;
 		if (!init_class_mappings(interp, klassdata))
 			return NULL;
 
@@ -164,7 +164,7 @@ struct Object *attribute_getwithstringobj(struct Interpreter *interp, struct Obj
 	}
 
 	errorobject_throwfmt(interp, "AttribError", "%U objects don't have an attribute named %D",
-		((struct ClassObjectData *) obj->klass->data)->name, stringobj);
+		((struct ClassObjectData *) obj->klass->objdata.data)->name, stringobj);
 	return NULL;
 }
 
@@ -186,7 +186,7 @@ bool attribute_setwithstringobj(struct Interpreter *interp, struct Object *obj, 
 	struct ClassObjectData *klassdata;
 
 	do {
-		klassdata = klass->data;
+		klassdata = klass->objdata.data;
 		if (!init_class_mappings(interp, klassdata))
 			return false;
 
@@ -217,7 +217,7 @@ bool attribute_setwithstringobj(struct Interpreter *interp, struct Object *obj, 
 
 	// TODO: check if there's a getter for the attribute for better error messages
 	errorobject_throwfmt(interp, "AttribError", "%U objects don't have an attribute named %D or it's read-only",
-		((struct ClassObjectData *) obj->klass->data)->name, stringobj);
+		((struct ClassObjectData *) obj->klass->objdata.data)->name, stringobj);
 	return false;
 }
 

@@ -31,10 +31,9 @@ check these places instead:
 #include "integer.h"
 #include "null.h"
 
-static void string_destructor(struct Object *s)
+static void string_destructor(void *data)
 {
-	struct UnicodeString *data = s->data;
-	free(data->val);
+	free(((struct UnicodeString *)data)->val);
 	free(data);
 }
 
@@ -66,7 +65,7 @@ static struct Object *length_getter(struct Interpreter *interp, struct Object *a
 	if (!check_args(interp, args, interp->builtins.String, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	return integerobject_newfromlonglong(interp, ((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data)->len);
+	return integerobject_newfromlonglong(interp, ((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->objdata.data)->len);
 }
 
 static struct Object *replace(struct Interpreter *interp, struct Object *args, struct Object *opts)
@@ -75,9 +74,9 @@ static struct Object *replace(struct Interpreter *interp, struct Object *args, s
 	if (!check_args(interp, args, interp->builtins.String, interp->builtins.String, interp->builtins.String, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct UnicodeString *src = ARRAYOBJECT_GET(args, 0)->data;
-	struct UnicodeString *old = ARRAYOBJECT_GET(args, 1)->data;
-	struct UnicodeString *new = ARRAYOBJECT_GET(args, 2)->data;
+	struct UnicodeString *src = ARRAYOBJECT_GET(args, 0)->objdata.data;
+	struct UnicodeString *old = ARRAYOBJECT_GET(args, 1)->objdata.data;
+	struct UnicodeString *new = ARRAYOBJECT_GET(args, 2)->objdata.data;
 
 	struct UnicodeString *replaced = unicodestring_replace(interp, *src, *old, *new);
 	if (!replaced)
@@ -95,7 +94,7 @@ static struct Object *get(struct Interpreter *interp, struct Object *args, struc
 	if (!check_args(interp, args, interp->builtins.String, interp->builtins.Integer, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct UnicodeString ustr = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data);
+	struct UnicodeString ustr = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->objdata.data);
 	long long i = integerobject_tolonglong(ARRAYOBJECT_GET(args, 1));
 
 	if (i < 0) {
@@ -123,7 +122,7 @@ static struct Object *slice(struct Interpreter *interp, struct Object *args, str
 		if (!check_args(interp, args, interp->builtins.String, interp->builtins.Integer, NULL))
 			return NULL;
 		start = integerobject_tolonglong(ARRAYOBJECT_GET(args, 1));
-		end = ((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data)->len;
+		end = ((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->objdata.data)->len;
 	} else {
 		// (s.slice start end)
 		if (!check_args(interp, args, interp->builtins.String, interp->builtins.Integer, interp->builtins.Integer, NULL))
@@ -132,7 +131,7 @@ static struct Object *slice(struct Interpreter *interp, struct Object *args, str
 		end = integerobject_tolonglong(ARRAYOBJECT_GET(args, 2));
 	}
 
-	struct UnicodeString ustr = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data);
+	struct UnicodeString ustr = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->objdata.data);
 
 	if (start < 0)
 		start = 0;
@@ -175,7 +174,7 @@ struct Object *stringobject_splitbywhitespace(struct Interpreter *interp, struct
 				continue;
 
 			// slice it and push the slice to result
-			struct UnicodeString subu = *((struct UnicodeString*) s->data);
+			struct UnicodeString subu = *((struct UnicodeString*) s->objdata.data);
 			subu.val += offset;
 			subu.len = nows_end - offset;
 			struct Object *sub = stringobject_newfromustr_copy(interp, subu);
@@ -197,7 +196,7 @@ struct Object *stringobject_splitbywhitespace(struct Interpreter *interp, struct
 
 		if (!found_ws) {
 			// rest of the string is non-whitespace
-			struct UnicodeString lastu = *((struct UnicodeString*) s->data);
+			struct UnicodeString lastu = *((struct UnicodeString*) s->objdata.data);
 			lastu.val += offset;
 			lastu.len -= offset;
 			struct Object *last = stringobject_newfromustr_copy(interp, lastu);
@@ -248,8 +247,8 @@ static struct Object *eq(struct Interpreter *interp, struct Object *args, struct
 	if (!(classobject_isinstanceof(s1, interp->builtins.String) && classobject_isinstanceof(s2, interp->builtins.String)))
 		return nullobject_get(interp);
 
-	struct UnicodeString *u1 = s1->data;
-	struct UnicodeString *u2 = s2->data;
+	struct UnicodeString *u1 = s1->objdata.data;
+	struct UnicodeString *u2 = s2->objdata.data;
 	if (u1->len != u2->len)
 		return boolobject_get(interp, false);
 
@@ -273,8 +272,8 @@ static struct Object *add(struct Interpreter *interp, struct Object *args, struc
 	if (!(classobject_isinstanceof(s1, interp->builtins.String) && classobject_isinstanceof(s2, interp->builtins.String)))
 		return nullobject_get(interp);
 
-	struct UnicodeString u1 = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data);
-	struct UnicodeString u2 = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 1)->data);
+	struct UnicodeString u1 = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->objdata.data);
+	struct UnicodeString u2 = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 1)->objdata.data);
 
 	struct UnicodeString u;
 	u.len = u1.len + u2.len;
@@ -316,7 +315,7 @@ struct Object *stringobject_newfromustr(struct Interpreter *interp, struct Unico
 	data->len = ustr.len;
 	data->val = ustr.val;
 
-	struct Object *s = object_new_noerr(interp, interp->builtins.String, data, NULL, string_destructor);
+	struct Object *s = object_new_noerr(interp, interp->builtins.String, (struct ObjectData){.data=data, .foreachref=NULL, .destructor=string_destructor});
 	if (!s) {
 		errorobject_thrownomem(interp);
 		free(data->val);
@@ -414,7 +413,7 @@ struct Object *stringobject_newfromvfmt(struct Interpreter *interp, char *fmt, v
 					goto error;
 				*gonnadecrefptr++ = strobj;
 
-				parts[nparts] = *((struct UnicodeString *) strobj->data);
+				parts[nparts] = *((struct UnicodeString *) strobj->objdata.data);
 				skipfreeval[nparts] = true;
 			}
 
@@ -431,7 +430,7 @@ struct Object *stringobject_newfromvfmt(struct Interpreter *interp, char *fmt, v
 					goto error;
 				*gonnadecrefptr++ = strobj;
 
-				parts[nparts] = *((struct UnicodeString *) strobj->data);
+				parts[nparts] = *((struct UnicodeString *) strobj->objdata.data);
 				skipfreeval[nparts] = true;
 			}
 

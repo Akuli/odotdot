@@ -13,11 +13,10 @@
 #include "integer.h"
 #include "string.h"
 
-static void astnode_foreachref(struct Object *node, void *cbdata, object_foreachrefcb cb)
+static void astnode_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
 {
-	struct AstNodeObjectData *data = node->data;
-	switch (data->kind) {
-#define info_as(X) ((struct X *) data->info)
+	switch (((struct AstNodeObjectData *)data)->kind) {
+#define info_as(X) ((struct X *) ((struct AstNodeObjectData *)data)->info)
 	case AST_ARRAY:
 	case AST_BLOCK:
 	case AST_INT:
@@ -56,11 +55,10 @@ static void astnode_foreachref(struct Object *node, void *cbdata, object_foreach
 	}
 }
 
-static void astnode_destructor(struct Object *node)
+static void astnode_destructor(void *data)
 {
-	struct AstNodeObjectData *data = node->data;
-	switch (data->kind) {
-#define info_as(X) ((struct X *) data->info)
+	switch (((struct AstNodeObjectData *)data)->kind) {
+#define info_as(X) ((struct X *) ((struct AstNodeObjectData *)data)->info)
 	case AST_GETVAR:
 	case AST_GETATTR:
 	case AST_CREATEVAR:
@@ -68,7 +66,7 @@ static void astnode_destructor(struct Object *node)
 	case AST_CALL:
 	case AST_OPCALL:
 	case AST_SETATTR:
-		free(data->info);
+		free(((struct AstNodeObjectData *)data)->info);
 		break;
 	case AST_INT:
 	case AST_STR:
@@ -81,7 +79,7 @@ static void astnode_destructor(struct Object *node)
 		assert(0);  // unknown kind
 	}
 
-	free(data->filename);
+	free(((struct AstNodeObjectData *)data)->filename);
 	free(data);
 }
 
@@ -117,7 +115,7 @@ struct Object *astnodeobject_new(struct Interpreter *interp, char kind, char *fi
 	data->lineno = lineno;
 	data->info = info;
 
-	struct Object *obj = object_new_noerr(interp, interp->builtins.AstNode, data, astnode_foreachref, astnode_destructor);
+	struct Object *obj = object_new_noerr(interp, interp->builtins.AstNode, (struct ObjectData){.data=data, .foreachref=astnode_foreachref, .destructor=astnode_destructor});
 	if (!obj) {
 		errorobject_thrownomem(interp);
 		free(data->filename);

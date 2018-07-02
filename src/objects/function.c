@@ -22,16 +22,15 @@ struct FunctionData {
 	struct Object *partialargs;  // an Array
 };
 
-static void function_foreachref(struct Object *func, void *cbdata, object_foreachrefcb cb)
+static void function_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
 {
-	struct FunctionData *data = func->data;    // casts implicitly
-	cb(data->name, cbdata);
-	cb(data->partialargs, cbdata);
+	cb(((struct FunctionData *)data)->name, cbdata);
+	cb(((struct FunctionData *)data)->partialargs, cbdata);
 }
 
-static void function_destructor(struct Object *func)
+static void function_destructor(void *data)
 {
-	free(func->data);
+	free(data);
 }
 
 static struct Object *newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts)
@@ -51,7 +50,7 @@ static struct Object *create_a_partial(struct Interpreter *interp, struct Object
 	if (npartialargs == 0)
 		return func;
 
-	struct FunctionData *data = func->data;
+	struct FunctionData *data = func->objdata.data;
 	struct FunctionData *newdata = malloc(sizeof(struct FunctionData));
 	if (!newdata) {
 		errorobject_thrownomem(interp);
@@ -84,7 +83,7 @@ static struct Object *create_a_partial(struct Interpreter *interp, struct Object
 	newdata->name = data->name;
 	OBJECT_INCREF(interp, newdata->name);
 
-	struct Object *obj = object_new_noerr(interp, interp->builtins.Function, newdata, function_foreachref, function_destructor);
+	struct Object *obj = object_new_noerr(interp, interp->builtins.Function, (struct ObjectData){.data=newdata, .foreachref=function_foreachref, .destructor=function_destructor});
 	if (!obj) {
 		errorobject_thrownomem(interp);
 		OBJECT_DECREF(interp, newdata->name);
@@ -109,7 +108,7 @@ static struct Object *partial(struct Interpreter *interp, struct Object *args, s
 		return NULL;
 
 	return create_a_partial(interp, ARRAYOBJECT_GET(args, 0),
-		((struct ArrayObjectData *) args->data)->elems + 1, ARRAYOBJECT_LEN(args) - 1);
+		((struct ArrayObjectData *) args->objdata.data)->elems + 1, ARRAYOBJECT_LEN(args) - 1);
 }
 
 struct Object *functionobject_newpartial(struct Interpreter *interp, struct Object *func, struct Object *partialarg)
@@ -123,7 +122,7 @@ static struct Object *name_getter(struct Interpreter *interp, struct Object *arg
 	if (!check_args(interp, args, interp->builtins.Function, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct FunctionData *data = ARRAYOBJECT_GET(args, 0)->data;
+	struct FunctionData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
 	OBJECT_INCREF(interp, data->name);
 	return data->name;
 }
@@ -133,7 +132,7 @@ static struct Object *name_setter(struct Interpreter *interp, struct Object *arg
 	if (!check_args(interp, args, interp->builtins.Function, interp->builtins.String, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct FunctionData *data = ARRAYOBJECT_GET(args, 0)->data;
+	struct FunctionData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
 	OBJECT_DECREF(interp, data->name);
 	data->name = ARRAYOBJECT_GET(args, 1);
 	OBJECT_INCREF(interp, data->name);
@@ -146,7 +145,7 @@ bool functionobject_setname(struct Interpreter *interp, struct Object *func, cha
 	if (!newnameobj)
 		return false;
 
-	struct FunctionData *data = func->data;
+	struct FunctionData *data = func->objdata.data;
 	OBJECT_DECREF(interp, data->name);
 	data->name = newnameobj;
 	// no need to incref, newnameobj is already holding a reference
@@ -193,7 +192,7 @@ struct Object *functionobject_new(struct Interpreter *interp, functionobject_cfu
 		return NULL;
 	}
 
-	struct Object *obj = object_new_noerr(interp, interp->builtins.Function, data, function_foreachref, function_destructor);
+	struct Object *obj = object_new_noerr(interp, interp->builtins.Function, (struct ObjectData){.data=data, .foreachref=function_foreachref, .destructor=function_destructor});
 	if (!obj) {
 		errorobject_thrownomem(interp);
 		OBJECT_DECREF(interp, data->partialargs);
@@ -249,7 +248,7 @@ struct Object *functionobject_call(struct Interpreter *interp, struct Object *fu
 
 struct Object *functionobject_vcall(struct Interpreter *interp, struct Object *func, struct Object *args, struct Object *opts)
 {
-	struct FunctionData *data = func->data;     // casts implicitly
+	struct FunctionData *data = func->objdata.data;
 
 	struct Object *theargs;
 	bool decreftheargs = false;

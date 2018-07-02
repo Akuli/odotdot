@@ -9,22 +9,29 @@
 
 typedef void (*object_foreachrefcb)(struct Object *ref, void *cbdata);
 
+// represents arbitrary data that may contain other objects
+struct ObjectData {
+	// can be anything
+	void *data;
+
+	// should run cb(refobject, cbdata) for each object that objdata holds a reference to
+	// can be NULL
+	void (*foreachref)(void *data, object_foreachrefcb cb, void *cbdata);
+
+	// should free the data properly but NOT decref stuff that foreachref takes care of
+	// this is called after decrefs with foreachref
+	// can be NULL
+	void (*destructor)(void *data);
+};
+
 // all ö objects are pointers to instances of this struct
 struct Object {
 	// see objects/classobject.h
 	// may be NULL early in builtins_setup()
 	struct Object *klass;
 
-	// can be anything, depends on the type of the object
-	void *data;
-
-	// should run cb(ref, cbdata); once for every object that data refers to
-	// can be NULL
-	void (*foreachref)(struct Object *obj, void *cbdata, object_foreachrefcb cb);
-
-	// should free the data correctly, but NOT decref stuff that foreachref takes care of
-	// can be NULL
-	void (*destructor)(struct Object *obj);
+	// anything depending on the type of the object
+	struct ObjectData objdata;
 
 	// a Mapping where attribute setters and getters can store the values
 	// this is NULL first, and created by attribute.c when needed
@@ -47,8 +54,7 @@ struct Object {
 // shouldn't be used with classes that have a newinstance, except when implementing newinstance
 // see above for descriptions of data and destructor
 // RETURNS A NEW REFERENCE, i.e. refcount is set to 1
-struct Object *object_new_noerr(struct Interpreter *interp, struct Object *klass,
-	void *data, void (*foreachref)(struct Object *, void *, object_foreachrefcb), void (*destructor)(struct Object *));
+struct Object *object_new_noerr(struct Interpreter *interp, struct Object *klass, struct ObjectData objdata);
 
 // these never fail
 #define OBJECT_INCREF(interp, obj) do { ATOMIC_INCR((obj)->refcount); } while(0)

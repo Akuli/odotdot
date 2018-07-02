@@ -14,26 +14,20 @@
 #include "null.h"
 #include "string.h"
 
-static void builtin_scope_foreachref(struct Object *scope, void *cbdata, object_foreachrefcb cb)
+static void builtin_scope_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
 {
-	struct ScopeObjectData *data = scope->data;
-	if (data)
-		cb(data->local_vars, cbdata);
+	cb(((struct ScopeObjectData *)data)->local_vars, cbdata);
 }
 
-static void subscope_foreachref(struct Object *scope, void *cbdata, object_foreachrefcb cb)
+static void subscope_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
 {
-	struct ScopeObjectData *data = scope->data;
-	if (data) {
-		cb(data->local_vars, cbdata);
-		cb(data->parent_scope, cbdata);
-	}
+	cb(((struct ScopeObjectData *)data)->local_vars, cbdata);
+	cb(((struct ScopeObjectData *)data)->parent_scope, cbdata);
 }
 
-static void scope_destructor(struct Object *scope)
+static void scope_destructor(void *data)
 {
-	if (scope->data)
-		free(scope->data);
+	free(data);
 }
 
 
@@ -66,7 +60,7 @@ struct Object *scopeobject_newsub(struct Interpreter *interp, struct Object *par
 	if (!data)
 		return NULL;
 
-	struct Object *scope = object_new_noerr(interp, interp->builtins.Scope, data, subscope_foreachref, scope_destructor);
+	struct Object *scope = object_new_noerr(interp, interp->builtins.Scope, (struct ObjectData){.data=data, .foreachref=subscope_foreachref, .destructor=scope_destructor});
 	if (!scope) {
 		errorobject_thrownomem(interp);
 		OBJECT_DECREF(interp, data->parent_scope);
@@ -85,7 +79,7 @@ struct Object *scopeobject_newbuiltin(struct Interpreter *interp)
 	if (!data)
 		return NULL;
 
-	struct Object *scope = object_new_noerr(interp, interp->builtins.Scope, data, builtin_scope_foreachref, scope_destructor);
+	struct Object *scope = object_new_noerr(interp, interp->builtins.Scope, (struct ObjectData){.data=data, .foreachref=builtin_scope_foreachref, .destructor=scope_destructor});
 	if (!scope) {
 		errorobject_thrownomem(interp);
 		OBJECT_DECREF(interp, data->local_vars);
@@ -108,7 +102,7 @@ static struct Object *newinstance(struct Interpreter *interp, struct Object *arg
 		return NULL;
 	}
 
-	struct Object *scope = object_new_noerr(interp, ARRAYOBJECT_GET(args, 0), data, subscope_foreachref, scope_destructor);
+	struct Object *scope = object_new_noerr(interp, ARRAYOBJECT_GET(args, 0), (struct ObjectData){.data=data, .foreachref=subscope_foreachref, .destructor=scope_destructor});
 	if (!scope) {
 		OBJECT_DECREF(interp, data->parent_scope);
 		OBJECT_DECREF(interp, data->local_vars);
@@ -126,7 +120,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 
 bool scopeobject_setvar(struct Interpreter *interp, struct Object *scope, struct Object *varname, struct Object *val)
 {
-	struct ScopeObjectData *scopedata = scope->data;
+	struct ScopeObjectData *scopedata = scope->objdata.data;
 	assert(scopedata);
 
 	// is the variable defined here?
@@ -163,7 +157,7 @@ static struct Object *set_var(struct Interpreter *interp, struct Object *args, s
 struct Object *scopeobject_getvar(struct Interpreter *interp, struct Object *scope, struct Object *varname)
 {
 	// is the variable defined here?
-	struct ScopeObjectData *scopedata = scope->data;
+	struct ScopeObjectData *scopedata = scope->objdata.data;
 	struct Object *val;
 	int res = mappingobject_get(interp, scopedata->local_vars, varname, &val);
 	if (res == 1)
@@ -193,7 +187,7 @@ static struct Object *parent_scope_getter(struct Interpreter *interp, struct Obj
 	if (!check_args(interp, args, interp->builtins.Scope, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct Object *res = ((struct ScopeObjectData *) ARRAYOBJECT_GET(args, 0)->data)->parent_scope;
+	struct Object *res = ((struct ScopeObjectData *) ARRAYOBJECT_GET(args, 0)->objdata.data)->parent_scope;
 	if (!res)
 		res = interp->builtins.null;
 	OBJECT_INCREF(interp, res);
@@ -205,7 +199,7 @@ static struct Object *local_vars_getter(struct Interpreter *interp, struct Objec
 	if (!check_args(interp, args, interp->builtins.Scope, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct Object *res = ((struct ScopeObjectData *) ARRAYOBJECT_GET(args, 0)->data)->local_vars;
+	struct Object *res = ((struct ScopeObjectData *) ARRAYOBJECT_GET(args, 0)->objdata.data)->local_vars;
 	OBJECT_INCREF(interp, res);
 	return res;
 }

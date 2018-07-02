@@ -148,7 +148,7 @@ static bool parse_arg_and_opt_names(struct Interpreter *interp, struct Object *s
 	// arguments must come before options, this is set to true when the first option is found
 	bool opts = false;
 	for (size_t i=0; i < ARRAYOBJECT_LEN(splitted); i++) {
-		struct UnicodeString u = *((struct UnicodeString *) ARRAYOBJECT_GET(splitted, i)->data);
+		struct UnicodeString u = *((struct UnicodeString *) ARRAYOBJECT_GET(splitted, i)->objdata.data);
 
 		if (u.len == 0) {
 			check_identifier(interp, u);   // sets an error

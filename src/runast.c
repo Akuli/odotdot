@@ -24,7 +24,7 @@
 // RETURNS A NEW REFERENCE
 static struct Object *runast_expression(struct Interpreter *interp, struct Object *scope, struct Object *exprnode)
 {
-	struct AstNodeObjectData *nodedata = exprnode->data;
+	struct AstNodeObjectData *nodedata = exprnode->objdata.data;
 
 #define INFO_AS(X) ((struct X *) nodedata->info)
 	if (nodedata->kind == AST_GETVAR)
@@ -159,7 +159,7 @@ static struct Object *runast_expression(struct Interpreter *interp, struct Objec
 
 bool runast_statement(struct Interpreter *interp, struct Object *scope, struct Object *stmtnode)
 {
-	struct AstNodeObjectData *nodedata = stmtnode->data;
+	struct AstNodeObjectData *nodedata = stmtnode->objdata.data;
 
 #define INFO_AS(X) ((struct X *) nodedata->info)
 	if (nodedata->kind == AST_CALL) {

@@ -465,7 +465,7 @@ static struct Object *create_return_call(struct Interpreter *interp, struct Obje
 		return NULL;
 	}
 
-	struct AstNodeObjectData* tmp = returnednode->data;
+	struct AstNodeObjectData* tmp = returnednode->objdata.data;
 	if (!(callinfo->funcnode = create_return_getvar(interp, tmp->filename, tmp->lineno))) {
 		OBJECT_DECREF(interp, callinfo->opts);
 		free(callinfo);
@@ -719,7 +719,7 @@ static struct Object *parse_var_statement(struct Interpreter *interp, char *file
 // x = y;
 static struct Object *parse_assignment(struct Interpreter *interp, char *filename, struct Token **curtok, struct Object *lhs)
 {
-	struct AstNodeObjectData *lhsdata = lhs->data;
+	struct AstNodeObjectData *lhsdata = lhs->objdata.data;
 	if (lhsdata->kind != AST_GETVAR && lhsdata->kind != AST_GETATTR) {
 		// TODO: report an error e.g. like this:
 		//   the x of 'x = y;' must be a variable name or an attribute

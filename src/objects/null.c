@@ -22,7 +22,7 @@ struct Object *nullobject_create_noerr(struct Interpreter *interp)
 	if (!klass)
 		return NULL;
 
-	struct Object *nullobj = object_new_noerr(interp, klass, NULL, NULL, NULL);
+	struct Object *nullobj = object_new_noerr(interp, klass, (struct ObjectData){.data=NULL, .foreachref=NULL, .destructor=NULL});
 	OBJECT_DECREF(interp, klass);
 	return nullobj;
 }

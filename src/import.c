@@ -65,7 +65,7 @@ static char *get_source_dir(struct Interpreter *interp, struct Object *stackfram
 
 	char *filename;
 	size_t filenamelen;
-	bool ok = utf8_encode(interp, *((struct UnicodeString*) filenameobj->data), &filename, &filenamelen);
+	bool ok = utf8_encode(interp, *((struct UnicodeString*) filenameobj->objdata.data), &filename, &filenamelen);
 	OBJECT_DECREF(interp, filenameobj);
 	if (!ok)
 		return NULL;
@@ -174,7 +174,7 @@ static struct Object *file_importer(struct Interpreter *interp, struct Object *a
 {
 	if (!check_args(interp, args, interp->builtins.String, interp->builtins.StackFrame, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	struct UnicodeString name = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->data);
+	struct UnicodeString name = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->objdata.data);
 
 	char *fullpath = get_import_path(interp, name, ARRAYOBJECT_GET(args, 1));
 	if (!fullpath)
@@ -204,8 +204,8 @@ static struct Object *file_importer(struct Interpreter *interp, struct Object *a
 	assert(status == 0);
 
 	// do what the built-in new function does when there's no ->newinstance
-	assert(!((struct ClassObjectData*) interp->builtins.Library->data)->newinstance);
-	struct Object *lib = object_new_noerr(interp, interp->builtins.Library, NULL, NULL, NULL);
+	assert(!((struct ClassObjectData*) interp->builtins.Library->objdata.data)->newinstance);
+	struct Object *lib = object_new_noerr(interp, interp->builtins.Library, (struct ObjectData){.data=NULL, .foreachref=NULL, .destructor=NULL});
 	if (!lib) {
 		errorobject_thrownomem(interp);
 		OBJECT_DECREF(interp, fullpathobj);

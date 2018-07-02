@@ -62,7 +62,7 @@ static bool run_code(struct Interpreter *interp, char *path, struct UnicodeStrin
 
 	// run
 	for (size_t i=0; i < ARRAYOBJECT_LEN(statements); i++) {
-		struct AstNodeObjectData *astdata = ARRAYOBJECT_GET(statements, i)->data;
+		struct AstNodeObjectData *astdata = ARRAYOBJECT_GET(statements, i)->objdata.data;
 		if (!stack_push(interp, path, astdata->lineno, scope)) {
 			OBJECT_DECREF(interp, statements);
 			return false;

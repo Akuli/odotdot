@@ -26,8 +26,8 @@ struct Object *arrayobject_newwithcapacity(struct Interpreter *interp, size_t ca
 // bad things happen if arr is not an array object or i < ARRAYOBJECT_LEN(arr)
 // otherwise these never fail
 // these DO NOT return a new reference!
-#define ARRAYOBJECT_GET(arr, i) (((struct ArrayObjectData *) (arr)->data)->elems[(i)])
-#define ARRAYOBJECT_LEN(arr)    (((struct ArrayObjectData *) (arr)->data)->len)
+#define ARRAYOBJECT_GET(arr, i) (((struct ArrayObjectData *) (arr)->objdata.data)->elems[(i)])
+#define ARRAYOBJECT_LEN(arr)    (((struct ArrayObjectData *) (arr)->objdata.data)->len)
 
 // returns a new array with elements from arr1 and arr2
 // bad things happen if arr1 ir arr2 is not an array

@@ -10,8 +10,8 @@
 // bad things happen if s is not a string object or i < STRINGOBJECT_LEN(s)
 // otherwise these never fail
 // these DO NOT return a new reference!
-#define STRINGOBJECT_GET(s, i) (((struct UnicodeString*) (s)->data)->val[(i)])
-#define STRINGOBJECT_LEN(s)    (((struct UnicodeString*) (s)->data)->len)
+#define STRINGOBJECT_GET(s, i) (((struct UnicodeString*) (s)->objdata.data)->val[(i)])
+#define STRINGOBJECT_LEN(s)    (((struct UnicodeString*) (s)->objdata.data)->len)
 
 // RETURNS A NEW REFERENCE or NULL on no mem, see builtins_setup()
 struct Object *stringobject_createclass_noerr(struct Interpreter *interp);
