@@ -23,7 +23,7 @@ clean:
 	rm -vrf obj ctestsrunner *-compiled ö src/builtinscode.h
 
 src/builtinscode.h: misc-compiled/xd
-	misc-compiled/xd < src/builtins.ö > src/builtinscode.h
+	misc-compiled/xd < src/builtins.ö | fold -s > src/builtinscode.h
 
 # right now src/run.c is the only file that uses src/builtinscode.h
 src/run.c: src/builtinscode.h
