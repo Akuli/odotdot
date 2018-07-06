@@ -1,6 +1,7 @@
 #include "lambdabuiltin.h"
 #include <assert.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include "attribute.h"
 #include "check.h"
 #include "objectsystem.h"
@@ -13,108 +14,75 @@
 #include "objects/string.h"
 #include "unicode.h"
 
+struct LambdaData {
+	struct Object *argnames;   // names of all arguments as String objects
+	struct Object *optnames;   // names of all options as String objects
+	struct Object *argtypes;   // an array of interp->builtins.Object repeated ARRAYOBJECT_LEN(argnames) times, for check_args()
+	struct Object *opttypes;   // a Mapping of each optname to interp->builtins.Object, for check_opts()
+	struct Object *block;      // the block that the function was defined in
+};
 
-// lambda is like func, but it returns the function instead of setting it to a variable
-// this is partialled to argument and option name arrays and a block to create lambdas
-static struct Object *runner(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static void ldata_foreachref(void *ldata, object_foreachrefcb cb, void *cbdata)
 {
-	assert(ARRAYOBJECT_LEN(args) >= 3);
-	struct Object *argnames = ARRAYOBJECT_GET(args, 0);
-	struct Object *optnames = ARRAYOBJECT_GET(args, 1);
-	struct Object *block = ARRAYOBJECT_GET(args, 2);
-	// argnames, optnames and block must have the correct type because this can be only ran by lambdabuiltin()
+	cb(((struct LambdaData*) ldata)->argnames, cbdata);
+	cb(((struct LambdaData*) ldata)->optnames, cbdata);
+	cb(((struct LambdaData*) ldata)->argtypes, cbdata);
+	cb(((struct LambdaData*) ldata)->opttypes, cbdata);
+	cb(((struct LambdaData*) ldata)->block, cbdata);
+}
 
-	struct Object *theargs = arrayobject_slice(interp, args, 3, ARRAYOBJECT_LEN(args));
-	if (!theargs)
-		return NULL;
+static void ldata_destructor(void *ldata)
+{
+	free(ldata);
+}
 
-	// create mappings for check_args_with_array and check_opts_with_mapping
-	// TODO: partial these in lambdabuiltin(), allocating more memory every time the function runs is bad
-	struct Object *argtypes = arrayobject_newwithcapacity(interp, ARRAYOBJECT_LEN(argnames));
-	if (!argtypes) {
-		OBJECT_DECREF(interp, theargs);
-		return NULL;
-	}
-	for (size_t i=0; i < ARRAYOBJECT_LEN(argnames); i++) {
-		// everything is an Object, so this disables type checking (lol)
-		if (!arrayobject_push(interp, argtypes, interp->builtins.Object)) {
-			OBJECT_DECREF(interp, argtypes);
-			OBJECT_DECREF(interp, theargs);
-			return NULL;
-		}
-	}
 
-	struct Object *opttypes = mappingobject_newempty(interp);
-	if (!opttypes) {
-		OBJECT_DECREF(interp, argtypes);
-		OBJECT_DECREF(interp, theargs);
-		return NULL;
-	}
-	for (size_t i=0; i < ARRAYOBJECT_LEN(optnames); i++) {
-		// everything is an Object, so this disables type checking (lol)
-		if (!mappingobject_set(interp, opttypes, ARRAYOBJECT_GET(optnames, i), interp->builtins.Object)) {
-			OBJECT_DECREF(interp, opttypes);
-			OBJECT_DECREF(interp, argtypes);
-			OBJECT_DECREF(interp, theargs);
-			return NULL;
-		}
-	}
+static struct Object *runner(struct Interpreter *interp, struct ObjectData data, struct Object *args, struct Object *opts)
+{
+	struct LambdaData *ldata = data.data;
+	if (!check_args_with_array(interp, args, ldata->argtypes)) return NULL;
+	if (!check_opts_with_mapping(interp, opts, ldata->opttypes)) return NULL;
 
-	bool ok = check_args_with_array(interp, theargs, argtypes) && check_opts_with_mapping(interp, opts, opttypes);
-	OBJECT_DECREF(interp, opttypes);
-	OBJECT_DECREF(interp, argtypes);
-	if (!ok) {
-		OBJECT_DECREF(interp, theargs);
+	struct Object *parentscope = attribute_get(interp, ldata->block, "definition_scope");
+	if (!parentscope)
 		return NULL;
-	}
-
-	struct Object *parentscope = attribute_get(interp, block, "definition_scope");
-	if (!parentscope) {
-		OBJECT_DECREF(interp, theargs);
-		return NULL;
-	}
 
 	struct Object *scope = scopeobject_newsub(interp, parentscope);
 	OBJECT_DECREF(interp, parentscope);
-	if (!scope) {
-		OBJECT_DECREF(interp, theargs);
+	if (!scope)
 		return NULL;
-	}
 
 	// add values of arguments...
-	for (size_t i=0; i < ARRAYOBJECT_LEN(argnames); i++) {
-		if (!mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), ARRAYOBJECT_GET(argnames, i), ARRAYOBJECT_GET(theargs, i))) {
-			OBJECT_DECREF(interp, theargs);
-			goto error;
+	for (size_t i=0; i < ARRAYOBJECT_LEN(ldata->argnames); i++) {
+		if (!mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), ARRAYOBJECT_GET(ldata->argnames, i), ARRAYOBJECT_GET(args, i))) {
+			OBJECT_DECREF(interp, scope);
+			return NULL;
 		}
 	}
-	OBJECT_DECREF(interp, theargs);
 
 	// ...and options
-	for (size_t i=0; i < ARRAYOBJECT_LEN(optnames); i++) {
-		struct Object *optname = ARRAYOBJECT_GET(optnames, i);
+	for (size_t i=0; i < ARRAYOBJECT_LEN(ldata->optnames); i++) {
 		struct Object *val;
-
-		int status = mappingobject_get(interp, opts, optname, &val);
-		if (status == -1)
-			goto error;
-		if (status == 0)    // value not specified, but options are optional ofc :D
+		int status = mappingobject_get(interp, opts, ARRAYOBJECT_GET(ldata->optnames, i), &val);
+		if (status == -1) {
+			OBJECT_DECREF(interp, scope);
+			return NULL;
+		}
+		if (status == 0)
 			val = nullobject_get(interp);
-		assert(val);
+		assert(status == 1 && !!val);
 
-		bool ok = mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), optname, val);
+		bool ok = mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), ARRAYOBJECT_GET(ldata->optnames, i), val);
 		OBJECT_DECREF(interp, val);
-		if (!ok)
-			goto error;
+		if (!ok) {
+			OBJECT_DECREF(interp, scope);
+			return NULL;
+		}
 	}
 
-	struct Object *retval = blockobject_runwithreturn(interp, block, scope);
+	struct Object *retval = blockobject_runwithreturn(interp, ldata->block, scope);
 	OBJECT_DECREF(interp, scope);
 	return retval;
-
-error:
-	OBJECT_DECREF(interp, scope);
-	return NULL;
 }
 
 
@@ -191,10 +159,54 @@ error:
 	return false;
 }
 
-struct Object *lambdabuiltin(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct LambdaData *create_ldata(struct Interpreter *interp, struct Object *argnames, struct Object *optnames, struct Object *block)
+{
+	struct LambdaData *ldata = malloc(sizeof(struct LambdaData));
+	if (!ldata) {
+		errorobject_thrownomem(interp);
+		return NULL;
+	}
+
+	if (!(ldata->argtypes = arrayobject_newwithcapacity(interp, ARRAYOBJECT_LEN(argnames)))) {
+		free(ldata);
+		return NULL;
+	}
+	for (size_t i=0; i < ARRAYOBJECT_LEN(argnames); i++) {
+		if (!arrayobject_push(interp, ldata->argtypes, interp->builtins.Object)) {
+			OBJECT_DECREF(interp, ldata->argtypes);
+			free(ldata);
+			return NULL;
+		}
+	}
+
+	if (!(ldata->opttypes = mappingobject_newempty(interp))) {
+		OBJECT_DECREF(interp, ldata->argtypes);
+		free(ldata);
+		return NULL;
+	}
+	for (size_t i=0; i < ARRAYOBJECT_LEN(optnames); i++) {
+		if (!mappingobject_set(interp, ldata->opttypes, ARRAYOBJECT_GET(argnames, i), interp->builtins.Object)) {
+			OBJECT_DECREF(interp, ldata->argtypes);
+			OBJECT_DECREF(interp, ldata->opttypes);
+			free(ldata);
+			return NULL;
+		}
+	}
+
+	ldata->argnames = argnames;
+	OBJECT_INCREF(interp, argnames);
+	ldata->argnames = optnames;
+	OBJECT_INCREF(interp, optnames);
+	ldata->block = block;
+	OBJECT_INCREF(interp, block);
+	return ldata;
+}
+
+struct Object *lambdabuiltin(struct Interpreter *interp, struct ObjectData dummydata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.String, interp->builtins.Block, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
+	struct Object *argstr = ARRAYOBJECT_GET(args, 0);
 	struct Object *block = ARRAYOBJECT_GET(args, 1);
 
 	struct Object *argnames = arrayobject_newempty(interp);
@@ -205,40 +217,28 @@ struct Object *lambdabuiltin(struct Interpreter *interp, struct Object *args, st
 		OBJECT_DECREF(interp, argnames);
 		return NULL;
 	}
-	if (!parse_arg_and_opt_names(interp, ARRAYOBJECT_GET(args, 0), argnames, optnames)) {
+	if (!parse_arg_and_opt_names(interp, argstr, argnames, optnames)) {
 		OBJECT_DECREF(interp, argnames);
 		OBJECT_DECREF(interp, optnames);
 		return NULL;
 	}
 
-	// it's possible to micro-optimize this by not creating a new runner every time
-	// but i don't think it would make a huge difference
-	// it doesn't actually affect calling the functions anyway, just defining them
-	//
-	// the name will be copied when partialling
-	struct Object *runnerobj = functionobject_new(interp, runner, "a lambda function");
-	if (!runnerobj) {
-		OBJECT_DECREF(interp, argnames);
-		OBJECT_DECREF(interp, optnames);
-		return NULL;
-	}
-
-	// TODO: we need a way to partial multiple things easily
-	struct Object *partial1 = functionobject_newpartial(interp, runnerobj, argnames);
-	OBJECT_DECREF(interp, runnerobj);
+	struct LambdaData *ldata = create_ldata(interp, argnames, optnames, block);
 	OBJECT_DECREF(interp, argnames);
-	if (!partial1) {
-		OBJECT_DECREF(interp, optnames);
+	OBJECT_DECREF(interp, optnames);
+	if (!ldata)
+		return NULL;
+
+	struct Object *func = functionobject_new(interp, (struct ObjectData){.data=ldata, .foreachref=ldata_foreachref, .destructor=ldata_destructor}, runner, "a lambda function");
+	if (!func) {
+		// TODO: writing these here sucks, create a function that can free any ObjectData correctly
+		OBJECT_DECREF(interp, ldata->argnames);
+		OBJECT_DECREF(interp, ldata->optnames);
+		OBJECT_DECREF(interp, ldata->argtypes);
+		OBJECT_DECREF(interp, ldata->opttypes);
+		OBJECT_DECREF(interp, ldata->block);
+		free(ldata);
 		return NULL;
 	}
-
-	struct Object *partial2 = functionobject_newpartial(interp, partial1, optnames);
-	OBJECT_DECREF(interp, partial1);
-	OBJECT_DECREF(interp, optnames);
-	if (!partial2)
-		return NULL;
-
-	struct Object *partial3 = functionobject_newpartial(interp, partial2, block);
-	OBJECT_DECREF(interp, partial2);
-	return partial3;     // may be NULL
+	return func;
 }

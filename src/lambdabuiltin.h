@@ -2,9 +2,8 @@
 #ifndef LAMBDABUILTIN_H
 #define LAMBDABUILTIN_H
 
-struct Interpreter;
-struct Object;
+#include "objectsystem.h"
 
-struct Object *lambdabuiltin(struct Interpreter *interp, struct Object *args, struct Object *opts);
+struct Object *lambdabuiltin(struct Interpreter *interp, struct ObjectData dummydata, struct Object *args, struct Object *opts);
 
 #endif    // LAMBDABUILTIN_H

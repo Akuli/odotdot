@@ -47,8 +47,11 @@ void test_objects_simple(void)
 
 struct Object *callback_arg1, *callback_arg2;
 
-struct Object *callback(struct Interpreter *interp, struct Object *args, struct Object *opts)
+struct Object *callback(struct Interpreter *interp, struct ObjectData xdata, struct Object *args, struct Object *opts)
 {
+	buttert(*((char*)xdata.data) == 'x');
+	buttert(!xdata.foreachref);
+	buttert(xdata.destructor == free);
 	buttert(MAPPINGOBJECT_SIZE(opts) == 0);
 	buttert(interp == testinterp);
 	buttert(args->klass == interp->builtins.Array);
@@ -63,7 +66,9 @@ void test_objects_function(void)
 	buttert((callback_arg1 = stringobject_newfromcharptr(testinterp, "asd1")));
 	buttert((callback_arg2 = stringobject_newfromcharptr(testinterp, "asd2")));
 
-	struct Object *func = functionobject_new(testinterp, callback, "test func");
+	char x = bmalloc(1);
+	x = 'x';
+	struct Object *func = functionobject_new(testinterp, (struct ObjectData){.data=x, .foreachref=NULL, .destructor=free}, callback, "test func");
 	buttert(functionobject_call(testinterp, func, callback_arg1, callback_arg2, NULL) == ABCPTR);
 
 	struct Object *partial1 = functionobject_newpartial(testinterp, func, callback_arg1);

@@ -144,13 +144,17 @@ static int read_and_run_file(struct Interpreter *interp, char *path, struct Obje
 	return res;
 }
 
-// this is partialled to a Library
-static struct Object *export_cfunc(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static void libdata_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
 {
-	if (!check_args(interp, args, interp->builtins.Library, interp->builtins.Block, NULL)) return NULL;
+	cb((struct Object*)data, cbdata);
+}
+
+static struct Object *export_cfunc(struct Interpreter *interp, struct ObjectData libdata, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Block, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	struct Object *lib = ARRAYOBJECT_GET(args, 0);
-	struct Object *block = ARRAYOBJECT_GET(args, 1);
+	struct Object *block = ARRAYOBJECT_GET(args, 0);
+	struct Object *lib = libdata.data;
 
 	struct Object *filescope = attribute_get(interp, block, "definition_scope");
 	if (!filescope)
@@ -190,28 +194,13 @@ int run_libfile(struct Interpreter *interp, char *abspath, struct Object *lib)
 	if (!scope)
 		return 0;
 
-	struct Object *exportstr = stringobject_newfromcharptr(interp, "export");
-	if (!exportstr) {
-		OBJECT_DECREF(interp, scope);
-		return 0;
-	}
-
-	struct Object *rawexport = functionobject_new(interp, export_cfunc, "export");
-	if (!rawexport) {
-		OBJECT_DECREF(interp, exportstr);
-		OBJECT_DECREF(interp, scope);
-		return 0;
-	}
-
-	struct Object *export = functionobject_newpartial(interp, rawexport, lib);
-	OBJECT_DECREF(interp, rawexport);
+	struct Object *export = functionobject_new(interp, (struct ObjectData){.data=lib, .foreachref=libdata_foreachref, .destructor=NULL}, export_cfunc, "export");
 	if (!export) {
-		OBJECT_DECREF(interp, exportstr);
 		OBJECT_DECREF(interp, scope);
+		return 0;
 	}
 
-	bool ok = mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), exportstr, export);
-	OBJECT_DECREF(interp, exportstr);
+	bool ok = mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), interp->strings.export, export);
 	OBJECT_DECREF(interp, export);
 	if (!ok) {
 		OBJECT_DECREF(interp, scope);

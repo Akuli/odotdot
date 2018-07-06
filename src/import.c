@@ -170,7 +170,7 @@ static char *get_import_path(struct Interpreter *interp, struct UnicodeString na
 	return fullpath;
 }
 
-static struct Object *file_importer(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *file_importer(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.String, interp->builtins.StackFrame, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -242,7 +242,7 @@ bool import_init(struct Interpreter *interp)
 {
 	assert(interp->importstuff.importers);
 
-	struct Object *fileimp = functionobject_new(interp, file_importer, "file_importer");
+	struct Object *fileimp = functionobject_new(interp, (struct ObjectData){.data=NULL, .foreachref=NULL, .destructor=NULL}, file_importer, "file_importer");
 	if (!fileimp)
 		return NULL;
 	bool ok = arrayobject_push(interp, interp->importstuff.importers, fileimp);

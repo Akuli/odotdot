@@ -50,7 +50,7 @@ struct Object *stringobject_createclass_noerr(struct Interpreter *interp)
 
 
 // returns the string itself, for consistency with other types
-static struct Object *to_string(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *to_string(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.String, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -60,7 +60,7 @@ static struct Object *to_string(struct Interpreter *interp, struct Object *args,
 }
 
 
-static struct Object *length_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *length_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.String, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -68,7 +68,7 @@ static struct Object *length_getter(struct Interpreter *interp, struct Object *a
 	return integerobject_newfromlonglong(interp, ((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->objdata.data)->len);
 }
 
-static struct Object *replace(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *replace(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	// TODO: allow passing in a Mapping of things to replace?
 	if (!check_args(interp, args, interp->builtins.String, interp->builtins.String, interp->builtins.String, NULL)) return NULL;
@@ -89,7 +89,7 @@ static struct Object *replace(struct Interpreter *interp, struct Object *args, s
 
 // get and slice are a lot like array methods
 // some day strings will hopefully behave like an immutable array of 1-character strings
-static struct Object *get(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *get(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.String, interp->builtins.Integer, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -111,7 +111,7 @@ static struct Object *get(struct Interpreter *interp, struct Object *args, struc
 	return stringobject_newfromustr_copy(interp, ustr);
 }
 
-static struct Object *slice(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *slice(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_no_opts(interp, opts))
 		return NULL;
@@ -218,7 +218,7 @@ error:
 	return NULL;
 }
 
-static struct Object *split_by_whitespace(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *split_by_whitespace(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.String, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -238,7 +238,7 @@ bool stringobject_addmethods(struct Interpreter *interp)
 }
 
 
-static struct Object *eq(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *eq(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -262,7 +262,7 @@ static struct Object *eq(struct Interpreter *interp, struct Object *args, struct
 }
 
 // concatenates strings
-static struct Object *add(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *add(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;

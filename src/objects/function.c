@@ -19,17 +19,24 @@
 struct FunctionData {
 	struct Object *name;
 	functionobject_cfunc cfunc;
-	struct Object *partialargs;  // an Array
+	struct ObjectData userdata;  // passed to the function when calling, same data every time
 };
 
 static void function_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
 {
-	cb(((struct FunctionData *)data)->name, cbdata);
-	cb(((struct FunctionData *)data)->partialargs, cbdata);
+	struct FunctionData *fdata = data;
+	cb(fdata->name, cbdata);
+
+	// TODO: this boilerplate sucks
+	if (fdata->userdata.foreachref)
+		fdata->userdata.foreachref(fdata->userdata.data, cb, cbdata);
 }
 
 static void function_destructor(void *data)
 {
+	struct FunctionData *fdata = data;
+	if (fdata->userdata.destructor)
+		fdata->userdata.destructor(fdata->userdata.data);
 	free(data);
 }
 
@@ -45,79 +52,7 @@ struct Object *functionobject_createclass(struct Interpreter *interp)
 }
 
 
-static struct Object *create_a_partial(struct Interpreter *interp, struct Object *func, struct Object **partialargs, size_t npartialargs)
-{
-	if (npartialargs == 0)
-		return func;
-
-	struct FunctionData *data = func->objdata.data;
-	struct FunctionData *newdata = malloc(sizeof(struct FunctionData));
-	if (!newdata) {
-		errorobject_thrownomem(interp);
-		return NULL;
-	}
-
-	// TODO: take the new partialargs as an array and use arrayobject_concat?
-	newdata->cfunc = data->cfunc;
-	if (!(newdata->partialargs = arrayobject_newwithcapacity(interp, ARRAYOBJECT_LEN(data->partialargs) + npartialargs))) {
-		free(newdata);
-		return NULL;
-	}
-
-	for (size_t i=0; i < ARRAYOBJECT_LEN(data->partialargs); i++) {
-		if (!arrayobject_push(interp, newdata->partialargs, ARRAYOBJECT_GET(data->partialargs, i))){
-			OBJECT_DECREF(interp, newdata->partialargs);
-			free(newdata);
-			return NULL;
-		}
-	}
-	for (size_t i=0; i < npartialargs; i++) {
-		if (!arrayobject_push(interp, newdata->partialargs, partialargs[i])){
-			OBJECT_DECREF(interp, newdata->partialargs);
-			free(newdata);
-			return NULL;
-		}
-	}
-
-	// TODO: should this be changed? if it should, must check all uses of this
-	newdata->name = data->name;
-	OBJECT_INCREF(interp, newdata->name);
-
-	struct Object *obj = object_new_noerr(interp, interp->builtins.Function, (struct ObjectData){.data=newdata, .foreachref=function_foreachref, .destructor=function_destructor});
-	if (!obj) {
-		errorobject_thrownomem(interp);
-		OBJECT_DECREF(interp, newdata->name);
-		OBJECT_DECREF(interp, newdata->partialargs);
-		free(newdata);
-		return NULL;
-	}
-	return obj;
-}
-
-static struct Object *partial(struct Interpreter *interp, struct Object *args, struct Object *opts)
-{
-	if (!check_no_opts(interp, opts)) return NULL;
-
-	// check the first argument, rest are the args that are being partialled
-	// there can be 0 or more partialled args (0 partialled args allowed for consistency)
-	if (ARRAYOBJECT_LEN(args) == 0) {
-		errorobject_throwfmt(interp, "ArgError", "not enough arguments to Function.partial");
-		return NULL;
-	}
-	if (!check_type(interp, interp->builtins.Function, ARRAYOBJECT_GET(args, 0)))
-		return NULL;
-
-	return create_a_partial(interp, ARRAYOBJECT_GET(args, 0),
-		((struct ArrayObjectData *) args->objdata.data)->elems + 1, ARRAYOBJECT_LEN(args) - 1);
-}
-
-struct Object *functionobject_newpartial(struct Interpreter *interp, struct Object *func, struct Object *partialarg)
-{
-	return create_a_partial(interp, func, &partialarg, 1);
-}
-
-
-static struct Object *name_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *name_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Function, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -127,7 +62,7 @@ static struct Object *name_getter(struct Interpreter *interp, struct Object *arg
 	return data->name;
 }
 
-static struct Object *name_setter(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *name_setter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Function, interp->builtins.String, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -153,7 +88,7 @@ bool functionobject_setname(struct Interpreter *interp, struct Object *func, cha
 }
 
 
-static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
 	// FIXME: ValueError feels wrong for this
 	errorobject_throwfmt(interp, "ValueError", "functions can't be created with (new Function), use func instead");
@@ -165,12 +100,11 @@ bool functionobject_addmethods(struct Interpreter *interp)
 {
 	if (!attribute_add(interp, interp->builtins.Function, "name", name_getter, name_setter)) return false;
 	if (!method_add(interp, interp->builtins.Function, "setup", setup)) return false;
-	if (!method_add(interp, interp->builtins.Function, "partial", partial)) return false;
 	return true;
 }
 
 
-struct Object *functionobject_new(struct Interpreter *interp, functionobject_cfunc cfunc, char *name)
+struct Object *functionobject_new(struct Interpreter *interp, struct ObjectData userdata, functionobject_cfunc cfunc, char *name)
 {
 	struct FunctionData *data = malloc(sizeof(struct FunctionData));
 	if (!data) {
@@ -186,16 +120,11 @@ struct Object *functionobject_new(struct Interpreter *interp, functionobject_cfu
 
 	data->name = nameobj;
 	data->cfunc = cfunc;
-	if (!(data->partialargs = arrayobject_newempty(interp))) {
-		OBJECT_DECREF(interp, nameobj);
-		free(data);
-		return NULL;
-	}
+	data->userdata = userdata;
 
 	struct Object *obj = object_new_noerr(interp, interp->builtins.Function, (struct ObjectData){.data=data, .foreachref=function_foreachref, .destructor=function_destructor});
 	if (!obj) {
 		errorobject_thrownomem(interp);
-		OBJECT_DECREF(interp, data->partialargs);
 		OBJECT_DECREF(interp, nameobj);
 		free(data);
 		return NULL;
@@ -206,7 +135,7 @@ struct Object *functionobject_new(struct Interpreter *interp, functionobject_cfu
 
 bool functionobject_add2array(struct Interpreter *interp, struct Object *arr, char *name, functionobject_cfunc cfunc)
 {
-	struct Object *func = functionobject_new(interp, cfunc, name);
+	struct Object *func = functionobject_new(interp, (struct ObjectData){.data=NULL, .foreachref=NULL, .destructor=NULL}, cfunc, name);
 	if (!func)
 		return false;
 
@@ -248,23 +177,6 @@ struct Object *functionobject_call(struct Interpreter *interp, struct Object *fu
 
 struct Object *functionobject_vcall(struct Interpreter *interp, struct Object *func, struct Object *args, struct Object *opts)
 {
-	struct FunctionData *data = func->objdata.data;
-
-	struct Object *theargs;
-	bool decreftheargs = false;
-	if (ARRAYOBJECT_LEN(data->partialargs) == 0) {
-		theargs = args;
-	} else if (ARRAYOBJECT_LEN(args) == 0) {
-		theargs = data->partialargs;
-	} else {
-		theargs = arrayobject_concat(interp, data->partialargs, args);
-		if (!theargs)
-			return NULL;
-		decreftheargs = true;
-	}
-
-	struct Object *res = data->cfunc(interp, theargs, opts);
-	if (decreftheargs)
-		OBJECT_DECREF(interp, theargs);
-	return res;   // may be NULL
+	struct FunctionData *fdata = func->objdata.data;
+	return fdata->cfunc(interp, fdata->userdata, args, opts);
 }

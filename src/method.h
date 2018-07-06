@@ -9,7 +9,15 @@
 
 // returns false on error
 // name must be valid UTF-8
-// bad things happen if klass is not a class object or name is very long
+// bad things happen if klass is not a class object
+// an assert fails if name is long
+// you need to use check_args to make sure that bad things don't happen if someone calls the functions weirdly
+// cfunc is called with the ObjectData's .data set to the 'this' object, so you can do e.g.:
+//
+//    struct Object *some_method(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
+//    {
+//        struct Object *this = thisdata.data;
+//        ....
 bool method_add(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc cfunc);
 
 // RETURNS A NEW REFERENCE or NULL on error

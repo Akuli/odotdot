@@ -43,7 +43,7 @@ static struct Object *subscope_of_defscope(struct Interpreter *interp, struct Ob
 }
 
 // FIXME: avoid allocating more memory in this, i think that makes this slow
-static struct Object *if_(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *if_(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	// bool is created in builtins.ö
 	if (!check_args(interp, args, interp->builtins.Bool, interp->builtins.Block, NULL)) return NULL;
@@ -87,7 +87,7 @@ error:
 
 // for { init; } { cond } { incr; } { ... };
 // TODO: break and continue
-static struct Object *for_(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *for_(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Block, interp->builtins.Block, interp->builtins.Block, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -137,7 +137,7 @@ static struct Object *for_(struct Interpreter *interp, struct Object *args, stru
 	return nullobject_get(interp);
 }
 
-static struct Object *throw(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *throw(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -148,7 +148,7 @@ static struct Object *throw(struct Interpreter *interp, struct Object *args, str
 
 // catch { ... } errspec { ... };
 // errspec can be an error class or an [errorclass varname] array
-static struct Object *catch(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *catch(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Object, interp->builtins.Block, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;   // TODO: finally option?
@@ -216,7 +216,7 @@ static struct Object *catch(struct Interpreter *interp, struct Object *args, str
 }
 
 
-static struct Object *get_class(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *get_class(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -226,7 +226,7 @@ static struct Object *get_class(struct Interpreter *interp, struct Object *args,
 	return obj->klass;
 }
 
-static struct Object *same_object(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *same_object(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -234,7 +234,7 @@ static struct Object *same_object(struct Interpreter *interp, struct Object *arg
 }
 
 
-static struct Object *print(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *print(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.String, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -254,7 +254,7 @@ static struct Object *print(struct Interpreter *interp, struct Object *args, str
 }
 
 
-static struct Object *new(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *new(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (ARRAYOBJECT_LEN(args) == 0) {
 		errorobject_throwfmt(interp, "ArgError", "new needs at least 1 argument, the class");
@@ -314,7 +314,7 @@ static struct Object *new(struct Interpreter *interp, struct Object *args, struc
 // every objects may have an attrdata mapping, values of simple attributes go there
 // attrdata is first set to NULL and created when needed
 // see also definition of struct Object
-static struct Object *get_attrdata(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *get_attrdata(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -333,7 +333,7 @@ static struct Object *get_attrdata(struct Interpreter *interp, struct Object *ar
 
 static bool add_function(struct Interpreter *interp, char *name, functionobject_cfunc cfunc)
 {
-	struct Object *func = functionobject_new(interp, cfunc, name);
+	struct Object *func = functionobject_new(interp, (struct ObjectData){.data=NULL, .foreachref=NULL, .destructor=NULL}, cfunc, name);
 	if (!func)
 		return false;
 
@@ -362,6 +362,7 @@ bool builtins_setup(struct Interpreter *interp)
 #define INIT_STRING(NAME, VALUE) if (!(interp->strings.NAME = stringobject_newfromcharptr(interp, VALUE))) goto error;
 	INIT_STRING(else_, "else")
 	INIT_STRING(empty, "")
+	INIT_STRING(export, "export")
 	INIT_STRING(return_, "return")
 #undef INIT_STRING
 
@@ -454,22 +455,31 @@ bool builtins_setup(struct Interpreter *interp)
 	// compile like this:   $ CFLAGS=-DDEBUG_BUILTINS make clean all
 #ifdef DEBUG_BUILTINS
 	printf("things created by builtins_setup():\n");
-#define debug(x) printf("  interp->%s = %p\n", #x, (void *) interp->x);
+#define debug(x) printf("  interp->%-20s = %p\n", #x, (void *) interp->x);
 	// FIXME: this list is very outdated
+	debug(builtins.ArbitraryAttribs);
 	debug(builtins.Array);
 	debug(builtins.AstNode);
 	debug(builtins.Block);
+	debug(builtins.Bool);
 	debug(builtins.Class);
 	debug(builtins.Error);
 	debug(builtins.Function);
 	debug(builtins.Integer);
+	debug(builtins.Library);
 	debug(builtins.Mapping);
+	debug(builtins.MarkerError);
 	debug(builtins.Object);
 	debug(builtins.Scope);
+	debug(builtins.StackFrame);
 	debug(builtins.String);
-
+	debug(builtins.null);
+	debug(builtins.yes);
+	debug(builtins.no);
 	debug(builtins.nomemerr);
+
 	debug(builtinscope);
+	debug(err);
 #undef debug
 #endif   // DEBUG_BUILTINS
 
@@ -524,6 +534,7 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(oparrays.lt);
 	TEARDOWN(strings.else_);
 	TEARDOWN(strings.empty);
+	TEARDOWN(strings.export);
 	TEARDOWN(strings.return_);
 #undef TEARDOWN
 }

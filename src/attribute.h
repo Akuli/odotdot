@@ -12,7 +12,10 @@
 
 // returns false on error
 // setter and getter can be NULL (but not both, that would do nothing)
-// bad things happen if klass is not a class object or name is very long
+// setter is called with 2 arguments: the object, new value
+// getter is called with 1 argument: the object
+// setter and getter are called with (struct ObjectData){.data=NULL, .foreachref=NULL, .destructor=NULL}
+// bad things happen if klass is not a class object, name is very long or you don't check_args() in getter and setter
 bool attribute_add(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc getter, functionobject_cfunc setter);
 bool attribute_addwithfuncobjs(struct Interpreter *interp, struct Object *klass, char *name, struct Object *getter, struct Object *setter);
 
@@ -36,7 +39,7 @@ bool attribute_set(struct Interpreter *interp, struct Object *obj, char *attr, s
 // because writing unnecessary getters and setters by hand sucks, java users know it
 // these are meant to be placed outside other functions
 #define ATTRIBUTE_DEFINE_SIMPLE_GETTER(ATTRNAME, CLASSNAME) \
-	static struct Object* ATTRNAME##_getter(struct Interpreter *interp, struct Object *args, struct Object *opts) \
+	static struct Object* ATTRNAME##_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts) \
 	{ \
 		if (!check_args(interp, args, interp->builtins.CLASSNAME, NULL)) return NULL; \
 		if (!check_no_opts(interp, opts)) return NULL; \
@@ -44,7 +47,7 @@ bool attribute_set(struct Interpreter *interp, struct Object *obj, char *attr, s
 	}
 
 #define ATTRIBUTE_DEFINE_SIMPLE_SETTER(ATTRNAME, CLASSNAME, VALUECLASSNAME) \
-	static struct Object* ATTRNAME##_setter(struct Interpreter *interp, struct Object *args, struct Object *opts) \
+	static struct Object* ATTRNAME##_setter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts) \
 	{ \
 		if (!check_args(interp, args, interp->builtins.CLASSNAME, interp->builtins.VALUECLASSNAME, NULL)) return NULL; \
 		if (!check_no_opts(interp, opts)) return NULL; \

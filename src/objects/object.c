@@ -19,18 +19,18 @@ struct Object *objectobject_createclass_noerr(struct Interpreter *interp)
 
 
 // setup does nothing by default
-static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts) {
-	if (!check_args(interp, args, interp->builtins.Object, NULL)) return NULL;
+static struct Object *setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts) {
+	if (!check_args(interp, args, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 	return nullobject_get(interp);
 }
 
-static struct Object *to_debug_string(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *to_debug_string(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	check_args(interp, args, interp->builtins.Object, NULL);
+	check_args(interp, args, NULL);
 	check_no_opts(interp, opts);
 
-	struct Object *obj = ARRAYOBJECT_GET(args, 0);
+	struct Object *obj = thisdata.data;
 	struct ClassObjectData *classdata = obj->klass->objdata.data;
 	return stringobject_newfromfmt(interp, "<%U at %p>", classdata->name, (void*)obj);
 }

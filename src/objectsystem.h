@@ -49,6 +49,9 @@ struct Object {
 	long gcflag;
 };
 
+void lol(void);void wat(void);
+
+
 // low-level function for creating a new object, see also classobject_newinstance()
 // create a new object, add it to interp->allobjects and return it, returns NULL on no mem
 // shouldn't be used with classes that have a newinstance, except when implementing newinstance
@@ -57,8 +60,15 @@ struct Object {
 struct Object *object_new_noerr(struct Interpreter *interp, struct Object *klass, struct ObjectData objdata);
 
 // these never fail
-#define OBJECT_INCREF(interp, obj) do { ATOMIC_INCR((obj)->refcount); } while(0)
+#define OBJECT_INCREF(interp, obj) do { \
+	if ((obj) == (interp)->builtins.Class) \
+		lol(); \
+	ATOMIC_INCR((obj)->refcount); \
+} while(0)
+
 #define OBJECT_DECREF(interp, obj) do { \
+	if ((obj) == (interp)->builtins.Class) \
+		wat(); \
 	if (ATOMIC_DECR((obj)->refcount) <= 0) \
 		object_free_impl((interp), (obj), false); \
 } while (0)

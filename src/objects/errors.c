@@ -70,22 +70,21 @@ struct Object *errorobject_createclass_noerr(struct Interpreter *interp)
 }
 
 
-static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.String, NULL)) return NULL;
+	if (!check_args(interp, args, interp->builtins.String, NULL)) return NULL;
 
-	struct ErrorData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
+	struct ErrorData *data = ((struct Object*) thisdata.data)->objdata.data;
 	assert(data);
 
 	OBJECT_DECREF(interp, data->message);
-	data->message = ARRAYOBJECT_GET(args, 1);
+	data->message = ARRAYOBJECT_GET(args, 0);
 	OBJECT_INCREF(interp, data->message);
-
 	return nullobject_get(interp);
 }
 
 
-static struct Object *message_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *message_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -95,7 +94,7 @@ static struct Object *message_getter(struct Interpreter *interp, struct Object *
 	return data->message;
 }
 
-static struct Object *message_setter(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *message_setter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.String, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -107,7 +106,7 @@ static struct Object *message_setter(struct Interpreter *interp, struct Object *
 	return nullobject_get(interp);
 }
 
-static struct Object *stack_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *stack_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -117,7 +116,7 @@ static struct Object *stack_getter(struct Interpreter *interp, struct Object *ar
 	return data->stack;
 }
 
-static struct Object *stack_setter(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *stack_setter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	// doesn't make sense to check if the new stack contains nothing but StackFrames
 	// because it's possible to push anything to the array
@@ -153,11 +152,11 @@ static bool print_ustr(struct Interpreter *interp, struct UnicodeString u)
 }
 
 // builtins.ö replaces this stupid thing with a method that actually prints the stack
-static struct Object *print_stack(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *print_stack(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
+	if (!check_args(interp, args, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	struct Object *err = ARRAYOBJECT_GET(args, 0);
+	struct Object *err = thisdata.data;
 
 	if (err == interp->builtins.nomemerr) {
 		// no more memory can be allocated

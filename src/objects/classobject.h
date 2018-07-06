@@ -29,21 +29,21 @@ struct ClassObjectData {
 	// args and opts are the arguments and options passed to the 'new' function, including the class
 	// it's safe to assume that ARRAYOBJECT_LEN(args) >= 1 and the first arg is the class object
 	// NULL means that object_new_noerr() is used instead
-	functionobject_cfunc newinstance;
+	struct Object* (*newinstance)(struct Interpreter *, struct Object *args, struct Object *opts);
 };
 
 // creates a new class
 // if newinstance is not given, it's taken from the baseclass
 // if newinstance is given, a setup method that takes and ignores all args and opts is added
 // RETURNS A NEW REFERENCE or NULL on error
-struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *baseclass, functionobject_cfunc newinstance);
+struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *baseclass, struct Object* (*newinstance)(struct Interpreter *, struct Object *args, struct Object *opts));
 
 // RETURNS A NEW REFERENCE or NULL on no mem, for builtins_setup() only
 // newinstance is set to NULL
 // if you use this for creating classes that have data, set newinstance later manually and create a setup() that ignores all args and opts
 // this is because Object's setup makes sure that it's called with no args and no opts, but we use newinstance instead of overriding it
 // doesn't set the name, see classobject_setname() and builtins_setup()
-struct Object *classobject_new_noerr(struct Interpreter *interp, struct Object *baseclass, functionobject_cfunc newinstance);
+struct Object *classobject_new_noerr(struct Interpreter *interp, struct Object *baseclass, struct Object* (*newinstance)(struct Interpreter *, struct Object *args, struct Object *opts));
 
 // just for builtins_setup()
 // bad things happen if klass is not a class object

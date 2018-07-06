@@ -152,17 +152,17 @@ long long integerobject_tolonglong(struct Object *integer)
 
 // overrides Object's setup to allow arguments
 // the arguments will go to newinstance
-static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts) {
+static struct Object *setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts) {
 	return nullobject_get(interp);
 }
 
 // TODO: implement in pure ö when division works
-static struct Object *to_string(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *to_string(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Integer, NULL)) return NULL;
+	if (!check_args(interp, args, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	long long val = *((long long *) ARRAYOBJECT_GET(args, 0)->objdata.data);
+	long long val = *((long long *) ((struct Object*) thisdata.data)->objdata.data);
 	if (val == 0)   // special case
 		return stringobject_newfromcharptr(interp, "0");
 
@@ -208,7 +208,7 @@ error:
 
 
 // TODO: these are a lot of boilerplate
-static struct Object *eq(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *eq(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -218,7 +218,7 @@ static struct Object *eq(struct Interpreter *interp, struct Object *args, struct
 	return boolobject_get(interp, integerobject_tolonglong(x)==integerobject_tolonglong(y));
 }
 
-static struct Object *add(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *add(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -228,7 +228,7 @@ static struct Object *add(struct Interpreter *interp, struct Object *args, struc
 	return nullobject_get(interp);
 }
 
-static struct Object *sub(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *sub(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -238,7 +238,7 @@ static struct Object *sub(struct Interpreter *interp, struct Object *args, struc
 	return nullobject_get(interp);
 }
 
-static struct Object *mul(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *mul(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -250,7 +250,7 @@ static struct Object *mul(struct Interpreter *interp, struct Object *args, struc
 
 // TODO: div
 
-static struct Object *lt(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *lt(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;

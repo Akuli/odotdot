@@ -59,7 +59,7 @@ static void free_data(struct Interpreter *interp, struct ClassObjectData *data)
 	free(data);
 }
 
-struct Object *classobject_new_noerr(struct Interpreter *interp, struct Object *baseclass, functionobject_cfunc newinstance)
+struct Object *classobject_new_noerr(struct Interpreter *interp, struct Object *baseclass, struct Object* (*newinstance)(struct Interpreter *, struct Object *args, struct Object *opts))
 {
 	struct ClassObjectData *data = create_data(interp, baseclass);
 	if (!data)
@@ -89,7 +89,7 @@ bool classobject_setname(struct Interpreter *interp, struct Object *klass, char 
 	return ok;
 }
 
-struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *baseclass, functionobject_cfunc newinstance)
+struct Object *classobject_new(struct Interpreter *interp, char *name, struct Object *baseclass, struct Object* (*newinstance)(struct Interpreter *, struct Object *args, struct Object *opts))
 {
 	assert(interp->builtins.Class);
 	assert(interp->builtins.nomemerr);
@@ -155,11 +155,11 @@ struct Object *classobject_create_Class_noerr(struct Interpreter *interp)
 
 
 // override Object's setup to allow arguments
-static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts) {
+static struct Object *setup(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts) {
 	return nullobject_get(interp);
 }
 
-static struct Object *name_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *name_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Class, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -171,7 +171,7 @@ static struct Object *name_getter(struct Interpreter *interp, struct Object *arg
 	return stringobject_newfromustr_copy(interp, data->name);
 }
 
-static struct Object *baseclass_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *baseclass_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Class, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -187,7 +187,7 @@ static struct Object *baseclass_getter(struct Interpreter *interp, struct Object
 	return data->baseclass;
 }
 
-static struct Object *getters_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *getters_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Class, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -202,7 +202,7 @@ static struct Object *getters_getter(struct Interpreter *interp, struct Object *
 	return data->getters;
 }
 
-static struct Object *setters_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *setters_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Class, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;

@@ -105,7 +105,7 @@ struct Object *mappingobject_createclass(struct Interpreter *interp)
 }
 
 
-static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *setup(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	struct Object *map, *pairs;
 	if (ARRAYOBJECT_LEN(args) == 1) {
@@ -150,7 +150,7 @@ static struct Object *setup(struct Interpreter *interp, struct Object *args, str
 }
 
 
-static struct Object *length_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *length_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Mapping, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -255,7 +255,7 @@ bool mappingobject_set(struct Interpreter *interp, struct Object *map, struct Ob
 	return true;
 }
 
-static struct Object *set(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *set(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Mapping, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -318,7 +318,7 @@ int mappingobject_getanddelete(struct Interpreter *interp, struct Object *map, s
 }
 
 
-static struct Object *get(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *get(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Mapping, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -334,7 +334,7 @@ static struct Object *get(struct Interpreter *interp, struct Object *args, struc
 	return val;
 }
 
-static struct Object *get_and_delete(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *get_and_delete(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Mapping, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -402,7 +402,7 @@ starthere:
 }
 
 
-static struct Object *eq(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *eq(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;

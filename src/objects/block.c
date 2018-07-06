@@ -42,7 +42,7 @@ error:
 }
 
 // overrides Object's setup to allow arguments
-static struct Object *setup(struct Interpreter *interp, struct Object *args, struct Object *opts) {
+static struct Object *setup(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts) {
 	return nullobject_get(interp);
 }
 
@@ -80,11 +80,14 @@ error:
 }
 
 
-// this is partialled to an error object that this thing must throw
-static struct Object *returner_cfunc(struct Interpreter *interp, struct Object *args, struct Object *opts)
+void markerdata_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
 {
-	assert(ARRAYOBJECT_LEN(args) >= 1 && classobject_isinstanceof(ARRAYOBJECT_GET(args, 0), interp->builtins.MarkerError));
-	struct Object *err = ARRAYOBJECT_GET(args, 0);
+	cb((struct Object*)data, cbdata);
+}
+
+static struct Object *returner_cfunc(struct Interpreter *interp, struct ObjectData markerdata, struct Object *args, struct Object *opts)
+{
+	struct Object *markererr = markerdata.data;
 	check_no_opts(interp, opts);
 
 	struct Object *gonnareturn;
@@ -97,10 +100,10 @@ static struct Object *returner_cfunc(struct Interpreter *interp, struct Object *
 		return NULL;
 	}
 
-	if (!attribute_settoattrdata(interp, err, "value", gonnareturn))
+	if (!attribute_settoattrdata(interp, markererr, "value", gonnareturn))
 		return NULL;
 
-	errorobject_throw(interp, err);
+	errorobject_throw(interp, markererr);
 	return NULL;
 }
 
@@ -130,15 +133,7 @@ struct Object *blockobject_runwithreturn(struct Interpreter *interp, struct Obje
 	if (!marker)
 		return NULL;
 
-	// TODO: optimize by not creating this every time?
-	struct Object *rawreturner = functionobject_new(interp, returner_cfunc, "return");
-	if (!rawreturner) {
-		OBJECT_DECREF(interp, marker);
-		return NULL;
-	}
-
-	struct Object *returner = functionobject_newpartial(interp, rawreturner, marker);
-	OBJECT_DECREF(interp, rawreturner);
+	struct Object *returner = functionobject_new(interp, (struct ObjectData){.data=marker, .foreachref=markerdata_foreachref, .destructor=NULL}, returner_cfunc, "return");
 	if (!returner) {
 		OBJECT_DECREF(interp, marker);
 		return NULL;
@@ -194,14 +189,14 @@ struct Object *blockobject_runwithreturn(struct Interpreter *interp, struct Obje
 
 
 // TODO: a with_return option instead of two separate thingss
-static struct Object *run(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *run(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Scope, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 	return blockobject_run(interp, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1)) ? nullobject_get(interp) : NULL;
 }
 
-static struct Object *run_with_return(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *run_with_return(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Scope, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;

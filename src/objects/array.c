@@ -51,7 +51,7 @@ static bool validate_index(struct Interpreter *interp, struct Object *arr, long 
 	return true;
 }
 
-static struct Object *get(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *get(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Array, interp->builtins.Integer, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -67,13 +67,13 @@ static struct Object *get(struct Interpreter *interp, struct Object *args, struc
 	return res;
 }
 
-static struct Object *set(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *set(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Array, interp->builtins.Integer, interp->builtins.Object, NULL)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Integer, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	struct Object *arr = ARRAYOBJECT_GET(args, 0);
-	struct Object *index = ARRAYOBJECT_GET(args, 1);
-	struct Object *obj = ARRAYOBJECT_GET(args, 2);
+	struct Object *arr = thisdata.data;
+	struct Object *index = ARRAYOBJECT_GET(args, 0);
+	struct Object *obj = ARRAYOBJECT_GET(args, 1);
 
 	long long i = integerobject_tolonglong(index);
 	if (!validate_index(interp, arr, i))
@@ -87,55 +87,55 @@ static struct Object *set(struct Interpreter *interp, struct Object *args, struc
 	return nullobject_get(interp);
 }
 
-static struct Object *push(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *push(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Array, interp->builtins.Object, NULL)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	struct Object *arr = ARRAYOBJECT_GET(args, 0);
-	struct Object *obj = ARRAYOBJECT_GET(args, 1);
+	struct Object *arr = thisdata.data;
+	struct Object *obj = ARRAYOBJECT_GET(args, 0);
 
 	if (!arrayobject_push(interp, arr, obj))
 		return NULL;
 	return nullobject_get(interp);
 }
 
-static struct Object *pop(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *pop(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Array, NULL)) return NULL;
+	if (!check_args(interp, args, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct Object *res = arrayobject_pop(interp, ARRAYOBJECT_GET(args, 0));
+	struct Object *res = arrayobject_pop(interp, ((struct Object*) thisdata.data));
 	if (!res)
 		errorobject_throwfmt(interp, "ValueError", "cannot pop from an empty array");
 	return res;
 }
 
-static struct Object *slice(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *slice(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
 	if (!check_no_opts(interp, opts))
 		return NULL;
 
 	long long i, j;
-	if (ARRAYOBJECT_LEN(args) == 2) {
+	if (ARRAYOBJECT_LEN(args) == 1) {
 		// (thing.slice i) is same as (thing.slice i thing.length)
-		if (!check_args(interp, args, interp->builtins.Array, interp->builtins.Integer, NULL))
+		if (!check_args(interp, args, interp->builtins.Integer, NULL))
 			return NULL;
-		i = integerobject_tolonglong(ARRAYOBJECT_GET(args, 1));
-		j = ARRAYOBJECT_LEN(ARRAYOBJECT_GET(args, 0));
+		i = integerobject_tolonglong(ARRAYOBJECT_GET(args, 0));
+		j = ARRAYOBJECT_LEN((struct Object*) thisdata.data);
 	} else {
-		if (!check_args(interp, args, interp->builtins.Array, interp->builtins.Integer, interp->builtins.Integer, NULL))
+		if (!check_args(interp, args, interp->builtins.Integer, interp->builtins.Integer, NULL))
 			return NULL;
-		i = integerobject_tolonglong(ARRAYOBJECT_GET(args, 1));
-		j = integerobject_tolonglong(ARRAYOBJECT_GET(args, 2));
+		i = integerobject_tolonglong(ARRAYOBJECT_GET(args, 0));
+		j = integerobject_tolonglong(ARRAYOBJECT_GET(args, 1));
 	}
-	return arrayobject_slice(interp, ARRAYOBJECT_GET(args, 0), i, j);
+	return arrayobject_slice(interp, thisdata.data, i, j);
 }
 
-static struct Object *length_getter(struct Interpreter *interp, struct Object *args, struct Object *opts)
+static struct Object *length_getter(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Array, NULL)) return NULL;
+	if (!check_args(interp, args, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	return integerobject_newfromlonglong(interp, ARRAYOBJECT_LEN(ARRAYOBJECT_GET(args, 0)));
+	return integerobject_newfromlonglong(interp, ARRAYOBJECT_LEN((struct Object*) thisdata.data));
 }
 
 struct Object *arrayobject_createclass(struct Interpreter *interp)
@@ -217,12 +217,15 @@ struct Object *arrayobject_concat(struct Interpreter *interp, struct Object *arr
 	if (!arr)
 		return NULL;
 
+	fprintf(stderr, "%d %d\n", (int)data1->len, (int)data2->len);
 	struct ArrayObjectData *data = arr->objdata.data;
 	memcpy(data->elems, data1->elems, data1->len * sizeof(struct Object *));
 	memcpy(data->elems + data1->len, data2->elems, data2->len * sizeof(struct Object *));
 	data->len = data1->len + data2->len;
-	for (size_t i=0; i < data->len; i++)
+	for (size_t i=0; i < data->len; i++) {
+		fprintf(stderr, "** %d\n", (int)i);
 		OBJECT_INCREF(interp, data->elems[i]);
+	}
 
 	return arr;
 }

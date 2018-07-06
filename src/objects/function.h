@@ -15,8 +15,10 @@ struct Interpreter;
 
 args is an Array object of arguments
 opts is a Mapping of options, keys are strings and values are Objects
+userdata is the ObjectData given when creating the function object
+many things pass (struct ObjectData){.data=NULL, .foreachref=NULL, .destructor=NULL} for userdata
 */
-typedef struct Object* (*functionobject_cfunc)(struct Interpreter *interp, struct Object *args, struct Object *opts);
+typedef struct Object* (*functionobject_cfunc)(struct Interpreter *interp, struct ObjectData userdata, struct Object *args, struct Object *opts);
 
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *functionobject_createclass(struct Interpreter *interp);
@@ -25,18 +27,13 @@ struct Object *functionobject_createclass(struct Interpreter *interp);
 bool functionobject_addmethods(struct Interpreter *interp);
 
 // RETURNS A NEW REFERENCE or NULL on error
-// if partialarg is not NULL, it's added as the first argument when the function is called
-struct Object *functionobject_new(struct Interpreter *interp, functionobject_cfunc cfunc, char *name);
+struct Object *functionobject_new(struct Interpreter *interp, struct ObjectData userdata, functionobject_cfunc cfunc, char *name);
 
 // creates a Function object and adds it to an Array object
 // especially useful with interp->oparrays
+// passes (struct ObjectData){.data=NULL, .foreachref=NULL, .destructor=NULL} for userdata
 // returns false on error
 bool functionobject_add2array(struct Interpreter *interp, struct Object *arr, char *name, functionobject_cfunc cfunc);
-
-// add a partial argument
-// bad things happen if func is not a function object
-// RETURNS A NEW REFERENCE or NULL on error
-struct Object *functionobject_newpartial(struct Interpreter *interp, struct Object *func, struct Object *partialarg);
 
 // example: functionobject_call(ctx, func, a, b, c, NULL) calls func with arguments a, b, c
 // bad things happen if func is not a function object

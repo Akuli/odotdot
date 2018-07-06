@@ -107,13 +107,14 @@ bool attribute_add(struct Interpreter *interp, struct Object *klass, char *name,
 	memcpy(prefixedname, "getter of ", sizeof("getter of ")-1);
 	strcpy(prefixedname + sizeof("getter of ")-1, name);
 
+	struct ObjectData nulldata = { .data = NULL, .foreachref = NULL, .destructor = NULL };
 	if (getter) {
-		if (!(getterobj = functionobject_new(interp, getter, prefixedname)))
+		if (!(getterobj = functionobject_new(interp, nulldata, getter, prefixedname)))
 			return false;
 	}
 	if (setter) {
 		prefixedname[0] = 's';    // "setter of blabla" instead of "getter of blabla"
-		if (!(setterobj = functionobject_new(interp, setter, prefixedname)))
+		if (!(setterobj = functionobject_new(interp, nulldata, setter, prefixedname)))
 			return false;
 	}
 
