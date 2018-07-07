@@ -2,7 +2,7 @@
 
 ifdef VALGRIND
 # FIXME: this doesn't seem to work
-VALGRINDOPTS ?= -q --leak-check=full --error-exitcode=1
+VALGRINDOPTS ?= -q --leak-check=full --error-exitcode=1 --errors-for-leak-kinds=all
 endif
 
 
