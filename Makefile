@@ -6,6 +6,7 @@ CFLAGS += -g
 
 SRC := $(filter-out src/main.c, $(wildcard src/*.c src/objects/*.c src/builtins/*.c))
 OBJ := $(SRC:src/%.c=obj/%.o)
+HEADERS := $(filter-out src/builtinscode.h, $(wildcard src/*.h))
 CTESTS_SRC := $(wildcard ctests/*.c) $(wildcard ctests/*.h)
 
 # runs when "make" or "make all" is invoked, tests.Makefile shouldn't invoke this
@@ -22,11 +23,15 @@ all: ö
 clean:
 	rm -vrf obj ctestsrunner *-compiled ö src/builtinscode.h
 
-src/builtinscode.h: misc-compiled/xd
+src/builtinscode.h: misc-compiled/xd src/builtins.ö
 	misc-compiled/xd < src/builtins.ö | fold -s > src/builtinscode.h
 
 # right now src/run.c is the only file that uses src/builtinscode.h
 src/run.c: src/builtinscode.h
+
+# FIXME: making run.c depend on builtinscode.h doesn't seem to wörk, so we need this
+obj/run.o: src/run.c src/builtinscode.h $(HEADERS)
+	mkdir -p $(@D) && $(CC) -c -o $@ $< $(CFLAGS)
 
 misc-compiled/%: misc/%.c $(filter-out obj/run.o, $(OBJ))
 	mkdir -p $(@D) && $(CC) -o $@ $(OBJ) $(CFLAGS) $< -I.
@@ -34,7 +39,7 @@ misc-compiled/%: misc/%.c $(filter-out obj/run.o, $(OBJ))
 misc-compiled/xd: misc/xd.c
 	mkdir -p $(@D) && $(CC) -o $@ $(CFLAGS) $<
 
-obj/%.o: src/%.c
+obj/%.o: src/%.c $(HEADERS)
 	mkdir -p $(@D) && $(CC) -c -o $@ $< $(CFLAGS)
 
 ctestsrunner: $(CTESTS_SRC) $(OBJ)

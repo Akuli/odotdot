@@ -51,14 +51,14 @@ static bool validate_index(struct Interpreter *interp, struct Object *arr, long 
 	return true;
 }
 
-static struct Object *get(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+static struct Object *get(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Array, interp->builtins.Integer, NULL)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Integer, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	struct Object *arr = ARRAYOBJECT_GET(args, 0);
-	struct Object *index = ARRAYOBJECT_GET(args, 1);
+	struct Object *arr = thisdata.data;
+	struct Object *iobj = ARRAYOBJECT_GET(args, 0);
 
-	long long i = integerobject_tolonglong(index);
+	long long i = integerobject_tolonglong(iobj);
 	if (!validate_index(interp, arr, i))
 		return NULL;
 
@@ -131,11 +131,11 @@ static struct Object *slice(struct Interpreter *interp, struct ObjectData thisda
 	return arrayobject_slice(interp, thisdata.data, i, j);
 }
 
-static struct Object *length_getter(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
+static struct Object *length_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, NULL)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Array, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	return integerobject_newfromlonglong(interp, ARRAYOBJECT_LEN((struct Object*) thisdata.data));
+	return integerobject_newfromlonglong(interp, ARRAYOBJECT_LEN(ARRAYOBJECT_GET(args, 0)));
 }
 
 struct Object *arrayobject_createclass(struct Interpreter *interp)
@@ -217,15 +217,12 @@ struct Object *arrayobject_concat(struct Interpreter *interp, struct Object *arr
 	if (!arr)
 		return NULL;
 
-	fprintf(stderr, "%d %d\n", (int)data1->len, (int)data2->len);
 	struct ArrayObjectData *data = arr->objdata.data;
 	memcpy(data->elems, data1->elems, data1->len * sizeof(struct Object *));
 	memcpy(data->elems + data1->len, data2->elems, data2->len * sizeof(struct Object *));
 	data->len = data1->len + data2->len;
-	for (size_t i=0; i < data->len; i++) {
-		fprintf(stderr, "** %d\n", (int)i);
+	for (size_t i=0; i < data->len; i++)
 		OBJECT_INCREF(interp, data->elems[i]);
-	}
 
 	return arr;
 }

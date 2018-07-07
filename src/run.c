@@ -199,6 +199,7 @@ int run_libfile(struct Interpreter *interp, char *abspath, struct Object *lib)
 		OBJECT_DECREF(interp, scope);
 		return 0;
 	}
+	OBJECT_INCREF(interp, lib);   // for export
 
 	bool ok = mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), interp->strings.export, export);
 	OBJECT_DECREF(interp, export);

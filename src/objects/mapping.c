@@ -105,24 +105,16 @@ struct Object *mappingobject_createclass(struct Interpreter *interp)
 }
 
 
-static struct Object *setup(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+static struct Object *setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	struct Object *map, *pairs;
-	if (ARRAYOBJECT_LEN(args) == 1) {
+	struct Object *map = thisdata.data;
+	if (ARRAYOBJECT_LEN(args) == 0) {
 		// (new Mapping)
-		if (!check_args(interp, args, interp->builtins.Mapping, NULL)) return NULL;
-		map = ARRAYOBJECT_GET(args, 0);
-		pairs = NULL;
+		// no need to do anything here
 	} else {
 		// (new Mapping pairs)
-		if (!check_args(interp, args, interp->builtins.Mapping, interp->builtins.Array, NULL)) return NULL;
-		map = ARRAYOBJECT_GET(args, 0);
-		pairs = ARRAYOBJECT_GET(args, 1);
-	}
-
-	// TODO: throw an error if there are duplicates?
-
-	if (pairs) {
+		if (!check_args(interp, args, interp->builtins.Array, NULL)) return NULL;
+		struct Object *pairs = ARRAYOBJECT_GET(args, 0);
 		for (size_t i=0; i < ARRAYOBJECT_LEN(pairs); i++) {
 			struct Object *pair = ARRAYOBJECT_GET(pairs, i);
 			if (!classobject_isinstanceof(pair, interp->builtins.Array)) {
@@ -255,12 +247,14 @@ bool mappingobject_set(struct Interpreter *interp, struct Object *map, struct Ob
 	return true;
 }
 
-static struct Object *set(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+static struct Object *set(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Mapping, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	if (!mappingobject_set(interp, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1), ARRAYOBJECT_GET(args, 2))) return NULL;
-	return nullobject_get(interp);
+	struct Object *map = thisdata.data;
+	struct Object *key = ARRAYOBJECT_GET(args, 0);
+	struct Object *val = ARRAYOBJECT_GET(args, 1);
+	return mappingobject_set(interp, map, key, val) ? nullobject_get(interp) : NULL;
 }
 
 
@@ -318,12 +312,12 @@ int mappingobject_getanddelete(struct Interpreter *interp, struct Object *map, s
 }
 
 
-static struct Object *get(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+static struct Object *get(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Mapping, interp->builtins.Object, NULL)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	struct Object *map = ARRAYOBJECT_GET(args, 0);
-	struct Object *key = ARRAYOBJECT_GET(args, 1);
+	struct Object *map = thisdata.data;
+	struct Object *key = ARRAYOBJECT_GET(args, 0);
 
 	struct Object *val;
 	int status = mappingobject_get(interp, map, key, &val);
@@ -334,12 +328,12 @@ static struct Object *get(struct Interpreter *interp, struct ObjectData nulldata
 	return val;
 }
 
-static struct Object *get_and_delete(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+static struct Object *get_and_delete(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Mapping, interp->builtins.Object, NULL)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	struct Object *map = ARRAYOBJECT_GET(args, 0);
-	struct Object *key = ARRAYOBJECT_GET(args, 1);
+	struct Object *map = thisdata.data;
+	struct Object *key = ARRAYOBJECT_GET(args, 0);
 
 	struct Object *val;
 	int status = mappingobject_getanddelete(interp, map, key, &val);

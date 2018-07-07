@@ -40,7 +40,7 @@ void mgdata_destructor(void *data)
 
 void thisdata_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
 {
-	cb(((struct MethodGetterData*) data)->klass, cbdata);
+	cb((struct Object*) data, cbdata);
 }
 
 // when getting the method, this is called with the instance as an argument, see objects/classobject.h
@@ -51,13 +51,14 @@ static struct Object *method_getter(struct Interpreter *interp, struct ObjectDat
 	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct ObjectData thisdata = { .data = ARRAYOBJECT_GET(args, 0), .foreachref = thisdata_foreachref, .destructor = NULL };
-	OBJECT_INCREF(interp, ARRAYOBJECT_GET(args, 0));
+	OBJECT_INCREF(interp, (struct Object*) thisdata.data);
 
 	struct Object *res = functionobject_new(interp, thisdata, mgdata->cfunc, mgdata->name);
 	if (!res) {
 		OBJECT_DECREF(interp, (struct Object*) thisdata.data);
 		return NULL;
 	}
+
 	return res;
 }
 

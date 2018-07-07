@@ -45,13 +45,16 @@ void test_objects_simple(void)
 }
 
 
+// free may be defined as a macro
+void freee(void *ptr) { free(ptr); }
+
 struct Object *callback_arg1, *callback_arg2;
 
 struct Object *callback(struct Interpreter *interp, struct ObjectData xdata, struct Object *args, struct Object *opts)
 {
 	buttert(*((char*)xdata.data) == 'x');
 	buttert(!xdata.foreachref);
-	buttert(xdata.destructor == free);
+	buttert(xdata.destructor == freee);
 	buttert(MAPPINGOBJECT_SIZE(opts) == 0);
 	buttert(interp == testinterp);
 	buttert(args->klass == interp->builtins.Array);
@@ -66,22 +69,14 @@ void test_objects_function(void)
 	buttert((callback_arg1 = stringobject_newfromcharptr(testinterp, "asd1")));
 	buttert((callback_arg2 = stringobject_newfromcharptr(testinterp, "asd2")));
 
-	char x = bmalloc(1);
-	x = 'x';
-	struct Object *func = functionobject_new(testinterp, (struct ObjectData){.data=x, .foreachref=NULL, .destructor=free}, callback, "test func");
+	char *x = bmalloc(1);
+	*x = 'x';
+	struct Object *func = functionobject_new(testinterp, (struct ObjectData){.data=x, .foreachref=NULL, .destructor=freee}, callback, "test func");
 	buttert(functionobject_call(testinterp, func, callback_arg1, callback_arg2, NULL) == ABCPTR);
 
-	struct Object *partial1 = functionobject_newpartial(testinterp, func, callback_arg1);
-	OBJECT_DECREF(testinterp, callback_arg1);   // partialfunc should hold a reference to this
 	OBJECT_DECREF(testinterp, func);
-	buttert(functionobject_call(testinterp, partial1, callback_arg2, NULL) == ABCPTR);
-
-	struct Object *partial2 = functionobject_newpartial(testinterp, partial1, callback_arg2);
+	OBJECT_DECREF(testinterp, callback_arg1);
 	OBJECT_DECREF(testinterp, callback_arg2);
-	OBJECT_DECREF(testinterp, partial1);
-	buttert(functionobject_call(testinterp, partial2, NULL) == ABCPTR);
-
-	OBJECT_DECREF(testinterp, partial2);
 }
 
 #define ODOTDOT 0xd6    // Ö

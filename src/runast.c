@@ -160,7 +160,6 @@ static struct Object *runast_expression(struct Interpreter *interp, struct Objec
 bool runast_statement(struct Interpreter *interp, struct Object *scope, struct Object *stmtnode)
 {
 	struct AstNodeObjectData *nodedata = stmtnode->objdata.data;
-	fprintf(stderr, "*** running ast statement from lien %d\n", (int)nodedata->lineno);
 
 #define INFO_AS(X) ((struct X *) nodedata->info)
 	if (nodedata->kind == AST_CALL) {

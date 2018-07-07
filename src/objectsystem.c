@@ -9,13 +9,6 @@
 #include "objects/classobject.h"
 #include "objects/mapping.h"
 
-void lol(void){
-	printf("+\n");
-}
-void wat(void){
-	printf("-\n");
-}
-
 struct Object *object_new_noerr(struct Interpreter *interp, struct Object *klass, struct ObjectData objdata)
 {
 	struct Object *obj = malloc(sizeof(struct Object));

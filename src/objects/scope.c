@@ -182,24 +182,25 @@ static struct Object *get_var(struct Interpreter *interp, struct ObjectData this
 }
 
 
-static struct Object *parent_scope_getter(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
+static struct Object *parent_scope_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, NULL)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Scope, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct Object *res = ((struct ScopeObjectData *) ((struct Object*) thisdata.data)->objdata.data)->parent_scope;
+	struct Object *res = ((struct ScopeObjectData *) ARRAYOBJECT_GET(args, 0)->objdata.data)->parent_scope;
 	if (!res)
 		res = interp->builtins.null;
 	OBJECT_INCREF(interp, res);
 	return res;
 }
 
-static struct Object *local_vars_getter(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
+static struct Object *local_vars_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, NULL)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Scope, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct Object *res = ((struct ScopeObjectData *) ((struct Object*) thisdata.data)->objdata.data)->local_vars;
+	struct Object *scope = ARRAYOBJECT_GET(args, 0);
+	struct Object *res = ((struct ScopeObjectData *) scope->objdata.data)->local_vars;
 	OBJECT_INCREF(interp, res);
 	return res;
 }

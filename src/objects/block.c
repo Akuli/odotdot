@@ -88,13 +88,13 @@ void markerdata_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
 static struct Object *returner_cfunc(struct Interpreter *interp, struct ObjectData markerdata, struct Object *args, struct Object *opts)
 {
 	struct Object *markererr = markerdata.data;
-	check_no_opts(interp, opts);
+	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct Object *gonnareturn;
-	if (ARRAYOBJECT_LEN(args) == 1)
+	if (ARRAYOBJECT_LEN(args) == 0)
 		gonnareturn = interp->builtins.null;
-	else if (ARRAYOBJECT_LEN(args) == 2)
-		gonnareturn = ARRAYOBJECT_GET(args, 1);
+	else if (ARRAYOBJECT_LEN(args) == 1)
+		gonnareturn = ARRAYOBJECT_GET(args, 0);
 	else {
 		errorobject_throwfmt(interp, "ArgError", "return must be called with no args or exactly 1 arg");
 		return NULL;
@@ -138,6 +138,8 @@ struct Object *blockobject_runwithreturn(struct Interpreter *interp, struct Obje
 		OBJECT_DECREF(interp, marker);
 		return NULL;
 	}
+	// add a new reference for the returner
+	OBJECT_INCREF(interp, marker);
 
 	bool ok = mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), interp->strings.return_, returner);
 	OBJECT_DECREF(interp, returner);
@@ -189,18 +191,22 @@ struct Object *blockobject_runwithreturn(struct Interpreter *interp, struct Obje
 
 
 // TODO: a with_return option instead of two separate thingss
-static struct Object *run(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+static struct Object *run(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Scope, NULL)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Scope, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	return blockobject_run(interp, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1)) ? nullobject_get(interp) : NULL;
+	struct Object *block = thisdata.data;
+	struct Object *scope = ARRAYOBJECT_GET(args, 0);
+	return blockobject_run(interp, block, scope) ? nullobject_get(interp) : NULL;
 }
 
-static struct Object *run_with_return(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+static struct Object *run_with_return(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Scope, NULL)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Scope, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	return blockobject_runwithreturn(interp, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1));
+	struct Object *block = thisdata.data;
+	struct Object *scope = ARRAYOBJECT_GET(args, 0);
+	return blockobject_runwithreturn(interp, block, scope);
 }
 
 struct Object *blockobject_createclass(struct Interpreter *interp)

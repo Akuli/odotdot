@@ -50,13 +50,14 @@ struct Object *stringobject_createclass_noerr(struct Interpreter *interp)
 
 
 // returns the string itself, for consistency with other types
-static struct Object *to_string(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+static struct Object *to_string(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.String, NULL)) return NULL;
+	if (!check_args(interp, args, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	OBJECT_INCREF(interp, ARRAYOBJECT_GET(args, 0));
-	return ARRAYOBJECT_GET(args, 0);
+	struct Object *s = thisdata.data;
+	OBJECT_INCREF(interp, s);
+	return s;
 }
 
 
@@ -68,17 +69,17 @@ static struct Object *length_getter(struct Interpreter *interp, struct ObjectDat
 	return integerobject_newfromlonglong(interp, ((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->objdata.data)->len);
 }
 
-static struct Object *replace(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+static struct Object *replace(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
 	// TODO: allow passing in a Mapping of things to replace?
-	if (!check_args(interp, args, interp->builtins.String, interp->builtins.String, interp->builtins.String, NULL)) return NULL;
+	if (!check_args(interp, args, interp->builtins.String, interp->builtins.String, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct UnicodeString *src = ARRAYOBJECT_GET(args, 0)->objdata.data;
-	struct UnicodeString *old = ARRAYOBJECT_GET(args, 1)->objdata.data;
-	struct UnicodeString *new = ARRAYOBJECT_GET(args, 2)->objdata.data;
+	struct UnicodeString src = *(struct UnicodeString*) ((struct Object*)thisdata.data)->objdata.data;
+	struct UnicodeString old = *(struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->objdata.data;
+	struct UnicodeString new = *(struct UnicodeString*) ARRAYOBJECT_GET(args, 1)->objdata.data;
 
-	struct UnicodeString *replaced = unicodestring_replace(interp, *src, *old, *new);
+	struct UnicodeString *replaced = unicodestring_replace(interp, src, old, new);
 	if (!replaced)
 		return NULL;
 
@@ -89,13 +90,13 @@ static struct Object *replace(struct Interpreter *interp, struct ObjectData null
 
 // get and slice are a lot like array methods
 // some day strings will hopefully behave like an immutable array of 1-character strings
-static struct Object *get(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+static struct Object *get(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.String, interp->builtins.Integer, NULL)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Integer, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct UnicodeString ustr = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->objdata.data);
-	long long i = integerobject_tolonglong(ARRAYOBJECT_GET(args, 1));
+	struct UnicodeString ustr = *(struct UnicodeString*) ((struct Object*) thisdata.data)->objdata.data;
+	long long i = integerobject_tolonglong(ARRAYOBJECT_GET(args, 0));
 
 	if (i < 0) {
 		errorobject_throwfmt(interp, "ValueError", "%L is not a valid string index", i);
@@ -111,27 +112,27 @@ static struct Object *get(struct Interpreter *interp, struct ObjectData nulldata
 	return stringobject_newfromustr_copy(interp, ustr);
 }
 
-static struct Object *slice(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+static struct Object *slice(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_no_opts(interp, opts))
-		return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+	struct Object *s = thisdata.data;
 
 	long long start, end;
-	if (ARRAYOBJECT_LEN(args) == 2) {
+	if (ARRAYOBJECT_LEN(args) == 1) {
 		// (s.slice start)
-		if (!check_args(interp, args, interp->builtins.String, interp->builtins.Integer, NULL))
+		if (!check_args(interp, args, interp->builtins.Integer, NULL))
 			return NULL;
-		start = integerobject_tolonglong(ARRAYOBJECT_GET(args, 1));
-		end = ((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->objdata.data)->len;
+		start = integerobject_tolonglong(ARRAYOBJECT_GET(args, 0));
+		end = ((struct UnicodeString*)s->objdata.data)->len;
 	} else {
 		// (s.slice start end)
-		if (!check_args(interp, args, interp->builtins.String, interp->builtins.Integer, interp->builtins.Integer, NULL))
+		if (!check_args(interp, args, interp->builtins.Integer, interp->builtins.Integer, NULL))
 			return NULL;
-		start = integerobject_tolonglong(ARRAYOBJECT_GET(args, 1));
-		end = integerobject_tolonglong(ARRAYOBJECT_GET(args, 2));
+		start = integerobject_tolonglong(ARRAYOBJECT_GET(args, 0));
+		end = integerobject_tolonglong(ARRAYOBJECT_GET(args, 1));
 	}
 
-	struct UnicodeString ustr = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->objdata.data);
+	struct UnicodeString ustr = *(struct UnicodeString*) s->objdata.data;
 
 	if (start < 0)
 		start = 0;
@@ -144,7 +145,6 @@ static struct Object *slice(struct Interpreter *interp, struct ObjectData nullda
 		return stringobject_newfromcharptr(interp, "");
 
 	if (start == 0 && (size_t) end == ustr.len) {
-		struct Object *s = ARRAYOBJECT_GET(args, 0);
 		OBJECT_INCREF(interp, s);
 		return s;
 	}
@@ -218,11 +218,11 @@ error:
 	return NULL;
 }
 
-static struct Object *split_by_whitespace(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+static struct Object *split_by_whitespace(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.String, NULL)) return NULL;
+	if (!check_args(interp, args, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	return stringobject_splitbywhitespace(interp, ARRAYOBJECT_GET(args, 0));
+	return stringobject_splitbywhitespace(interp, (struct Object*) thisdata.data);
 }
 
 bool stringobject_addmethods(struct Interpreter *interp)

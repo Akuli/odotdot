@@ -70,7 +70,7 @@ static struct Object *runner(struct Interpreter *interp, struct ObjectData data,
 		}
 		if (status == 0)
 			val = nullobject_get(interp);
-		assert(status == 1 && !!val);
+		assert(val);
 
 		bool ok = mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), ARRAYOBJECT_GET(ldata->optnames, i), val);
 		OBJECT_DECREF(interp, val);
@@ -116,7 +116,7 @@ static bool parse_arg_and_opt_names(struct Interpreter *interp, struct Object *s
 	// arguments must come before options, this is set to true when the first option is found
 	bool opts = false;
 	for (size_t i=0; i < ARRAYOBJECT_LEN(splitted); i++) {
-		struct UnicodeString u = *((struct UnicodeString *) ARRAYOBJECT_GET(splitted, i)->objdata.data);
+		struct UnicodeString u = *(struct UnicodeString *) ARRAYOBJECT_GET(splitted, i)->objdata.data;
 
 		if (u.len == 0) {
 			check_identifier(interp, u);   // sets an error
@@ -185,7 +185,7 @@ static struct LambdaData *create_ldata(struct Interpreter *interp, struct Object
 		return NULL;
 	}
 	for (size_t i=0; i < ARRAYOBJECT_LEN(optnames); i++) {
-		if (!mappingobject_set(interp, ldata->opttypes, ARRAYOBJECT_GET(argnames, i), interp->builtins.Object)) {
+		if (!mappingobject_set(interp, ldata->opttypes, ARRAYOBJECT_GET(optnames, i), interp->builtins.Object)) {
 			OBJECT_DECREF(interp, ldata->argtypes);
 			OBJECT_DECREF(interp, ldata->opttypes);
 			free(ldata);
@@ -195,7 +195,7 @@ static struct LambdaData *create_ldata(struct Interpreter *interp, struct Object
 
 	ldata->argnames = argnames;
 	OBJECT_INCREF(interp, argnames);
-	ldata->argnames = optnames;
+	ldata->optnames = optnames;
 	OBJECT_INCREF(interp, optnames);
 	ldata->block = block;
 	OBJECT_INCREF(interp, block);

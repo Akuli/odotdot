@@ -40,6 +40,7 @@ static void function_destructor(void *data)
 	free(data);
 }
 
+
 static struct Object *newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	errorobject_throwfmt(interp, "TypeError", "cannot create new function objects like (new Function), use func or lambda instead");
@@ -95,16 +96,19 @@ static struct Object *setup(struct Interpreter *interp, struct ObjectData thisda
 	return NULL;
 }
 
+// fwd dcl
+static struct Object *partial(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts);
 
 bool functionobject_addmethods(struct Interpreter *interp)
 {
 	if (!attribute_add(interp, interp->builtins.Function, "name", name_getter, name_setter)) return false;
 	if (!method_add(interp, interp->builtins.Function, "setup", setup)) return false;
+	if (!method_add(interp, interp->builtins.Function, "partial", partial)) return false;
 	return true;
 }
 
 
-struct Object *functionobject_new(struct Interpreter *interp, struct ObjectData userdata, functionobject_cfunc cfunc, char *name)
+static struct Object *new_function_with_nameobj(struct Interpreter *interp, struct ObjectData userdata, functionobject_cfunc cfunc, struct Object *nameobj)
 {
 	struct FunctionData *data = malloc(sizeof(struct FunctionData));
 	if (!data) {
@@ -112,13 +116,8 @@ struct Object *functionobject_new(struct Interpreter *interp, struct ObjectData 
 		return NULL;
 	}
 
-	struct Object *nameobj = stringobject_newfromcharptr(interp, name);
-	if (!nameobj) {
-		free(data);
-		return NULL;
-	}
-
 	data->name = nameobj;
+	OBJECT_INCREF(interp, nameobj);
 	data->cfunc = cfunc;
 	data->userdata = userdata;
 
@@ -131,6 +130,17 @@ struct Object *functionobject_new(struct Interpreter *interp, struct ObjectData 
 	}
 
 	return obj;
+}
+
+struct Object *functionobject_new(struct Interpreter *interp, struct ObjectData userdata, functionobject_cfunc cfunc, char *name)
+{
+	struct Object *nameobj = stringobject_newfromcharptr(interp, name);
+	if (!nameobj)
+		return NULL;
+
+	struct Object *func = new_function_with_nameobj(interp, userdata, cfunc, nameobj);
+	OBJECT_DECREF(interp, nameobj);
+	return func;
 }
 
 bool functionobject_add2array(struct Interpreter *interp, struct Object *arr, char *name, functionobject_cfunc cfunc)
@@ -166,12 +176,15 @@ struct Object *functionobject_call(struct Interpreter *interp, struct Object *fu
 	va_end(ap);
 
 	struct Object *opts = mappingobject_newempty(interp);
-	if (!opts)
+	if (!opts) {
+		OBJECT_DECREF(interp, args);
 		return NULL;
+	}
 
 	struct Object *res = functionobject_vcall(interp, func, args, opts);
-	OBJECT_DECREF(interp, opts);
 	OBJECT_DECREF(interp, args);
+	OBJECT_DECREF(interp, opts);
+
 	return res;
 }
 
@@ -179,4 +192,99 @@ struct Object *functionobject_vcall(struct Interpreter *interp, struct Object *f
 {
 	struct FunctionData *fdata = func->objdata.data;
 	return fdata->cfunc(interp, fdata->userdata, args, opts);
+}
+
+
+// rest of this file does the .partial method
+
+
+struct PartialFunctionUserdata {
+	struct Object *func;
+	struct Object *args;
+	struct Object *opts;
+};
+
+// pfud = partial function userdata
+static void pfud_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
+{
+	struct PartialFunctionUserdata *pfud = data;
+	cb(pfud->func, cbdata);
+	cb(pfud->args, cbdata);
+	cb(pfud->opts, cbdata);
+}
+
+static void pfud_destructor(void *data) { free(data); }
+
+// keys in m2 override keys in m1
+// TODO: move this elsewhere
+static struct Object *merge_mappings(struct Interpreter *interp, struct Object *m1, struct Object *m2)
+{
+	struct Object *res = mappingobject_newempty(interp);
+	if (!res)
+		return NULL;
+
+	struct Object *m[] = { m1, m2 };
+	for (int i=0; i<2; i++) {
+		struct MappingObjectIter iter;
+		mappingobject_iterbegin(&iter, m[i]);
+		while (mappingobject_iternext(&iter)) {
+			if (!mappingobject_set(interp, res, iter.key, iter.value)) {
+				OBJECT_DECREF(interp, res);
+				return NULL;
+			}
+		}
+	}
+
+	return res;
+}
+
+static struct Object *partialrunner(struct Interpreter *interp, struct ObjectData pfuddata, struct Object *args, struct Object *opts)
+{
+	struct PartialFunctionUserdata pfud = *(struct PartialFunctionUserdata*)pfuddata.data;
+	struct Object *allargs = arrayobject_concat(interp, pfud.args, args);
+	if (!allargs)
+		return NULL;
+	struct Object *allopts = merge_mappings(interp, pfud.opts, opts);
+	if (!allopts) {
+		OBJECT_DECREF(interp, allargs);
+		return NULL;
+	}
+
+	struct Object *res = functionobject_vcall(interp, pfud.func, allargs, allopts);
+	OBJECT_DECREF(interp, allargs);
+	OBJECT_DECREF(interp, allopts);
+	return res;
+}
+
+static struct Object *partial(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
+{
+	struct PartialFunctionUserdata *pfud = malloc(sizeof *pfud);
+	if (!pfud) {
+		errorobject_thrownomem(interp);
+		return NULL;
+	}
+	pfud->func = thisdata.data;
+	pfud->args = args;
+	pfud->opts = opts;
+	OBJECT_INCREF(interp, pfud->func);
+	OBJECT_INCREF(interp, pfud->args);
+	OBJECT_INCREF(interp, pfud->opts);
+
+	struct Object *nopartial = thisdata.data;
+	struct Object *partialname = stringobject_newfromfmt(interp, "partial of %S", ((struct FunctionData*)nopartial->objdata.data)->name);
+	if (!partialname)
+		goto error;
+
+	struct Object* res = new_function_with_nameobj(interp, (struct ObjectData){.data=pfud, .foreachref=pfud_foreachref, .destructor=pfud_destructor}, partialrunner, partialname);
+	OBJECT_DECREF(interp, partialname);
+	if (!res)
+		goto error;
+	return res;
+
+error:
+	OBJECT_DECREF(interp, pfud->func);
+	OBJECT_DECREF(interp, pfud->args);
+	OBJECT_DECREF(interp, pfud->opts);
+	free(pfud);
+	return NULL;
 }

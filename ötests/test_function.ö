@@ -25,3 +25,51 @@ test "things that used to make my interpreter segfault" {
         mapping.get c;
     };
 };
+
+test "partial" {
+    var ran = 0;
+    func "runs block" {
+        assert (ran == 0);
+        var result = (block.run_with_return block.definition_scope);
+        assert (result == "hello");
+        assert (ran == 1);
+        ran = 0;
+    };
+
+    func "f a b c:" {
+        assert (a == 1);
+        assert (b == 2);
+        assert (c == 3);
+        ran = (ran+1);
+        return "hello";
+    };
+
+    var partial = (f.partial);
+    var partial1 = (f.partial 1);
+    var partial12 = (f.partial 1 2);
+    var partial13 = (f.partial 1 c:3);
+    var partial123 = (f.partial 1 2 c:3);
+    var partial124 = (f.partial 1 2 c:4);
+
+    foreach "some_partial" [partial partial1 partial12 partial13 partial123 partial124] {
+        assert (some_partial.name == "partial of f");
+        assert ((some_partial.to_debug_string) == "<Function \"partial of f\">");
+    };
+
+    runs { (partial 1 2 c:3) };
+    runs { (partial1 2 c:3) };
+    runs { (partial12 c:3) };
+    runs { (partial13 2) };
+    runs { (partial123) };
+    runs { (partial124 c:3) };   # should override c:4 in partial124
+
+    # test missing arguments
+    throws ArgError { partial; };
+    throws ArgError { partial1; };
+    throws ArgError { partial13; };
+
+    throws AssertError {
+        partial124;   # should use the wrong c
+    };
+    assert (ran == 0);
+};

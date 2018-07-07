@@ -64,6 +64,7 @@ struct Object *stringobject_newfromfmt(struct Interpreter *interp, char *fmt, ..
 struct Object *stringobject_newfromvfmt(struct Interpreter *interp, char *fmt, va_list ap);
 
 // the returned UnicodeString's val must NOT be free()'d
+// TODO: use this everywhere, now everything accesses ->objdata directly
 struct UnicodeString *stringobject_getustr(struct Object *s);
 
 // returns an array of substrings or NULL on error

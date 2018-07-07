@@ -290,6 +290,7 @@ static struct Object *new(struct Interpreter *interp, struct ObjectData nulldata
 		OBJECT_DECREF(interp, obj);
 		return NULL;
 	}
+
 	if (!check_type(interp, interp->builtins.Function, setup)) {
 		OBJECT_DECREF(interp, setup);
 		OBJECT_DECREF(interp, setupargs);
