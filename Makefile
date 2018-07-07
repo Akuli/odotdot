@@ -11,7 +11,7 @@ CTESTS_SRC := $(wildcard ctests/*.c) $(wildcard ctests/*.h)
 
 # runs when "make" or "make all" is invoked, tests.Makefile shouldn't invoke this
 all: ö
-	make -f tests.Makefile
+	$(MAKE) -f tests.Makefile
 	@echo
 	@echo
 	@echo 'The Ö interpreter was compiled and tested successfully! :D'

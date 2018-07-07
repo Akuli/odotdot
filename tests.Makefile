@@ -11,7 +11,7 @@ all: ctests $(wildcard ötests/test_*.ö examples/*.ö)
 	@echo ok
 
 executables:
-	make ö ctestsrunner
+	$(MAKE) ö ctestsrunner
 
 
 ctests: executables
