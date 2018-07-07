@@ -1,5 +1,6 @@
 #include "block.h"
 #include <assert.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include "../attribute.h"
 #include "../check.h"
@@ -7,6 +8,7 @@
 #include "../method.h"
 #include "../objectsystem.h"  // IWYU pragma: keep
 #include "../runast.h"
+#include "../stack.h"
 #include "array.h"
 #include "astnode.h"
 #include "classobject.h"

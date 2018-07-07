@@ -4,8 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "allobjects.h"
+#include "interpreter.h"
 #include "objectsystem.h"
-#include "objects/classobject.h"
 
 // this thing works by setting gcflag to what refcount SHOULD be and then checking it
 // Object.refcount and Object.gcflag are both longs

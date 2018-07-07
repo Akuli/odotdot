@@ -6,14 +6,15 @@
 #include "parse.h"
 #include <assert.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include "interpreter.h"
 #include "objectsystem.h"
+#include "operator.h"
 #include "tokenizer.h"
 #include "unicode.h"
 #include "objects/array.h"
 #include "objects/astnode.h"
-#include "objects/classobject.h"
 #include "objects/errors.h"
 #include "objects/integer.h"
 #include "objects/mapping.h"

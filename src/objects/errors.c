@@ -5,7 +5,6 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include "../attribute.h"
 #include "../check.h"
 #include "../interpreter.h"
@@ -15,7 +14,6 @@
 #include "../utf8.h"
 #include "array.h"
 #include "classobject.h"
-#include "mapping.h"
 #include "null.h"
 #include "stackframe.h"
 #include "string.h"

@@ -1,5 +1,6 @@
 #include "operator.h"
 #include <assert.h>
+#include <stddef.h>
 #include "check.h"
 #include "interpreter.h"
 #include "objectsystem.h"
@@ -8,7 +9,6 @@
 #include "objects/classobject.h"
 #include "objects/errors.h"
 #include "objects/function.h"
-#include "objects/mapping.h"
 #include "unicode.h"
 
 #define class_name(obj) (((struct ClassObjectData *) (obj)->klass->objdata.data)->name)

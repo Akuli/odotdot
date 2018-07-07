@@ -1,14 +1,11 @@
 #include "interpreter.h"
 #include <assert.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include "allobjects.h"
-#include "attribute.h"
 #include "import.h"
-#include "method.h"
 #include "objectsystem.h"
-#include "unicode.h"
 #include "objects/errors.h"
 #include "objects/mapping.h"
 #include "objects/scope.h"

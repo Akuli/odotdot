@@ -7,7 +7,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-struct Interpreter;
+#include "interpreter.h"    // IWYU pragma: keep
 
 // the standard says that int32_t is optional, but this must exist
 // you can also use unsigned long when working with unicode chars, that's also >= 32 bits

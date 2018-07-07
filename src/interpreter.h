@@ -1,6 +1,7 @@
 #ifndef INTERPRETER_H
 #define INTERPRETER_H
 
+#include <stdbool.h>
 #include "allobjects.h"
 #include "stack.h"
 

@@ -4,11 +4,7 @@
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"
-#include "array.h"
 #include "classobject.h"
-#include "errors.h"
-#include "function.h"
-#include "integer.h"
 #include "null.h"
 #include "string.h"
 

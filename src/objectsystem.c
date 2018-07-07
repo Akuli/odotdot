@@ -4,10 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include "allobjects.h"
 #include "interpreter.h"
-#include "unicode.h"
-#include "objects/classobject.h"
-#include "objects/mapping.h"
 
 struct Object *object_new_noerr(struct Interpreter *interp, struct Object *klass, struct ObjectData objdata)
 {

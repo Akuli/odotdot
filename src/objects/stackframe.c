@@ -1,10 +1,12 @@
 #include "stackframe.h"
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include "../attribute.h"
-#include "../check.h"
+#include "../interpreter.h"
 #include "../objectsystem.h"
 #include "../stack.h"
+#include "../unicode.h"
 #include "../utf8.h"
 #include "array.h"
 #include "classobject.h"

@@ -3,8 +3,9 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include "interpreter.h"
+#include "interpreter.h"   // IWYU pragma: keep
 #include "objects/errors.h"
 #include "unicode.h"
 

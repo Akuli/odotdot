@@ -1,10 +1,11 @@
 #ifndef OBJECTS_FUNCTION_H
 #define OBJECTS_FUNCTION_H
 
-#include <stddef.h>
-#include "../objectsystem.h"    // IWYU pragma: keep
+#include <stdbool.h>
+#include "../objectsystem.h"
 
 // interpreter.h includes this
+// and stupid IWYU hates this and has no way to unhate this....
 struct Interpreter;
 
 

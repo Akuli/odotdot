@@ -1,6 +1,7 @@
 #ifndef OBJECTS_ARRAY_H
 #define OBJECTS_ARRAY_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include "../interpreter.h"    // IWYU pragma: keep
 #include "../objectsystem.h"   // IWYU pragma: keep

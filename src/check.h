@@ -2,9 +2,10 @@
 #define CHECK_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
-struct Interpreter;
-struct Object;
+#include "interpreter.h"   // IWYU pragma: keep
+#include "objectsystem.h"  // IWYU pragma: keep
 
 // checks if obj is an instance of klass, returns false on error
 // bad things happen if klass is not a class object

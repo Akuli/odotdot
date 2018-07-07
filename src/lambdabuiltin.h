@@ -2,7 +2,8 @@
 #ifndef LAMBDABUILTIN_H
 #define LAMBDABUILTIN_H
 
-#include "objectsystem.h"
+#include "interpreter.h"    // IWYU pragma: keep
+#include "objectsystem.h"   // IWYU pragma: keep
 
 struct Object *lambdabuiltin(struct Interpreter *interp, struct ObjectData dummydata, struct Object *args, struct Object *opts);
 

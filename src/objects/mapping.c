@@ -7,7 +7,9 @@
 #include <stdlib.h>
 #include "../attribute.h"
 #include "../check.h"
+#include "function.h"
 #include "../interpreter.h"
+#include "../objectsystem.h"
 #include "../operator.h"
 #include "../method.h"
 #include "array.h"
@@ -16,7 +18,6 @@
 #include "errors.h"
 #include "integer.h"
 #include "null.h"
-#include "string.h"
 
 // hash should be a signed long, nbuckets should be an unsigned long
 // casting signed to unsigned is apparently well-defined 0_o

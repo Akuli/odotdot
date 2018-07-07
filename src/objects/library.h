@@ -1,8 +1,8 @@
 #ifndef OBJECTS_LIBRARY_H
 #define OBJECTS_LIBRARY_H
 
-struct Interpreter;
-struct Object;
+#include "../interpreter.h"    // IWYU pragma: keep
+#include "../objectsystem.h"   // IWYU pragma: keep
 
 // creates the ArbitraryAttribs class
 struct Object *libraryobject_createaaclass(struct Interpreter *interp);

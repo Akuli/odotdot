@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include "attribute.h"
@@ -11,11 +12,8 @@
 #include "objects/classobject.h"
 #include "objects/errors.h"
 #include "objects/function.h"
-#include "objects/integer.h"
 #include "objects/mapping.h"
-#include "objects/string.h"
 #include "objectsystem.h"
-#include "unicode.h"
 
 // these names are only for functions created in C
 #define NAME_SIZE 100

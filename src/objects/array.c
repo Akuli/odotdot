@@ -1,6 +1,5 @@
 #include "array.h"
 #include <assert.h>
-#include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,15 +8,10 @@
 #include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"
-#include "../operator.h"
-#include "../unicode.h"
-#include "bool.h"
 #include "classobject.h"
 #include "errors.h"
-#include "function.h"
 #include "integer.h"
 #include "null.h"
-#include "string.h"
 
 static void array_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
 {

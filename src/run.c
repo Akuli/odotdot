@@ -2,6 +2,8 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "attribute.h"
@@ -11,20 +13,22 @@
 #include "objects/astnode.h"
 #include "objects/block.h"
 #include "objects/errors.h"
+#include "objects/function.h"
 #include "objects/mapping.h"
 #include "objects/null.h"
 #include "objects/scope.h"
-#include "objects/string.h"
 #include "objectsystem.h"
 #include "parse.h"
 #include "path.h"
 #include "runast.h"
+#include "stack.h"
 #include "tokenizer.h"
+#include "unicode.h"
 #include "utf8.h"
 
 // see Makefile
 unicode_char builtinscode[] = {
-#include "builtinscode.h"
+#include "builtinscode.h"      // IWYU pragma: keep
 };
 
 

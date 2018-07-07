@@ -1,7 +1,7 @@
 #ifndef OBJECTS_BLOCK_H
 #define OBJECTS_BLOCK_H
 
-#include <stddef.h>
+#include <stdbool.h>
 #include "../interpreter.h"    // IWYU pragma: keep
 #include "../objectsystem.h"   // IWYU pragma: keep
 

@@ -3,15 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../interpreter.h"
-#include "../method.h"
 #include "../objectsystem.h"
-#include "../tokenizer.h"
-#include "../unicode.h"
-#include "array.h"
 #include "classobject.h"
 #include "errors.h"
-#include "integer.h"
-#include "string.h"
 
 static void astnode_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
 {

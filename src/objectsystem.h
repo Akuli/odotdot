@@ -1,7 +1,6 @@
 #ifndef OBJECTSYSTEM_H
 #define OBJECTSYSTEM_H
 
-#include <stdio.h>
 #include <stdbool.h>
 #include "interpreter.h"   // IWYU pragma: keep
 #include "atomicincrdecr.h"

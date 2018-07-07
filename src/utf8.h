@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
-#include "unicode.h"
+#include "unicode.h"   // IWYU pragma: keep
 
 // convert a Unicode string to a UTF-8 string
 // after calling this, *utf8 may contain \0 bytes

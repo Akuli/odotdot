@@ -2,22 +2,17 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdlib.h>
 #include "attribute.h"
 #include "check.h"
 #include "interpreter.h"
-#include "method.h"
 #include "objectsystem.h"
 #include "objects/array.h"
 #include "objects/astnode.h"
 #include "objects/block.h"
-#include "objects/errors.h"
 #include "objects/function.h"
 #include "objects/mapping.h"
 #include "objects/scope.h"
-#include "objects/string.h"
 #include "operator.h"
-#include "parse.h"
 
 // TODO: this creates lots of new strings, avoid that to speed up the interpreter
 

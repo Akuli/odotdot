@@ -10,7 +10,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-// interpreter.h includes this
+// interpreter.h includes this, but stupid IWYU doesn't get this or have a way to ignore this...
 struct Interpreter;
 
 

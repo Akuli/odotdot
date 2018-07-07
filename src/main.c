@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdio.h>
 #include "builtins.h"
 #include "gc.h"
 #include "interpreter.h"

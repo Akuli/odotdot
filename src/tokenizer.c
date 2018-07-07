@@ -2,6 +2,7 @@
 // TODO: add error objects
 #include "tokenizer.h"
 #include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "unicode.h"

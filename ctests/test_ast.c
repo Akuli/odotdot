@@ -1,15 +1,14 @@
-#include <src/interpreter.h>
 #include <src/objectsystem.h>
 #include <src/tokenizer.h>
 #include <src/unicode.h>
 #include <src/objects/array.h>
 #include <src/objects/astnode.h>
-#include <src/objects/classobject.h>
 #include <src/objects/integer.h>
 #include <src/objects/mapping.h>
 #include <src/operator.h>
 #include <src/objects/string.h>
 #include <src/parse.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>

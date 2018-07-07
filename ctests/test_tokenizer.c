@@ -1,10 +1,11 @@
-#include <stdlib.h>
-#include <stddef.h>
-#include <string.h>
-
+#include <src/interpreter.h>
 #include <src/tokenizer.h>
+#include <src/unicode.h>
 #include <src/utf8.h>
-
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
 #include "utils.h"
 
 

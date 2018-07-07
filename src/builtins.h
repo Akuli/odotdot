@@ -2,6 +2,7 @@
 #ifndef BUILTINS_H
 #define BUILTINS_H
 
+#include <stdbool.h>
 #include "interpreter.h"     // IWYU pragma: keep
 #include "objectsystem.h"    // IWYU pragma: keep
 

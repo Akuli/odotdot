@@ -1,11 +1,13 @@
 #ifndef OBJECTS_MAPPING_H
 #define OBJECTS_MAPPING_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include "../interpreter.h"     // IWYU pragma: keep
 #include "../objectsystem.h"    // IWYU pragma: keep
 
 // these should be considered implementation details
+// stupid IWYU hates the MappingObjectItem declaration and has no way to ignore it
 struct MappingObjectItem;
 struct MappingObjectData {
 	struct MappingObjectItem **buckets;

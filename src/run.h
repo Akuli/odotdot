@@ -2,9 +2,8 @@
 #define RUN_H
 
 #include <stdbool.h>
-
-struct Interpreter;
-struct Object;
+#include "interpreter.h"     // IWYU pragma: keep
+#include "objectsystem.h"    // IWYU pragma: keep
 
 /* runs std/builtins.ö
 throws an error and returns false on failure

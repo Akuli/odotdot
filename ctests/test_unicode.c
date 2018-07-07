@@ -1,10 +1,13 @@
 #include <src/attribute.h>
+#include <src/interpreter.h>
 #include <src/objects/string.h>
 #include <src/objectsystem.h>
 #include <src/operator.h>
 #include <src/unicode.h>
 #include <src/utf8.h>
+#include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include "utils.h"

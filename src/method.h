@@ -4,8 +4,9 @@
 
 #include "interpreter.h"       // IWYU pragma: keep
 #include "objectsystem.h"      // IWYU pragma: keep
-#include "objects/function.h"
-#include "unicode.h"
+#include "objects/function.h"  // IWYU pragma: keep
+#include "unicode.h"           // IWYU pragma: keep
+#include <stdbool.h>
 
 // returns false on error
 // name must be valid UTF-8

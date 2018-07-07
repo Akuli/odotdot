@@ -1,11 +1,11 @@
 #ifndef OPERATOR_H
 #define OPERATOR_H
 
-struct Interpreter;
-struct Object;
+#include "interpreter.h"   // IWYU pragma: keep
+#include "objectsystem.h"  // IWYU pragma: keep
 
 enum Operator {
-	// name      symbol     name is short for
+	// name      Ö code     name is short for
 	// --------------------------------------
 	OPERATOR_ADD,  // +     ADD
 	OPERATOR_SUB,  // -     SUBstract

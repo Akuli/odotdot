@@ -3,13 +3,11 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include "attribute.h"
 #include "check.h"
 #include "import.h"
 #include "interpreter.h"
 #include "lambdabuiltin.h"
-#include "method.h"
 #include "objectsystem.h"
 #include "objects/array.h"
 #include "objects/astnode.h"
@@ -26,8 +24,6 @@
 #include "objects/scope.h"
 #include "objects/stackframe.h"
 #include "objects/string.h"
-#include "operator.h"
-#include "path.h"
 #include "utf8.h"
 
 

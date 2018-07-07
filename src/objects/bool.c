@@ -1,14 +1,11 @@
 #include "bool.h"
 #include <assert.h>
 #include <stdbool.h>
-#include "../check.h"
+#include <stddef.h>
 #include "../interpreter.h"
-#include "../method.h"
 #include "../objectsystem.h"
-#include "array.h"
 #include "classobject.h"
 #include "errors.h"
-#include "null.h"
 
 static struct Object *newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {

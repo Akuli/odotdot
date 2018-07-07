@@ -1,6 +1,8 @@
 #include "library.h"
 #include <assert.h>
+#include <stddef.h>
 #include "classobject.h"
+#include "../interpreter.h"
 
 // the data of ArbitraryAttribs objects is NULL, the attributes are in attrdata (see objectsystem.h)
 // so this is just a marker class that everything behaves weirdly with....

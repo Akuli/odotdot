@@ -1,6 +1,7 @@
 #ifndef OBJECTS_ERRORS_H
 #define OBJECTS_ERRORS_H
 
+#include <stdbool.h>
 #include "../interpreter.h"     // IWYU pragma: keep
 #include "../objectsystem.h"    // IWYU pragma: keep
 

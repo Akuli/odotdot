@@ -1,9 +1,11 @@
 #include "lambdabuiltin.h"
 #include <assert.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include "attribute.h"
 #include "check.h"
+#include "interpreter.h"
 #include "objectsystem.h"
 #include "objects/array.h"
 #include "objects/block.h"

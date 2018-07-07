@@ -2,10 +2,7 @@
 #define IMPORT_H
 
 #include <stdbool.h>
-#include "unicode.h"
-
-struct Interpreter;
-struct Object;
+#include "interpreter.h"   // IWYU pragma: keep
 
 // for interpreter_new() only, other files should use interp->stdpath
 // returns a string that must be free()'d

@@ -4,7 +4,6 @@
 #include <stddef.h>
 #include "../interpreter.h"    // IWYU pragma: keep
 #include "../objectsystem.h"   // IWYU pragma: keep
-#include "../unicode.h"
 #include "../operator.h"
 
 struct AstNodeObjectData {

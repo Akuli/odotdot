@@ -1,7 +1,4 @@
-#include <src/objectsystem.h>     // IWYU pragma: keep
 #include <src/objects/integer.h>
-#include <src/unicode.h>
-#include <stdint.h>
 #include <string.h>
 #include "utils.h"
 

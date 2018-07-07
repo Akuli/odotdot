@@ -5,7 +5,6 @@
 #include "../interpreter.h"         // IWYU pragma: keep
 #include "../objectsystem.h"        // IWYU pragma: keep
 #include "../unicode.h"             // IWYU pragma: keep
-#include "function.h"
 
 // this is exposed for objectsystem.c
 struct ClassObjectData {

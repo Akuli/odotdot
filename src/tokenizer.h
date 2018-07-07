@@ -2,6 +2,7 @@
 #define TOKENIZER_H
 
 #include <stddef.h>
+#include "interpreter.h"    // IWYU pragma: keep
 #include "unicode.h"
 
 #define TOKEN_KEYWORD 'k'
@@ -9,8 +10,6 @@
 #define TOKEN_OP ';'
 #define TOKEN_STR '"'
 #define TOKEN_INT '1'
-
-struct Interpreter;
 
 struct Token {
 	char kind;

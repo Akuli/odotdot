@@ -2,10 +2,11 @@
 #include "attribute.h"
 #include <assert.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <string.h>
+#include "check.h"
+#include "interpreter.h"
 #include "method.h"
-#include "unicode.h"
+#include "objectsystem.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
 #include "objects/function.h"

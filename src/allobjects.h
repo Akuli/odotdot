@@ -5,8 +5,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+// stupid IWYU doesn't get these
 struct Object;
 struct AllObjectsItem;   // should be considered an implementation detail
+
 struct AllObjects {
 	// everything except size should be considered implementation details
 	struct AllObjectsItem **buckets;

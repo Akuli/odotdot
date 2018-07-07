@@ -4,8 +4,9 @@
 #include <stddef.h>
 #include <stdio.h>
 
-// for abort()
-#include <stdlib.h>      // IWYU pragma: keep
+// iwyu doesn't understand these, so check them yourself when iwyuing
+#include <stdlib.h>            // IWYU pragma: keep
+#include <src/interpreter.h>   // IWYU pragma: keep
 
 // these are not called assert because assert would conflict with assert.h
 // instead, replace ASS in ASSert with BUTT
@@ -20,7 +21,6 @@
 
 void *bmalloc(size_t size);
 
-#include <src/interpreter.h>
 extern struct Interpreter *testinterp;
 
 #endif   // TESTUTILS_H

@@ -2,13 +2,12 @@
 #include <assert.h>
 #include <stdarg.h>
 #include <stdbool.h>
-#include <string.h>
+#include <stddef.h>
 #include "objects/array.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
 #include "objects/mapping.h"
-#include "objects/null.h"
-#include "objects/string.h"
+#include "objectsystem.h"
 #include "unicode.h"
 
 

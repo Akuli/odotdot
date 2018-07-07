@@ -1,8 +1,8 @@
 #ifndef AST_H
 #define AST_H
 
-struct Interpreter;
-struct Token;
+#include "interpreter.h"    // IWYU pragma: keep
+#include "tokenizer.h"      // IWYU pragma: keep
 
 // TODO: make parse_expression() static?
 // these RETURN A NEW REFERENCE or NULL on error

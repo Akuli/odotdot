@@ -4,15 +4,14 @@
 #include <stdlib.h>
 #include "../attribute.h"
 #include "../check.h"
+#include "../interpreter.h"
 #include "../method.h"
 #include "../objectsystem.h"
 #include "array.h"
 #include "classobject.h"
 #include "errors.h"
-#include "function.h"
 #include "mapping.h"
 #include "null.h"
-#include "string.h"
 
 static void builtin_scope_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
 {

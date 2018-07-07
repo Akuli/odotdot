@@ -4,9 +4,8 @@
 #define OBJECTS_BOOL_H
 
 #include <stdbool.h>
-
-struct Interpreter;
-struct Object;
+#include "../interpreter.h"    // IWYU pragma: keep
+#include "../objectsystem.h"   // IWYU pragma: keep
 
 // sets yes and no to Ö true and false, as new references
 // returns a C stdbool that represents success

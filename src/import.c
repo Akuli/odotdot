@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,6 +12,7 @@
 #include "objects/array.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
+#include "objects/function.h"
 #include "objects/mapping.h"
 #include "objects/null.h"
 #include "objects/string.h"

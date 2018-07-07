@@ -4,10 +4,8 @@
 #ifndef OBJECTS_NULL_H
 #define OBJECTS_NULL_H
 
-#include <stdbool.h>
-
-struct Interpreter;
-struct Object;
+#include "../interpreter.h"   // IWYU pragma: keep
+#include "../objectsystem.h"  // IWYU pragma: keep
 
 // RETURNS A NEW REFERENCE or NULL on no mem
 struct Object *nullobject_create_noerr(struct Interpreter *interp);

@@ -6,7 +6,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include <string.h>
 #include "../check.h"
 #include "../interpreter.h"
 #include "../method.h"

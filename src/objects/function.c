@@ -1,8 +1,7 @@
 #include "function.h"
-#include <assert.h>
 #include <stdarg.h>
+#include <stddef.h>
 #include <stdlib.h>
-#include <string.h>
 #include "../attribute.h"
 #include "../check.h"
 #include "../interpreter.h"

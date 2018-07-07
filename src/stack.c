@@ -5,6 +5,7 @@
 #include "stack.h"
 
 #include "interpreter.h"
+#include "objectsystem.h"
 #include "objects/errors.h"
 
 
