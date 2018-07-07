@@ -17,28 +17,40 @@
 #include "scope.h"
 #include "string.h"
 
-ATTRIBUTE_DEFINE_SIMPLE_GETTER(definition_scope, Block)
-ATTRIBUTE_DEFINE_SIMPLE_GETTER(ast_statements, Block)
+static void blockdata_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
+{
+	struct BlockObjectData *bod = data;
+	cb(bod->definition_scope, cbdata);
+	cb(bod->ast_statements, cbdata);
+}
+
+static void blockdata_destructor(void *data) {
+	free(data);
+}
 
 static struct Object *newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Class, interp->builtins.Scope, interp->builtins.Array, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	// TODO: avoid attrdata, it's probably slowing things down
-	struct Object *block = object_new_noerr(interp, ARRAYOBJECT_GET(args, 0), (struct ObjectData){.data=NULL, .foreachref=NULL, .destructor=NULL});
-	if (!block) {
+	struct BlockObjectData *data = malloc(sizeof *data);
+	if (!data) {
 		errorobject_thrownomem(interp);
 		return NULL;
 	}
+	data->definition_scope = ARRAYOBJECT_GET(args, 1);
+	data->ast_statements = ARRAYOBJECT_GET(args, 2);
+	OBJECT_INCREF(interp, data->definition_scope);
+	OBJECT_INCREF(interp, data->ast_statements);
 
-	if (!attribute_settoattrdata(interp, block, "definition_scope", ARRAYOBJECT_GET(args, 1))) goto error;
-	if (!attribute_settoattrdata(interp, block, "ast_statements", ARRAYOBJECT_GET(args, 2))) goto error;
+	struct Object *block = object_new_noerr(interp, ARRAYOBJECT_GET(args, 0), (struct ObjectData){.data=data, .foreachref=blockdata_foreachref, .destructor=blockdata_destructor});
+	if (!block) {
+		errorobject_thrownomem(interp);
+		OBJECT_DECREF(interp, data->definition_scope);
+		OBJECT_DECREF(interp, data->ast_statements);
+		return NULL;
+	}
 	return block;
-
-error:
-	OBJECT_DECREF(interp, block);
-	return NULL;
 }
 
 // overrides Object's setup to allow arguments
@@ -47,36 +59,47 @@ static struct Object *setup(struct Interpreter *interp, struct ObjectData nullda
 }
 
 
+static struct Object *defscope_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Block, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	struct BlockObjectData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
+	OBJECT_INCREF(interp, data->definition_scope);
+	return data->definition_scope;
+}
+
+static struct Object *aststmts_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Block, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	struct BlockObjectData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
+	OBJECT_INCREF(interp, data->ast_statements);
+	return data->ast_statements;
+}
+
+
 bool blockobject_run(struct Interpreter *interp, struct Object *block, struct Object *scope)
 {
-	struct Object *ast = attribute_get(interp, block, "ast_statements");
-	if (!ast)
-		return false;
-	if (!check_type(interp, interp->builtins.Array, ast))
-		goto error;
+	for (size_t i=0; i < ARRAYOBJECT_LEN(BLOCKOBJECT_ASTSTMTS(block)); i++) {
+		struct Object *node = ARRAYOBJECT_GET(BLOCKOBJECT_ASTSTMTS(block), i);
 
-	for (size_t i=0; i < ARRAYOBJECT_LEN(ast); i++) {
-		// ast_statements attribute is an array, so it's possible to add anything into it
+		// ast_statements is an array, so it's possible to add anything into it
 		// must not have bad things happening, runast_statements expects AstNodes
-		if (!check_type(interp, interp->builtins.AstNode, ARRAYOBJECT_GET(ast, i)))
-			goto error;
+		if (!check_type(interp, interp->builtins.AstNode, node))
+			return false;
 
 		// TODO: optimize by not pushing a new frame every time?
-		struct AstNodeObjectData *astdata = ARRAYOBJECT_GET(ast, i)->objdata.data;
+		struct AstNodeObjectData *astdata = node->objdata.data;
 		if (!stack_push(interp, astdata->filename, astdata->lineno, scope))
-			goto error;
-		bool ok = runast_statement(interp, scope, ARRAYOBJECT_GET(ast, i));
+			return false;
+		bool ok = runast_statement(interp, scope, node);
 		stack_pop(interp);
 		if (!ok)
-			goto error;
+			return false;
 	}
-
-	OBJECT_DECREF(interp, ast);
 	return true;
-
-error:
-	OBJECT_DECREF(interp, ast);
-	return false;
 }
 
 
@@ -218,8 +241,8 @@ struct Object *blockobject_createclass(struct Interpreter *interp)
 	if (!method_add(interp, klass, "setup", setup)) goto error;
 	if (!method_add(interp, klass, "run", run)) goto error;
 	if (!method_add(interp, klass, "run_with_return", run_with_return)) goto error;
-	if (!attribute_add(interp, klass, "definition_scope", definition_scope_getter, NULL)) goto error;
-	if (!attribute_add(interp, klass, "ast_statements", ast_statements_getter, NULL)) goto error;
+	if (!attribute_add(interp, klass, "definition_scope", defscope_getter, NULL)) goto error;
+	if (!attribute_add(interp, klass, "ast_statements", aststmts_getter, NULL)) goto error;
 	return klass;
 
 error:
@@ -229,17 +252,22 @@ error:
 
 struct Object *blockobject_new(struct Interpreter *interp, struct Object *definition_scope, struct Object *astnodearr)
 {
-	struct Object *block = object_new_noerr(interp, interp->builtins.Block, (struct ObjectData){.data=NULL, .foreachref=NULL, .destructor=NULL});
-	if (!block) {
+	struct BlockObjectData *data = malloc(sizeof *data);
+	if (!data) {
 		errorobject_thrownomem(interp);
 		return NULL;
 	}
+	data->definition_scope = definition_scope;
+	data->ast_statements = ast_statements;
+	OBJECT_INCREF(interp, definition_scope);
+	OBJECT_INCREF(interp, ast_statements);
 
-	if (!attribute_settoattrdata(interp, block, "definition_scope", definition_scope)) goto error;
-	if (!attribute_settoattrdata(interp, block, "ast_statements", astnodearr)) goto error;
+	struct Object *block = object_new_noerr(interp, interp->builtins.Block, (struct ObjectData){.data=data, .foreachref=blockdata_foreachref, .destructor=blockdata_destructor});
+	if (!block) {
+		errorobject_thrownomem(interp);
+		OBJECT_DECREF(interp, definition_scope);
+		OBJECT_DECREF(interp, ast_statements);
+		return NULL;
+	}
 	return block;
-
-error:
-	OBJECT_INCREF(interp, block);
-	return NULL;
 }

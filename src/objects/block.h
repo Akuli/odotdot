@@ -5,7 +5,13 @@
 #include "../interpreter.h"    // IWYU pragma: keep
 #include "../objectsystem.h"   // IWYU pragma: keep
 
-// the data of block objects is NULL, instead they have an ast_nodes attribute set to an array object
+struct BlockObjectData {
+	struct Object *definition_scope;
+	struct Object *ast_statements;
+};
+
+#define BLOCKOBJECT_DEFSCOPE(obj) (((struct BlockObjectData *) (obj)->objdata.data)->definition_scope)
+#define BLOCKOBJECT_ASTSTMTS(obj) (((struct BlockObjectData *) (obj)->objdata.data)->ast_statements)
 
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *blockobject_createclass(struct Interpreter *interp);
