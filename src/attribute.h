@@ -6,9 +6,7 @@
 #include "objectsystem.h"   // IWYU pragma: keep
 #include "unicode.h"        // IWYU pragma: keep
 #include "objects/array.h"
-#include "objects/errors.h"
 #include "objects/function.h"
-#include "objects/null.h"
 
 // returns false on error
 // setter and getter can be NULL (but not both, that would do nothing)
@@ -34,5 +32,17 @@ struct Object *attribute_getfromattrdata(struct Interpreter *interp, struct Obje
 
 // returns false on error
 bool attribute_set(struct Interpreter *interp, struct Object *obj, char *attr, struct Object *val);
+
+
+// because writing getters sucks
+#define ATTRIBUTE_DEFINE_STRUCTDATA_GETTER(CLASSNAME, STRUCTNAME, MEMBERNAME) \
+static struct Object *MEMBERNAME##_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts) \
+{ \
+	if (!check_args(interp, args, interp->builtins.CLASSNAME, NULL)) return NULL; \
+	if (!check_no_opts(interp, opts)) return NULL; \
+	struct STRUCTNAME data = *(struct STRUCTNAME*) ARRAYOBJECT_GET(args, 0)->objdata.data; \
+	OBJECT_INCREF(interp, data.MEMBERNAME); \
+	return data.MEMBERNAME; \
+}
 
 #endif     // ATTRIBUTE_H

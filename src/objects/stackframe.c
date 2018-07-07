@@ -29,35 +29,9 @@ static void sf_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
 
 static void sf_destructor(void *data) { free(data); }
 
-static struct Object *filename_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, interp->builtins.StackFrame, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-
-	struct StackFrameData sfdata = *(struct StackFrameData*) ARRAYOBJECT_GET(args, 0)->objdata.data;
-	OBJECT_INCREF(interp, sfdata.filename);
-	return sfdata.filename;
-}
-
-static struct Object *lineno_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, interp->builtins.StackFrame, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-
-	struct StackFrameData sfdata = *(struct StackFrameData*) ARRAYOBJECT_GET(args, 0)->objdata.data;
-	OBJECT_INCREF(interp, sfdata.lineno);
-	return sfdata.lineno;
-}
-
-static struct Object *scope_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, interp->builtins.StackFrame, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-
-	struct StackFrameData sfdata = *(struct StackFrameData*) ARRAYOBJECT_GET(args, 0)->objdata.data;
-	OBJECT_INCREF(interp, sfdata.scope);
-	return sfdata.scope;
-}
+ATTRIBUTE_DEFINE_STRUCTDATA_GETTER(StackFrame, StackFrameData, filename)
+ATTRIBUTE_DEFINE_STRUCTDATA_GETTER(StackFrame, StackFrameData, lineno)
+ATTRIBUTE_DEFINE_STRUCTDATA_GETTER(StackFrame, StackFrameData, scope)
 
 static struct Object *newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {

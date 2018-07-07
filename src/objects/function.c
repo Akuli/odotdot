@@ -53,15 +53,7 @@ struct Object *functionobject_createclass(struct Interpreter *interp)
 }
 
 
-static struct Object *name_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, interp->builtins.Function, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-
-	struct FunctionData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
-	OBJECT_INCREF(interp, data->name);
-	return data->name;
-}
+ATTRIBUTE_DEFINE_STRUCTDATA_GETTER(Function, FunctionData, name)
 
 static struct Object *name_setter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {

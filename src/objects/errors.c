@@ -84,15 +84,8 @@ static struct Object *setup(struct Interpreter *interp, struct ObjectData thisda
 }
 
 
-static struct Object *message_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-
-	struct ErrorData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
-	OBJECT_INCREF(interp, data->message);
-	return data->message;
-}
+ATTRIBUTE_DEFINE_STRUCTDATA_GETTER(Error, ErrorData, message)
+ATTRIBUTE_DEFINE_STRUCTDATA_GETTER(Error, ErrorData, stack)
 
 static struct Object *message_setter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
@@ -104,16 +97,6 @@ static struct Object *message_setter(struct Interpreter *interp, struct ObjectDa
 	data->message = ARRAYOBJECT_GET(args, 1);
 	OBJECT_INCREF(interp, data->message);
 	return nullobject_get(interp);
-}
-
-static struct Object *stack_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-
-	struct ErrorData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
-	OBJECT_INCREF(interp, data->stack);
-	return data->stack;
 }
 
 static struct Object *stack_setter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)

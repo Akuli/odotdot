@@ -10,6 +10,7 @@
 #include "objects/errors.h"
 #include "objects/function.h"
 #include "objects/mapping.h"
+#include "objects/null.h"
 #include "objects/scope.h"
 #include "objects/string.h"
 #include "unicode.h"

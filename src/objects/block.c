@@ -58,26 +58,8 @@ static struct Object *setup(struct Interpreter *interp, struct ObjectData nullda
 	return nullobject_get(interp);
 }
 
-
-static struct Object *defscope_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, interp->builtins.Block, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-
-	struct BlockObjectData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
-	OBJECT_INCREF(interp, data->definition_scope);
-	return data->definition_scope;
-}
-
-static struct Object *aststmts_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, interp->builtins.Block, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-
-	struct BlockObjectData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
-	OBJECT_INCREF(interp, data->ast_statements);
-	return data->ast_statements;
-}
+ATTRIBUTE_DEFINE_STRUCTDATA_GETTER(Block, BlockObjectData, definition_scope)
+ATTRIBUTE_DEFINE_STRUCTDATA_GETTER(Block, BlockObjectData, ast_statements)
 
 
 bool blockobject_run(struct Interpreter *interp, struct Object *block, struct Object *scope)
@@ -241,8 +223,8 @@ struct Object *blockobject_createclass(struct Interpreter *interp)
 	if (!method_add(interp, klass, "setup", setup)) goto error;
 	if (!method_add(interp, klass, "run", run)) goto error;
 	if (!method_add(interp, klass, "run_with_return", run_with_return)) goto error;
-	if (!attribute_add(interp, klass, "definition_scope", defscope_getter, NULL)) goto error;
-	if (!attribute_add(interp, klass, "ast_statements", aststmts_getter, NULL)) goto error;
+	if (!attribute_add(interp, klass, "definition_scope", definition_scope_getter, NULL)) goto error;
+	if (!attribute_add(interp, klass, "ast_statements", ast_statements_getter, NULL)) goto error;
 	return klass;
 
 error:

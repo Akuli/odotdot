@@ -194,16 +194,7 @@ static struct Object *parent_scope_getter(struct Interpreter *interp, struct Obj
 	return res;
 }
 
-static struct Object *local_vars_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, interp->builtins.Scope, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-
-	struct Object *scope = ARRAYOBJECT_GET(args, 0);
-	struct Object *res = ((struct ScopeObjectData *) scope->objdata.data)->local_vars;
-	OBJECT_INCREF(interp, res);
-	return res;
-}
+ATTRIBUTE_DEFINE_STRUCTDATA_GETTER(Scope, ScopeObjectData, local_vars)
 
 struct Object *scopeobject_createclass(struct Interpreter *interp)
 {
