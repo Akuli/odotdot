@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../attribute.h"
+#include "../check.h"
+#include "../objectsystem.h"
 #include "../stack.h"
 #include "../utf8.h"
 #include "array.h"
@@ -10,9 +12,52 @@
 #include "integer.h"
 #include "string.h"
 
-ATTRIBUTE_DEFINE_SIMPLE_GETTER(filename, StackFrame)
-ATTRIBUTE_DEFINE_SIMPLE_GETTER(lineno, StackFrame)
-ATTRIBUTE_DEFINE_SIMPLE_GETTER(scope, StackFrame)
+struct StackFrameData {
+	struct Object *filename;
+	struct Object *lineno;
+	struct Object *scope;
+};
+
+// sf = stack frame
+static void sf_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
+{
+	struct StackFrameData sfdata = *(struct StackFrameData*) data;
+	cb(sfdata.filename, cbdata);
+	cb(sfdata.lineno, cbdata);
+	cb(sfdata.scope, cbdata);
+}
+
+static void sf_destructor(void *data) { free(data); }
+
+static struct Object *filename_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.StackFrame, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	struct StackFrameData sfdata = *(struct StackFrameData*) ARRAYOBJECT_GET(args, 0)->objdata.data;
+	OBJECT_INCREF(interp, sfdata.filename);
+	return sfdata.filename;
+}
+
+static struct Object *lineno_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.StackFrame, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	struct StackFrameData sfdata = *(struct StackFrameData*) ARRAYOBJECT_GET(args, 0)->objdata.data;
+	OBJECT_INCREF(interp, sfdata.lineno);
+	return sfdata.lineno;
+}
+
+static struct Object *scope_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.StackFrame, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	struct StackFrameData sfdata = *(struct StackFrameData*) ARRAYOBJECT_GET(args, 0)->objdata.data;
+	OBJECT_INCREF(interp, sfdata.scope);
+	return sfdata.scope;
+}
 
 static struct Object *newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
@@ -39,43 +84,43 @@ error:
 
 static struct Object *new_frame_object(struct Interpreter *interp, struct StackFrame f)
 {
-	struct Object *fobj = object_new_noerr(interp, interp->builtins.StackFrame, (struct ObjectData){.data=NULL, .foreachref=NULL, .destructor=NULL});
-	if (!fobj) {
-		errorobject_thrownomem(interp);
-		return NULL;
-	}
-
 	// TODO: is utf8 always the best possible file system encoding?
 	struct UnicodeString u;
 	if (!utf8_decode(interp, f.filename, strlen(f.filename), &u))
-		goto error;
+		return NULL;
 
 	struct Object *filename = stringobject_newfromustr(interp, u);
 	if (!filename)
-		goto error;
-
-	bool ok = attribute_settoattrdata(interp, fobj, "filename", filename);
-	OBJECT_DECREF(interp, filename);
-	if (!ok)
-		goto error;
+		return NULL;
 
 	struct Object *lineno = integerobject_newfromlonglong(interp, f.lineno);
-	if (!lineno)
-		goto error;
+	if (!lineno) {
+		OBJECT_DECREF(interp, filename);
+		return NULL;
+	}
 
-	ok = attribute_settoattrdata(interp, fobj, "lineno", lineno);
-	OBJECT_DECREF(interp, lineno);
-	if (!ok)
-		goto error;
+	struct StackFrameData *sfdata = malloc(sizeof *sfdata);
+	if (!sfdata) {
+		errorobject_thrownomem(interp);
+		OBJECT_DECREF(interp, lineno);
+		OBJECT_DECREF(interp, filename);
+		return NULL;
+	}
+	sfdata->filename = filename;
+	sfdata->lineno = lineno;
+	sfdata->scope = f.scope;
+	OBJECT_INCREF(interp, f.scope);
 
-	if (!attribute_settoattrdata(interp, fobj, "scope", f.scope))
-		goto error;
-
-	return fobj;
-
-error:
-	OBJECT_DECREF(interp, fobj);
-	return NULL;
+	struct Object *res = object_new_noerr(interp, interp->builtins.StackFrame, (struct ObjectData){.data=sfdata, .foreachref=sf_foreachref, .destructor=sf_destructor});
+	if (!res) {
+		errorobject_thrownomem(interp);
+		OBJECT_DECREF(interp, sfdata->filename);
+		OBJECT_DECREF(interp, sfdata->lineno);
+		OBJECT_DECREF(interp, sfdata->scope);
+		free(sfdata);
+		return NULL;
+	}
+	return res;
 }
 
 struct Object *stackframeobject_getstack(struct Interpreter *interp)
