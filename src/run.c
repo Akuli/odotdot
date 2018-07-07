@@ -32,7 +32,7 @@ unicode_char builtinscode[] = {
 };
 
 
-static bool run_code(struct Interpreter *interp, char *path, struct UnicodeString ucode, struct Object *scope, bool runningbuiltinsfile)
+static bool run(struct Interpreter *interp, char *path, struct UnicodeString ucode, struct Object *scope, bool runningbuiltinsfile)
 {
 	// tokenize
 	// TODO: handle errors in tokenizer.c :(
@@ -83,10 +83,15 @@ static bool run_code(struct Interpreter *interp, char *path, struct UnicodeStrin
 	return true;
 }
 
+bool run_string(struct Interpreter *interp, char *filepath, struct UnicodeString code, struct Object *scope)
+{
+	return run(interp, filepath, code, scope, false);
+}
+
 bool run_builtinsfile(struct Interpreter *interp)
 {
 	struct UnicodeString code = { .len = sizeof(builtinscode)/sizeof(builtinscode[0]), .val = builtinscode };
-	return run_code(interp, "<builtins>", code, interp->builtinscope, true);
+	return run(interp, "<builtins>", code, interp->builtinscope, true);
 }
 
 
@@ -143,7 +148,7 @@ static int read_and_run_file(struct Interpreter *interp, char *path, struct Obje
 	if (!ok)
 		return false;
 
-	int res = run_code(interp, path, uhuge, scope, runningbuiltinsfile);
+	int res = run(interp, path, uhuge, scope, runningbuiltinsfile);
 	free(uhuge.val);
 	return res;
 }

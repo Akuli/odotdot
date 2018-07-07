@@ -4,6 +4,11 @@
 #include <stdbool.h>
 #include "interpreter.h"     // IWYU pragma: keep
 #include "objectsystem.h"    // IWYU pragma: keep
+#include "unicode.h"
+
+// runs code from a string
+// filepath should be a path to the file that the code came from, or a dummy value like "<builtins>"
+bool run_string(struct Interpreter *interp, char *filepath, struct UnicodeString code, struct Object *scope);
 
 /* runs std/builtins.ö
 throws an error and returns false on failure
