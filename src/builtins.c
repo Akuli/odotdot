@@ -252,7 +252,7 @@ static struct Object *print(struct Interpreter *interp, struct ObjectData nullda
 			errorobject_throwfmt(interp, "IoError", "printing failed");
 		else
 			errorobject_throwfmt(interp, "IoError", "printing failed: %s", strerror(errno));
-		return false;
+		return NULL;
 	}
 	return nullobject_get(interp);
 }
