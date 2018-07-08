@@ -4,11 +4,10 @@ var throws = (import "utils").throws;
 # TODO: should options have == ?
 
 test "basic stuff" {
-    var lol = "hi";
-    var olol = (new Option lol);
-    assert (olol.value `same_object` lol);
-    assert (not olol.is_none);
-    assert ((olol.to_debug_string) == "<Option: \"hi\">");
+    var option = (new Option "hi");
+    assert (option.value == "hi");
+    assert (not option.is_none);
+    assert ((option.to_debug_string) == "<Option: \"hi\">");
 };
 
 test "none" {
@@ -18,4 +17,22 @@ test "none" {
     throws ValueError {
         var lol = none.value;
     };
+};
+
+test "immutable" {
+    var option = (new Option "hi");
+    assert (option.value == "hi");
+    assert (not option.is_none);
+
+    throws AttribError {
+        option.value = "lmao";
+    };
+    assert (option.value == "hi");
+    assert (not option.is_none);
+
+    throws AttribError {
+        option.is_none = true;
+    };
+    assert (option.value == "hi");
+    assert (not option.is_none);
 };
