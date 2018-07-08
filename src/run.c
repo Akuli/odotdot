@@ -27,7 +27,7 @@
 #include "utf8.h"
 
 // see Makefile
-unicode_char builtinscode[] = {
+static unicode_char builtinscode[] = {
 #include "builtinscode.h"      // IWYU pragma: keep
 };
 
