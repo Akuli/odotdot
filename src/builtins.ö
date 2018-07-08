@@ -14,9 +14,6 @@ var MathError = (new Class "MathError" Error);
 var TypeError = (new Class "TypeError" Error);
 var ValueError = (new Class "ValueError" Error);
 var VariableError = (new Class "VariableError" Error);
-var X = (new Class "X" Error);
-var Y = (new Class "Y" Error);
-var Z = (new Class "Z" Error);
 
 # delete is not there yet, it's created below
 {}.definition_scope.local_vars.get_and_delete "Class";
