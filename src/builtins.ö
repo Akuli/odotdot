@@ -51,6 +51,13 @@ add_method Bool "to_debug_string" (lambda "this" {
 
 add_method (get_class null) "to_debug_string" (lambda "this" { "null" });
 
+add_method Option "to_debug_string" (lambda "this" {
+    if this.is_none {
+        return "none";
+    };
+    return (("<Option: " + (this.value.to_debug_string)) + ">");
+});
+
 add_method Mapping "delete" (lambda "this key" {
     # like get_and_delete, but throws away the return value and returns null
     # i guess explicit > implicit or something... :D
