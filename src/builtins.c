@@ -1,8 +1,10 @@
 #include "builtins.h"
 #include <assert.h>
+#include <errno.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "attribute.h"
 #include "check.h"
 #include "import.h"
@@ -228,7 +230,7 @@ static struct Object *same_object(struct Interpreter *interp, struct ObjectData 
 }
 
 
-// TODO: error handling? or just write a serious io lib in the first place :D
+// TODO: write a lib for io and implement print with it
 static struct Object *print(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.String, NULL)) return NULL;
@@ -239,29 +241,19 @@ static struct Object *print(struct Interpreter *interp, struct ObjectData nullda
 	if (!utf8_encode(interp, *((struct UnicodeString *) ARRAYOBJECT_GET(args, 0)->objdata.data), &utf8, &utf8len))
 		return NULL;
 
-	// writing 1 byte at a time is slow, but the only other option is functions that expect \0 terminated, like fputs
-	bool contains0byte = false;
-	for (size_t i=0; i < utf8len; i++) {
-		if (utf8[i] == 0) {
-			contains0byte = true;
-			break;
-		}
+	// fwrite in c99: if size or nmemb is zero, fwrite returns zero
+	// errno for fwrite and putchar probably doesn't work on windows because c99 says nothing about it
+	errno = 0;
+	bool ok = utf8len ? fwrite(utf8, utf8len, 1, stdout)>0 : true;
+	if (ok)
+		ok = (putchar('\n') != EOF);
+	if (!ok) {
+		if (errno == 0)
+			errorobject_throwfmt(interp, "IoError", "printing failed");
+		else
+			errorobject_throwfmt(interp, "IoError", "printing failed: %s", strerror(errno));
+		return false;
 	}
-
-	if (!contains0byte) {
-		char *tmp = realloc(utf8, utf8len+1);  // if this runs out of mem (lol, very rare!), just write 1 byte at a time
-		if (tmp) {
-			tmp[utf8len] = 0;
-			puts(tmp);   // includes \n
-			free(tmp);
-			return nullobject_get(interp);
-		}
-	}
-
-	for (size_t i=0; i < utf8len; i++)
-		putchar(utf8[i]);
-	free(utf8);
-	putchar('\n');
 	return nullobject_get(interp);
 }
 
