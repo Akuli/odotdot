@@ -73,6 +73,25 @@ things that I would like to do some day. It's a mess.
 
     which could be implemented with an `eval` function
 
+- recursive `to_debug_string`s?
+
+    ```
+    ö> var a = [];
+    ö> a.push a;
+    ö> debug a;
+    ```
+
+    python does this:
+
+    ```
+    >>> a = []
+    >>> a.append(a)
+    >>> a
+    [[...]]
+    >>>
+    ```
+
+    maybe should use the `…` character instead?
 
 ## testing
 - there are lots of ötests already... which is good
