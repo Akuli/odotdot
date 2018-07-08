@@ -23,6 +23,7 @@
 #include "objects/mapping.h"
 #include "objects/null.h"
 #include "objects/object.h"
+#include "objects/option.h"
 #include "objects/scope.h"
 #include "objects/stackframe.h"
 #include "objects/string.h"
@@ -358,6 +359,8 @@ bool builtins_setup(struct Interpreter *interp)
 	interp->builtins.Class->klass = interp->builtins.Class;
 	OBJECT_INCREF(interp, interp->builtins.Class);
 
+	if (!(interp->builtins.Option = optionobject_createclass_noerr(interp))) goto nomem;
+	if (!(interp->builtins.none = optionobject_createnone_noerr(interp))) goto nomem;
 	if (!(interp->builtins.null = nullobject_create_noerr(interp))) goto nomem;
 	if (!(interp->builtins.String = stringobject_createclass_noerr(interp))) goto nomem;
 	if (!(interp->builtins.Error = errorobject_createclass_noerr(interp))) goto nomem;
@@ -383,10 +386,12 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!errorobject_addmethods(interp)) goto error;
 	if (!mappingobject_addmethods(interp)) goto error;
 	if (!functionobject_addmethods(interp)) goto error;
+	if (!optionobject_addmethods(interp)) goto error;
 
 	if (!classobject_setname(interp, interp->builtins.null->klass, "Null")) goto error;
 	if (!classobject_setname(interp, interp->builtins.Class, "Class")) goto error;
 	if (!classobject_setname(interp, interp->builtins.Object, "Object")) goto error;
+	if (!classobject_setname(interp, interp->builtins.Option, "Option")) goto error;
 	if (!classobject_setname(interp, interp->builtins.String, "String")) goto error;
 	if (!classobject_setname(interp, interp->builtins.Mapping, "Mapping")) goto error;
 	if (!classobject_setname(interp, interp->builtins.Function, "Function")) goto error;
@@ -433,10 +438,12 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!interpreter_addbuiltin(interp, "Mapping", interp->builtins.Mapping)) goto error;
 	if (!interpreter_addbuiltin(interp, "MemError", interp->builtins.nomemerr->klass)) goto error;
 	if (!interpreter_addbuiltin(interp, "Object", interp->builtins.Object)) goto error;
+	if (!interpreter_addbuiltin(interp, "Option", interp->builtins.Option)) goto error;
 	if (!interpreter_addbuiltin(interp, "Scope", interp->builtins.Scope)) goto error;
 	if (!interpreter_addbuiltin(interp, "String", interp->builtins.String)) goto error;
 	if (!interpreter_addbuiltin(interp, "true", interp->builtins.yes)) goto error;
 	if (!interpreter_addbuiltin(interp, "false", interp->builtins.no)) goto error;
+	if (!interpreter_addbuiltin(interp, "none", interp->builtins.none)) goto error;
 	if (!interpreter_addbuiltin(interp, "null", interp->builtins.null)) goto error;
 	if (!interpreter_addbuiltin(interp, "importers", interp->importstuff.importers)) goto error;
 
@@ -475,12 +482,14 @@ bool builtins_setup(struct Interpreter *interp)
 	debug(builtins.Mapping);
 	debug(builtins.MarkerError);
 	debug(builtins.Object);
+	debug(builtins.Option);
 	debug(builtins.Scope);
 	debug(builtins.StackFrame);
 	debug(builtins.String);
 	debug(builtins.null);
 	debug(builtins.yes);
 	debug(builtins.no);
+	debug(builtins.none);
 	debug(builtins.nomemerr);
 
 	debug(builtinscope);
@@ -521,11 +530,13 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(builtins.Mapping);
 	TEARDOWN(builtins.MarkerError);
 	TEARDOWN(builtins.Object);
+	TEARDOWN(builtins.Option);
 	TEARDOWN(builtins.Scope);
 	TEARDOWN(builtins.StackFrame);
 	TEARDOWN(builtins.String);
 	TEARDOWN(builtins.yes);
 	TEARDOWN(builtins.no);
+	TEARDOWN(builtins.none);
 	TEARDOWN(builtins.null);
 	TEARDOWN(builtins.nomemerr);
 	TEARDOWN(builtinscope);

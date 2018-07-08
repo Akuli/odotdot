@@ -53,11 +53,13 @@ struct Interpreter *interpreter_new(char *argv0)
 	interp->builtins.Mapping =
 	interp->builtins.MarkerError =
 	interp->builtins.Object =
+	interp->builtins.Option =
 	interp->builtins.Scope =
 	interp->builtins.StackFrame =
 	interp->builtins.String =
 	interp->builtins.yes =
 	interp->builtins.no =
+	interp->builtins.none =
 	interp->builtins.null =
 	interp->builtins.nomemerr =
 	interp->strings.else_ =

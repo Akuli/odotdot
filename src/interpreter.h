@@ -43,10 +43,12 @@ struct Interpreter {
 		struct Object *Mapping;
 		struct Object *MarkerError;   // an Error subclass for return, will probably be used for break and continue later
 		struct Object *Object;   // yes, this works
+		struct Object *Option;
 		struct Object *Scope;
 		struct Object *StackFrame;
 		struct Object *String;
 
+		struct Object *none;       // special Option with no value
 		struct Object *null;       // NOT the (void*)0 NULL, see Objects/null.{c,h}
 		struct Object *yes, *no;   // Bool objects, avoid name clash with stdbool.h
 		struct Object *nomemerr;
