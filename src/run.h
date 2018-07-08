@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include "interpreter.h"     // IWYU pragma: keep
 #include "objectsystem.h"    // IWYU pragma: keep
-#include "unicode.h"
+#include "unicode.h"         // IWYU pragma: keep
 
 // runs code from a string
 // filepath should be a path to the file that the code came from, or a dummy value like "<builtins>"
