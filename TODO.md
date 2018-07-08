@@ -5,86 +5,30 @@ things that I would like to do some day. It's a mess.
 
 ## Language design stuff
 
-- `class`: support attributes with custom getters and setters
-    - maybe something like this inside the `{ }`:
+- `class`: document `getter` and `setter`
 
-        ```
-        attrib "_thingy_value";
+    example usage:
 
-        attrib "thingy" {
-            # get and set would be functions
-            get {
-                return this._thingy_value;
-            };
-            set "new_value" {
-                if (new_value `sucks` too_much) {
-                    throw (new ValueError "it sucks!");
-                };
-                this._thingy_value = new_value
-            };
-        };
-        ```
-
-        many indents
-
-    - or maybe this:
-
-        ```
-        attrib "_thingy_value";
-
-        getter "thingy" {
-            return this._thingy_value;
-        };
-        setter "thingy new_value" {
-            if (new_value `sucks` too_much) {
-                throw (new ValueError "it sucks!");
-            };
-            this._thingy_value = new_value;
-        };
-        ```
-
-        straight-forward to implement, makes people new to ö think wtf are
-        getter and setter doing
-
-        then again, getter and setter are words that are also used in other
-        programming languages, e.g. python
-
-    - how about keyword arguments?
-
-        ```
-        attrib "_thingy_value";
-
-        attrib "thingy"
-        get: {
-            return this._thingy_value;
-        }
-        set: {     # how to pass variable name "new_value" here??
-            this._thingy_value = new_value;
-        };
-        ```
-
-        several problems:
-        - `;` goes to an unintuitive place, looks like it's missing
-        - no nice way to pass the variable name
-
-        `;` problem can be fixed with different coding style:
-
-        ```
-        attrib "thingy" get: {
-            ...
-        } set: {
-            ...
-        };
-        ```
-
-    in all cases, boilerplate getters can be simplified with the `{ asd }`
-    means `{ return asd; }` syntax:
-
-    ```
-    attrib "thingy" {
-        get { this._thingy_value };
-        ...
+    ```python
+    class "Lol" {
+        getter "x" { return 1; };
+        setter "x" "new_x" { debug new_x; };
     };
+
+    debug (new Lol).x;
+    (new Lol).x = 123;
+    ```
+
+- `class`: document `abstract`
+
+    example usage:
+
+    ```python
+    class "Lol" {
+        abstract "x";
+    };
+
+    # now (new Lol).x throws AttribError
     ```
 
 - `for`: want break and continue
@@ -103,12 +47,12 @@ things that I would like to do some day. It's a mess.
 
     - maybe it'd be best to rename Mapping to HashTable, and have
       Mapping be an abstract class
-    - obtw need to implement abstract base classes first
 
-- interactive repl? would be awesome!
-    - multiline input could be a problem, would need to implement the parser so
-      that it returns a different value for end-of-file than other errors
-        - maybe (ab)use the EOF constant from i think `<stdlib.h>`? :D
+- repl: handle multiline input
+    - the parser should return a different value for unexpected end-of-file
+      than other errors
+    - when an unexpected EOF occurs, just read another line with a `...` prompt
+      or something and concatenate
 
 - string formatting
 
@@ -142,6 +86,7 @@ things that I would like to do some day. It's a mess.
     - `token_ize()` returns a linked list, and an empty linked list is
       represented as `NULL`, which is also used for errors
 - error handling should be done with error objects
+    - especially annoying in the repl
 - rename the functions? `token_ize()` is consistent with a `Token` prefix, but
   `tokenize()` reads nicer
 
@@ -153,6 +98,7 @@ things that I would like to do some day. It's a mess.
 
 ## parse.{c,h}
 - error handling in ast.c sucks dick, should use error objects instead
+    - especially annoying in the repl
 - make ast nodes possible to inspect, manipulate and create from ö code?
 
 ## gc.{c,h}
@@ -160,6 +106,7 @@ things that I would like to do some day. It's a mess.
   maybe by invoking a library function after doing something unusually refcycly?
     - not sure if this will ever be needed, reference cycles should be rare-ish
       and nobody will notice the problem anyway
+- find and use an actual garbage collector instead of reinventing the wheel?
 
 ## more problems!
 
