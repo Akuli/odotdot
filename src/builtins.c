@@ -245,6 +245,7 @@ static struct Object *print(struct Interpreter *interp, struct ObjectData nullda
 	// errno for fwrite and putchar probably doesn't work on windows because c99 says nothing about it
 	errno = 0;
 	bool ok = utf8len ? fwrite(utf8, utf8len, 1, stdout)>0 : true;
+	free(utf8);
 	if (ok)
 		ok = (putchar('\n') != EOF);
 	if (!ok) {
