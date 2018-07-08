@@ -130,7 +130,6 @@ static int read_and_run_file(struct Interpreter *interp, char *path, struct Obje
 	}
 
 	if (ferror(f)) {    // ferror doesn't set errno
-		// TODO: use a more appropriate error class if/when it will be available
 		errorobject_throwfmt(interp, "IoError", "cannot read '%s': %s", path, strerror(errno));
 		free(huge);
 		return 0;

@@ -60,7 +60,7 @@ error:
 
 static struct Object *new_frame_object(struct Interpreter *interp, struct StackFrame f)
 {
-	// TODO: is utf8 always the best possible file system encoding?
+	// TODO: utf8 is not always the correct file system encoding
 	struct UnicodeString u;
 	if (!utf8_decode(interp, f.filename, strlen(f.filename), &u))
 		return NULL;

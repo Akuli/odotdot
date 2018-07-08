@@ -1,5 +1,4 @@
 // https://en.wikipedia.org/wiki/Hash_table
-// TODO: test more stuff
 
 #include "mapping.h"
 #include <assert.h>
@@ -219,7 +218,7 @@ bool mappingobject_set(struct Interpreter *interp, struct Object *map, struct Ob
 	https://en.wikipedia.org/wiki/Hash_table#Dynamic_resizing
 	try changing the load factor and running misc/hashtable_speedtest.c
 	java's 3/4 seems to be a really good choice for this value, at least on my system
-	TODO: modify hashtable_speedtest.c for this
+	TODO: update hashtable_speedtest.c, it's been a long time since i tested this
 	*/
 	if (data->nbuckets != LONG_MAX) {
 		float loadfactor = ((float) data->size) / data->nbuckets;

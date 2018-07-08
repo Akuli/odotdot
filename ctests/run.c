@@ -79,7 +79,6 @@ int main(int argc, char **argv)
 
 	RUN_TEST(test_tokenizer_tokenize);
 
-	// FIXME: these get into an infinite loop because ctests are ran without builtins.ö
 	void unicode_test_setup(void); unicode_test_setup();
 	RUN_TEST(test_utf8_encode);
 	RUN_TEST(test_utf8_decode);

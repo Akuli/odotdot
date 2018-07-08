@@ -173,8 +173,8 @@ struct Object *errorobject_createmarkererrorclass(struct Interpreter *interp)
 }
 
 
-// TODO: stop copy/pasting this from string.c and actually fix things
-// rn the "not enough memory" string has the wrong hash!
+// FIXME: stop copy/pasting this from string.c and actually fix things
+//        now the "not enough memory" string has the wrong hash!
 static void string_destructor(void *data)
 {
 	free(((struct UnicodeString *)data)->val);

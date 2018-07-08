@@ -1,4 +1,4 @@
-// TODO: test these, or just write a lot of code that uses them and test that
+// these are not tested because there's lots of tested code that uses these
 #include "attribute.h"
 #include <assert.h>
 #include <stdbool.h>

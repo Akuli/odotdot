@@ -1,6 +1,4 @@
-// this is not implemented in pure ö because stuff needs to be null before builtins.ö can run
-// TODO: would it make sense to have the same "marker object" type for true, false and null?
-
+// this is not implemented in pure ö because it's needed before builtins.ö can run
 #ifndef OBJECTS_NULL_H
 #define OBJECTS_NULL_H
 

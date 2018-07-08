@@ -14,8 +14,6 @@
 #include "objects/scope.h"
 #include "operator.h"
 
-// TODO: this creates lots of new strings, avoid that to speed up the interpreter
-
 // RETURNS A NEW REFERENCE
 static struct Object *runast_expression(struct Interpreter *interp, struct Object *scope, struct Object *exprnode)
 {
@@ -42,7 +40,7 @@ static struct Object *runast_expression(struct Interpreter *interp, struct Objec
 	}
 
 	if (nodedata->kind == AST_CALL) {
-		// TODO: optimize this
+		// TODO: optimize this?
 		struct Object *func = runast_expression(interp, scope, INFO_AS(AstCallInfo)->funcnode);
 		if (!func)
 			return NULL;

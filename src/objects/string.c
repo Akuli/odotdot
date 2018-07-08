@@ -420,7 +420,6 @@ struct Object *stringobject_newfromvfmt(struct Interpreter *interp, char *fmt, v
 			else if (*(fmt-1) == 'L') {   // long long
 				long long val = va_arg(ap, long long);
 
-				// TODO: don't copy/paste from above, move the stringifying code here instead?
 				struct Object *intobj = integerobject_newfromlonglong(interp, val);
 				if (!intobj)
 					goto error;

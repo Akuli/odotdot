@@ -20,9 +20,6 @@ struct Object *astnodeobject_createclass(struct Interpreter *interp);
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *astnodeobject_new(struct Interpreter *interp, char kind, char *filename, size_t lineno, void *info);
 
-// TODO: expressions should also have line number information
-#define ast_new_expression(interp, kind, info) ast_new_statement((interp), (kind), 0, (info))
-
 
 // expressions
 // TODO: get rid of the //lol macros

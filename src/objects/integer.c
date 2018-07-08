@@ -1,5 +1,4 @@
 // TODO: implement bignums? maybe a pure-ö BigInteger class?
-// TODO: better error handling than asserts
 
 #include "integer.h"
 #include <assert.h>

@@ -102,7 +102,7 @@ struct Object *interpreter_getbuiltin(struct Interpreter *interp, char *name)
 	struct Object *ret;
 	int status = mappingobject_get(interp, SCOPEOBJECT_LOCALVARS(interp->builtinscope), keystr, &ret);
 	OBJECT_DECREF(interp, keystr);
-	if (status == 0)   // FIXME: this recurses if someone deletes VariableError
+	if (status == 0)   // this recurses if someone deletes VariableError, but that's a bad idea anyway :D
 		errorobject_throwfmt(interp, "VariableError", "cannot find a built-in variable named \"%s\"", name);
 	if (status != 1)
 		return NULL;

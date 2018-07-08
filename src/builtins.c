@@ -38,10 +38,8 @@ static struct Object *subscope_of_defscope(struct Interpreter *interp, struct Ob
 	return subscope;
 }
 
-// FIXME: avoid allocating more memory in this, i think that makes this slow
 static struct Object *if_(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
-	// bool is created in builtins.ö
 	if (!check_args(interp, args, interp->builtins.Bool, interp->builtins.Block, NULL)) return NULL;
 	if (!check_opts(interp, opts, interp->strings.else_, interp->builtins.Block, NULL)) return NULL;
 
@@ -230,6 +228,7 @@ static struct Object *same_object(struct Interpreter *interp, struct ObjectData 
 }
 
 
+// TODO: error handling? or just write a serious io lib in the first place :D
 static struct Object *print(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.String, NULL)) return NULL;
@@ -240,12 +239,29 @@ static struct Object *print(struct Interpreter *interp, struct ObjectData nullda
 	if (!utf8_encode(interp, *((struct UnicodeString *) ARRAYOBJECT_GET(args, 0)->objdata.data), &utf8, &utf8len))
 		return NULL;
 
-	// TODO: avoid writing 1 byte at a time... seems to be hard with c \0 strings
+	// writing 1 byte at a time is slow, but the only other option is functions that expect \0 terminated, like fputs
+	bool contains0byte = false;
+	for (size_t i=0; i < utf8len; i++) {
+		if (utf8[i] == 0) {
+			contains0byte = true;
+			break;
+		}
+	}
+
+	if (!contains0byte) {
+		char *tmp = realloc(utf8, utf8len+1);  // if this runs out of mem (lol, very rare!), just write 1 byte at a time
+		if (tmp) {
+			tmp[utf8len] = 0;
+			puts(tmp);   // includes \n
+			free(tmp);
+			return nullobject_get(interp);
+		}
+	}
+
 	for (size_t i=0; i < utf8len; i++)
 		putchar(utf8[i]);
 	free(utf8);
 	putchar('\n');
-
 	return nullobject_get(interp);
 }
 
@@ -453,7 +469,6 @@ bool builtins_setup(struct Interpreter *interp)
 #ifdef DEBUG_BUILTINS
 	printf("things created by builtins_setup():\n");
 #define debug(x) printf("  interp->%-20s = %p\n", #x, (void *) interp->x);
-	// FIXME: this list is very outdated
 	debug(builtins.ArbitraryAttribs);
 	debug(builtins.Array);
 	debug(builtins.AstNode);
