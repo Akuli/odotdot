@@ -14,6 +14,53 @@
 #include "run.h"
 #include "unicode.h"
 #include "utf8.h"
+#include "../config.h"
+
+// most of the readline code is taken from 'Programming with GNU Readline' in 'info readline'
+#ifdef HAVE_READLINE
+# include <readline/readline.h>
+# include <readline/history.h>
+#endif
+
+// returns 1 on success, 0 on EOF and -1 on error (already printed to stderr)
+// on success, *line must be free()'d
+static int get_line(struct Interpreter *interp, char *prompt, char **line)
+{
+#ifdef HAVE_READLINE
+	char *res = readline(prompt);
+	if (!res) {
+		fputc('\n', stderr);
+		return 0;
+	}
+	if (res && *res)
+		add_history(res);
+	*line = res;
+	return 1;
+
+#else
+	fputs(prompt, stderr);
+	fflush(stderr);
+
+	// TODO: handle errors? the man page doesn't say anything, it's just eof and success
+#define SIZE 1000   // should be big enough
+	char *buf = malloc(SIZE);
+	if (!buf) {
+		fprintf(stderr, "%s: not enough memory\n", interp->argv0);
+		return -1;
+	}
+	bool eof = !fgets(buf, SIZE, stdin);
+#undef SIZE
+
+	if (eof) {
+		free(buf);
+		fputc('\n', stderr);   // makes it much better!
+		return 0;
+	}
+	*line = buf;
+	return 1;
+
+#endif     // HAVE_READLINE
+}
 
 
 static void print_and_reset_err(struct Interpreter *interp)
@@ -28,30 +75,26 @@ static void print_and_reset_err(struct Interpreter *interp)
 // more like REL (read-eval-loop) than REPL because printing is missing
 static bool repl(struct Interpreter *interp)
 {
+#ifdef HAVE_READLINE
+	rl_bind_key('\t', rl_insert);
+#endif
+
 	struct Object *scope = scopeobject_newsub(interp, interp->builtinscope);
 	if (!scope)
 		return false;
 
-	char buf[1000];   // TODO: get rid of fixed buffer size? this is quite big though
 	while (true) {
-		fprintf(stderr, "ö> ");
-		fflush(stderr);
-
-		if (!fgets(buf, sizeof(buf), stdin)) {
-			if (feof(stdin)) {
-				printf("\n");
-				OBJECT_DECREF(interp, scope);
-				return true;
-			}
-
-			// TODO: does fgets actually set errno?
-			errorobject_throwfmt(interp, "IoError", "cannot read line from stdin: %s\n", strerror(errno));
+		char *line;
+		int status = get_line(interp, "ö> ", &line);
+		if (status == -1 || status == 0) {
 			OBJECT_DECREF(interp, scope);
-			return false;
+			return (status == 0);   // true on success, false on failure
 		}
 
 		struct UnicodeString code;
-		if (!utf8_decode(interp, buf, strlen(buf), &code)) {
+		bool ok = utf8_decode(interp, line, strlen(line), &code);
+		free(line);
+		if (!ok) {
 			OBJECT_DECREF(interp, scope);
 			return false;
 		}
@@ -67,7 +110,7 @@ static bool repl(struct Interpreter *interp)
 		if (wsonly)
 			continue;
 
-		bool ok = run_string(interp, "<repl>", code, scope);
+		ok = run_string(interp, "<repl>", code, scope);
 		free(code.val);
 		if (!ok)
 			print_and_reset_err(interp);
@@ -100,15 +143,15 @@ int main(int argc, char **argv)
 	}
 
 	bool ok;
-	if (argc == 2)
+	if (argc == 2) {
 		ok = run_mainfile(interp, argv[1]);
-	else
+		if (!ok)
+			print_and_reset_err(interp);
+	} else
 		ok = repl(interp);
-	if (!ok) {
-		print_and_reset_err(interp);
-		returnval = 1;
-	}
 
+	if (!ok)
+		returnval = 1;
 	// "fall through" to end
 
 end:

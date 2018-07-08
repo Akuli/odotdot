@@ -12,12 +12,17 @@
 Install `make`, a C compiler and `git`. For example, if you're using a
 Debian-based Linux distribution like Ubuntu or Mint, run this command:
 
-    $ sudo apt install gcc make git
+    $ sudo apt install gcc make git libreadline-dev
 
-Then download and compile the interpreter.
+You don't need to install `libreadline-dev`, but if you install it, the
+interactive REPL will have features that you expect it to have, like pressing
+arrow up to go to the previously entered line.
+
+Next you can download and compile the interpreter.
 
     $ git clone https://github.com/akuli/odotdot
     $ cd odotdot
+    $ ./configure
     $ make
 
 You should get lots of output, but no errors.

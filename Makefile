@@ -4,6 +4,8 @@ CFLAGS += -Wall -Wextra -Wpedantic -std=c99 -Wno-unused-parameter
 # TODO: comment this out some day? this is for debugging with gdb and valgrind
 CFLAGS += -g
 
+LDFLAGS += $(shell cat ldflags.txt)
+
 SRC := $(filter-out src/main.c, $(wildcard src/*.c src/objects/*.c src/builtins/*.c))
 OBJ := $(SRC:src/%.c=obj/%.o)
 HEADERS := $(filter-out src/builtinscode.h, $(wildcard src/*.h))
@@ -15,9 +17,12 @@ all: ö
 	@echo
 	@echo
 	@echo 'The Ö interpreter was compiled and tested successfully! :D'
+	@echo "Run './ö examples/hello.ö' to get a hello world or './ö' for interactive REPL."
 
-ö: $(OBJ) src/main.c
-	$(CC) -I. $(CFLAGS) src/main.c $(OBJ) -o ö
+# TODO: add config.h dependencies in other places when other files than main.c need it
+#       this way things will compile after re-running ./configure
+ö: $(OBJ) src/main.c config.h
+	$(CC) -I. $(CFLAGS) src/main.c $(OBJ) -o ö $(LDFLAGS)
 
 .PHONY: clean
 clean:
@@ -31,19 +36,19 @@ src/run.c: src/builtinscode.h
 
 # FIXME: making run.c depend on builtinscode.h doesn't seem to wörk, so we need this
 obj/run.o: src/run.c src/builtinscode.h $(HEADERS)
-	mkdir -p $(@D) && $(CC) -c -o $@ $< $(CFLAGS)
+	mkdir -p $(@D) && $(CC) -c -o $@ $< $(CFLAGS) $(LDFLAGS)
 
 misc-compiled/%: misc/%.c $(filter-out obj/run.o, $(OBJ))
-	mkdir -p $(@D) && $(CC) -o $@ $(OBJ) $(CFLAGS) $< -I.
+	mkdir -p $(@D) && $(CC) -o $@ $(OBJ) $(CFLAGS) $(LDFLAGS) $< -I.
 
 misc-compiled/xd: misc/xd.c
-	mkdir -p $(@D) && $(CC) -o $@ $(CFLAGS) $<
+	mkdir -p $(@D) && $(CC) -o $@ $(CFLAGS) $(LDFLAGS) $<
 
 obj/%.o: src/%.c $(HEADERS)
-	mkdir -p $(@D) && $(CC) -c -o $@ $< $(CFLAGS)
+	mkdir -p $(@D) && $(CC) -c -o $@ $< $(CFLAGS) $(LDFLAGS)
 
 ctestsrunner: $(CTESTS_SRC) $(OBJ)
-	$(CC) -I. $(CFLAGS) $(CTESTS_SRC) $(OBJ) -o ctestsrunner
+	$(CC) -I. $(CFLAGS) $(LDFLAGS) $(CTESTS_SRC) $(OBJ) -o ctestsrunner
 
 .PHONY: iwyu
 iwyu:
