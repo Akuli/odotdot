@@ -15,7 +15,6 @@
 #include "errors.h"
 #include "function.h"
 #include "mapping.h"
-#include "null.h"
 #include "scope.h"
 #include "string.h"
 
@@ -57,7 +56,8 @@ static struct Object *newinstance(struct Interpreter *interp, struct Object *arg
 
 // overrides Object's setup to allow arguments
 static struct Object *setup(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts) {
-	return nullobject_get(interp);
+	OBJECT_INCREF(interp, interp->builtins.none);
+	return interp->builtins.none;
 }
 
 ATTRIBUTE_DEFINE_STRUCTDATA_GETTER(Block, BlockObjectData, definition_scope)
@@ -94,20 +94,11 @@ void markerdata_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
 
 static struct Object *returner_cfunc(struct Interpreter *interp, struct ObjectData markerdata, struct Object *args, struct Object *opts)
 {
-	struct Object *markererr = markerdata.data;
+	if (!check_args(interp, args, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
+	struct Object *markererr = markerdata.data;
 
-	struct Object *gonnareturn;
-	if (ARRAYOBJECT_LEN(args) == 0)
-		gonnareturn = interp->builtins.null;
-	else if (ARRAYOBJECT_LEN(args) == 1)
-		gonnareturn = ARRAYOBJECT_GET(args, 0);
-	else {
-		errorobject_throwfmt(interp, "ArgError", "return must be called with no args or exactly 1 arg");
-		return NULL;
-	}
-
-	if (!attribute_settoattrdata(interp, markererr, "value", gonnareturn))
+	if (!attribute_settoattrdata(interp, markererr, "value", ARRAYOBJECT_GET(args, 0)))
 		return NULL;
 
 	errorobject_throw(interp, markererr);
@@ -159,7 +150,10 @@ struct Object *blockobject_runwithreturn(struct Interpreter *interp, struct Obje
 		// it didn't return
 		bool ok = delete_returner(interp, scope);
 		OBJECT_DECREF(interp, marker);
-		return ok ? nullobject_get(interp) : NULL;
+		if (!ok)
+			return NULL;
+		OBJECT_INCREF(interp, interp->builtins.none);
+		return interp->builtins.none;
 	}
 	assert(interp->err);
 
@@ -204,7 +198,10 @@ static struct Object *run(struct Interpreter *interp, struct ObjectData thisdata
 	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *block = thisdata.data;
 	struct Object *scope = ARRAYOBJECT_GET(args, 0);
-	return blockobject_run(interp, block, scope) ? nullobject_get(interp) : NULL;
+	if (!blockobject_run(interp, block, scope))
+		return NULL;
+	OBJECT_INCREF(interp, interp->builtins.none);
+	return interp->builtins.none;
 }
 
 static struct Object *run_with_return(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)

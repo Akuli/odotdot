@@ -10,7 +10,6 @@
 #include "bool.h"
 #include "classobject.h"
 #include "errors.h"
-#include "null.h"
 
 // none is represented with NULL data, otherwise the data is the value
 // but none's foreachref is also set to NULL, so no need to check for that here
@@ -51,7 +50,8 @@ struct Object *optionobject_createnone_noerr(struct Interpreter *interp)
 // newinstance does everything, this does nothing just to allow passing arguments handled by newinstance
 static struct Object *setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	return nullobject_get(interp);
+	OBJECT_INCREF(interp, interp->builtins.none);
+	return interp->builtins.none;
 }
 
 static struct Object *isnone_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
@@ -81,4 +81,16 @@ bool optionobject_addmethods(struct Interpreter *interp)
 	if (!attribute_add(interp, interp->builtins.Option, "is_none", isnone_getter, NULL)) return false;
 	if (!attribute_add(interp, interp->builtins.Option, "value", value_getter, NULL)) return false;
 	return true;
+}
+
+
+struct Object *optionobject_new(struct Interpreter *interp, struct Object *val)
+{
+	struct Object *option = object_new_noerr(interp, interp->builtins.Option, (struct ObjectData){.data=val, .foreachref=option_foreachref, .destructor=NULL});
+	if (!option) {
+		errorobject_thrownomem(interp);
+		return NULL;
+	}
+	OBJECT_INCREF(interp, val);     // for the option's data
+	return option;
 }

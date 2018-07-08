@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include "../attribute.h"
 #include "../check.h"
-#include "function.h"
 #include "../interpreter.h"
 #include "../objectsystem.h"
 #include "../operator.h"
@@ -14,9 +13,11 @@
 #include "array.h"
 #include "bool.h"
 #include "classobject.h"
+#include "function.h"
 #include "errors.h"
+#include "function.h"
 #include "integer.h"
-#include "null.h"
+#include "option.h"
 
 // hash should be a signed long, nbuckets should be an unsigned long
 // casting signed to unsigned is apparently well-defined 0_o
@@ -138,7 +139,8 @@ static struct Object *setup(struct Interpreter *interp, struct ObjectData thisda
 			return NULL;
 	}
 
-	return nullobject_get(interp);
+	OBJECT_INCREF(interp, interp->builtins.none);
+	return interp->builtins.none;
 }
 
 
@@ -254,7 +256,10 @@ static struct Object *set(struct Interpreter *interp, struct ObjectData thisdata
 	struct Object *map = thisdata.data;
 	struct Object *key = ARRAYOBJECT_GET(args, 0);
 	struct Object *val = ARRAYOBJECT_GET(args, 1);
-	return mappingobject_set(interp, map, key, val) ? nullobject_get(interp) : NULL;
+	if (!mappingobject_set(interp, map, key, val))
+		return NULL;
+	OBJECT_INCREF(interp, interp->builtins.none);
+	return interp->builtins.none;
 }
 
 
@@ -396,14 +401,18 @@ starthere:
 }
 
 
+#define BOOL_OPTION(interp, b) optionobject_new((interp), (b) ? (interp)->builtins.yes : (interp)->builtins.no)
+
 static struct Object *eq(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct Object *map1 = ARRAYOBJECT_GET(args, 0), *map2 = ARRAYOBJECT_GET(args, 1);
-	if (!(classobject_isinstanceof(map1, interp->builtins.Mapping) && classobject_isinstanceof(map2, interp->builtins.Mapping)))
-		return nullobject_get(interp);
+	if (!(classobject_isinstanceof(map1, interp->builtins.Mapping) && classobject_isinstanceof(map2, interp->builtins.Mapping))) {
+		OBJECT_INCREF(interp, interp->builtins.none);
+		return interp->builtins.none;
+	}
 
 	// mappings are equal if they have same keys and values
 	// that's true if and only if for every key of a, a.get(key) == b.get(key)
@@ -411,7 +420,7 @@ static struct Object *eq(struct Interpreter *interp, struct ObjectData nulldata,
 	// or a and b have same number of keys but different keys, and .get() fails
 
 	if (MAPPINGOBJECT_SIZE(map1) != MAPPINGOBJECT_SIZE(map2))
-		return boolobject_get(interp, false);
+		return BOOL_OPTION(interp, false);
 
 	struct MappingObjectIter iter;
 	mappingobject_iterbegin(&iter, map1);
@@ -422,7 +431,7 @@ static struct Object *eq(struct Interpreter *interp, struct ObjectData nulldata,
 		if (res == -1)
 			return NULL;
 		if (res == 0)
-			return boolobject_get(interp, false);
+			return BOOL_OPTION(interp, false);
 		assert(res == 1);
 
 		// ok, so we found the value... let's compare
@@ -431,12 +440,12 @@ static struct Object *eq(struct Interpreter *interp, struct ObjectData nulldata,
 		if (res == -1)
 			return NULL;
 		if (res == 0)
-			return boolobject_get(interp, false);
+			return BOOL_OPTION(interp, false);
 		assert(res == 1);
 	}
 
 	// no differences found
-	return boolobject_get(interp, true);
+	return BOOL_OPTION(interp, true);
 }
 
 bool mappingobject_initoparrays(struct Interpreter *interp) {

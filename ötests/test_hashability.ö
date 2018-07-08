@@ -14,7 +14,7 @@ var hashables = [
     {print "Hi";}
     {print "Hi";}.definition_scope
     ({print "Hi";}.ast_statements.get 0)
-    null
+    none
     true
     false
 ];
@@ -25,10 +25,21 @@ var non_hashables = [
     []
     {}.ast_statements
 
+    # TODO: (new Option []) shouldn't be hashable
+
     # mappings constructed in different ways
     (new Mapping)
     {}.definition_scope.local_vars
 ];
+
+# options of hashables are hashable
+# (....slice 0) copies
+foreach "hashable" (hashables.slice 0) {
+    hashables.push (new Option hashable);
+    hashables.push (new Option (new Option hashable));   # options of options... why not
+};
+
+# TODO: options of non-hashables should be non-hashable
 
 
 test "hashables and not-hashables as mapping keys" {

@@ -6,41 +6,33 @@ test "important basic stuff" {
     assert (true == true);
     assert (false == false);
     assert (true != false);
-
-    func "ignore x" { };
-    throws TypeError { ignore (true == null); };
-    throws TypeError { ignore (false == null); };
-    throws TypeError { ignore (true != null); };
-    throws TypeError { ignore (false != null); };
 };
 
 test "classes" {
     assert ((get_class true) `same_object` Bool);
     assert ((get_class false) `same_object` Bool);
-    assert (not (null `is_instance_of` Bool));
-    assert (not (true `is_instance_of` (get_class null)));
-    assert (not (false `is_instance_of` (get_class null)));
-    throws VariableError { debug Null; };
-
     assert (Bool.name == "Bool");
-    assert ((get_class null).name == "Null");
 };
 
 test "to_string" {
     throws AttribError { true.to_string; };
     throws AttribError { false.to_string; };
-    throws AttribError { null.to_string; };
 };
 
 test "to_debug_string" {
     assert ((true.to_debug_string) == "true");
     assert ((false.to_debug_string) == "false");
-    assert ((null.to_debug_string) == "null");
 };
 
-test "creating more instances that make no sense" {
-    throws TypeError { new Bool; };
-    throws TypeError { new (get_class null); };
+test "creating more Bools" {
+    throws TypeError {
+        var file_not_found = (new Bool);
+    };
+
+    class "ThreeStateBool" inherits: Bool { };
+    throws TypeError {
+        var file_not_found = (new ThreeStateBool);
+    };
 };
 
 test "and, or" {

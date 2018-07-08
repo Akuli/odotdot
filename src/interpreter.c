@@ -60,7 +60,6 @@ struct Interpreter *interpreter_new(char *argv0)
 	interp->builtins.yes =
 	interp->builtins.no =
 	interp->builtins.none =
-	interp->builtins.null =
 	interp->builtins.nomemerr =
 	interp->strings.else_ =
 	interp->strings.empty =

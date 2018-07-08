@@ -4,14 +4,14 @@ export {
     };
 
     func "throws errorclass body" {
-        var threw = null;
+        var lol = 0;
         catch {
             body.run (new Scope body.definition_scope);
-            threw = false;
+            lol = (lol+13);
         } errorclass {
-            threw = true;
+            lol = (lol+7);
         };
-        assert threw;
+        assert (lol == 7);
     };
 
     # TODO: make this a string method

@@ -21,7 +21,6 @@
 #include "objects/integer.h"
 #include "objects/library.h"
 #include "objects/mapping.h"
-#include "objects/null.h"
 #include "objects/object.h"
 #include "objects/option.h"
 #include "objects/scope.h"
@@ -74,7 +73,8 @@ static struct Object *if_(struct Interpreter *interp, struct ObjectData nulldata
 
 	if (elseblock)
 		OBJECT_DECREF(interp, elseblock);
-	return nullobject_get(interp);
+	OBJECT_INCREF(interp, interp->builtins.none);
+	return interp->builtins.none;
 
 error:
 	if (elseblock)
@@ -131,7 +131,8 @@ static struct Object *for_(struct Interpreter *interp, struct ObjectData nulldat
 	}
 
 	OBJECT_DECREF(interp, scope);
-	return nullobject_get(interp);
+	OBJECT_INCREF(interp, interp->builtins.none);
+	return interp->builtins.none;
 }
 
 static struct Object *throw(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
@@ -179,8 +180,10 @@ static struct Object *catch(struct Interpreter *interp, struct ObjectData nullda
 	struct Object *scope = subscope_of_defscope(interp, trying);
 	bool ok = blockobject_run(interp, trying, scope);
 	OBJECT_DECREF(interp, scope);
-	if (ok)
-		return nullobject_get(interp);
+	if (ok) {
+		OBJECT_INCREF(interp, interp->builtins.none);
+		return interp->builtins.none;
+	}
 
 	assert(interp->err);
 
@@ -209,7 +212,11 @@ static struct Object *catch(struct Interpreter *interp, struct ObjectData nullda
 
 	ok = blockobject_run(interp, caught, scope);
 	OBJECT_DECREF(interp, scope);
-	return ok ? nullobject_get(interp) : NULL;
+
+	if (!ok)
+		return NULL;
+	OBJECT_INCREF(interp, interp->builtins.none);
+	return interp->builtins.none;
 }
 
 
@@ -256,7 +263,8 @@ static struct Object *print(struct Interpreter *interp, struct ObjectData nullda
 			errorobject_throwfmt(interp, "IoError", "printing failed: %s", strerror(errno));
 		return NULL;
 	}
-	return nullobject_get(interp);
+	OBJECT_INCREF(interp, interp->builtins.none);
+	return interp->builtins.none;
 }
 
 
@@ -361,7 +369,6 @@ bool builtins_setup(struct Interpreter *interp)
 
 	if (!(interp->builtins.Option = optionobject_createclass_noerr(interp))) goto nomem;
 	if (!(interp->builtins.none = optionobject_createnone_noerr(interp))) goto nomem;
-	if (!(interp->builtins.null = nullobject_create_noerr(interp))) goto nomem;
 	if (!(interp->builtins.String = stringobject_createclass_noerr(interp))) goto nomem;
 	if (!(interp->builtins.Error = errorobject_createclass_noerr(interp))) goto nomem;
 	if (!(interp->builtins.nomemerr = errorobject_createnomemerr_noerr(interp))) goto nomem;
@@ -388,7 +395,6 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!functionobject_addmethods(interp)) goto error;
 	if (!optionobject_addmethods(interp)) goto error;
 
-	if (!classobject_setname(interp, interp->builtins.null->klass, "Null")) goto error;
 	if (!classobject_setname(interp, interp->builtins.Class, "Class")) goto error;
 	if (!classobject_setname(interp, interp->builtins.Object, "Object")) goto error;
 	if (!classobject_setname(interp, interp->builtins.Option, "Option")) goto error;
@@ -444,7 +450,6 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!interpreter_addbuiltin(interp, "true", interp->builtins.yes)) goto error;
 	if (!interpreter_addbuiltin(interp, "false", interp->builtins.no)) goto error;
 	if (!interpreter_addbuiltin(interp, "none", interp->builtins.none)) goto error;
-	if (!interpreter_addbuiltin(interp, "null", interp->builtins.null)) goto error;
 	if (!interpreter_addbuiltin(interp, "importers", interp->importstuff.importers)) goto error;
 
 	if (!interpreter_addbuiltin(interp, "add_oparray", interp->oparrays.add)) goto error;
@@ -486,7 +491,6 @@ bool builtins_setup(struct Interpreter *interp)
 	debug(builtins.Scope);
 	debug(builtins.StackFrame);
 	debug(builtins.String);
-	debug(builtins.null);
 	debug(builtins.yes);
 	debug(builtins.no);
 	debug(builtins.none);
@@ -537,7 +541,6 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(builtins.yes);
 	TEARDOWN(builtins.no);
 	TEARDOWN(builtins.none);
-	TEARDOWN(builtins.null);
 	TEARDOWN(builtins.nomemerr);
 	TEARDOWN(builtinscope);
 	TEARDOWN(importstuff.filelibcache);

@@ -47,8 +47,8 @@ test "run and run_with_return" {
     };
     assert (ran == 4);
 
-    assert (({ }.run_with_return scope) `same_object` null);
-    assert (({ return; }.run_with_return scope) `same_object` null);
+    assert (({ }.run_with_return scope) `same_object` none);
+    throws ArgError { { return; }.run_with_return scope; };      # return needs at least 1 arg
 };
 
 test "implicit returning" {

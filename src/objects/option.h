@@ -9,6 +9,14 @@
 struct Object *optionobject_createclass_noerr(struct Interpreter *interp);
 struct Object *optionobject_createnone_noerr(struct Interpreter *interp);
 
+// wrap val in an option
+// returns a new reference on success, throws an error and returns false on failure
+struct Object *optionobject_new(struct Interpreter *interp, struct Object *val);
+
+// the value of the option, NOT as a new reference
+// bad things happen if called on none!
+#define OPTIONOBJECT_VALUE(option) ((struct Object*) (option)->objdata.data)
+
 // see builtins_setup()
 // throws an error and returns false on failure
 bool optionobject_addmethods(struct Interpreter *interp);

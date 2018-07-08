@@ -6,9 +6,9 @@ test "simple stuff" {
     var result = [];
     foreach "letter" ["x" "y" "z" "ö"] {
         switch letter {
-            case "x" { result.push 1; return; };
-            case "y" { result.push 2; return; };
-            case "z" { result.push 3; return; };
+            case "x" { result.push 1; return none; };
+            case "y" { result.push 2; return none; };
+            case "z" { result.push 3; return none; };
             default { result.push 4; };
         };
     };

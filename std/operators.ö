@@ -1,9 +1,8 @@
-assert ({}.definition_scope.parent_scope.parent_scope `same_object` null);   # parent_scope is built-in scope
+var builtin_scope = {}.definition_scope.parent_scope.value;
+assert builtin_scope.parent_scope.is_none;   # it is actually the built-in scope
 
 # the interpreter creates these as built-in functions
 # that's the only way to get stuff from the interpreter to an ö library (lol)
-var builtin_scope = {}.definition_scope.parent_scope;
-assert (builtin_scope.parent_scope `same_object` null);   # it's really the builtin scope
 var get_and_hide_builtin = builtin_scope.local_vars.get_and_delete;
 
 export {
@@ -24,34 +23,34 @@ export {
 # behaviour doesn't change with built-in stuff, which is what's in the array before this
 eq_array.push (lambda "x y" {
     if (x `same_object` y) {
-        return true;
+        return (new Option true);
     };
-    return null;
+    return none;
 });
 
 eq_array.push (lambda "x y" {
     if ((x `is_instance_of` Bool) `and` (y `is_instance_of` Bool)) {
         # have fun figuring this out
-        return ((x `and` y) `or` ((not x) `and` (not y)));
+        return (new Option ((x `and` y) `or` ((not x) `and` (not y))));
     };
-    return null;
+    return none;
 });
 
 eq_array.push (lambda "x y" {
     if ((x `is_instance_of` Array) `and` (y `is_instance_of` Array)) {
         if (x.length != y.length) {
-            return false;
+            return (new Option false);
         };
 
         for { var i=0; } { (i < x.length) } { i = (i+1); } {
             if ((x.get i) != (y.get i)) {
-                return false;
+                return (new Option false);
             };
         };
 
-        return true;
+        return (new Option true);
     };
-    return null;
+    return none;
 });
 
 # TODO: add some way to loop through Mappings and implement mapping eq here

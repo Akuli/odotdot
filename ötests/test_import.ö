@@ -57,9 +57,9 @@ test "simple importer" {
         if (string == "testie") {
             assert (stackframe.filename == this_file_name);   # called from this file
             count = (count + 1);
-            return lib;
+            return (new Option lib);
         } else: {
-            return null;
+            return none;
         };
     };
 
@@ -69,23 +69,45 @@ test "simple importer" {
     assert (count == 1);
     assert ((import "testie") `same_object` lib);
     assert (count == 2);
+
+    # other imports must still work
+    assert (((import "testfiles/import_hello").get_hello) `same_object` (import "testfiles/hello"));
+    assert (count == 2);
+    throws ValueError {
+        import "this_doesnt_exist_AIOSDJOAISJFIOAJSFO";
+    };
+    assert (count == 2);   # the importer was pushed to the end of the importers array
+
     assert ((imports.importers.pop) `same_object` importer);
 };
 
 test "bad importer" {
-    func "importer string stackframe" {
-        if (string == "testie") {
-            return "lol";  # BAD!
+    func "bad1 string stackframe" {
+        if (string == "bad1") {
+            return (new Option "lol");  # bad
         } else: {
-            return null;
+            return none;
         };
     };
 
-    imports.importers.push importer;
-    throws TypeError {
-        import "testie";
+    func "bad2 string stackframe" {
+        if (string == "bad2") {
+            return imports;   # also bad, should return an Option
+        } else: {
+            return none;
+        };
     };
-    assert ((imports.importers.pop) `same_object` importer);
+
+    imports.importers.push bad1;
+    imports.importers.push bad2;
+    throws TypeError {
+        import "bad1";
+    };
+    throws TypeError {
+        import "bad2";
+    };
+    assert ((imports.importers.pop) `same_object` bad2);
+    assert ((imports.importers.pop) `same_object` bad1);
 };
 
 # TODO: implement and test this stuff with case-insensitive file systems

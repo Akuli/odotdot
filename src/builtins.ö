@@ -49,13 +49,18 @@ add_method Bool "to_debug_string" (lambda "this" {
     return ((new Mapping [[true "true"] [false "false"]]).get this);
 });
 
-add_method (get_class null) "to_debug_string" (lambda "this" { "null" });
-
 add_method Option "to_debug_string" (lambda "this" {
     if this.is_none {
         return "none";
     };
     return (("<Option: " + (this.value.to_debug_string)) + ">");
+});
+
+add_method Option "value_or_default" (lambda "this default" {
+    if this.is_none {
+        return default;
+    };
+    return this.value;
 });
 
 add_method Mapping "delete" (lambda "this key" {
@@ -99,21 +104,18 @@ add_method Array "to_debug_string" (lambda "this" {
 # scope magic: variables created inside this thing are not visible outside it
 {
     # get the StackFrame class
-    var StackFrame = null;
+    var stackframe_option = none;
     catch {
         throw (new MathError "1 + 2 is not 3");
     } [MathError "e"] {
-        StackFrame = (get_class (e.stack.get 0));
-    };
-    if (StackFrame `same_object` null) {
-        throw (new AssertError "throw and catch don't seem to work");
+        stackframe_option = (new Option (get_class (e.stack.value.get 0)));
     };
 
-    add_method StackFrame "to_string" (lambda "this" {
+    add_method stackframe_option.value "to_string" (lambda "this" {
         return ((("file " + this.filename) + ", line ") + (this.lineno.to_string));
     });
 
-    add_method StackFrame "to_debug_string" (lambda "this" {
+    add_method stackframe_option.value "to_debug_string" (lambda "this" {
         return (("<StackFrame: " + (this.to_string)) + ">");
     });
 }.run (new Scope {}.definition_scope);
@@ -124,9 +126,9 @@ add_method Error "print_stack" (lambda "this" {
     catch {
         print (((get_class this).name + ": ") + this.message);
 
-        if (not (this.stack `same_object` null)) {
+        if (not this.stack.is_none) {
             var prefix = "in";
-            for { var stack_copy = (this.stack.slice 0); } { (stack_copy.length != 0) } {} {
+            for { var stack_copy = (this.stack.value.slice 0); } { (stack_copy.length != 0) } {} {
                 var frame = (stack_copy.pop);
                 print ((("  " + prefix) + " ") + (frame.to_string));
                 # TODO: print the source line
@@ -137,7 +139,13 @@ add_method Error "print_stack" (lambda "this" {
             };
         };
     } Error {    # avoid recursion!
-        print "got another error while printing the stack trace of an error";
+        catch {
+            print "got another error while printing the stack trace of an error";
+        } Error {
+            # printing doesn't seem to work, which is not impossible
+            # stdout could be closed or whatever
+            # not much can be done here
+        };
     };
 });
 
@@ -256,11 +264,16 @@ func "is_instance_of instance klass" {
     var subclass = (get_class instance);
 
     # check if 'subclass' is a subclass of 'klass'
-    while { (not (subclass `same_object` null)) } {
+    var running = true;
+    while { running } {
         if (subclass `same_object` klass) {
             return true;
         };
-        subclass = subclass.baseclass;
+        if subclass.baseclass.is_none {
+            running = false;   # there's no break yet :(
+        } else: {
+            subclass = subclass.baseclass.value;
+        };
     };
     return false;
 };
@@ -282,7 +295,7 @@ func "foreach varname array block" {
 
 {
     # gets and deletes a variable from built-in scope
-    var get_and_hide_builtin = {}.definition_scope.parent_scope.local_vars.get_and_delete;
+    var get_and_hide_builtin = {}.definition_scope.parent_scope.value.local_vars.get_and_delete;
 
     # objects have an attrdata mapping that attributes can store their values in
     # it's not useful anywhere else because one can just create attributes using this code
@@ -291,11 +304,7 @@ func "foreach varname array block" {
     var add_method = (get_and_hide_builtin "add_method");
 
     func "class class_name initializer_block inherits:" {
-        if (inherits `same_object` null) {
-            inherits = Object;
-        };
-
-        var klass = (new (get_class String) class_name inherits);
+        var klass = (new (get_class String) class_name (inherits.value_or_default Object));
 
         func "getter name block" {
             var function = (lambda "this" block);
@@ -357,24 +366,34 @@ func "foreach varname array block" {
     };
 
     # export class to the built-in scope, but keep get_attrdata and stuff here
-    {}.definition_scope.parent_scope.local_vars.set "class" class;
+    {}.definition_scope.parent_scope.value.local_vars.set "class" class;
 }.run (new Scope {}.definition_scope);
 
 
 {
+    # need string formatting :(
+    func "error importer returned" {
+        throw (new TypeError ((("importers should return an Option of a Library object, but " +
+            (importer.to_debug_string)) + " returned ") + (returned.to_debug_string)));
+    };
+
     # allow importers to be deleted from the built-in scope
     var importers = importers;
-    var Library = null;
+
+    # this is a funny way to get the Library class
+    # the only way to access it is to import something
+    # so for the first import, anything must be allowed
+    var Library = Object;
 
     func "import string as:" {
         # get a stack with an error
-        var stack = null;
+        var stack = [];
         catch {
             throw (new Error "oh no");
         } [Error "e"] {
-            stack = e.stack;
+            stack = e.stack.value;
         };
-        assert (not (stack `same_object` null));
+        assert (stack.length > 0);
 
         # last frame is the throw
         # the frame before that is this function
@@ -383,24 +402,23 @@ func "foreach varname array block" {
 
         foreach "importer" importers {
             var lib = (importer string frame);
+            if (not (lib `is_instance_of` Option)) {
+                error importer lib;
+            };
 
-            if (not (lib `same_object` null)) {
-                if (Library `same_object` null) {
-                    # this is a funny way to get the Library class
-                    # the only way to access it is to import something
-                    Library = (get_class lib);
-                } else: {
-                    if (not (lib `is_instance_of` Library)) {
-                        # need string formatting :(
-                        throw (new TypeError ((("importers should return a Library object or null, but " +
-                            (importer.to_debug_string)) + " returned ") + (lib.to_debug_string)));
-                    };
+            if (not lib.is_none) {
+                if (not (lib.value `is_instance_of` Library)) {
+                    error importer lib;
                 };
 
-                if (not (as `same_object` null)) {
-                    frame.scope.local_vars.set as lib;
+                if (Library `same_object` Object) {
+                    Library = (get_class lib.value);
                 };
-                return lib;
+
+                if (not as.is_none) {
+                    frame.scope.local_vars.set as.value lib.value;
+                };
+                return lib.value;
             };
         };
 
@@ -408,7 +426,7 @@ func "foreach varname array block" {
         throw (new ValueError ("cannot import " + (string.to_debug_string)));
     };
 
-    {}.definition_scope.parent_scope.local_vars.set "import" import;
+    {}.definition_scope.parent_scope.value.local_vars.set "import" import;
 }.run (new Scope {}.definition_scope);
 
 # these files do magic, they delete stuff from the built-in scope

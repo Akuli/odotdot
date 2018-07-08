@@ -3,8 +3,8 @@
 # so it's best to put it here imo
 # builtins.ö imports this file automatically when setting up other stuff is done
 
-var builtin_scope = {}.definition_scope.parent_scope;
-assert (builtin_scope.parent_scope `same_object` null);
+var builtin_scope = {}.definition_scope.parent_scope.value;
+assert builtin_scope.parent_scope.is_none;
 
 export {
     var importers = (builtin_scope.local_vars.get_and_delete "importers");
@@ -18,5 +18,5 @@ importers.push (lambda "string stackframe" {
         var no_dot_ö = (string.slice 0 (string.length-2));
         throw (new ValueError ((("import " + (no_dot_ö.to_debug_string)) + " instead of ") + (string.to_debug_string)));
     };
-    return null;
+    return none;
 });

@@ -9,6 +9,7 @@
 #include "objects/classobject.h"
 #include "objects/errors.h"
 #include "objects/function.h"
+#include "objects/option.h"
 #include "unicode.h"
 
 #define class_name(obj) (((struct ClassObjectData *) (obj)->klass->objdata.data)->name)
@@ -64,11 +65,22 @@ struct Object *operator_call(struct Interpreter *interp, enum Operator op, struc
 			return NULL;
 
 		struct Object *res = functionobject_call(interp, func, lhs, rhs, NULL);
-		if (res == interp->builtins.null) {
+		if (!res)
+			return NULL;
+		if (!check_type(interp, interp->builtins.Option, res)) {
+			OBJECT_DECREF(interp, res);
+			return NULL;
+		}
+
+		if (res == interp->builtins.none) {
 			OBJECT_DECREF(interp, res);
 			continue;
 		}
-		return res;   // NULL or a new reference
+
+		struct Object *val = OPTIONOBJECT_VALUE(res);
+		OBJECT_INCREF(interp, val);
+		OBJECT_DECREF(interp, res);
+		return val;
 	}
 
 	// nothing matching found from the oparray

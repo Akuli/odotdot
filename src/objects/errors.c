@@ -14,7 +14,7 @@
 #include "../utf8.h"
 #include "array.h"
 #include "classobject.h"
-#include "null.h"
+#include "option.h"
 #include "stackframe.h"
 #include "string.h"
 
@@ -26,8 +26,10 @@ struct ErrorData {
 
 static void error_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
 {
-	cb(((struct ErrorData *)data)->message, cbdata);
-	cb(((struct ErrorData *)data)->stack, cbdata);
+	struct ErrorData edata = *(struct ErrorData*) data;
+	cb(edata.message, cbdata);
+	if (edata.stack)
+		cb(edata.stack, cbdata);
 }
 
 static void error_destructor(void *data)
@@ -51,8 +53,7 @@ static struct Object *newinstance(struct Interpreter *interp, struct Object *arg
 	data->message = stringobject_newfromcharptr(interp, "");
 	if (!data->message)
 		return NULL;
-	data->stack = interp->builtins.null;
-	OBJECT_INCREF(interp, interp->builtins.null);
+	data->stack = NULL;
 
 	struct Object *err = object_new_noerr(interp, ARRAYOBJECT_GET(args, 0), (struct ObjectData){.data=data, .foreachref=error_foreachref, .destructor=error_destructor});
 	if (!err) {
@@ -78,12 +79,24 @@ static struct Object *setup(struct Interpreter *interp, struct ObjectData thisda
 	OBJECT_DECREF(interp, data->message);
 	data->message = ARRAYOBJECT_GET(args, 0);
 	OBJECT_INCREF(interp, data->message);
-	return nullobject_get(interp);
+	OBJECT_INCREF(interp, interp->builtins.none);
+	return interp->builtins.none;
 }
 
 
 ATTRIBUTE_DEFINE_STRUCTDATA_GETTER(Error, ErrorData, message)
-ATTRIBUTE_DEFINE_STRUCTDATA_GETTER(Error, ErrorData, stack)
+
+static struct Object *stack_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	struct ErrorData data = *(struct ErrorData*) ARRAYOBJECT_GET(args, 0)->objdata.data;
+	if (data.stack)
+		return optionobject_new(interp, data.stack);
+	OBJECT_INCREF(interp, interp->builtins.none);
+	return interp->builtins.none;
+}
 
 static struct Object *message_setter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
@@ -94,7 +107,8 @@ static struct Object *message_setter(struct Interpreter *interp, struct ObjectDa
 	OBJECT_DECREF(interp, data->message);
 	data->message = ARRAYOBJECT_GET(args, 1);
 	OBJECT_INCREF(interp, data->message);
-	return nullobject_get(interp);
+	OBJECT_INCREF(interp, interp->builtins.none);
+	return interp->builtins.none;
 }
 
 static struct Object *stack_setter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
@@ -102,21 +116,31 @@ static struct Object *stack_setter(struct Interpreter *interp, struct ObjectData
 	// doesn't make sense to check if the new stack contains nothing but StackFrames
 	// because it's possible to push anything to the array
 	// the Object must be null or an Array, that is checked below
-	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.Object, NULL)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.Option, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *err = ARRAYOBJECT_GET(args, 0);
-	struct Object *newstack = ARRAYOBJECT_GET(args, 1);
+	struct ErrorData *data = err->objdata.data;
+	struct Object *newstackopt = ARRAYOBJECT_GET(args, 1);
 
-	if (newstack != interp->builtins.null && !classobject_isinstanceof(newstack, interp->builtins.Array)) {
-		errorobject_throwfmt(interp, "TypeError", "expected null or an Array, got %D", newstack);
-		return NULL;
+	if (newstackopt == interp->builtins.none) {
+		if (data->stack)
+			OBJECT_DECREF(interp, data->stack);
+		data->stack = NULL;
+		OBJECT_INCREF(interp, interp->builtins.none);
+		return interp->builtins.none;
 	}
 
-	struct ErrorData *data = err->objdata.data;
-	OBJECT_DECREF(interp, data->stack);
+	struct Object *newstack = OPTIONOBJECT_VALUE(newstackopt);
+	if (!check_type(interp, interp->builtins.Array, newstack))
+		return NULL;
+
+	if (data->stack)
+		OBJECT_DECREF(interp, data->stack);
 	data->stack = newstack;
 	OBJECT_INCREF(interp, newstack);
-	return nullobject_get(interp);
+
+	OBJECT_INCREF(interp, interp->builtins.none);
+	return interp->builtins.none;
 }
 
 static bool print_ustr(struct Interpreter *interp, struct UnicodeString u)
@@ -142,7 +166,8 @@ static struct Object *print_stack(struct Interpreter *interp, struct ObjectData 
 	if (err == interp->builtins.nomemerr) {
 		// no more memory can be allocated
 		fprintf(stderr, "MemError: not enough memory\n");
-		return nullobject_get(interp);
+		OBJECT_INCREF(interp, interp->builtins.none);
+		return interp->builtins.none;
 	}
 
 	if (!print_ustr(interp, ((struct ClassObjectData *) err->klass->objdata.data)->name))
@@ -153,7 +178,8 @@ static struct Object *print_stack(struct Interpreter *interp, struct ObjectData 
 		return NULL;
 	fputc('\n', stderr);
 
-	return nullobject_get(interp);
+	OBJECT_INCREF(interp, interp->builtins.none);
+	return interp->builtins.none;
 }
 
 bool errorobject_addmethods(struct Interpreter *interp)
@@ -179,12 +205,11 @@ struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 	struct UnicodeString u;
 	u.len = sizeof(MESSAGE)-1;
 	u.val = malloc(sizeof(unicode_char) * u.len);
-	if (!u.val) {
+	if (!u.val)
 		return NULL;
-	}
 
 	// can't memcpy because different types
-	for (unsigned int i=0; i < sizeof(MESSAGE)-1; i++)
+	for (unsigned int i=0; i < u.len; i++)
 		u.val[i] = MESSAGE[i];
 
 	struct Object *str = stringobject_newfromustr_noerr(interp, u);
@@ -205,16 +230,13 @@ struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 		return NULL;
 	}
 
-	assert(interp->builtins.null);
 	data->message = str;
-	data->stack = interp->builtins.null;
-	OBJECT_INCREF(interp, interp->builtins.null);
+	data->stack = NULL;
 
 	struct Object *err = object_new_noerr(interp, klass, (struct ObjectData){.data=data, .foreachref=error_foreachref, .destructor=error_destructor});
 	OBJECT_DECREF(interp, klass);
 	if (!err) {
 		OBJECT_DECREF(interp, data->message);
-		OBJECT_DECREF(interp, data->stack);
 		free(data);
 		return NULL;
 	}
@@ -232,15 +254,13 @@ struct Object *errorobject_new(struct Interpreter *interp, struct Object *errorc
 
 	data->message = messagestring;
 	OBJECT_INCREF(interp, messagestring);
-	data->stack = interp->builtins.null;
-	OBJECT_INCREF(interp, interp->builtins.null);
+	data->stack = NULL;
 
 	// builtins.ö must not define any errors that can't be constructed like this
 	struct Object *err = object_new_noerr(interp, errorclass, (struct ObjectData){.data=data, .foreachref=error_foreachref, .destructor=error_destructor});
 	if (!err) {
 		errorobject_thrownomem(interp);
 		OBJECT_DECREF(interp, data->message);
-		OBJECT_DECREF(interp, data->stack);
 		free(data);
 		return NULL;
 	}
@@ -253,12 +273,11 @@ void errorobject_throw(struct Interpreter *interp, struct Object *err)
 	assert(!interp->err);
 
 	struct ErrorData *data = err->objdata.data;
-	if (data->stack == interp->builtins.null) {
+	if (!data->stack) {
 		// the stack hasn't been set yet, so we're throwing this error for the 1st time
 		struct Object *stack = stackframeobject_getstack(interp);
 		if (!stack)
 			return;
-		OBJECT_DECREF(interp, data->stack);
 		data->stack = stack;
 	}
 

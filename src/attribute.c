@@ -160,8 +160,8 @@ struct Object *attribute_getwithstringobj(struct Interpreter *interp, struct Obj
 		int res = mappingobject_get(interp, obj->attrdata, stringobj, &val);
 		if (res == 1)
 			return val;
-		if (res == 0)   // this error message doesn't mention the class because ArbitraryAttribs
-			errorobject_throwfmt(interp, "AttribError", "there's no attribute named %D", stringobj);
+		if (res == 0)
+			errorobject_throwfmt(interp, "AttribError", "%D has no %D attribute", obj, stringobj);
 		return NULL;
 	}
 

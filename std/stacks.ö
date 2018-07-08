@@ -5,7 +5,7 @@ export {
         } [MathError "e"] {
             # we don't care about the last 2 frames
             # one is calling catch, the other is this catching block
-            return (e.stack.slice 0 (e.stack.length - 2));
+            return (e.stack.value.slice 0 (e.stack.value.length - 2));
         };
 
         # the return in the catch should always run

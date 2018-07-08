@@ -14,7 +14,7 @@
 #include "array.h"
 #include "errors.h"
 #include "mapping.h"
-#include "null.h"
+#include "option.h"
 #include "string.h"
 
 static void class_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
@@ -156,7 +156,8 @@ struct Object *classobject_create_Class_noerr(struct Interpreter *interp)
 
 // override Object's setup to allow arguments
 static struct Object *setup(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts) {
-	return nullobject_get(interp);
+	OBJECT_INCREF(interp, interp->builtins.none);
+	return interp->builtins.none;
 }
 
 static struct Object *name_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
@@ -179,12 +180,11 @@ static struct Object *baseclass_getter(struct Interpreter *interp, struct Object
 	struct ClassObjectData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
 
 	if (!data->baseclass) {
-		// it's Object
-		// it could be some other class too, but only Object SHOULD have this....
-		return nullobject_get(interp);
+		assert(ARRAYOBJECT_GET(args, 0) == interp->builtins.Object);
+		OBJECT_INCREF(interp, interp->builtins.none);
+		return interp->builtins.none;
 	}
-	OBJECT_INCREF(interp, data->baseclass);
-	return data->baseclass;
+	return optionobject_new(interp, data->baseclass);
 }
 
 static struct Object *getters_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)

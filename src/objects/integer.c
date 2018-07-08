@@ -15,7 +15,7 @@
 #include "classobject.h"
 #include "errors.h"
 #include "function.h"
-#include "null.h"
+#include "option.h"
 #include "string.h"
 
 
@@ -151,7 +151,8 @@ long long integerobject_tolonglong(struct Object *integer)
 // overrides Object's setup to allow arguments
 // the arguments will go to newinstance
 static struct Object *setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts) {
-	return nullobject_get(interp);
+	OBJECT_INCREF(interp, interp->builtins.none);
+	return interp->builtins.none;
 }
 
 // TODO: implement in pure ö when division works
@@ -211,9 +212,16 @@ static struct Object *eq(struct Interpreter *interp, struct ObjectData nulldata,
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *x = ARRAYOBJECT_GET(args, 0), *y = ARRAYOBJECT_GET(args, 1);
-	if (!(classobject_isinstanceof(x, interp->builtins.Integer) && classobject_isinstanceof(x, interp->builtins.Integer)))
-		return nullobject_get(interp);
-	return boolobject_get(interp, integerobject_tolonglong(x)==integerobject_tolonglong(y));
+	if (!(classobject_isinstanceof(x, interp->builtins.Integer) && classobject_isinstanceof(x, interp->builtins.Integer))) {
+		OBJECT_INCREF(interp, interp->builtins.none);
+		return interp->builtins.none;
+	}
+	struct Object *b = boolobject_get(interp, integerobject_tolonglong(x)==integerobject_tolonglong(y));
+	if (!b)
+		return NULL;
+	struct Object *opt = optionobject_new(interp, b);
+	OBJECT_DECREF(interp, b);
+	return opt;
 }
 
 static struct Object *add(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
@@ -221,9 +229,16 @@ static struct Object *add(struct Interpreter *interp, struct ObjectData nulldata
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *x = ARRAYOBJECT_GET(args, 0), *y = ARRAYOBJECT_GET(args, 1);
-	if (classobject_isinstanceof(x, interp->builtins.Integer) && classobject_isinstanceof(x, interp->builtins.Integer))
-		return integerobject_newfromlonglong(interp, integerobject_tolonglong(x) + integerobject_tolonglong(y));
-	return nullobject_get(interp);
+	if (!(classobject_isinstanceof(x, interp->builtins.Integer) && classobject_isinstanceof(x, interp->builtins.Integer))) {
+		OBJECT_INCREF(interp, interp->builtins.none);
+		return interp->builtins.none;
+	}
+	struct Object *z = integerobject_newfromlonglong(interp, integerobject_tolonglong(x) + integerobject_tolonglong(y));
+	if (!z)
+		return NULL;
+	struct Object *opt = optionobject_new(interp, z);
+	OBJECT_DECREF(interp, z);
+	return opt;
 }
 
 static struct Object *sub(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
@@ -231,9 +246,16 @@ static struct Object *sub(struct Interpreter *interp, struct ObjectData nulldata
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *x = ARRAYOBJECT_GET(args, 0), *y = ARRAYOBJECT_GET(args, 1);
-	if (classobject_isinstanceof(x, interp->builtins.Integer) && classobject_isinstanceof(x, interp->builtins.Integer))
-		return integerobject_newfromlonglong(interp, integerobject_tolonglong(x) - integerobject_tolonglong(y));
-	return nullobject_get(interp);
+	if (!(classobject_isinstanceof(x, interp->builtins.Integer) && classobject_isinstanceof(x, interp->builtins.Integer))) {
+		OBJECT_INCREF(interp, interp->builtins.none);
+		return interp->builtins.none;
+	}
+	struct Object *z = integerobject_newfromlonglong(interp, integerobject_tolonglong(x) - integerobject_tolonglong(y));
+	if (!z)
+		return NULL;
+	struct Object *opt = optionobject_new(interp, z);
+	OBJECT_DECREF(interp, z);
+	return opt;
 }
 
 static struct Object *mul(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
@@ -241,9 +263,16 @@ static struct Object *mul(struct Interpreter *interp, struct ObjectData nulldata
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *x = ARRAYOBJECT_GET(args, 0), *y = ARRAYOBJECT_GET(args, 1);
-	if (classobject_isinstanceof(x, interp->builtins.Integer) && classobject_isinstanceof(y, interp->builtins.Integer))
-		return integerobject_newfromlonglong(interp, integerobject_tolonglong(x) * integerobject_tolonglong(y));
-	return nullobject_get(interp);
+	if (!(classobject_isinstanceof(x, interp->builtins.Integer) && classobject_isinstanceof(x, interp->builtins.Integer))) {
+		OBJECT_INCREF(interp, interp->builtins.none);
+		return interp->builtins.none;
+	}
+	struct Object *z = integerobject_newfromlonglong(interp, integerobject_tolonglong(x) * integerobject_tolonglong(y));
+	if (!z)
+		return NULL;
+	struct Object *opt = optionobject_new(interp, z);
+	OBJECT_DECREF(interp, z);
+	return opt;
 }
 
 // TODO: div
@@ -253,9 +282,16 @@ static struct Object *lt(struct Interpreter *interp, struct ObjectData nulldata,
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *x = ARRAYOBJECT_GET(args, 0), *y = ARRAYOBJECT_GET(args, 1);
-	if (classobject_isinstanceof(x, interp->builtins.Integer) && classobject_isinstanceof(y, interp->builtins.Integer))
-		return boolobject_get(interp, integerobject_tolonglong(x) < integerobject_tolonglong(y));
-	return nullobject_get(interp);
+	if (!(classobject_isinstanceof(x, interp->builtins.Integer) && classobject_isinstanceof(y, interp->builtins.Integer))) {
+		OBJECT_INCREF(interp, interp->builtins.none);
+		return interp->builtins.none;
+	}
+	struct Object *b = boolobject_get(interp, integerobject_tolonglong(x) < integerobject_tolonglong(y));
+	if (!b)
+		return NULL;
+	struct Object *opt = optionobject_new(interp, b);
+	OBJECT_DECREF(interp, b);
+	return opt;
 }
 
 

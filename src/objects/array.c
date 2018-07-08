@@ -11,7 +11,6 @@
 #include "classobject.h"
 #include "errors.h"
 #include "integer.h"
-#include "null.h"
 
 static void array_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
 {
@@ -78,7 +77,8 @@ static struct Object *set(struct Interpreter *interp, struct ObjectData thisdata
 	data->elems[i] = obj;
 	OBJECT_INCREF(interp, obj);
 
-	return nullobject_get(interp);
+	OBJECT_INCREF(interp, interp->builtins.none);
+	return interp->builtins.none;
 }
 
 static struct Object *push(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
@@ -90,7 +90,8 @@ static struct Object *push(struct Interpreter *interp, struct ObjectData thisdat
 
 	if (!arrayobject_push(interp, arr, obj))
 		return NULL;
-	return nullobject_get(interp);
+	OBJECT_INCREF(interp, interp->builtins.none);
+	return interp->builtins.none;
 }
 
 static struct Object *pop(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)

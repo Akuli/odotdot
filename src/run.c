@@ -15,7 +15,6 @@
 #include "objects/errors.h"
 #include "objects/function.h"
 #include "objects/mapping.h"
-#include "objects/null.h"
 #include "objects/scope.h"
 #include "objectsystem.h"
 #include "parse.h"
@@ -188,7 +187,8 @@ static struct Object *export_cfunc(struct Interpreter *interp, struct ObjectData
 
 	OBJECT_DECREF(interp, subscope);
 	OBJECT_DECREF(interp, filescope);
-	return nullobject_get(interp);
+	OBJECT_INCREF(interp, interp->builtins.none);
+	return interp->builtins.none;
 
 error:
 	OBJECT_DECREF(interp, subscope);

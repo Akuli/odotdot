@@ -71,7 +71,7 @@ test "scopes" {
 
     # good luck with understanding this code
     var funny_body = ((lambda "" { {scopes.push {}.definition_scope;} }));
-    assert (funny_body.definition_scope.parent_scope `same_object` {}.definition_scope);
+    assert (funny_body.definition_scope.parent_scope.value `same_object` {}.definition_scope);
 
     for { scopes.push {}.definition_scope; var i = 0; }
         { scopes.push {}.definition_scope; return (i != 2); }
@@ -85,7 +85,7 @@ test "scopes" {
     };
 
     # that scope should be a subscope of the body's definition scope
-    assert ((scopes.get 0).parent_scope `same_object` funny_body.definition_scope);
+    assert ((scopes.get 0).parent_scope.value `same_object` funny_body.definition_scope);
 };
 
 test "return in loop" {

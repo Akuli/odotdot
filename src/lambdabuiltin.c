@@ -12,7 +12,7 @@
 #include "objects/errors.h"
 #include "objects/function.h"
 #include "objects/mapping.h"
-#include "objects/null.h"
+#include "objects/option.h"
 #include "objects/scope.h"
 #include "objects/string.h"
 #include "unicode.h"
@@ -71,12 +71,26 @@ static struct Object *runner(struct Interpreter *interp, struct ObjectData data,
 			OBJECT_DECREF(interp, scope);
 			return NULL;
 		}
-		if (status == 0)
-			val = nullobject_get(interp);
-		assert(val);
 
-		bool ok = mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), ARRAYOBJECT_GET(ldata->optnames, i), val);
-		OBJECT_DECREF(interp, val);
+		struct Object *option;
+		bool optionwantsdecref;
+		if (status == 1) {
+			option = optionobject_new(interp, val);
+			OBJECT_DECREF(interp, val);
+			if (!option) {
+				OBJECT_DECREF(interp, scope);
+				return NULL;
+			}
+			optionwantsdecref = true;
+		} else {
+			assert(status == 0);
+			option = interp->builtins.none;
+			optionwantsdecref = false;
+		}
+
+		bool ok = mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), ARRAYOBJECT_GET(ldata->optnames, i), option);
+		if (optionwantsdecref)
+			OBJECT_DECREF(interp, option);
 		if (!ok) {
 			OBJECT_DECREF(interp, scope);
 			return NULL;

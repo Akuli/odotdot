@@ -11,7 +11,7 @@
 #include "classobject.h"
 #include "errors.h"
 #include "mapping.h"
-#include "null.h"
+#include "option.h"
 
 static void builtin_scope_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
 {
@@ -114,7 +114,8 @@ static struct Object *newinstance(struct Interpreter *interp, struct Object *arg
 // allow passing arguments to the constructor
 static struct Object *setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	return nullobject_get(interp);
+	OBJECT_INCREF(interp, interp->builtins.none);
+	return interp->builtins.none;
 }
 
 bool scopeobject_setvar(struct Interpreter *interp, struct Object *scope, struct Object *varname, struct Object *val)
@@ -149,8 +150,10 @@ static struct Object *set_var(struct Interpreter *interp, struct ObjectData this
 {
 	if (!check_args(interp, args, interp->builtins.String, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	return scopeobject_setvar(interp, thisdata.data, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1))
-		? nullobject_get(interp) : NULL;
+	if (!scopeobject_setvar(interp, thisdata.data, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1)))
+		return NULL;
+	OBJECT_INCREF(interp, interp->builtins.none);
+	return interp->builtins.none;
 }
 
 struct Object *scopeobject_getvar(struct Interpreter *interp, struct Object *scope, struct Object *varname)
@@ -187,10 +190,10 @@ static struct Object *parent_scope_getter(struct Interpreter *interp, struct Obj
 	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct Object *res = ((struct ScopeObjectData *) ARRAYOBJECT_GET(args, 0)->objdata.data)->parent_scope;
-	if (!res)
-		res = interp->builtins.null;
-	OBJECT_INCREF(interp, res);
-	return res;
+	if (res)
+		return optionobject_new(interp, res);
+	OBJECT_INCREF(interp, interp->builtins.none);
+	return interp->builtins.none;
 }
 
 ATTRIBUTE_DEFINE_STRUCTDATA_GETTER(Scope, ScopeObjectData, local_vars)

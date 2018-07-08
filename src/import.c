@@ -14,7 +14,7 @@
 #include "objects/errors.h"
 #include "objects/function.h"
 #include "objects/mapping.h"
-#include "objects/null.h"
+#include "objects/option.h"
 #include "objects/string.h"
 #include "objectsystem.h"
 #include "path.h"
@@ -199,8 +199,11 @@ static struct Object *file_importer(struct Interpreter *interp, struct ObjectDat
 		OBJECT_DECREF(interp, fullpathobj);
 		free(fullpath);
 	}
-	if (status == 1)
-		return cachedlib;
+	if (status == 1) {
+		struct Object *option = optionobject_new(interp, cachedlib);
+		OBJECT_DECREF(interp, cachedlib);
+		return option;   // may be NULL
+	}
 	if (status == -1)
 		return NULL;
 	assert(status == 0);
@@ -220,7 +223,8 @@ static struct Object *file_importer(struct Interpreter *interp, struct ObjectDat
 	if (status == -1) {    // file not found, try another importer
 		OBJECT_DECREF(interp, lib);
 		OBJECT_DECREF(interp, fullpathobj);
-		return nullobject_get(interp);
+		OBJECT_INCREF(interp, interp->builtins.none);
+		return interp->builtins.none;
 	}
 	if (status == 0) {   // error was thrown
 		OBJECT_DECREF(interp, lib);
@@ -236,7 +240,9 @@ static struct Object *file_importer(struct Interpreter *interp, struct ObjectDat
 		return NULL;
 	}
 
-	return lib;
+	struct Object *libopt = optionobject_new(interp, lib);
+	OBJECT_DECREF(interp, lib);
+	return libopt;
 }
 
 

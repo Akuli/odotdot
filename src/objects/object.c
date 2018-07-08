@@ -5,7 +5,6 @@
 #include "../method.h"
 #include "../objectsystem.h"
 #include "classobject.h"
-#include "null.h"
 #include "string.h"
 
 struct Object *objectobject_createclass_noerr(struct Interpreter *interp)
@@ -18,7 +17,8 @@ struct Object *objectobject_createclass_noerr(struct Interpreter *interp)
 static struct Object *setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts) {
 	if (!check_args(interp, args, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	return nullobject_get(interp);
+	OBJECT_INCREF(interp, interp->builtins.none);
+	return interp->builtins.none;
 }
 
 static struct Object *to_debug_string(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)

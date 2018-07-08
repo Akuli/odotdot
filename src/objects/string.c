@@ -29,7 +29,7 @@ check these places instead:
 #include "errors.h"
 #include "function.h"
 #include "integer.h"
-#include "null.h"
+#include "option.h"
 
 static void string_destructor(void *data)
 {
@@ -238,27 +238,31 @@ bool stringobject_addmethods(struct Interpreter *interp)
 }
 
 
+#define BOOL_OPTION(interp, b) optionobject_new((interp), (b) ? (interp)->builtins.yes : (interp)->builtins.no)
+
 static struct Object *eq(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct Object *s1 = ARRAYOBJECT_GET(args, 0), *s2 = ARRAYOBJECT_GET(args, 1);
-	if (!(classobject_isinstanceof(s1, interp->builtins.String) && classobject_isinstanceof(s2, interp->builtins.String)))
-		return nullobject_get(interp);
+	if (!(classobject_isinstanceof(s1, interp->builtins.String) && classobject_isinstanceof(s2, interp->builtins.String))) {
+		OBJECT_INCREF(interp, interp->builtins.none);
+		return interp->builtins.none;
+	}
 
 	struct UnicodeString *u1 = s1->objdata.data;
 	struct UnicodeString *u2 = s2->objdata.data;
 	if (u1->len != u2->len)
-		return boolobject_get(interp, false);
+		return BOOL_OPTION(interp, false);
 
 	// memcmp is not reliable :( https://stackoverflow.com/a/11995514
 	// TODO: use memcmp on systems where it works reliably (i have an idea for checking it)
 	for (size_t i=0; i < u1->len; i++) {
 		if (u1->val[i] != u2->val[i])
-			return boolobject_get(interp, false);
+			return BOOL_OPTION(interp, false);
 	}
-	return boolobject_get(interp, true);
+	return BOOL_OPTION(interp, true);
 }
 
 // concatenates strings
@@ -269,8 +273,10 @@ static struct Object *add(struct Interpreter *interp, struct ObjectData nulldata
 
 	struct Object *s1 = ARRAYOBJECT_GET(args, 0);
 	struct Object *s2 = ARRAYOBJECT_GET(args, 1);
-	if (!(classobject_isinstanceof(s1, interp->builtins.String) && classobject_isinstanceof(s2, interp->builtins.String)))
-		return nullobject_get(interp);
+	if (!(classobject_isinstanceof(s1, interp->builtins.String) && classobject_isinstanceof(s2, interp->builtins.String))) {
+		OBJECT_INCREF(interp, interp->builtins.none);
+		return interp->builtins.none;
+	}
 
 	struct UnicodeString u1 = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->objdata.data);
 	struct UnicodeString u2 = *((struct UnicodeString*) ARRAYOBJECT_GET(args, 1)->objdata.data);
@@ -285,7 +291,13 @@ static struct Object *add(struct Interpreter *interp, struct ObjectData nulldata
 
 	memcpy(u.val, u1.val, u1.len * sizeof(unicode_char));
 	memcpy(u.val+u1.len, u2.val, u2.len * sizeof(unicode_char));
-	return stringobject_newfromustr(interp, u);
+
+	struct Object *s = stringobject_newfromustr(interp, u);
+	if (!s)
+		return NULL;
+	struct Object *opt = optionobject_new(interp, s);
+	OBJECT_DECREF(interp, s);
+	return opt;
 }
 
 bool stringobject_initoparrays(struct Interpreter *interp) {
