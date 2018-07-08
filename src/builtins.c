@@ -357,7 +357,7 @@ bool builtins_setup(struct Interpreter *interp)
 	interp->builtins.Class->klass = interp->builtins.Class;
 	OBJECT_INCREF(interp, interp->builtins.Class);
 
-	if (!(interp->builtins.null = nullobject_create_noerr(interp))) goto error;
+	if (!(interp->builtins.null = nullobject_create_noerr(interp))) goto nomem;
 	if (!(interp->builtins.String = stringobject_createclass_noerr(interp))) goto nomem;
 	if (!(interp->builtins.Error = errorobject_createclass_noerr(interp))) goto nomem;
 	if (!(interp->builtins.nomemerr = errorobject_createnomemerr_noerr(interp))) goto nomem;
