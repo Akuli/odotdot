@@ -173,41 +173,23 @@ struct Object *errorobject_createmarkererrorclass(struct Interpreter *interp)
 }
 
 
-// FIXME: stop copy/pasting this from string.c and actually fix things
-//        now the "not enough memory" string has the wrong hash!
-static void string_destructor(void *data)
-{
-	free(((struct UnicodeString *)data)->val);
-	free(data);
-}
-
 struct Object *errorobject_createnomemerr_noerr(struct Interpreter *interp)
 {
-	// message string is created here because string constructors use interp->builtins.nomemerr and interp->err
-	// string objects are simple, the data is just a UnicodeString pointer
-	struct UnicodeString *ustr = malloc(sizeof(struct UnicodeString));
-	if (!ustr)
-		return NULL;
-
 #define MESSAGE "not enough memory"
-	ustr->len = sizeof(MESSAGE) - 1;
-	ustr->val = malloc(sizeof(unicode_char) * ustr->len);
-	if (!(ustr->val)) {
-		free(ustr);
+	struct UnicodeString u;
+	u.len = sizeof(MESSAGE)-1;
+	u.val = malloc(sizeof(unicode_char) * u.len);
+	if (!u.val) {
 		return NULL;
 	}
 
-	// can't use memcpy because different types
-	for (size_t i=0; i < ustr->len; i++)
-		ustr->val[i] = MESSAGE[i];
-#undef MESSAGE
+	// can't memcpy because different types
+	for (unsigned int i=0; i < sizeof(MESSAGE)-1; i++)
+		u.val[i] = MESSAGE[i];
 
-	struct Object *str = object_new_noerr(interp, interp->builtins.String, (struct ObjectData){.data=ustr, .foreachref=NULL, .destructor=string_destructor});
-	if (!str) {
-		free(ustr->val);
-		free(ustr);
+	struct Object *str = stringobject_newfromustr_noerr(interp, u);
+	if (!str)
 		return NULL;
-	}
 
 	// the MemError class is not stored anywhere else, builtins_setup() looks it up from interp->builtins.nomemerr
 	struct Object *klass = classobject_new_noerr(interp, interp->builtins.Error, newinstance);

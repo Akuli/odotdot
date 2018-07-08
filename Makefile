@@ -8,7 +8,7 @@ LDFLAGS += $(shell cat ldflags.txt)
 
 SRC := $(filter-out src/main.c, $(wildcard src/*.c src/objects/*.c src/builtins/*.c))
 OBJ := $(SRC:src/%.c=obj/%.o)
-HEADERS := $(filter-out src/builtinscode.h, $(wildcard src/*.h)) config.h
+HEADERS := $(filter-out src/builtinscode.h, $(wildcard src/*.h) $(wildcard src/objects/*.h)) config.h
 CTESTS_SRC := $(wildcard ctests/*.c) $(wildcard ctests/*.h)
 
 # runs when "make" or "make all" is invoked, tests.Makefile shouldn't invoke this

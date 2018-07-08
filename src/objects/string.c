@@ -305,24 +305,31 @@ static long string_hash(struct UnicodeString u)
 	return (long)hash;
 }
 
-struct Object *stringobject_newfromustr(struct Interpreter *interp, struct UnicodeString ustr)
+struct Object *stringobject_newfromustr_noerr(struct Interpreter *interp, struct UnicodeString ustr)
 {
 	struct UnicodeString *data = malloc(sizeof(struct UnicodeString));
-	if (!data) {
-		errorobject_thrownomem(interp);
+	if (!data)
 		return NULL;
-	}
 	data->len = ustr.len;
 	data->val = ustr.val;
 
 	struct Object *s = object_new_noerr(interp, interp->builtins.String, (struct ObjectData){.data=data, .foreachref=NULL, .destructor=string_destructor});
 	if (!s) {
-		errorobject_thrownomem(interp);
 		free(data->val);
 		free(data);
 		return NULL;
 	}
 	s->hash = string_hash(ustr);
+	return s;
+}
+
+struct Object *stringobject_newfromustr(struct Interpreter *interp, struct UnicodeString ustr)
+{
+	struct Object *s = stringobject_newfromustr_noerr(interp, ustr);
+	if (!s) {
+		errorobject_thrownomem(interp);
+		return NULL;
+	}
 	return s;
 }
 

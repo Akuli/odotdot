@@ -27,6 +27,9 @@ bool stringobject_initoparrays(struct Interpreter *interp);
 // ustr.val must be from malloc(), and must NOT be mutated or freed by the caller, even in error cases
 struct Object *stringobject_newfromustr(struct Interpreter *interp, struct UnicodeString ustr);
 
+// like stringobject_newfromustr, but returning NULL means ran out of mem and no error thrown yet
+struct Object *stringobject_newfromustr_noerr(struct Interpreter *interp, struct UnicodeString ustr);
+
 // RETURNS A NEW REFERENCE or NULL on error
 // ustr can come from anywhere, it'll be copied
 struct Object *stringobject_newfromustr_copy(struct Interpreter *interp, struct UnicodeString ustr);
