@@ -45,11 +45,9 @@ See [the tutorial](docs/tutorial.md) for more. There's also
 ## FAQ
 
 ### How do I type ö?
-
 With the ö key. It's right next to the ä key.
 
 ### Why did you name the programming language Ö?
-
 Ö is used quite often in Finnish, and people who aren't used to it think that
 it looks like a face with mouth fully opened.
 
@@ -59,8 +57,33 @@ it looks like a face with mouth fully opened.
 See also David Beazley's [Meẗal](https://github.com/dabeaz/me-al).
 
 ### Why is the repository named odotdot instead of ö?
-
 Because github.
+
+### Is there a REPL?
+Yes, run `./ö` without any arguments.
+
+    $ ./ö
+    ö> print "hellö wörld!";
+    hellö wörld!
+    ö>
+
+This is actually more like a REL (Read-Eval-Loop) than a REPL
+(Read-Eval-Print-Loop) because it doesn't print anything by itself...
+
+    ö> 1+2
+    ...a funny error message...
+
+...and you need to print things yourself:
+
+    ö> debug (1+2);
+    3
+    ö>
+
+The "funny error message" is not like it should be. It should be a syntax
+error, but instead it crashes the whole interpreter. This is a bug that I'll
+hopefully fix some day.
+
+You can press Ctrl+C or Ctrl+D to get out of the REPL.
 
 ## Tests
 
