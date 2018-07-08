@@ -73,7 +73,7 @@ This is actually more like a REL (Read-Eval-Loop) than a REPL
     ö> 1+2
     ...a funny error message...
 
-...and you need to print things yourself:
+...and you need to print things explicitly:
 
     ö> debug (1+2);
     3
