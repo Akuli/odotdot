@@ -19,7 +19,7 @@ operators.add_array.push (lambda "x y" {
     if ((x `is_instance_of` Lol) `and` (y `is_instance_of` Lol)) {
         return (new Option (new Lol (x.thing + y.thing)));
     };
-    return null;
+    return none;
 });
 
 var lol1 = (new Lol "hello");
