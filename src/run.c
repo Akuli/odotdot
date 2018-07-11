@@ -187,8 +187,7 @@ static struct Object *export_cfunc(struct Interpreter *interp, struct ObjectData
 
 	OBJECT_DECREF(interp, subscope);
 	OBJECT_DECREF(interp, filescope);
-	OBJECT_INCREF(interp, interp->builtins.none);
-	return interp->builtins.none;
+	return functionobject_noreturn;
 
 error:
 	OBJECT_DECREF(interp, subscope);

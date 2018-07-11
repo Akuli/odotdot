@@ -139,8 +139,7 @@ static struct Object *setup(struct Interpreter *interp, struct ObjectData thisda
 			return NULL;
 	}
 
-	OBJECT_INCREF(interp, interp->builtins.none);
-	return interp->builtins.none;
+	return functionobject_noreturn;
 }
 
 
@@ -256,10 +255,7 @@ static struct Object *set(struct Interpreter *interp, struct ObjectData thisdata
 	struct Object *map = thisdata.data;
 	struct Object *key = ARRAYOBJECT_GET(args, 0);
 	struct Object *val = ARRAYOBJECT_GET(args, 1);
-	if (!mappingobject_set(interp, map, key, val))
-		return NULL;
-	OBJECT_INCREF(interp, interp->builtins.none);
-	return interp->builtins.none;
+	return mappingobject_set(interp, map, key, val) ? functionobject_noreturn : NULL;
 }
 
 

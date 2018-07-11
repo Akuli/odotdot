@@ -15,8 +15,9 @@ var TypeError = (new Class "TypeError" Error);
 var ValueError = (new Class "ValueError" Error);
 var VariableError = (new Class "VariableError" Error);
 
-# delete is not there yet, it's created below
-{}.definition_scope.local_vars.get_and_delete "Class";
+# i need to use get_and_delete because delete is defined later
+# but returned values are not ignored... so, have fun figuring this out
+(lambda "f x" { var _ = (f x); }) {}.definition_scope.local_vars.get_and_delete "Class";
 
 var add_method = (lambda "klass name lambda_with_this" {
     var getter = (lambda "this" {
@@ -35,6 +36,11 @@ add_method (get_class add_method) "to_debug_string" (lambda "this" {
 
 add_method (get_class String) "to_debug_string" (lambda "this" {
     return (("<Class " + (this.name.to_debug_string)) + ">");
+});
+
+# TODO: remove this after debuggings
+add_method String "to_debug_string" (lambda "this" {
+    return this;
 });
 
 add_method Error "to_debug_string" (lambda "this" {
@@ -64,9 +70,7 @@ add_method Option "value_or_default" (lambda "this default" {
 });
 
 add_method Mapping "delete" (lambda "this key" {
-    # like get_and_delete, but throws away the return value and returns null
-    # i guess explicit > implicit or something... :D
-    this.get_and_delete key;
+    var _ = (this.get_and_delete key);
 });
 
 # TODO: use an option instead
@@ -126,7 +130,8 @@ add_method Error "print_stack" (lambda "this" {
     catch {
         print (((get_class this).name + ": ") + this.message);
 
-        if (not this.stack.is_none) {
+        # not isn't defined yet when this runs
+        if (this.stack.is_none `same_object` false) {
             var prefix = "in";
             for { var stack_copy = (this.stack.value.slice 0); } { (stack_copy.length != 0) } {} {
                 var frame = (stack_copy.pop);
@@ -138,15 +143,19 @@ add_method Error "print_stack" (lambda "this" {
                 };
             };
         };
-    } Error {    # avoid recursion!
+    } [Error "e"] {    # avoid recursion!
         catch {
             print "got another error while printing the stack trace of an error";
+            print (get_class e).name;
+            print e.message;
         } Error {
             # printing doesn't seem to work, which is not impossible
             # stdout could be closed or whatever
+            # or everything's just so fucked up that the error doesn't have a name or whatever
             # not much can be done here
         };
     };
+#    print "asd";
 });
 
 
@@ -401,12 +410,15 @@ func "foreach varname array block" {
         var frame = (stack.get (stack.length - 3));
 
         foreach "importer" importers {
+            debug importer;
             var lib = (importer string frame);
+            debug lib;
             if (not (lib `is_instance_of` Option)) {
                 error importer lib;
             };
 
             if (not lib.is_none) {
+                print "Asd Woot";
                 if (not (lib.value `is_instance_of` Library)) {
                     error importer lib;
                 };
@@ -415,10 +427,12 @@ func "foreach varname array block" {
                     Library = (get_class lib.value);
                 };
 
-                if (not as.is_none) {
+                if as.is_none {
+                    return lib.value;
+                } else: {
                     frame.scope.local_vars.set as.value lib.value;
+                    return;
                 };
-                return lib.value;
             };
         };
 
@@ -431,5 +445,6 @@ func "foreach varname array block" {
 
 # these files do magic, they delete stuff from the built-in scope
 # see comments in these files for details
-import "<std>/imports";
-import "<std>/operators";
+import "<std>/imports" as: "_";
+import "<std>/operators" as: "_";
+{}.definition_scope.local_vars.delete "_";

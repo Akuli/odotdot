@@ -50,8 +50,7 @@ struct Object *optionobject_createnone_noerr(struct Interpreter *interp)
 // newinstance does everything, this does nothing just to allow passing arguments handled by newinstance
 static struct Object *setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	OBJECT_INCREF(interp, interp->builtins.none);
-	return interp->builtins.none;
+	return functionobject_noreturn;
 }
 
 static struct Object *isnone_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)

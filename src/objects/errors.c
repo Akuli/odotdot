@@ -79,8 +79,7 @@ static struct Object *setup(struct Interpreter *interp, struct ObjectData thisda
 	OBJECT_DECREF(interp, data->message);
 	data->message = ARRAYOBJECT_GET(args, 0);
 	OBJECT_INCREF(interp, data->message);
-	OBJECT_INCREF(interp, interp->builtins.none);
-	return interp->builtins.none;
+	return functionobject_noreturn;
 }
 
 
@@ -316,11 +315,15 @@ void errorobject_print(struct Interpreter *interp, struct Object *err)
 	assert(!interp->err);
 
 	struct Object *res = method_call(interp, err, "print_stack", NULL);
-	if (res) {
-		OBJECT_DECREF(interp, res);
-	} else {
+	if (!res) {
 		fprintf(stderr, "\n%s: %s while printing an error\n", interp->argv0, interp->err==interp->builtins.nomemerr?"ran out of memory":"another error occurred");
 		OBJECT_DECREF(interp, interp->err);
 		interp->err = NULL;
+		return;
+	}
+	if (res != functionobject_noreturn) {
+		// print_stack returned a value
+		// this happens only if print_stack is broken... why not handle this nicely i guess
+		OBJECT_DECREF(interp, res);
 	}
 }

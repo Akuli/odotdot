@@ -73,8 +73,7 @@ static struct Object *if_(struct Interpreter *interp, struct ObjectData nulldata
 
 	if (elseblock)
 		OBJECT_DECREF(interp, elseblock);
-	OBJECT_INCREF(interp, interp->builtins.none);
-	return interp->builtins.none;
+	return functionobject_noreturn;
 
 error:
 	if (elseblock)
@@ -108,15 +107,20 @@ static struct Object *for_(struct Interpreter *interp, struct ObjectData nulldat
 			OBJECT_DECREF(interp, scope);
 			return NULL;
 		}
-
-		bool go = keepgoing==interp->builtins.yes;
-		bool omg = (keepgoing != interp->builtins.yes && keepgoing != interp->builtins.no);
-		OBJECT_DECREF(interp, keepgoing);
-		if (omg) {
-			errorobject_throwfmt(interp, "TypeError", "the condition of a for loop must return true or false, but it returned %D", keepgoing);
+		if (keepgoing == functionobject_noreturn) {
+			errorobject_throwfmt(interp, "ValueError", "the condition of a for loop didn't return anything");
 			OBJECT_DECREF(interp, scope);
 			return NULL;
 		}
+		if (keepgoing != interp->builtins.yes && keepgoing != interp->builtins.no) {
+			errorobject_throwfmt(interp, "TypeError", "the condition of a for loop must return true or false, but it returned %D", keepgoing);
+			OBJECT_DECREF(interp, keepgoing);
+			OBJECT_DECREF(interp, scope);
+			return NULL;
+		}
+
+		bool go = keepgoing==interp->builtins.yes;
+		OBJECT_DECREF(interp, keepgoing);
 		if (!go)
 			break;
 
@@ -131,8 +135,7 @@ static struct Object *for_(struct Interpreter *interp, struct ObjectData nulldat
 	}
 
 	OBJECT_DECREF(interp, scope);
-	OBJECT_INCREF(interp, interp->builtins.none);
-	return interp->builtins.none;
+	return functionobject_noreturn;
 }
 
 static struct Object *throw(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
@@ -180,10 +183,8 @@ static struct Object *catch(struct Interpreter *interp, struct ObjectData nullda
 	struct Object *scope = subscope_of_defscope(interp, trying);
 	bool ok = blockobject_run(interp, trying, scope);
 	OBJECT_DECREF(interp, scope);
-	if (ok) {
-		OBJECT_INCREF(interp, interp->builtins.none);
-		return interp->builtins.none;
-	}
+	if (ok)
+		return functionobject_noreturn;
 
 	assert(interp->err);
 
@@ -215,8 +216,7 @@ static struct Object *catch(struct Interpreter *interp, struct ObjectData nullda
 
 	if (!ok)
 		return NULL;
-	OBJECT_INCREF(interp, interp->builtins.none);
-	return interp->builtins.none;
+	return functionobject_noreturn;
 }
 
 
@@ -263,8 +263,7 @@ static struct Object *print(struct Interpreter *interp, struct ObjectData nullda
 			errorobject_throwfmt(interp, "IoError", "printing failed: %s", strerror(errno));
 		return NULL;
 	}
-	OBJECT_INCREF(interp, interp->builtins.none);
-	return interp->builtins.none;
+	return functionobject_noreturn;
 }
 
 
@@ -319,7 +318,12 @@ static struct Object *new(struct Interpreter *interp, struct ObjectData nulldata
 		OBJECT_DECREF(interp, obj);
 		return NULL;
 	}
-	OBJECT_DECREF(interp, res);
+	if (res != functionobject_noreturn) {
+		errorobject_throwfmt(interp, "ValueError", "setup should return nothing, but it returned %D", res);
+		OBJECT_DECREF(interp, res);
+		OBJECT_DECREF(interp, obj);
+		return NULL;
+	}
 
 	// no need to incref, this thing is already holding a reference to obj
 	return obj;

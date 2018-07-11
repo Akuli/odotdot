@@ -67,7 +67,13 @@ struct Object *operator_call(struct Interpreter *interp, enum Operator op, struc
 		struct Object *res = functionobject_call(interp, func, lhs, rhs, NULL);
 		if (!res)
 			return NULL;
-		if (!check_type(interp, interp->builtins.Option, res)) {
+		if (res == functionobject_noreturn) {
+			errorobject_throwfmt(interp, "TypeError", "functions in operator arrays should return Options, but %D returned nothing", func);
+			return NULL;
+		}
+		if (!classobject_isinstanceof(res, interp->builtins.Option)) {
+			// better error message than from check_type()
+			errorobject_throwfmt(interp, "TypeError", "functions in operator arrays should return Options, but %D returned %D", func, res);
 			OBJECT_DECREF(interp, res);
 			return NULL;
 		}

@@ -8,9 +8,12 @@
 // and stupid IWYU hates this and has no way to unhate this....
 struct Interpreter;
 
+// weird and special marker object, see below
+#define functionobject_noreturn ((struct Object*) 0xabc123)  // FIXME
 
 /* should
-      * RETURN A NEW REFERENCE on success
+      * RETURN A NEW REFERENCE if the function returns a value
+      * return functionobject_novalue
       * set an error (see objects/errors.h) and return NULL on failure
       * NOT modify args or pass it to anything that may modify it
 
@@ -36,14 +39,16 @@ struct Object *functionobject_new(struct Interpreter *interp, struct ObjectData 
 // returns false on error
 bool functionobject_add2array(struct Interpreter *interp, struct Object *arr, char *name, functionobject_cfunc cfunc);
 
-// example: functionobject_call(ctx, func, a, b, c, NULL) calls func with arguments a, b, c
+// example: functionobject_call(interp, func, a, b, c, NULL) calls func with arguments a, b, c
 // bad things happen if func is not a function object
-// RETURNS A NEW REFERENCE or NULL on error
+// may return (see functionobject_cfunc):
+//    * a new reference
+//    * NULL
+//    * functionobject_noreturn
 struct Object *functionobject_call(struct Interpreter *interp, struct Object *func, ...);
 
-// named kinda like vprintf
+// see functionobject_call, this is named kinda like vprintf
 // bad things happen if func is not a function object
-// RETURNS A NEW REFERENCE or NULL on error
 struct Object *functionobject_vcall(struct Interpreter *interp, struct Object *func, struct Object *args, struct Object *opts);
 
 // returns false on error

@@ -90,8 +90,7 @@ static struct Object *push(struct Interpreter *interp, struct ObjectData thisdat
 
 	if (!arrayobject_push(interp, arr, obj))
 		return NULL;
-	OBJECT_INCREF(interp, interp->builtins.none);
-	return interp->builtins.none;
+	return functionobject_noreturn;
 }
 
 static struct Object *pop(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)

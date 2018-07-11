@@ -147,9 +147,12 @@ static struct Object *to_maybe_debug_string(struct Interpreter *interp, struct O
 	struct Object *res = method_call(interp, obj, methname, NULL);
 	if (!res)
 		return NULL;
-
-	// this doesn't use check_type() because this uses a custom error message string
+	if (res == functionobject_noreturn) {
+		errorobject_throwfmt(interp, "TypeError", "%s should return a String, but it returned nothing", methname);
+		return NULL;
+	}
 	if (!classobject_isinstanceof(res, interp->builtins.String)) {
+		// this error message is better than the one from check_type()
 		// FIXME: is it possible to make this recurse infinitely by returning the object itself from to_{debug,}string?
 		errorobject_throwfmt(interp, "TypeError", "%s should return a String, but it returned %D", methname, res);
 		OBJECT_DECREF(interp, res);

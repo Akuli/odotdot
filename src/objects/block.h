@@ -25,7 +25,7 @@ struct Object *blockobject_new(struct Interpreter *interp, struct Object *defini
 bool blockobject_run(struct Interpreter *interp, struct Object *block, struct Object *scope);
 
 // inserts a return function to the scope and removes it when done
-// returns the value that the return function was called with, or null if it wasn't called
+// returns the value that the return function was called with, or functionobject_noreturn if it wasn't called
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *blockobject_runwithreturn(struct Interpreter *interp, struct Object *block, struct Object *scope);
 

@@ -37,7 +37,7 @@ bool attribute_settoattrdata(struct Interpreter *interp, struct Object *obj, cha
 	return res;
 }
 
-struct Object *attribute_getfromattrdata(struct Interpreter *interp, struct Object *obj, char *attr)
+struct Object *attribute_maybegetfromattrdata(struct Interpreter *interp, struct Object *obj, char *attr)
 {
 	if (!init_data(interp, obj))
 		return NULL;
@@ -46,11 +46,25 @@ struct Object *attribute_getfromattrdata(struct Interpreter *interp, struct Obje
 	if (!stringobj)
 		return NULL;
 
-	// this throws a "key not found" error if the attribute is not found
-	// mappingobject_get() sets no errors in that case
-	// there's no need to throw AttribError because these should be rare anyway
-	struct Object *res = method_call(interp, obj->attrdata, "get", stringobj, NULL);
+	struct Object *res;
+	int status = mappingobject_get(interp, obj->attrdata, stringobj, &res);
 	OBJECT_DECREF(interp, stringobj);
+	if (status == 1)
+		return res;
+	if (status == 0)
+		return functionobject_noreturn;
+	assert(status == -1);
+	return NULL;
+}
+
+struct Object *attribute_getfromattrdata(struct Interpreter *interp, struct Object *obj, char *attr)
+{
+	struct Object *res = attribute_maybegetfromattrdata(interp, obj, attr);
+	if (res == functionobject_noreturn) {
+		// TODO: how is it possible to actually get this error?
+		errorobject_throwfmt(interp, "AttribError", "%D has no \"%s\" attribute", obj, attr);
+		return NULL;
+	}
 	return res;
 }
 
@@ -147,6 +161,12 @@ struct Object *attribute_getwithstringobj(struct Interpreter *interp, struct Obj
 			}
 			struct Object *ret = functionobject_call(interp, getter, obj, NULL);
 			OBJECT_DECREF(interp, getter);
+			if (!ret)
+				return NULL;
+			if (ret == functionobject_noreturn) {
+				errorobject_throwfmt(interp, "ValueError", "attribute getter %D didn't return anything", getter);
+				return NULL;
+			}
 			return ret;
 		}
 		assert(res == 0);   // not found
@@ -205,7 +225,8 @@ bool attribute_setwithstringobj(struct Interpreter *interp, struct Object *obj, 
 			OBJECT_DECREF(interp, setter);
 			if (!res)
 				return false;
-			OBJECT_DECREF(interp, res);
+			if (res != functionobject_noreturn)
+				OBJECT_DECREF(interp, res);
 			return true;
 		}
 		assert(res == 0);   // not found

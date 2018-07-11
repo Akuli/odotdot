@@ -27,10 +27,13 @@ struct Object *attribute_getwithstringobj(struct Interpreter *interp, struct Obj
 bool attribute_set(struct Interpreter *interp, struct Object *obj, char *attr, struct Object *val);
 bool attribute_setwithstringobj(struct Interpreter *interp, struct Object *obj, struct Object *stringobj, struct Object *val);
 
-// convenience functions that call mappingobject_set() and mappingobject_get() with obj->attrdata
+// convenience functions that call mappingobject_set() and mappingobject_get() with obj->attrdata, initializing it if needed
 // setdata returns false on error, getdata returns a new reference or NULL
 bool attribute_settoattrdata(struct Interpreter *interp, struct Object *obj, char *attr, struct Object *val);
 struct Object *attribute_getfromattrdata(struct Interpreter *interp, struct Object *obj, char *attr);
+
+// like getfromattrdata, but returns functionobject_noreturn if not found
+struct Object *attribute_maybegetfromattrdata(struct Interpreter *interp, struct Object *obj, char *attr);
 
 // returns false on error
 bool attribute_set(struct Interpreter *interp, struct Object *obj, char *attr, struct Object *val);

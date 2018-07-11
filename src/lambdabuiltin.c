@@ -97,6 +97,7 @@ static struct Object *runner(struct Interpreter *interp, struct ObjectData data,
 		}
 	}
 
+	// retval may be a new reference, NULL or functionobject_noreturn
 	struct Object *retval = blockobject_runwithreturn(interp, ldata->block, scope);
 	OBJECT_DECREF(interp, scope);
 	return retval;
