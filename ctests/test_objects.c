@@ -187,24 +187,15 @@ void test_objects_mapping_huge(void)
 
 	int counter = 3;
 	while (counter--) {    // repeat 3 times
-		struct Object *ret;
 		for (int i=0; i < HUGE; i++) {
-			ret = method_call(testinterp, map, "set", keys[i], vals[i], NULL);
-			buttert(ret);
-			OBJECT_DECREF(testinterp, ret);
-
-			// do it again :D this should do nothing
-			ret = method_call(testinterp, map, "set", keys[i], vals[i], NULL);
-			buttert(ret);
-			OBJECT_DECREF(testinterp, ret);
+			// do it twice to make sure that second call does nothing
+			buttert(method_call(testinterp, map, "set", keys[i], vals[i], NULL) == functionobject_noreturn);
+			buttert(method_call(testinterp, map, "set", keys[i], vals[i], NULL) == functionobject_noreturn);
 		}
 		buttert(((struct MappingObjectData *) map->objdata.data)->size == HUGE);
 
-		for (int i=0; i < HUGE; i++) {
-			ret = method_call(testinterp, map, "delete", keys[i], NULL);
-			buttert(ret);
-			OBJECT_DECREF(testinterp, ret);
-		}
+		for (int i=0; i < HUGE; i++)
+			buttert(method_call(testinterp, map, "delete", keys[i], NULL) == functionobject_noreturn);
 		buttert(((struct MappingObjectData *) map->objdata.data)->size == 0);
 	}
 
@@ -231,11 +222,9 @@ void test_objects_mapping_iter(void)
 	for (unsigned int i=0; i < FINAL_SIZE; i++){
 		buttert(keys[i]);
 		buttert(vals[i]);
-		struct Object *ret = method_call(testinterp, map, "set", keys[i], vals[i], NULL);
-		buttert(ret);
+		buttert(mappingobject_set(testinterp, map, keys[i], vals[i]));
 		OBJECT_DECREF(testinterp, keys[i]);
 		OBJECT_DECREF(testinterp, vals[i]);
-		OBJECT_DECREF(testinterp, ret);
 	}
 
 	struct MappingObjectIter iter;
