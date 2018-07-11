@@ -38,11 +38,6 @@ add_method (get_class String) "to_debug_string" (lambda "this" {
     return (("<Class " + (this.name.to_debug_string)) + ">");
 });
 
-# TODO: remove this after debuggings
-add_method String "to_debug_string" (lambda "this" {
-    return this;
-});
-
 add_method Error "to_debug_string" (lambda "this" {
     return (((("<" + (get_class this).name) + ": ") + (this.message.to_debug_string)) + ">");
 });
@@ -410,15 +405,12 @@ func "foreach varname array block" {
         var frame = (stack.get (stack.length - 3));
 
         foreach "importer" importers {
-            debug importer;
             var lib = (importer string frame);
-            debug lib;
             if (not (lib `is_instance_of` Option)) {
                 error importer lib;
             };
 
             if (not lib.is_none) {
-                print "Asd Woot";
                 if (not (lib.value `is_instance_of` Library)) {
                     error importer lib;
                 };
