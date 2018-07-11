@@ -17,8 +17,7 @@ struct Object *objectobject_createclass_noerr(struct Interpreter *interp)
 static struct Object *setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts) {
 	if (!check_args(interp, args, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	OBJECT_INCREF(interp, interp->builtins.none);
-	return interp->builtins.none;
+	return functionobject_noreturn;
 }
 
 static struct Object *to_debug_string(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)

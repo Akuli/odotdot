@@ -76,9 +76,7 @@ static struct Object *set(struct Interpreter *interp, struct ObjectData thisdata
 	OBJECT_DECREF(interp, data->elems[i]);
 	data->elems[i] = obj;
 	OBJECT_INCREF(interp, obj);
-
-	OBJECT_INCREF(interp, interp->builtins.none);
-	return interp->builtins.none;
+	return functionobject_noreturn;
 }
 
 static struct Object *push(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)

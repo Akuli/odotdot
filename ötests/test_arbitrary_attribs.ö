@@ -4,7 +4,9 @@ var throws = (import "utils").throws;
 
 class "WeirdThingy" inherits:ArbitraryAttribs {
 
-    attrib "x";
+    # x is defined explicitly, but y is not
+    #attrib "x";     # TODO: fix this
+
     method "setup arg" {
         assert (arg == "lol");
         this.x = 1;
@@ -27,7 +29,7 @@ test "basic stuff" {
     #weird.lol = "heh";
 
 	foreach "arbi_instance" [(new ArbitraryAttribs) (import "testfiles/hello") weird] {
-        arbi_instance.to_debug_string;   # make sure it doesn't throw an exception
+        var _ = (arbi_instance.to_debug_string);   # make sure it doesn't throw an exception
         throws AttribError {
             debug arbi_instance.wat;
         };

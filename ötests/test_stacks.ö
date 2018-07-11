@@ -20,5 +20,5 @@ test "get_stack and StackFrame" {
 
     # make sure it doesn't throw an exception
     # TODO: test better
-    last_frame.to_debug_string;
+    var _ = (last_frame.to_debug_string);
 };

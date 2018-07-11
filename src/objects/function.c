@@ -62,9 +62,7 @@ static struct Object *name_setter(struct Interpreter *interp, struct ObjectData 
 	OBJECT_DECREF(interp, data->name);
 	data->name = ARRAYOBJECT_GET(args, 1);
 	OBJECT_INCREF(interp, data->name);
-
-	OBJECT_INCREF(interp, interp->builtins.none);
-	return interp->builtins.none;
+	return functionobject_noreturn;
 }
 
 bool functionobject_setname(struct Interpreter *interp, struct Object *func, char *newname)

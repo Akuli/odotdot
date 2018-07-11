@@ -47,8 +47,11 @@ test "run and run_with_return" {
     };
     assert (ran == 4);
 
-    assert (({ }.run_with_return scope) `same_object` none);
-    throws ArgError { { return; }.run_with_return scope; };      # return needs at least 1 arg
+    # this throws an error if run_with_return returns something
+    { }.run_with_return scope;
+
+    # test early return
+    { return; assert false; }.run_with_return scope;
 };
 
 test "implicit returning" {

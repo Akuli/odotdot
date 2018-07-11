@@ -6,24 +6,22 @@ import "<std>/stacks" as: "stacks";
 
 
 test "basic stuff" {
-    var a = (import "<std>/imports" as: "x");
-    var b = (import "<std>/imports" as: "y");
-    var c = (import "<std>/imports" as: "z");
-    var d = (import "<std>/imports");   # no as
+    import "<std>/imports" as: "a";
+    import "<std>/imports" as: "b";
+    var x = (import "<std>/imports");
+    var y = (import "<std>/imports");
 
-    # x, y and z should be local variables
-    # get throws an exception if the variable is not found
-    {}.definition_scope.local_vars.get "x";
-    {}.definition_scope.local_vars.get "y";
-    {}.definition_scope.local_vars.get "z";
+    # a, b, x and y should be local variables
+    # this throws an exception if the variable is not found
+    assert (({}.definition_scope.local_vars.get "a") `same_object` a);
+    assert (({}.definition_scope.local_vars.get "b") `same_object` b);
+    assert (({}.definition_scope.local_vars.get "x") `same_object` x);
+    assert (({}.definition_scope.local_vars.get "y") `same_object` y);
 
     # all these things should be the same now
     assert (a `same_object` b);
-    assert (b `same_object` c);
-    assert (c `same_object` d);
-    assert (d `same_object` x);
+    assert (b `same_object` x);
     assert (x `same_object` y);
-    assert (y `same_object` z);
 };
 
 test "importing something that doesn't exist" {
@@ -32,12 +30,12 @@ test "importing something that doesn't exist" {
 };
 
 test "including .ö extension in the import string" {
-    import "<std>/imports";   # must work
+    import "<std>/imports" as: "imports";   # must work
 
     # the throws util doesn't support accessing the error object yet :(
     var caught = false;
     catch {
-        import "asdasd.ö";
+        import "asdasd.ö" as: "asdasd";
     } [ValueError "e"] {
         assert (e.message == "import \"asdasd\" instead of \"asdasd.ö\"");
         caught = true;

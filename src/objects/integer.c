@@ -148,11 +148,9 @@ long long integerobject_tolonglong(struct Object *integer)
 }
 
 
-// overrides Object's setup to allow arguments
-// the arguments will go to newinstance
+// overrides Object's setup to allow arguments, newinstance handles the args
 static struct Object *setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts) {
-	OBJECT_INCREF(interp, interp->builtins.none);
-	return interp->builtins.none;
+	return functionobject_noreturn;
 }
 
 // TODO: implement in pure ö when division works

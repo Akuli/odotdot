@@ -225,9 +225,11 @@ bool attribute_setwithstringobj(struct Interpreter *interp, struct Object *obj, 
 			OBJECT_DECREF(interp, setter);
 			if (!res)
 				return false;
-			if (res != functionobject_noreturn)
-				OBJECT_DECREF(interp, res);
-			return true;
+			if (res == functionobject_noreturn)
+				return true;
+			errorobject_throwfmt(interp, "ValueError", "the setter of the %D attribute returned %D", stringobj, res);
+			OBJECT_DECREF(interp, res);
+			return false;
 		}
 		assert(res == 0);   // not found
 	} while ((klass = klassdata->baseclass));

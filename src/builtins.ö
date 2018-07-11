@@ -199,7 +199,8 @@ func "switch value switchblock" {
 
     switchscope.local_vars.set "case" case;
     switchscope.local_vars.set "default" default;
-    return (switchblock.run_with_return switchscope);
+    switchscope.local_vars.set "return" return;   # returning from the switchblock returns from the whole switch
+    switchblock.run switchscope;
 };
 
 # TODO: how about putting the array inside itself? python does this:
@@ -247,7 +248,7 @@ func "and x y" {
     } else: {
         # no matter what x is, an error must be thrown if y is not a Bool
         # this checks it :D
-        not y;
+        var _ = (not y);
     };
 
     return false;
@@ -337,7 +338,7 @@ func "foreach varname array block" {
                 };
             };
             setter name "new_value" {
-                return ((get_attrdata this).set name new_value);
+                (get_attrdata this).set name new_value;
             };
         };
 

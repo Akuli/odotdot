@@ -56,8 +56,8 @@ static struct Object *newinstance(struct Interpreter *interp, struct Object *arg
 
 // overrides Object's setup to allow arguments
 static struct Object *setup(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts) {
-	OBJECT_INCREF(interp, interp->builtins.none);
-	return interp->builtins.none;
+	assert(0);   // TODO: test this setup and remove the assert... the setup doesn't seem to be ever actually called
+	return functionobject_noreturn;
 }
 
 ATTRIBUTE_DEFINE_STRUCTDATA_GETTER(Block, BlockObjectData, definition_scope)

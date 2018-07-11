@@ -106,8 +106,7 @@ static struct Object *message_setter(struct Interpreter *interp, struct ObjectDa
 	OBJECT_DECREF(interp, data->message);
 	data->message = ARRAYOBJECT_GET(args, 1);
 	OBJECT_INCREF(interp, data->message);
-	OBJECT_INCREF(interp, interp->builtins.none);
-	return interp->builtins.none;
+	return functionobject_noreturn;
 }
 
 static struct Object *stack_setter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
@@ -125,8 +124,7 @@ static struct Object *stack_setter(struct Interpreter *interp, struct ObjectData
 		if (data->stack)
 			OBJECT_DECREF(interp, data->stack);
 		data->stack = NULL;
-		OBJECT_INCREF(interp, interp->builtins.none);
-		return interp->builtins.none;
+		return functionobject_noreturn;
 	}
 
 	struct Object *newstack = OPTIONOBJECT_VALUE(newstackopt);
@@ -138,8 +136,7 @@ static struct Object *stack_setter(struct Interpreter *interp, struct ObjectData
 	data->stack = newstack;
 	OBJECT_INCREF(interp, newstack);
 
-	OBJECT_INCREF(interp, interp->builtins.none);
-	return interp->builtins.none;
+	return functionobject_noreturn;
 }
 
 static bool print_ustr(struct Interpreter *interp, struct UnicodeString u)

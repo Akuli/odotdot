@@ -62,9 +62,9 @@ test "constructors" {
     assert ((new Mapping a:1 b:2) == (new Mapping [["a" 1] ["b" 2]]));
     assert ((new Mapping a:1 b:2) == (new Mapping [["a" 1]] b:2));
 
-    throws ArgError { new Mapping [1 2] [3 4]; };
-    throws TypeError { new Mapping "lol"; };
-    throws ValueError { new Mapping [[1 2 3]]; };
+    throws ArgError { var m = (new Mapping [1 2] [3 4]); };
+    throws TypeError { var m = (new Mapping "lol"); };
+    throws ValueError { var m = (new Mapping [[1 2 3]]); };
 };
 
 test "unhashable keys" {
@@ -72,14 +72,14 @@ test "unhashable keys" {
 
     foreach "bad" unhashable {
         throws TypeError { new Mapping [[ bad 123 ]]; };
-        new Mapping [[ 123 bad ]];    # it must be a valid value though
+        var m = (new Mapping [[ 123 bad ]]);    # it must be a valid value though
 
         var m = (new Mapping []);
         throws TypeError { m.set bad 123; };
         assert (m.length == 0);
-        throws TypeError { m.get bad; };   # not a KeyError
+        throws TypeError { var v = (m.get bad); };   # not a KeyError
         throws TypeError { m.delete bad; };
-        throws TypeError { m.get_and_delete bad; };
+        throws TypeError { var v = (m.get_and_delete bad); };
         assert (m.length == 0);
     };
 };
