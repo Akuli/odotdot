@@ -229,11 +229,11 @@ bool stringobject_addmethods(struct Interpreter *interp)
 {
 	// TODO: create many more string methods
 	if (!attribute_add(interp, interp->builtins.String, "length", length_getter, NULL)) return false;
-	if (!method_add(interp, interp->builtins.String, "get", get)) return false;
-	if (!method_add(interp, interp->builtins.String, "replace", replace)) return false;
-	if (!method_add(interp, interp->builtins.String, "slice", slice)) return false;
-	if (!method_add(interp, interp->builtins.String, "split_by_whitespace", split_by_whitespace)) return false;
-	if (!method_add(interp, interp->builtins.String, "to_string", to_string)) return false;
+	if (!method_add_yesret(interp, interp->builtins.String, "get", get)) return false;
+	if (!method_add_yesret(interp, interp->builtins.String, "replace", replace)) return false;
+	if (!method_add_yesret(interp, interp->builtins.String, "slice", slice)) return false;
+	if (!method_add_yesret(interp, interp->builtins.String, "split_by_whitespace", split_by_whitespace)) return false;
+	if (!method_add_yesret(interp, interp->builtins.String, "to_string", to_string)) return false;
 	return true;
 }
 
@@ -301,8 +301,8 @@ static struct Object *add(struct Interpreter *interp, struct ObjectData nulldata
 }
 
 bool stringobject_initoparrays(struct Interpreter *interp) {
-	if (!functionobject_add2array(interp, interp->oparrays.eq, "string_eq", eq)) return false;
-	if (!functionobject_add2array(interp, interp->oparrays.add, "string_add", add)) return false;
+	if (!functionobject_add2array(interp, interp->oparrays.eq, "string_eq", functionobject_mkcfunc_yesret(eq))) return false;
+	if (!functionobject_add2array(interp, interp->oparrays.add, "string_add", functionobject_mkcfunc_yesret(add))) return false;
 	return true;
 }
 

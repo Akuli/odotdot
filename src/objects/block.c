@@ -55,9 +55,9 @@ static struct Object *newinstance(struct Interpreter *interp, struct Object *arg
 }
 
 // overrides Object's setup to allow arguments
-static struct Object *setup(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts) {
+static bool setup(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts) {
 	assert(0);   // TODO: test this setup and remove the assert... the setup doesn't seem to be ever actually called
-	return functionobject_noreturn;
+	return true;
 }
 
 ATTRIBUTE_DEFINE_STRUCTDATA_GETTER(Block, BlockObjectData, definition_scope)
@@ -92,26 +92,18 @@ void markerdata_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
 	cb((struct Object*)data, cbdata);
 }
 
-static struct Object *returner_cfunc(struct Interpreter *interp, struct ObjectData markerdata, struct Object *args, struct Object *opts)
+static bool returner_cfunc(struct Interpreter *interp, struct ObjectData markerdata, struct Object *args, struct Object *opts)
 {
+
+	if (!check_args(interp, args, interp->builtins.Object, NULL)) return false;
+	if (!check_no_opts(interp, opts)) return false;
+
 	struct Object *markererr = markerdata.data;
+	if (!attribute_settoattrdata(interp, markererr, "value", ARRAYOBJECT_GET(args, 0)))
+		return false;
 
-	if (!check_no_opts(interp, opts))
-		return NULL;
-
-	if (ARRAYOBJECT_LEN(args) == 0) {
-		// 'return;' is an early return with no value, and that's represented by setting no value attribute
-		errorobject_throw(interp, markererr);
-		return NULL;
-	} else if (ARRAYOBJECT_LEN(args) == 1) {
-		if (!attribute_settoattrdata(interp, markererr, "value", ARRAYOBJECT_GET(args, 0)))
-			return NULL;
-		errorobject_throw(interp, markererr);
-		return NULL;
-	} else {
-		errorobject_throwfmt(interp, "ArgError", "return must be called with no arguments or exactly 1 argument");
-		return NULL;
-	}
+	errorobject_throw(interp, markererr);
+	return false;
 }
 
 static bool delete_returner(struct Interpreter *interp, struct Object *scope)
@@ -140,7 +132,9 @@ struct Object *blockobject_runwithreturn(struct Interpreter *interp, struct Obje
 	if (!marker)
 		return NULL;
 
-	struct Object *returner = functionobject_new(interp, (struct ObjectData){.data=marker, .foreachref=markerdata_foreachref, .destructor=NULL}, returner_cfunc, "return");
+	struct FunctionObjectCfunc cfunc = { .returning = false };
+	cfunc.func.noret = returner_cfunc;
+	struct Object *returner = functionobject_new(interp, (struct ObjectData){.data=marker, .foreachref=markerdata_foreachref, .destructor=NULL}, cfunc, "return");
 	if (!returner) {
 		OBJECT_DECREF(interp, marker);
 		return NULL;
@@ -157,11 +151,9 @@ struct Object *blockobject_runwithreturn(struct Interpreter *interp, struct Obje
 
 	if (blockobject_run(interp, block, scope)) {
 		// it didn't return
-		bool ok = delete_returner(interp, scope);
-		OBJECT_DECREF(interp, marker);
-		if (!ok)
-			return NULL;
-		return functionobject_noreturn;
+		// FIXME: ValueError feels wrong
+		errorobject_throwfmt(interp, "ValueError", "return wasn't called");
+		return NULL;
 	}
 	assert(interp->err);
 
@@ -175,7 +167,7 @@ struct Object *blockobject_runwithreturn(struct Interpreter *interp, struct Obje
 			return NULL;
 		}
 
-		struct Object *retval = attribute_maybegetfromattrdata(interp, marker, "value");
+		struct Object *retval = attribute_getfromattrdata(interp, marker, "value");
 		OBJECT_DECREF(interp, marker);
 		return retval;    // may be NULL or functionobject_noreturn
 	}
@@ -200,15 +192,13 @@ struct Object *blockobject_runwithreturn(struct Interpreter *interp, struct Obje
 
 
 // TODO: a with_return option instead of two separate thingss
-static struct Object *run(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
+static bool run(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Scope, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *block = thisdata.data;
 	struct Object *scope = ARRAYOBJECT_GET(args, 0);
-	if (!blockobject_run(interp, block, scope))
-		return NULL;
-	return functionobject_noreturn;
+	return blockobject_run(interp, block, scope);
 }
 
 static struct Object *run_with_return(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
@@ -226,9 +216,9 @@ struct Object *blockobject_createclass(struct Interpreter *interp)
 	if (!klass)
 		return NULL;
 
-	if (!method_add(interp, klass, "setup", setup)) goto error;
-	if (!method_add(interp, klass, "run", run)) goto error;
-	if (!method_add(interp, klass, "run_with_return", run_with_return)) goto error;
+	if (!method_add_noret(interp, klass, "setup", setup)) goto error;
+	if (!method_add_noret(interp, klass, "run", run)) goto error;
+	if (!method_add_yesret(interp, klass, "run_with_return", run_with_return)) goto error;
 	if (!attribute_add(interp, klass, "definition_scope", definition_scope_getter, NULL)) goto error;
 	if (!attribute_add(interp, klass, "ast_statements", ast_statements_getter, NULL)) goto error;
 	return klass;

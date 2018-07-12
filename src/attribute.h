@@ -16,7 +16,7 @@
 // getter is called with 1 argument: the object
 // setter and getter are called with (struct ObjectData){.data=NULL, .foreachref=NULL, .destructor=NULL}
 // bad things happen if klass is not a class object, name is very long or you don't check_args() in getter and setter
-bool attribute_add(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc getter, functionobject_cfunc setter);
+bool attribute_add(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc_yesret getter, functionobject_cfunc_noret setter);
 bool attribute_addwithfuncobjs(struct Interpreter *interp, struct Object *klass, char *name, struct Object *getter, struct Object *setter);
 
 // these RETURN A NEW REFERENCE or NULL on error
@@ -31,9 +31,6 @@ bool attribute_setwithstringobj(struct Interpreter *interp, struct Object *obj, 
 // setdata returns false on error, getdata returns a new reference or NULL
 bool attribute_settoattrdata(struct Interpreter *interp, struct Object *obj, char *attr, struct Object *val);
 struct Object *attribute_getfromattrdata(struct Interpreter *interp, struct Object *obj, char *attr);
-
-// like getfromattrdata, but returns functionobject_noreturn if not found
-struct Object *attribute_maybegetfromattrdata(struct Interpreter *interp, struct Object *obj, char *attr);
 
 // returns false on error
 bool attribute_set(struct Interpreter *interp, struct Object *obj, char *attr, struct Object *val);

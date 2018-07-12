@@ -106,7 +106,7 @@ struct Object *mappingobject_createclass(struct Interpreter *interp)
 }
 
 
-static struct Object *setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
+static bool setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
 	struct Object *map = thisdata.data;
 	if (ARRAYOBJECT_LEN(args) == 0) {
@@ -114,13 +114,16 @@ static struct Object *setup(struct Interpreter *interp, struct ObjectData thisda
 		// no need to do anything here
 	} else {
 		// (new Mapping pairs)
-		if (!check_args(interp, args, interp->builtins.Array, NULL)) return NULL;
+		// TODO: don't check_args here for a better error message
+		// the error messages by this talk about needing to pass exactly 1 argument, but 0 args are also allowed
+		if (!check_args(interp, args, interp->builtins.Array, NULL)) return false;
+
 		struct Object *pairs = ARRAYOBJECT_GET(args, 0);
 		for (size_t i=0; i < ARRAYOBJECT_LEN(pairs); i++) {
 			struct Object *pair = ARRAYOBJECT_GET(pairs, i);
 			if (!classobject_isinstanceof(pair, interp->builtins.Array)) {
 				errorobject_throwfmt(interp, "TypeError", "expected a [key value] pair, got %D", pair);
-				return NULL;
+				return false;
 			}
 			if (ARRAYOBJECT_LEN(pair) != 2) {
 				errorobject_throwfmt(interp, "ValueError", "expected a [key value] pair, got %D", pair);
@@ -139,7 +142,7 @@ static struct Object *setup(struct Interpreter *interp, struct ObjectData thisda
 			return NULL;
 	}
 
-	return functionobject_noreturn;
+	return true;
 }
 
 
@@ -248,14 +251,14 @@ bool mappingobject_set(struct Interpreter *interp, struct Object *map, struct Ob
 	return true;
 }
 
-static struct Object *set(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
+static bool set(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return false;
+	if (!check_no_opts(interp, opts)) return false;
 	struct Object *map = thisdata.data;
 	struct Object *key = ARRAYOBJECT_GET(args, 0);
 	struct Object *val = ARRAYOBJECT_GET(args, 1);
-	return mappingobject_set(interp, map, key, val) ? functionobject_noreturn : NULL;
+	return mappingobject_set(interp, map, key, val);
 }
 
 
@@ -348,10 +351,10 @@ static struct Object *get_and_delete(struct Interpreter *interp, struct ObjectDa
 bool mappingobject_addmethods(struct Interpreter *interp)
 {
 	if (!attribute_add(interp, interp->builtins.Mapping, "length", length_getter, NULL)) return false;
-	if (!method_add(interp, interp->builtins.Mapping, "setup", setup)) return false;
-	if (!method_add(interp, interp->builtins.Mapping, "set", set)) return false;
-	if (!method_add(interp, interp->builtins.Mapping, "get", get)) return false;
-	if (!method_add(interp, interp->builtins.Mapping, "get_and_delete", get_and_delete)) return false;
+	if (!method_add_noret(interp, interp->builtins.Mapping, "setup", setup)) return false;
+	if (!method_add_noret(interp, interp->builtins.Mapping, "set", set)) return false;
+	if (!method_add_yesret(interp, interp->builtins.Mapping, "get", get)) return false;
+	if (!method_add_yesret(interp, interp->builtins.Mapping, "get_and_delete", get_and_delete)) return false;
 	// TODO: to_debug_string
 	return true;
 }
@@ -445,5 +448,5 @@ static struct Object *eq(struct Interpreter *interp, struct ObjectData nulldata,
 }
 
 bool mappingobject_initoparrays(struct Interpreter *interp) {
-	return functionobject_add2array(interp, interp->oparrays.eq, "mapping_eq", eq);
+	return functionobject_add2array(interp, interp->oparrays.eq, "mapping_eq", functionobject_mkcfunc_yesret(eq));
 }

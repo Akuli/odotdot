@@ -17,30 +17,28 @@
 
 static struct Object *runast_expression(struct Interpreter *interp, struct Object *scope, struct Object *exprnode);
 
-static struct Object *call(struct Interpreter *interp, struct Object *scope, struct Object *func, struct AstCallInfo *info)
+static bool eval_args_and_opts(struct Interpreter *interp, struct Object *scope, struct Object *func, struct AstCallInfo *info, struct Object **args, struct Object **opts)
 {
 	// TODO: optimize this?
-	struct Object *args = arrayobject_newwithcapacity(interp, ARRAYOBJECT_LEN(info->args));
-	if (!args)
-		return NULL;
+	if (!(*args = arrayobject_newwithcapacity(interp, ARRAYOBJECT_LEN(info->args))))
+		return false;
 	for (size_t i=0; i < ARRAYOBJECT_LEN(info->args); i++) {
 		struct Object *arg = runast_expression(interp, scope, ARRAYOBJECT_GET(info->args, i));
 		if (!arg) {
-			OBJECT_DECREF(interp, args);
-			return NULL;
+			OBJECT_DECREF(interp, *args);
+			return false;
 		}
-		bool ret = arrayobject_push(interp, args, arg);
+		bool ret = arrayobject_push(interp, *args, arg);
 		OBJECT_DECREF(interp, arg);
 		if (!ret) {
-			OBJECT_DECREF(interp, args);
-			return NULL;
+			OBJECT_DECREF(interp, *args);
+			return false;
 		}
 	}
 
-	struct Object *opts = mappingobject_newempty(interp);
-	if (!opts) {
-		OBJECT_DECREF(interp, args);
-		return NULL;
+	if (!(*opts = mappingobject_newempty(interp))) {
+		OBJECT_DECREF(interp, *args);
+		return false;
 	}
 
 	struct MappingObjectIter iter;
@@ -48,24 +46,20 @@ static struct Object *call(struct Interpreter *interp, struct Object *scope, str
 	while (mappingobject_iternext(&iter)) {
 		struct Object *val = runast_expression(interp, scope, iter.value);
 		if (!val) {
-			OBJECT_DECREF(interp, opts);
-			OBJECT_DECREF(interp, args);
-			return NULL;
+			OBJECT_DECREF(interp, *opts);
+			OBJECT_DECREF(interp, *args);
+			return false;
 		}
 
-		bool ok = mappingobject_set(interp, opts, iter.key, val);
+		bool ok = mappingobject_set(interp, *opts, iter.key, val);
 		OBJECT_DECREF(interp, val);
 		if (!ok) {
-			OBJECT_DECREF(interp, opts);
-			OBJECT_DECREF(interp, args);
-			return NULL;
+			OBJECT_DECREF(interp, *opts);
+			OBJECT_DECREF(interp, *args);
+			return false;
 		}
 	}
-
-	struct Object *res = functionobject_vcall(interp, func, args, opts);
-	OBJECT_DECREF(interp, opts);
-	OBJECT_DECREF(interp, args);
-	return res;
+	return true;
 }
 
 
@@ -91,7 +85,6 @@ static struct Object *runast_expression(struct Interpreter *interp, struct Objec
 		struct Object *res = attribute_getwithstringobj(interp, obj, INFO_AS(AstGetAttrInfo)->name);
 		OBJECT_DECREF(interp, obj);
 		return res;
-
 	}
 
 	if (nodedata->kind == AST_CALL) {
@@ -103,14 +96,17 @@ static struct Object *runast_expression(struct Interpreter *interp, struct Objec
 			return NULL;
 		}
 
-		struct Object *res = call(interp, scope, func, INFO_AS(AstCallInfo));
-		if (res == functionobject_noreturn) {
-			errorobject_throwfmt(interp, "ValueError", "%D didn't return anything", func);  // must not decref func before this
+		struct Object *args, *opts;
+		if (!eval_args_and_opts(interp, scope, func, INFO_AS(AstCallInfo), &args, &opts)) {
 			OBJECT_DECREF(interp, func);
 			return NULL;
 		}
+
+		struct Object *res = functionobject_vcall_yesret(interp, func, args, opts);
 		OBJECT_DECREF(interp, func);
-		return res;   // may be NULL
+		OBJECT_DECREF(interp, args);
+		OBJECT_DECREF(interp, opts);
+		return res;
 	}
 
 	if (nodedata->kind == AST_OPCALL) {
@@ -166,21 +162,23 @@ bool runast_statement(struct Interpreter *interp, struct Object *scope, struct O
 	if (nodedata->kind == AST_CALL) {
 		struct Object *func = runast_expression(interp, scope, INFO_AS(AstCallInfo)->funcnode);
 		if (!func)
-			return NULL;
+			return false;
 		if (!check_type(interp, interp->builtins.Function, func)) {
 			OBJECT_DECREF(interp, func);
-			return NULL;
+			return false;
 		}
 
-		struct Object *res = call(interp, scope, func, INFO_AS(AstCallInfo));
-		if (res && res != functionobject_noreturn) {
-			errorobject_throwfmt(interp, "ValueError", "%D wasn't supposed to return, but it returned %D", func, res);
+		struct Object *args, *opts;
+		if (!eval_args_and_opts(interp, scope, func, INFO_AS(AstCallInfo), &args, &opts)) {
 			OBJECT_DECREF(interp, func);
-			OBJECT_DECREF(interp, res);
-			return NULL;
+			return false;
 		}
+
+		bool ok = functionobject_vcall_noret(interp, func, args, opts);
 		OBJECT_DECREF(interp, func);
-		return !!res;
+		OBJECT_DECREF(interp, args);
+		OBJECT_DECREF(interp, opts);
+		return ok;
 	}
 
 	if (nodedata->kind == AST_CREATEVAR) {

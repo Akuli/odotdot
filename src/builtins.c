@@ -40,7 +40,7 @@ static struct Object *subscope_of_defscope(struct Interpreter *interp, struct Ob
 	return subscope;
 }
 
-static struct Object *if_(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+bool if_(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Bool, interp->builtins.Block, NULL)) return NULL;
 	if (!check_opts(interp, opts, interp->strings.else_, interp->builtins.Block, NULL)) return NULL;
@@ -51,7 +51,7 @@ static struct Object *if_(struct Interpreter *interp, struct ObjectData nulldata
 	struct Object *elseblock = NULL;
 	int status = mappingobject_get(interp, opts, interp->strings.else_, &elseblock);
 	if (status == -1)
-		return NULL;
+		return false;
 
 	if (cond == interp->builtins.yes) {
 		struct Object *scope = subscope_of_defscope(interp, ifblock);
@@ -73,17 +73,17 @@ static struct Object *if_(struct Interpreter *interp, struct ObjectData nulldata
 
 	if (elseblock)
 		OBJECT_DECREF(interp, elseblock);
-	return functionobject_noreturn;
+	return true;
 
 error:
 	if (elseblock)
 		OBJECT_DECREF(interp, elseblock);
-	return NULL;
+	return false;
 }
 
 // for { init; } { cond } { incr; } { ... };
 // TODO: break and continue
-static struct Object *for_(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+static bool for_(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Block, interp->builtins.Block, interp->builtins.Block, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -94,29 +94,24 @@ static struct Object *for_(struct Interpreter *interp, struct ObjectData nulldat
 
 	struct Object *scope = subscope_of_defscope(interp, body);
 	if (!scope)
-		return NULL;
+		return false;
 
 	if (!blockobject_run(interp, init, scope)) {
 		OBJECT_DECREF(interp, scope);
-		return NULL;
+		return false;
 	}
 
 	while(1) {
 		struct Object *keepgoing = blockobject_runwithreturn(interp, cond, scope);
 		if (!keepgoing) {
 			OBJECT_DECREF(interp, scope);
-			return NULL;
-		}
-		if (keepgoing == functionobject_noreturn) {
-			errorobject_throwfmt(interp, "ValueError", "the condition of a for loop didn't return anything");
-			OBJECT_DECREF(interp, scope);
-			return NULL;
+			return false;
 		}
 		if (keepgoing != interp->builtins.yes && keepgoing != interp->builtins.no) {
 			errorobject_throwfmt(interp, "TypeError", "the condition of a for loop must return true or false, but it returned %D", keepgoing);
 			OBJECT_DECREF(interp, keepgoing);
 			OBJECT_DECREF(interp, scope);
-			return NULL;
+			return false;
 		}
 
 		bool go = keepgoing==interp->builtins.yes;
@@ -126,30 +121,30 @@ static struct Object *for_(struct Interpreter *interp, struct ObjectData nulldat
 
 		if (!blockobject_run(interp, body, scope)) {
 			OBJECT_DECREF(interp, scope);
-			return NULL;
+			return false;
 		}
 		if (!blockobject_run(interp, incr, scope)) {
 			OBJECT_DECREF(interp, scope);
-			return NULL;
+			return false;
 		}
 	}
 
 	OBJECT_DECREF(interp, scope);
-	return functionobject_noreturn;
+	return true;
 }
 
-static struct Object *throw(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+static bool throw(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Error, NULL)) return false;
+	if (!check_no_opts(interp, opts)) return false;
 
 	errorobject_throw(interp, ARRAYOBJECT_GET(args, 0));
-	return NULL;
+	return false;
 }
 
 // catch { ... } errspec { ... };
 // errspec can be an error class or an [errorclass varname] array
-static struct Object *catch(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+static bool catch(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Block, interp->builtins.Object, interp->builtins.Block, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;   // TODO: finally option?
@@ -164,32 +159,32 @@ static struct Object *catch(struct Interpreter *interp, struct ObjectData nullda
 	} else if (classobject_isinstanceof(errspec, interp->builtins.Array)) {
 		if (ARRAYOBJECT_LEN(errspec) != 2) {
 			errorobject_throwfmt(interp, "ValueError", "expected a pair like [errorclass varname], got %D", errspec);
-			return NULL;
+			return false;
 		}
 		errclass = ARRAYOBJECT_GET(errspec, 0);
 		varname = ARRAYOBJECT_GET(errspec, 1);
-		if (!check_type(interp, interp->builtins.Class, errclass)) return NULL;
-		if (!check_type(interp, interp->builtins.String, varname)) return NULL;
+		if (!check_type(interp, interp->builtins.Class, errclass)) return false;
+		if (!check_type(interp, interp->builtins.String, varname)) return false;
 	} else {
 		errorobject_throwfmt(interp, "TypeError", "expected a subclass of Error or an [errorclass varname] array, got %D", errspec);
-		return NULL;
+		return false;
 	}
 
 	if (!classobject_issubclassof(errclass, interp->builtins.Error)) {
 		errorobject_throwfmt(interp, "TypeError", "cannot catch %U, it doesn't inherit from Error", ((struct ClassObjectData*)errclass->objdata.data)->name);
-		return NULL;
+		return false;
 	}
 
 	struct Object *scope = subscope_of_defscope(interp, trying);
 	bool ok = blockobject_run(interp, trying, scope);
 	OBJECT_DECREF(interp, scope);
 	if (ok)
-		return functionobject_noreturn;
+		return true;
 
 	assert(interp->err);
 
 	if (!classobject_isinstanceof(interp->err, errclass))
-		return NULL;
+		return false;
 
 	struct Object *err = interp->err;
 	interp->err = NULL;
@@ -197,7 +192,7 @@ static struct Object *catch(struct Interpreter *interp, struct ObjectData nullda
 	scope = subscope_of_defscope(interp, caught);
 	if (!scope) {
 		OBJECT_DECREF(interp, err);
-		return NULL;
+		return false;
 	}
 
 	if (varname) {
@@ -205,7 +200,7 @@ static struct Object *catch(struct Interpreter *interp, struct ObjectData nullda
 		OBJECT_DECREF(interp, err);
 		if (!ok) {
 			OBJECT_DECREF(interp, scope);
-			return NULL;
+			return false;
 		}
 	} else {
 		OBJECT_DECREF(interp, err);
@@ -213,10 +208,7 @@ static struct Object *catch(struct Interpreter *interp, struct ObjectData nullda
 
 	ok = blockobject_run(interp, caught, scope);
 	OBJECT_DECREF(interp, scope);
-
-	if (!ok)
-		return NULL;
-	return functionobject_noreturn;
+	return ok;
 }
 
 
@@ -239,7 +231,7 @@ static struct Object *same_object(struct Interpreter *interp, struct ObjectData 
 
 
 // TODO: write a lib for io and implement print with it
-static struct Object *print(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+static bool print(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.String, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -247,7 +239,7 @@ static struct Object *print(struct Interpreter *interp, struct ObjectData nullda
 	char *utf8;
 	size_t utf8len;
 	if (!utf8_encode(interp, *((struct UnicodeString *) ARRAYOBJECT_GET(args, 0)->objdata.data), &utf8, &utf8len))
-		return NULL;
+		return false;
 
 	// fwrite in c99: if size or nmemb is zero, fwrite returns zero
 	// errno for fwrite and putchar probably doesn't work on windows because c99 says nothing about it
@@ -261,9 +253,9 @@ static struct Object *print(struct Interpreter *interp, struct ObjectData nullda
 			errorobject_throwfmt(interp, "IoError", "printing failed");
 		else
 			errorobject_throwfmt(interp, "IoError", "printing failed: %s", strerror(errno));
-		return NULL;
+		return false;
 	}
-	return functionobject_noreturn;
+	return true;
 }
 
 
@@ -311,16 +303,10 @@ static struct Object *new(struct Interpreter *interp, struct ObjectData nulldata
 		return NULL;
 	}
 
-	struct Object *res = functionobject_vcall(interp, setup, setupargs, opts);
+	bool ok = functionobject_vcall_noret(interp, setup, setupargs, opts);
 	OBJECT_DECREF(interp, setupargs);
 	OBJECT_DECREF(interp, setup);
-	if (!res) {
-		OBJECT_DECREF(interp, obj);
-		return NULL;
-	}
-	if (res != functionobject_noreturn) {
-		errorobject_throwfmt(interp, "ValueError", "setup should return nothing, but it returned %D", res);
-		OBJECT_DECREF(interp, res);
+	if (!ok) {
 		OBJECT_DECREF(interp, obj);
 		return NULL;
 	}
@@ -350,15 +336,28 @@ static struct Object *get_attrdata(struct Interpreter *interp, struct ObjectData
 }
 
 
-static bool add_function(struct Interpreter *interp, char *name, functionobject_cfunc cfunc)
+static bool add_function(struct Interpreter *interp, char *name, struct FunctionObjectCfunc cfunc)
 {
 	struct Object *func = functionobject_new(interp, (struct ObjectData){.data=NULL, .foreachref=NULL, .destructor=NULL}, cfunc, name);
 	if (!func)
 		return false;
-
 	bool ok = interpreter_addbuiltin(interp, name, func);
 	OBJECT_DECREF(interp, func);
 	return ok;
+}
+
+static bool add_function_yesret(struct Interpreter *interp, char *name, functionobject_cfunc_yesret cfunc)
+{
+	struct FunctionObjectCfunc scfunc = { .returning=true };
+	scfunc.func.yesret = cfunc;
+	return add_function(interp, name, scfunc);
+}
+
+static bool add_function_noret(struct Interpreter *interp, char *name, functionobject_cfunc_noret cfunc)
+{
+	struct FunctionObjectCfunc scfunc = { .returning=false };
+	scfunc.func.noret = cfunc;
+	return add_function(interp, name, scfunc);
 }
 
 bool builtins_setup(struct Interpreter *interp)
@@ -463,16 +462,16 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!interpreter_addbuiltin(interp, "eq_oparray", interp->oparrays.eq)) goto error;
 	if (!interpreter_addbuiltin(interp, "lt_oparray", interp->oparrays.lt)) goto error;
 
-	if (!add_function(interp, "if", if_)) goto error;
-	if (!add_function(interp, "throw", throw)) goto error;
-	if (!add_function(interp, "lambda", lambdabuiltin)) goto error;
-	if (!add_function(interp, "catch", catch)) goto error;
-	if (!add_function(interp, "get_class", get_class)) goto error;
-	if (!add_function(interp, "new", new)) goto error;
-	if (!add_function(interp, "print", print)) goto error;
-	if (!add_function(interp, "same_object", same_object)) goto error;
-	if (!add_function(interp, "get_attrdata", get_attrdata)) goto error;
-	if (!add_function(interp, "for", for_)) goto error;
+	if (!add_function_noret(interp, "if", if_)) goto error;
+	if (!add_function_noret(interp, "throw", throw)) goto error;
+	if (!add_function_yesret(interp, "lambda", lambdabuiltin)) goto error;
+	if (!add_function_noret(interp, "catch", catch)) goto error;
+	if (!add_function_yesret(interp, "get_class", get_class)) goto error;
+	if (!add_function_yesret(interp, "new", new)) goto error;
+	if (!add_function_noret(interp, "print", print)) goto error;
+	if (!add_function_yesret(interp, "same_object", same_object)) goto error;
+	if (!add_function_yesret(interp, "get_attrdata", get_attrdata)) goto error;
+	if (!add_function_noret(interp, "for", for_)) goto error;
 
 	// compile like this:   $ CFLAGS=-DDEBUG_BUILTINS make clean all
 #ifdef DEBUG_BUILTINS

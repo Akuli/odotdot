@@ -48,9 +48,8 @@ struct Object *optionobject_createnone_noerr(struct Interpreter *interp)
 
 
 // newinstance does everything, this does nothing just to allow passing arguments handled by newinstance
-static struct Object *setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
-{
-	return functionobject_noreturn;
+static bool setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts) {
+	return true;
 }
 
 static struct Object *isnone_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
@@ -76,7 +75,7 @@ static struct Object *value_getter(struct Interpreter *interp, struct ObjectData
 
 bool optionobject_addmethods(struct Interpreter *interp)
 {
-	if (!method_add(interp, interp->builtins.Option, "setup", setup)) return false;
+	if (!method_add_noret(interp, interp->builtins.Option, "setup", setup)) return false;
 	if (!attribute_add(interp, interp->builtins.Option, "is_none", isnone_getter, NULL)) return false;
 	if (!attribute_add(interp, interp->builtins.Option, "value", value_getter, NULL)) return false;
 	return true;

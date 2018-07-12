@@ -156,7 +156,7 @@ static void libdata_foreachref(void *data, object_foreachrefcb cb, void *cbdata)
 	cb((struct Object*)data, cbdata);
 }
 
-static struct Object *export_cfunc(struct Interpreter *interp, struct ObjectData libdata, struct Object *args, struct Object *opts)
+static bool export_cfunc(struct Interpreter *interp, struct ObjectData libdata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Block, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
@@ -165,12 +165,12 @@ static struct Object *export_cfunc(struct Interpreter *interp, struct ObjectData
 
 	struct Object *filescope = attribute_get(interp, block, "definition_scope");
 	if (!filescope)
-		return NULL;
+		return false;
 
 	struct Object *subscope = scopeobject_newsub(interp, filescope);
 	if (!subscope) {
 		OBJECT_DECREF(interp, filescope);
-		return NULL;
+		return false;
 	}
 
 	if (!blockobject_run(interp, block, subscope))
@@ -187,12 +187,12 @@ static struct Object *export_cfunc(struct Interpreter *interp, struct ObjectData
 
 	OBJECT_DECREF(interp, subscope);
 	OBJECT_DECREF(interp, filescope);
-	return functionobject_noreturn;
+	return true;
 
 error:
 	OBJECT_DECREF(interp, subscope);
 	OBJECT_DECREF(interp, filescope);
-	return NULL;
+	return false;
 }
 
 int run_libfile(struct Interpreter *interp, char *abspath, struct Object *lib)
@@ -201,7 +201,10 @@ int run_libfile(struct Interpreter *interp, char *abspath, struct Object *lib)
 	if (!scope)
 		return 0;
 
-	struct Object *export = functionobject_new(interp, (struct ObjectData){.data=lib, .foreachref=libdata_foreachref, .destructor=NULL}, export_cfunc, "export");
+	struct FunctionObjectCfunc cfunc = { .returning = false };
+	cfunc.func.noret = export_cfunc;
+
+	struct Object *export = functionobject_new(interp, (struct ObjectData){.data=lib, .foreachref=libdata_foreachref, .destructor=NULL}, cfunc, "export");
 	if (!export) {
 		OBJECT_DECREF(interp, scope);
 		return 0;

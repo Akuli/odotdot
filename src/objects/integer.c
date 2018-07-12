@@ -149,8 +149,8 @@ long long integerobject_tolonglong(struct Object *integer)
 
 
 // overrides Object's setup to allow arguments, newinstance handles the args
-static struct Object *setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts) {
-	return functionobject_noreturn;
+static bool setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts) {
+	return true;
 }
 
 // TODO: implement in pure ö when division works
@@ -194,8 +194,8 @@ struct Object *integerobject_createclass(struct Interpreter *interp)
 	if (!klass)
 		return NULL;
 
-	if (!method_add(interp, klass, "setup", setup)) goto error;
-	if (!method_add(interp, klass, "to_string", to_string)) goto error;
+	if (!method_add_noret(interp, klass, "setup", setup)) goto error;
+	if (!method_add_yesret(interp, klass, "to_string", to_string)) goto error;
 	return klass;
 
 error:
@@ -295,10 +295,10 @@ static struct Object *lt(struct Interpreter *interp, struct ObjectData nulldata,
 
 bool integerobject_initoparrays(struct Interpreter *interp)
 {
-	if (!functionobject_add2array(interp, interp->oparrays.eq, "integer_eq", eq)) return false;
-	if (!functionobject_add2array(interp, interp->oparrays.add, "integer_add", add)) return false;
-	if (!functionobject_add2array(interp, interp->oparrays.sub, "integer_sub", sub)) return false;
-	if (!functionobject_add2array(interp, interp->oparrays.mul, "integer_mul", mul)) return false;
-	if (!functionobject_add2array(interp, interp->oparrays.lt, "integer_lt", lt)) return false;
+	if (!functionobject_add2array(interp, interp->oparrays.eq, "integer_eq", functionobject_mkcfunc_yesret(eq))) return false;
+	if (!functionobject_add2array(interp, interp->oparrays.add, "integer_add", functionobject_mkcfunc_yesret(add))) return false;
+	if (!functionobject_add2array(interp, interp->oparrays.sub, "integer_sub", functionobject_mkcfunc_yesret(sub))) return false;
+	if (!functionobject_add2array(interp, interp->oparrays.mul, "integer_mul", functionobject_mkcfunc_yesret(mul))) return false;
+	if (!functionobject_add2array(interp, interp->oparrays.lt, "integer_lt", functionobject_mkcfunc_yesret(lt))) return false;
 	return true;
 }

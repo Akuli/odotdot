@@ -112,9 +112,9 @@ static struct Object *newinstance(struct Interpreter *interp, struct Object *arg
 }
 
 // allow passing arguments to the constructor
-static struct Object *setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
+static bool setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	return functionobject_noreturn;
+	return true;
 }
 
 bool scopeobject_setvar(struct Interpreter *interp, struct Object *scope, struct Object *varname, struct Object *val)
@@ -145,14 +145,11 @@ bool scopeobject_setvar(struct Interpreter *interp, struct Object *scope, struct
 	return scopeobject_setvar(interp, scopedata->parent_scope, varname, val);
 }
 
-static struct Object *set_var(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
+static bool set_var(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.String, interp->builtins.Object, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
-	if (!scopeobject_setvar(interp, thisdata.data, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1)))
-		return NULL;
-	OBJECT_INCREF(interp, interp->builtins.none);
-	return interp->builtins.none;
+	return scopeobject_setvar(interp, thisdata.data, ARRAYOBJECT_GET(args, 0), ARRAYOBJECT_GET(args, 1));
 }
 
 struct Object *scopeobject_getvar(struct Interpreter *interp, struct Object *scope, struct Object *varname)
@@ -203,9 +200,9 @@ struct Object *scopeobject_createclass(struct Interpreter *interp)
 	if (!klass)
 		return NULL;
 
-	if (!method_add(interp, klass, "setup", setup)) goto error;
-	if (!method_add(interp, klass, "set_var", set_var)) goto error;
-	if (!method_add(interp, klass, "get_var", get_var)) goto error;
+	if (!method_add_noret(interp, klass, "setup", setup)) goto error;
+	if (!method_add_noret(interp, klass, "set_var", set_var)) goto error;
+	if (!method_add_yesret(interp, klass, "get_var", get_var)) goto error;
 	if (!attribute_add(interp, klass, "local_vars", local_vars_getter, NULL)) goto error;
 	if (!attribute_add(interp, klass, "parent_scope", parent_scope_getter, NULL)) goto error;
 	return klass;

@@ -14,10 +14,10 @@ struct Object *objectobject_createclass_noerr(struct Interpreter *interp)
 
 
 // setup does nothing by default
-static struct Object *setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts) {
-	if (!check_args(interp, args, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-	return functionobject_noreturn;
+static bool setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts) {
+	if (!check_args(interp, args, NULL)) return false;
+	if (!check_no_opts(interp, opts)) return false;
+	return true;
 }
 
 static struct Object *to_debug_string(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
@@ -32,7 +32,7 @@ static struct Object *to_debug_string(struct Interpreter *interp, struct ObjectD
 
 bool objectobject_addmethods(struct Interpreter *interp)
 {
-	if (!method_add(interp, interp->builtins.Object, "setup", setup)) return false;
-	if (!method_add(interp, interp->builtins.Object, "to_debug_string", to_debug_string)) return false;
+	if (!method_add_noret(interp, interp->builtins.Object, "setup", setup)) return false;
+	if (!method_add_yesret(interp, interp->builtins.Object, "to_debug_string", to_debug_string)) return false;
 	return true;
 }

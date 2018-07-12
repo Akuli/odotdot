@@ -37,7 +37,7 @@ bool attribute_settoattrdata(struct Interpreter *interp, struct Object *obj, cha
 	return res;
 }
 
-struct Object *attribute_maybegetfromattrdata(struct Interpreter *interp, struct Object *obj, char *attr)
+struct Object *attribute_getfromattrdata(struct Interpreter *interp, struct Object *obj, char *attr)
 {
 	if (!init_data(interp, obj))
 		return NULL;
@@ -51,21 +51,13 @@ struct Object *attribute_maybegetfromattrdata(struct Interpreter *interp, struct
 	OBJECT_DECREF(interp, stringobj);
 	if (status == 1)
 		return res;
-	if (status == 0)
-		return functionobject_noreturn;
-	assert(status == -1);
-	return NULL;
-}
-
-struct Object *attribute_getfromattrdata(struct Interpreter *interp, struct Object *obj, char *attr)
-{
-	struct Object *res = attribute_maybegetfromattrdata(interp, obj, attr);
-	if (res == functionobject_noreturn) {
+	if (status == 0) {
 		// TODO: how is it possible to actually get this error?
 		errorobject_throwfmt(interp, "AttribError", "%D has no \"%s\" attribute", obj, attr);
 		return NULL;
 	}
-	return res;
+	assert(status == -1);
+	return NULL;
 }
 
 
@@ -114,7 +106,7 @@ bool attribute_addwithfuncobjs(struct Interpreter *interp, struct Object *klass,
 	return true;
 }
 
-bool attribute_add(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc getter, functionobject_cfunc setter)
+bool attribute_add(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc_yesret getter, functionobject_cfunc_noret setter)
 {
 	struct Object *getterobj = NULL, *setterobj = NULL;
 
@@ -124,12 +116,11 @@ bool attribute_add(struct Interpreter *interp, struct Object *klass, char *name,
 
 	struct ObjectData nulldata = { .data = NULL, .foreachref = NULL, .destructor = NULL };
 	if (getter) {
-		if (!(getterobj = functionobject_new(interp, nulldata, getter, prefixedname)))
+		if (!(getterobj = functionobject_new(interp, nulldata, functionobject_mkcfunc_yesret(getter), prefixedname)))
 			return false;
 	}
 	if (setter) {
-		prefixedname[0] = 's';    // "setter of blabla" instead of "getter of blabla"
-		if (!(setterobj = functionobject_new(interp, nulldata, setter, prefixedname)))
+		if (!(setterobj = functionobject_new(interp, nulldata, functionobject_mkcfunc_noret(setter), prefixedname)))
 			return false;
 	}
 
@@ -159,14 +150,8 @@ struct Object *attribute_getwithstringobj(struct Interpreter *interp, struct Obj
 				OBJECT_DECREF(interp, getter);
 				return NULL;
 			}
-			struct Object *ret = functionobject_call(interp, getter, obj, NULL);
+			struct Object *ret = functionobject_call_yesret(interp, getter, obj, NULL);
 			OBJECT_DECREF(interp, getter);
-			if (!ret)
-				return NULL;
-			if (ret == functionobject_noreturn) {
-				errorobject_throwfmt(interp, "ValueError", "attribute getter %D didn't return anything", getter);
-				return NULL;
-			}
 			return ret;
 		}
 		assert(res == 0);   // not found
@@ -219,24 +204,18 @@ bool attribute_setwithstringobj(struct Interpreter *interp, struct Object *obj, 
 		if (res == 1) {
 			if (!check_type(interp, interp->builtins.Function, setter)) {
 				OBJECT_DECREF(interp, setter);
-				return NULL;
-			}
-			struct Object *res = functionobject_call(interp, setter, obj, val, NULL);
-			OBJECT_DECREF(interp, setter);
-			if (!res)
 				return false;
-			if (res == functionobject_noreturn)
-				return true;
-			errorobject_throwfmt(interp, "ValueError", "the setter of the %D attribute returned %D", stringobj, res);
-			OBJECT_DECREF(interp, res);
-			return false;
+			}
+			bool ok = functionobject_call_noret(interp, setter, obj, val, NULL);
+			OBJECT_DECREF(interp, setter);
+			return ok;
 		}
 		assert(res == 0);   // not found
 	} while ((klass = klassdata->baseclass));
 
 	if (classobject_isinstanceof(obj, interp->builtins.ArbitraryAttribs)) {
 		if (!init_data(interp, obj))
-			return NULL;
+			return false;
 		return mappingobject_set(interp, obj->attrdata, stringobj, val);
 	}
 

@@ -19,7 +19,8 @@
 //    {
 //        struct Object *this = thisdata.data;
 //        ....
-bool method_add(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc cfunc);
+bool method_add_yesret(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc_yesret cfunc);
+bool method_add_noret(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc_noret cfunc);
 
 // RETURNS A NEW REFERENCE or NULL on error
 // name must be valid utf-8
@@ -28,11 +29,11 @@ struct Object *method_get(struct Interpreter *interp, struct Object *obj, char *
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *method_getwithustr(struct Interpreter *interp, struct Object *obj, struct UnicodeString name);
 
-// the ultimate convenience method for calling methods
+// convenience functions for calling methods
 // see also functionobject_call
 // there is no method_vcall, use method_get with functionobject_vcall
-// RETURNS A NEW REFERENCE or NULL on error
-struct Object *method_call(struct Interpreter *interp, struct Object *obj, char *methname, ...);
+struct Object *method_call_yesret(struct Interpreter *interp, struct Object *obj, char *methname, ...);
+bool method_call_noret(struct Interpreter *interp, struct Object *obj, char *methname, ...);
 
 // these call "special" methods and check the return type
 // these RETURN A NEW REFERENCE or NULL on error

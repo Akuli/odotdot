@@ -155,8 +155,8 @@ struct Object *classobject_create_Class_noerr(struct Interpreter *interp)
 
 
 // override Object's setup to allow arguments
-static struct Object *setup(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts) {
-	return functionobject_noreturn;
+static bool setup(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts) {
+	return true;
 }
 
 static struct Object *name_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
@@ -218,7 +218,7 @@ static struct Object *setters_getter(struct Interpreter *interp, struct ObjectDa
 
 bool classobject_addmethods(struct Interpreter *interp)
 {
-	if (!method_add(interp, interp->builtins.Class, "setup", setup)) return false;
+	if (!method_add_noret(interp, interp->builtins.Class, "setup", setup)) return false;
 	if (!attribute_add(interp, interp->builtins.Class, "name", name_getter, NULL)) return false;
 	if (!attribute_add(interp, interp->builtins.Class, "baseclass", baseclass_getter, NULL)) return false;
 	if (!attribute_add(interp, interp->builtins.Class, "getters", getters_getter, NULL)) return false;

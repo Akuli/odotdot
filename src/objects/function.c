@@ -13,10 +13,26 @@
 #include "mapping.h"
 #include "string.h"
 
+struct FunctionObjectCfunc functionobject_mkcfunc_yesret(functionobject_cfunc_yesret func)
+{
+	struct FunctionObjectCfunc cfunc;
+	cfunc.returning = true;
+	cfunc.func.yesret = func;
+	return cfunc;
+}
+
+struct FunctionObjectCfunc functionobject_mkcfunc_noret(functionobject_cfunc_noret func)
+{
+	struct FunctionObjectCfunc cfunc;
+	cfunc.returning = false;
+	cfunc.func.noret = func;
+	return cfunc;
+}
+
 
 struct FunctionData {
 	struct Object *name;
-	functionobject_cfunc cfunc;
+	struct FunctionObjectCfunc cfunc;
 	struct ObjectData userdata;  // passed to the function when calling, same data every time
 };
 
@@ -53,16 +69,16 @@ struct Object *functionobject_createclass(struct Interpreter *interp)
 
 ATTRIBUTE_DEFINE_STRUCTDATA_GETTER(Function, FunctionData, name)
 
-static struct Object *name_setter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+bool name_setter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Function, interp->builtins.String, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Function, interp->builtins.String, NULL)) return false;
+	if (!check_no_opts(interp, opts)) return false;
 
 	struct FunctionData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
 	OBJECT_DECREF(interp, data->name);
 	data->name = ARRAYOBJECT_GET(args, 1);
 	OBJECT_INCREF(interp, data->name);
-	return functionobject_noreturn;
+	return true;
 }
 
 bool functionobject_setname(struct Interpreter *interp, struct Object *func, char *newname)
@@ -79,11 +95,11 @@ bool functionobject_setname(struct Interpreter *interp, struct Object *func, cha
 }
 
 
-static struct Object *setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
+static bool setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
 	// FIXME: ValueError feels wrong for this
 	errorobject_throwfmt(interp, "ValueError", "functions can't be created with (new Function), use func instead");
-	return NULL;
+	return false;
 }
 
 // fwd dcl
@@ -92,13 +108,13 @@ static struct Object *partial(struct Interpreter *interp, struct ObjectData this
 bool functionobject_addmethods(struct Interpreter *interp)
 {
 	if (!attribute_add(interp, interp->builtins.Function, "name", name_getter, name_setter)) return false;
-	if (!method_add(interp, interp->builtins.Function, "setup", setup)) return false;
-	if (!method_add(interp, interp->builtins.Function, "partial", partial)) return false;
+	if (!method_add_noret(interp, interp->builtins.Function, "setup", setup)) return false;
+	if (!method_add_yesret(interp, interp->builtins.Function, "partial", partial)) return false;
 	return true;
 }
 
 
-static struct Object *new_function_with_nameobj(struct Interpreter *interp, struct ObjectData userdata, functionobject_cfunc cfunc, struct Object *nameobj)
+static struct Object *new_function_with_nameobj(struct Interpreter *interp, struct ObjectData userdata, struct FunctionObjectCfunc cfunc, struct Object *nameobj)
 {
 	struct FunctionData *data = malloc(sizeof(struct FunctionData));
 	if (!data) {
@@ -122,7 +138,7 @@ static struct Object *new_function_with_nameobj(struct Interpreter *interp, stru
 	return obj;
 }
 
-struct Object *functionobject_new(struct Interpreter *interp, struct ObjectData userdata, functionobject_cfunc cfunc, char *name)
+struct Object *functionobject_new(struct Interpreter *interp, struct ObjectData userdata, struct FunctionObjectCfunc cfunc, char *name)
 {
 	struct Object *nameobj = stringobject_newfromcharptr(interp, name);
 	if (!nameobj)
@@ -133,7 +149,7 @@ struct Object *functionobject_new(struct Interpreter *interp, struct ObjectData 
 	return func;
 }
 
-bool functionobject_add2array(struct Interpreter *interp, struct Object *arr, char *name, functionobject_cfunc cfunc)
+bool functionobject_add2array(struct Interpreter *interp, struct Object *arr, char *name, struct FunctionObjectCfunc cfunc)
 {
 	struct Object *func = functionobject_new(interp, (struct ObjectData){.data=NULL, .foreachref=NULL, .destructor=NULL}, cfunc, name);
 	if (!func)
@@ -145,44 +161,63 @@ bool functionobject_add2array(struct Interpreter *interp, struct Object *arr, ch
 }
 
 
-struct Object *functionobject_call(struct Interpreter *interp, struct Object *func, ...)
-{
-	struct Object *args = arrayobject_newempty(interp);
-	if (!args)
-		return NULL;
-
-	va_list ap;
-	va_start(ap, func);
-
-	while(true) {
-		struct Object *arg = va_arg(ap, struct Object *);
-		if (!arg)    // end of argument list, not an error
-			break;
-		if (!arrayobject_push(interp, args, arg)) {
-			OBJECT_DECREF(interp, args);
-			return NULL;
-		}
-	}
-	va_end(ap);
-
-	struct Object *opts = mappingobject_newempty(interp);
-	if (!opts) {
-		OBJECT_DECREF(interp, args);
-		return NULL;
-	}
-
-	struct Object *res = functionobject_vcall(interp, func, args, opts);
-	OBJECT_DECREF(interp, args);
-	OBJECT_DECREF(interp, opts);
-
-	return res;
-}
-
-struct Object *functionobject_vcall(struct Interpreter *interp, struct Object *func, struct Object *args, struct Object *opts)
+struct Object *functionobject_vcall_yesret(struct Interpreter *interp, struct Object *func, struct Object *args, struct Object *opts)
 {
 	struct FunctionData *fdata = func->objdata.data;
-	return fdata->cfunc(interp, fdata->userdata, args, opts);
+	if (!fdata->cfunc.returning) {
+		errorobject_throwfmt(interp, "TypeError", "expected a returning function, got %D", func);
+		return NULL;
+	}
+	return fdata->cfunc.func.yesret(interp, fdata->userdata, args, opts);
 }
+
+bool functionobject_vcall_noret(struct Interpreter *interp, struct Object *func, struct Object *args, struct Object *opts)
+{
+	struct FunctionData *fdata = func->objdata.data;
+	if (fdata->cfunc.returning) {
+		errorobject_throwfmt(interp, "TypeError", "expected a function that returns nothing, got %D", func);
+		return false;
+	}
+	return fdata->cfunc.func.noret(interp, fdata->userdata, args, opts);
+}
+
+
+#define DEFINE_A_FUNCTION(RETURNTYPE, YESNO) \
+	RETURNTYPE functionobject_call_##YESNO##ret(struct Interpreter *interp, struct Object *func, ...) \
+	{ \
+		struct Object *args = arrayobject_newempty(interp); \
+		if (!args) \
+			return NULL; \
+		\
+		va_list ap; \
+		va_start(ap, func); \
+		\
+		while(true) { \
+			struct Object *arg = va_arg(ap, struct Object *); \
+			if (!arg)    /* end of argument list, not an error */ \
+				break; \
+			if (!arrayobject_push(interp, args, arg)) { \
+				OBJECT_DECREF(interp, args); \
+				return NULL; \
+			} \
+		} \
+		va_end(ap); \
+		\
+		struct Object *opts = mappingobject_newempty(interp); \
+		if (!opts) { \
+			OBJECT_DECREF(interp, args); \
+			return NULL; \
+		} \
+		\
+		RETURNTYPE res = functionobject_vcall_##YESNO##ret(interp, func, args, opts); \
+		OBJECT_DECREF(interp, args); \
+		OBJECT_DECREF(interp, opts); \
+		return res; \
+	}
+
+DEFINE_A_FUNCTION(struct Object *, yes)
+DEFINE_A_FUNCTION(bool, no)
+#undef DEFINE_A_FUNCTION
 
 
 // rest of this file does the .partial method
@@ -228,7 +263,9 @@ static struct Object *merge_mappings(struct Interpreter *interp, struct Object *
 	return res;
 }
 
-static struct Object *partialrunner(struct Interpreter *interp, struct ObjectData pfuddata, struct Object *args, struct Object *opts)
+
+// TODO: less copy/pasta
+static struct Object *partialrunner_yesret(struct Interpreter *interp, struct ObjectData pfuddata, struct Object *args, struct Object *opts)
 {
 	struct PartialFunctionUserdata pfud = *(struct PartialFunctionUserdata*)pfuddata.data;
 	struct Object *allargs = arrayobject_concat(interp, pfud.args, args);
@@ -240,11 +277,29 @@ static struct Object *partialrunner(struct Interpreter *interp, struct ObjectDat
 		return NULL;
 	}
 
-	struct Object *res = functionobject_vcall(interp, pfud.func, allargs, allopts);
+	struct Object *res = functionobject_vcall_yesret(interp, pfud.func, allargs, allopts);
 	OBJECT_DECREF(interp, allargs);
 	OBJECT_DECREF(interp, allopts);
 	return res;
 }
+static bool partialrunner_noret(struct Interpreter *interp, struct ObjectData pfuddata, struct Object *args, struct Object *opts)
+{
+	struct PartialFunctionUserdata pfud = *(struct PartialFunctionUserdata*)pfuddata.data;
+	struct Object *allargs = arrayobject_concat(interp, pfud.args, args);
+	if (!allargs)
+		return NULL;
+	struct Object *allopts = merge_mappings(interp, pfud.opts, opts);
+	if (!allopts) {
+		OBJECT_DECREF(interp, allargs);
+		return NULL;
+	}
+
+	bool res = functionobject_vcall_noret(interp, pfud.func, allargs, allopts);
+	OBJECT_DECREF(interp, allargs);
+	OBJECT_DECREF(interp, allopts);
+	return res;
+}
+
 
 static struct Object *partial(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
@@ -265,7 +320,14 @@ static struct Object *partial(struct Interpreter *interp, struct ObjectData this
 	if (!partialname)
 		goto error;
 
-	struct Object* res = new_function_with_nameobj(interp, (struct ObjectData){.data=pfud, .foreachref=pfud_foreachref, .destructor=pfud_destructor}, partialrunner, partialname);
+	struct FunctionObjectCfunc runnercfunc;
+	if ((runnercfunc.returning = ((struct FunctionData*) pfud->func->objdata.data)->cfunc.returning))
+		runnercfunc.func.yesret = partialrunner_yesret;
+	else
+		runnercfunc.func.noret = partialrunner_noret;
+
+	struct Object *res = new_function_with_nameobj(interp, (struct ObjectData){.data=pfud, .foreachref=pfud_foreachref, .destructor=pfud_destructor}, runnercfunc, partialname);
+
 	OBJECT_DECREF(interp, partialname);
 	if (!res)
 		goto error;

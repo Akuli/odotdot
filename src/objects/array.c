@@ -60,35 +60,35 @@ static struct Object *get(struct Interpreter *interp, struct ObjectData thisdata
 	return res;
 }
 
-static struct Object *set(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
+static bool set(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Integer, interp->builtins.Object, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Integer, interp->builtins.Object, NULL)) return false;
+	if (!check_no_opts(interp, opts)) return false;
 	struct Object *arr = thisdata.data;
 	struct Object *index = ARRAYOBJECT_GET(args, 0);
 	struct Object *obj = ARRAYOBJECT_GET(args, 1);
 
 	long long i = integerobject_tolonglong(index);
 	if (!validate_index(interp, arr, i))
-		return NULL;
+		return false;
 
 	struct ArrayObjectData *data = arr->objdata.data;
 	OBJECT_DECREF(interp, data->elems[i]);
 	data->elems[i] = obj;
 	OBJECT_INCREF(interp, obj);
-	return functionobject_noreturn;
+	return true;
 }
 
-static struct Object *push(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
+static bool push(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Object, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Object, NULL)) return false;
+	if (!check_no_opts(interp, opts)) return false;
 	struct Object *arr = thisdata.data;
 	struct Object *obj = ARRAYOBJECT_GET(args, 0);
 
 	if (!arrayobject_push(interp, arr, obj))
-		return NULL;
-	return functionobject_noreturn;
+		return false;
+	return true;
 }
 
 static struct Object *pop(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
@@ -138,11 +138,11 @@ struct Object *arrayobject_createclass(struct Interpreter *interp)
 
 	// TODO: figure out better names for push and pop? push should be add, not sure about pop
 	if (!attribute_add(interp, klass, "length", length_getter, NULL)) goto error;
-	if (!method_add(interp, klass, "set", set)) goto error;
-	if (!method_add(interp, klass, "get", get)) goto error;
-	if (!method_add(interp, klass, "push", push)) goto error;
-	if (!method_add(interp, klass, "pop", pop)) goto error;
-	if (!method_add(interp, klass, "slice", slice)) goto error;
+	if (!method_add_noret(interp, klass, "set", set)) goto error;
+	if (!method_add_yesret(interp, klass, "get", get)) goto error;
+	if (!method_add_noret(interp, klass, "push", push)) goto error;
+	if (!method_add_yesret(interp, klass, "pop", pop)) goto error;
+	if (!method_add_yesret(interp, klass, "slice", slice)) goto error;
 	return klass;
 
 error:

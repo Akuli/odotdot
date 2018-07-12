@@ -250,7 +250,9 @@ bool import_init(struct Interpreter *interp)
 {
 	assert(interp->importstuff.importers);
 
-	struct Object *fileimp = functionobject_new(interp, (struct ObjectData){.data=NULL, .foreachref=NULL, .destructor=NULL}, file_importer, "file_importer");
+	struct FunctionObjectCfunc fileimpcfunc = { .returning=true };
+	fileimpcfunc.func.yesret = file_importer;
+	struct Object *fileimp = functionobject_new(interp, (struct ObjectData){.data=NULL, .foreachref=NULL, .destructor=NULL}, fileimpcfunc, "file_importer");
 	if (!fileimp)
 		return NULL;
 	bool ok = arrayobject_push(interp, interp->importstuff.importers, fileimp);

@@ -40,7 +40,8 @@ static void ldata_destructor(void *ldata)
 }
 
 
-static struct Object *runner(struct Interpreter *interp, struct ObjectData data, struct Object *args, struct Object *opts)
+// sets scope to a new reference, but block is not a new reference
+static bool create_scope_for_runner(struct Interpreter *interp, struct ObjectData data, struct Object *args, struct Object *opts, struct Object **block, struct Object **scope)
 {
 	struct LambdaData *ldata = data.data;
 	if (!check_args_with_array(interp, args, ldata->argtypes)) return NULL;
@@ -48,18 +49,18 @@ static struct Object *runner(struct Interpreter *interp, struct ObjectData data,
 
 	struct Object *parentscope = attribute_get(interp, ldata->block, "definition_scope");
 	if (!parentscope)
-		return NULL;
+		return false;
 
-	struct Object *scope = scopeobject_newsub(interp, parentscope);
+	struct Object *tmpscope = scopeobject_newsub(interp, parentscope);
 	OBJECT_DECREF(interp, parentscope);
-	if (!scope)
-		return NULL;
+	if (!tmpscope)
+		return false;
 
 	// add values of arguments...
 	for (size_t i=0; i < ARRAYOBJECT_LEN(ldata->argnames); i++) {
-		if (!mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), ARRAYOBJECT_GET(ldata->argnames, i), ARRAYOBJECT_GET(args, i))) {
-			OBJECT_DECREF(interp, scope);
-			return NULL;
+		if (!mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(tmpscope), ARRAYOBJECT_GET(ldata->argnames, i), ARRAYOBJECT_GET(args, i))) {
+			OBJECT_DECREF(interp, tmpscope);
+			return false;
 		}
 	}
 
@@ -68,8 +69,8 @@ static struct Object *runner(struct Interpreter *interp, struct ObjectData data,
 		struct Object *val;
 		int status = mappingobject_get(interp, opts, ARRAYOBJECT_GET(ldata->optnames, i), &val);
 		if (status == -1) {
-			OBJECT_DECREF(interp, scope);
-			return NULL;
+			OBJECT_DECREF(interp, tmpscope);
+			return false;
 		}
 
 		struct Object *option;
@@ -78,8 +79,8 @@ static struct Object *runner(struct Interpreter *interp, struct ObjectData data,
 			option = optionobject_new(interp, val);
 			OBJECT_DECREF(interp, val);
 			if (!option) {
-				OBJECT_DECREF(interp, scope);
-				return NULL;
+				OBJECT_DECREF(interp, tmpscope);
+				return false;
 			}
 			optionwantsdecref = true;
 		} else {
@@ -88,19 +89,38 @@ static struct Object *runner(struct Interpreter *interp, struct ObjectData data,
 			optionwantsdecref = false;
 		}
 
-		bool ok = mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(scope), ARRAYOBJECT_GET(ldata->optnames, i), option);
+		bool ok = mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(tmpscope), ARRAYOBJECT_GET(ldata->optnames, i), option);
 		if (optionwantsdecref)
 			OBJECT_DECREF(interp, option);
 		if (!ok) {
-			OBJECT_DECREF(interp, scope);
-			return NULL;
+			OBJECT_DECREF(interp, tmpscope);
+			return false;
 		}
 	}
 
-	// retval may be a new reference, NULL or functionobject_noreturn
-	struct Object *retval = blockobject_runwithreturn(interp, ldata->block, scope);
+	*block = ldata->block;
+	*scope = tmpscope;
+	return true;
+}
+
+static struct Object *returning_runner(struct Interpreter *interp, struct ObjectData data, struct Object *args, struct Object *opts)
+{
+	struct Object *block, *scope;
+	if (!create_scope_for_runner(interp, data, args, opts, &block, &scope))
+		return NULL;
+	struct Object *retval = blockobject_runwithreturn(interp, block, scope);
 	OBJECT_DECREF(interp, scope);
 	return retval;
+}
+
+static bool nonreturning_runner(struct Interpreter *interp, struct ObjectData data, struct Object *args, struct Object *opts)
+{
+	struct Object *block, *scope;
+	if (!create_scope_for_runner(interp, data, args, opts, &block, &scope))
+		return false;
+	bool ok = blockobject_run(interp, block, scope);
+	OBJECT_DECREF(interp, scope);
+	return ok;
 }
 
 
@@ -223,9 +243,20 @@ static struct LambdaData *create_ldata(struct Interpreter *interp, struct Object
 struct Object *lambdabuiltin(struct Interpreter *interp, struct ObjectData dummydata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.String, interp->builtins.Block, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
+	if (!check_opts(interp, opts, interp->strings.return_, interp->builtins.Bool, NULL)) return NULL;
 	struct Object *argstr = ARRAYOBJECT_GET(args, 0);
 	struct Object *block = ARRAYOBJECT_GET(args, 1);
+
+	bool returning;
+	struct Object *tmp;
+	int status = mappingobject_get(interp, opts, interp->strings.return_, &tmp);
+	if (status == -1)
+		return NULL;
+	if (status == 1) {
+		returning = (tmp == interp->builtins.yes);
+		OBJECT_DECREF(interp, tmp);
+	} else
+		returning = false;
 
 	struct Object *argnames = arrayobject_newempty(interp);
 	if (!argnames)
@@ -247,7 +278,13 @@ struct Object *lambdabuiltin(struct Interpreter *interp, struct ObjectData dummy
 	if (!ldata)
 		return NULL;
 
-	struct Object *func = functionobject_new(interp, (struct ObjectData){.data=ldata, .foreachref=ldata_foreachref, .destructor=ldata_destructor}, runner, "a lambda function");
+	struct FunctionObjectCfunc runnercfunc = { .returning=returning };
+	if (returning)
+		runnercfunc.func.yesret = returning_runner;
+	else
+		runnercfunc.func.noret = nonreturning_runner;
+
+	struct Object *func = functionobject_new(interp, (struct ObjectData){.data=ldata, .foreachref=ldata_foreachref, .destructor=ldata_destructor}, runnercfunc, "a lambda function");
 	if (!func) {
 		// TODO: writing these here sucks, create a function that can free any ObjectData correctly
 		OBJECT_DECREF(interp, ldata->argnames);

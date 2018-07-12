@@ -69,9 +69,9 @@ struct Object *errorobject_createclass_noerr(struct Interpreter *interp)
 }
 
 
-static struct Object *setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
+static bool setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.String, NULL)) return NULL;
+	if (!check_args(interp, args, interp->builtins.String, NULL)) return false;
 
 	struct ErrorData *data = ((struct Object*) thisdata.data)->objdata.data;
 	assert(data);
@@ -79,7 +79,7 @@ static struct Object *setup(struct Interpreter *interp, struct ObjectData thisda
 	OBJECT_DECREF(interp, data->message);
 	data->message = ARRAYOBJECT_GET(args, 0);
 	OBJECT_INCREF(interp, data->message);
-	return functionobject_noreturn;
+	return true;
 }
 
 
@@ -97,25 +97,25 @@ static struct Object *stack_getter(struct Interpreter *interp, struct ObjectData
 	return interp->builtins.none;
 }
 
-static struct Object *message_setter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+static bool message_setter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.String, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.String, NULL)) return false;
+	if (!check_no_opts(interp, opts)) return false;
 
 	struct ErrorData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
 	OBJECT_DECREF(interp, data->message);
 	data->message = ARRAYOBJECT_GET(args, 1);
 	OBJECT_INCREF(interp, data->message);
-	return functionobject_noreturn;
+	return true;
 }
 
-static struct Object *stack_setter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+static bool stack_setter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	// doesn't make sense to check if the new stack contains nothing but StackFrames
 	// because it's possible to push anything to the array
 	// the Object must be null or an Array, that is checked below
-	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.Option, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
+	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.Option, NULL)) return false;
+	if (!check_no_opts(interp, opts)) return false;
 	struct Object *err = ARRAYOBJECT_GET(args, 0);
 	struct ErrorData *data = err->objdata.data;
 	struct Object *newstackopt = ARRAYOBJECT_GET(args, 1);
@@ -124,19 +124,19 @@ static struct Object *stack_setter(struct Interpreter *interp, struct ObjectData
 		if (data->stack)
 			OBJECT_DECREF(interp, data->stack);
 		data->stack = NULL;
-		return functionobject_noreturn;
+		return true;
 	}
 
 	struct Object *newstack = OPTIONOBJECT_VALUE(newstackopt);
 	if (!check_type(interp, interp->builtins.Array, newstack))
-		return NULL;
+		return false;
 
 	if (data->stack)
 		OBJECT_DECREF(interp, data->stack);
 	data->stack = newstack;
 	OBJECT_INCREF(interp, newstack);
 
-	return functionobject_noreturn;
+	return true;
 }
 
 static bool print_ustr(struct Interpreter *interp, struct UnicodeString u)
@@ -153,37 +153,34 @@ static bool print_ustr(struct Interpreter *interp, struct UnicodeString u)
 }
 
 // builtins.ö replaces this stupid thing with a method that actually prints the stack
-static struct Object *print_stack(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
+static bool print_stack(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
+	if (!check_args(interp, args, NULL)) return false;
+	if (!check_no_opts(interp, opts)) return false;
 	struct Object *err = thisdata.data;
 
 	if (err == interp->builtins.nomemerr) {
 		// no more memory can be allocated
 		fprintf(stderr, "MemError: not enough memory\n");
-		OBJECT_INCREF(interp, interp->builtins.none);
-		return interp->builtins.none;
+		return true;
 	}
 
 	if (!print_ustr(interp, ((struct ClassObjectData *) err->klass->objdata.data)->name))
-		return NULL;
+		return false;
 	fputs(": ", stderr);
 	struct ErrorData *data = err->objdata.data;
 	if (!print_ustr( interp, *((struct UnicodeString *) data->message->objdata.data) ))
-		return NULL;
+		return false;
 	fputc('\n', stderr);
-
-	OBJECT_INCREF(interp, interp->builtins.none);
-	return interp->builtins.none;
+	return true;
 }
 
 bool errorobject_addmethods(struct Interpreter *interp)
 {
 	if (!attribute_add(interp, interp->builtins.Error, "message", message_getter, message_setter)) return false;
 	if (!attribute_add(interp, interp->builtins.Error, "stack", stack_getter, stack_setter)) return false;
-	if (!method_add(interp, interp->builtins.Error, "setup", setup)) return false;
-	if (!method_add(interp, interp->builtins.Error, "print_stack", print_stack)) return false;
+	if (!method_add_noret(interp, interp->builtins.Error, "setup", setup)) return false;
+	if (!method_add_noret(interp, interp->builtins.Error, "print_stack", print_stack)) return false;
 	return true;
 }
 
@@ -311,16 +308,9 @@ void errorobject_print(struct Interpreter *interp, struct Object *err)
 {
 	assert(!interp->err);
 
-	struct Object *res = method_call(interp, err, "print_stack", NULL);
-	if (!res) {
+	if (!method_call_noret(interp, err, "print_stack", NULL)) {
 		fprintf(stderr, "\n%s: %s while printing an error\n", interp->argv0, interp->err==interp->builtins.nomemerr?"ran out of memory":"another error occurred");
 		OBJECT_DECREF(interp, interp->err);
 		interp->err = NULL;
-		return;
-	}
-	if (res != functionobject_noreturn) {
-		// print_stack returned a value
-		// this happens only if print_stack is broken... why not handle this nicely i guess
-		OBJECT_DECREF(interp, res);
 	}
 }

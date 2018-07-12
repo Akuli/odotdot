@@ -21,7 +21,7 @@
 
 struct MethodGetterData {
 	struct Object *klass;
-	functionobject_cfunc cfunc;
+	struct FunctionObjectCfunc cfunc;
 	char name[NAME_SIZE];    // ends with " method", including the \0
 };
 
@@ -48,19 +48,16 @@ static struct Object *method_getter(struct Interpreter *interp, struct ObjectDat
 	if (!check_args(interp, args, mgdata->klass, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct ObjectData thisdata = { .data = ARRAYOBJECT_GET(args, 0), .foreachref = thisdata_foreachref, .destructor = NULL };
-	OBJECT_INCREF(interp, (struct Object*) thisdata.data);
-
+	struct ObjectData thisdata = { .data=ARRAYOBJECT_GET(args, 0), .foreachref=thisdata_foreachref, .destructor=NULL };
 	struct Object *res = functionobject_new(interp, thisdata, mgdata->cfunc, mgdata->name);
-	if (!res) {
-		OBJECT_DECREF(interp, (struct Object*) thisdata.data);
+	if (!res)
 		return NULL;
-	}
+	OBJECT_INCREF(interp, (struct Object*) thisdata.data);   // for thisdata
 
 	return res;
 }
 
-bool method_add(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc cfunc)
+static bool raw_method_add(struct Interpreter *interp, struct Object *klass, char *name, struct FunctionObjectCfunc cfunc)
 {
 	// the instance-specific method returned by the getter will have this name
 	size_t len = strlen(name);
@@ -84,7 +81,7 @@ bool method_add(struct Interpreter *interp, struct Object *klass, char *name, fu
 	memcpy(mgname, "getter of ", sizeof("getter of ")-1);
 	memcpy(mgname + sizeof("getter of ")-1, name, len+1 /* also copy \0 */);
 
-	struct Object *mg = functionobject_new(interp, (struct ObjectData){.data=mgdata, .foreachref=mgdata_foreachref, .destructor=mgdata_destructor}, method_getter, mgname);
+	struct Object *mg = functionobject_new(interp, (struct ObjectData){.data=mgdata, .foreachref=mgdata_foreachref, .destructor=mgdata_destructor}, functionobject_mkcfunc_yesret(method_getter), mgname);
 	if (!mg) {
 		OBJECT_DECREF(interp, klass);
 		free(mgdata);
@@ -96,61 +93,97 @@ bool method_add(struct Interpreter *interp, struct Object *klass, char *name, fu
 	return ok;
 }
 
-
-struct Object *method_call(struct Interpreter *interp, struct Object *obj, char *methname, ...)
+bool method_add_yesret(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc_yesret cfunc)
 {
-	struct Object *method = attribute_get(interp, obj, methname);
-	if (!method)
-		return NULL;
-	if (!check_type(interp, interp->builtins.Function, method)) {
-		OBJECT_DECREF(interp, method);
-		return NULL;
+	return raw_method_add(interp, klass, name, functionobject_mkcfunc_yesret(cfunc));
+}
+
+bool method_add_noret(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc_noret cfunc)
+{
+	struct FunctionObjectCfunc foc = { .returning = false };
+	foc.func.noret = cfunc;
+	return raw_method_add(interp, klass, name, foc);
+}
+
+
+// res should be a C array of method, args, opts
+static bool method_call_helper(struct Interpreter *interp, struct Object *obj, char *methname, va_list ap, struct Object **res)
+{
+	if (!(res[0] = attribute_get(interp, obj, methname)))
+		return false;
+	if (!check_type(interp, interp->builtins.Function, res[0])) {
+		OBJECT_DECREF(interp, res[0]);
+		return false;
 	}
 
-	struct Object *args = arrayobject_newempty(interp);
-	if (!args) {
-		OBJECT_DECREF(interp, method);
-		return NULL;
+	if (!(res[1] = arrayobject_newempty(interp))) {
+		OBJECT_DECREF(interp, res[1]);
+		return false;
 	}
+	struct Object *arg;
+	while((arg = va_arg(ap, struct Object*))) {
+		if (!arrayobject_push(interp, res[1], arg)) {
+			OBJECT_DECREF(interp, res[1]);
+			OBJECT_DECREF(interp, res[0]);
+			return false;
+		}
+	}
+
+	if (!(res[2] = mappingobject_newempty(interp))) {
+		OBJECT_DECREF(interp, res[1]);
+		OBJECT_DECREF(interp, res[0]);
+		return false;
+	}
+
+	return true;
+}
+
+struct Object *method_call_yesret(struct Interpreter *interp, struct Object *obj, char *methname, ...)
+{
+	// i think some man page has said that va_start may contain { and va_end may contain }
+	// so don't declare these between va_start and va_end
+	struct Object *callargs[3];
+	bool ok;
 
 	va_list ap;
 	va_start(ap, methname);
-
-	while(true) {
-		struct Object *arg = va_arg(ap, struct Object*);
-		if (!arg)
-			break;   // end of argument list, not an error
-		if (!arrayobject_push(interp, args, arg)) {
-			OBJECT_DECREF(interp, args);
-			OBJECT_DECREF(interp, method);
-			return NULL;
-		}
-	}
+	ok = method_call_helper(interp, obj, methname, ap, callargs);
 	va_end(ap);
-
-	struct Object *opts = mappingobject_newempty(interp);
-	if (!opts) {
-		OBJECT_DECREF(interp, args);
-		OBJECT_DECREF(interp, method);
+	if (!ok)
 		return NULL;
-	}
 
-	struct Object *res = functionobject_vcall(interp, method, args, opts);
-	OBJECT_DECREF(interp, opts);
-	OBJECT_DECREF(interp, args);
-	OBJECT_DECREF(interp, method);
+	struct Object *res = functionobject_vcall_yesret(interp, callargs[0], callargs[1], callargs[2]);
+	OBJECT_DECREF(interp, callargs[0]);
+	OBJECT_DECREF(interp, callargs[1]);
+	OBJECT_DECREF(interp, callargs[2]);
 	return res;
 }
 
+bool method_call_noret(struct Interpreter *interp, struct Object *obj, char *methname, ...)
+{
+	struct Object *callargs[3];
+	bool ok;     
+
+	va_list ap;
+	va_start(ap, methname);
+	ok = method_call_helper(interp, obj, methname, ap, callargs);
+	va_end(ap);
+	if (!ok)
+		return false;
+
+	ok = functionobject_vcall_noret(interp, callargs[0], callargs[1], callargs[2]);
+	OBJECT_DECREF(interp, callargs[0]);
+	OBJECT_DECREF(interp, callargs[1]);
+	OBJECT_DECREF(interp, callargs[2]);
+	return ok;
+}
+
+
 static struct Object *to_maybe_debug_string(struct Interpreter *interp, struct Object *obj, char *methname)
 {
-	struct Object *res = method_call(interp, obj, methname, NULL);
+	struct Object *res = method_call_yesret(interp, obj, methname, NULL);
 	if (!res)
 		return NULL;
-	if (res == functionobject_noreturn) {
-		errorobject_throwfmt(interp, "TypeError", "%s should return a String, but it returned nothing", methname);
-		return NULL;
-	}
 	if (!classobject_isinstanceof(res, interp->builtins.String)) {
 		// this error message is better than the one from check_type()
 		// FIXME: is it possible to make this recurse infinitely by returning the object itself from to_{debug,}string?
