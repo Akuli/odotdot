@@ -132,9 +132,7 @@ struct Object *blockobject_runwithreturn(struct Interpreter *interp, struct Obje
 	if (!marker)
 		return NULL;
 
-	struct FunctionObjectCfunc cfunc = { .returning = false };
-	cfunc.func.noret = returner_cfunc;
-	struct Object *returner = functionobject_new(interp, (struct ObjectData){.data=marker, .foreachref=markerdata_foreachref, .destructor=NULL}, cfunc, "return");
+	struct Object *returner = functionobject_new(interp, (struct ObjectData){.data=marker, .foreachref=markerdata_foreachref, .destructor=NULL}, functionobject_mkcfunc_noret(returner_cfunc), "return");
 	if (!returner) {
 		OBJECT_DECREF(interp, marker);
 		return NULL;

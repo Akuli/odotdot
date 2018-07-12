@@ -100,9 +100,7 @@ bool method_add_yesret(struct Interpreter *interp, struct Object *klass, char *n
 
 bool method_add_noret(struct Interpreter *interp, struct Object *klass, char *name, functionobject_cfunc_noret cfunc)
 {
-	struct FunctionObjectCfunc foc = { .returning = false };
-	foc.func.noret = cfunc;
-	return raw_method_add(interp, klass, name, foc);
+	return raw_method_add(interp, klass, name, functionobject_mkcfunc_noret(cfunc));
 }
 
 

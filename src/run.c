@@ -201,10 +201,7 @@ int run_libfile(struct Interpreter *interp, char *abspath, struct Object *lib)
 	if (!scope)
 		return 0;
 
-	struct FunctionObjectCfunc cfunc = { .returning = false };
-	cfunc.func.noret = export_cfunc;
-
-	struct Object *export = functionobject_new(interp, (struct ObjectData){.data=lib, .foreachref=libdata_foreachref, .destructor=NULL}, cfunc, "export");
+	struct Object *export = functionobject_new(interp, (struct ObjectData){.data=lib, .foreachref=libdata_foreachref, .destructor=NULL}, functionobject_mkcfunc_noret(export_cfunc), "export");
 	if (!export) {
 		OBJECT_DECREF(interp, scope);
 		return 0;

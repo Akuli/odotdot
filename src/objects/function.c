@@ -15,16 +15,14 @@
 
 struct FunctionObjectCfunc functionobject_mkcfunc_yesret(functionobject_cfunc_yesret func)
 {
-	struct FunctionObjectCfunc cfunc;
-	cfunc.returning = true;
+	struct FunctionObjectCfunc cfunc = { .returning = true };
 	cfunc.func.yesret = func;
 	return cfunc;
 }
 
 struct FunctionObjectCfunc functionobject_mkcfunc_noret(functionobject_cfunc_noret func)
 {
-	struct FunctionObjectCfunc cfunc;
-	cfunc.returning = false;
+	struct FunctionObjectCfunc cfunc = { .returning = false };
 	cfunc.func.noret = func;
 	return cfunc;
 }
