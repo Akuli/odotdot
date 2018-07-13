@@ -274,41 +274,28 @@ static struct Object *merge_mappings(struct Interpreter *interp, struct Object *
 }
 
 
-// TODO: less copy/pasta
-static struct Object *partialrunner_yesret(struct Interpreter *interp, struct ObjectData pfuddata, struct Object *args, struct Object *opts)
-{
-	struct PartialFunctionUserdata pfud = *(struct PartialFunctionUserdata*)pfuddata.data;
-	struct Object *allargs = arrayobject_concat(interp, pfud.args, args);
-	if (!allargs)
-		return NULL;
-	struct Object *allopts = merge_mappings(interp, pfud.opts, opts);
-	if (!allopts) {
-		OBJECT_DECREF(interp, allargs);
-		return NULL;
+#define CREATE_RUNNER(RETURNTYPE, YESNO) \
+	static RETURNTYPE partialrunner_##YESNO##ret(struct Interpreter *interp, struct ObjectData pfuddata, struct Object *args, struct Object *opts) \
+	{ \
+		struct PartialFunctionUserdata pfud = *(struct PartialFunctionUserdata*)pfuddata.data; \
+		struct Object *allargs = arrayobject_concat(interp, pfud.args, args); \
+		if (!allargs) \
+			return NULL; \
+		struct Object *allopts = merge_mappings(interp, pfud.opts, opts); \
+		if (!allopts) { \
+			OBJECT_DECREF(interp, allargs); \
+			return NULL; \
+		} \
+		\
+		RETURNTYPE res = functionobject_vcall_##YESNO##ret(interp, pfud.func, allargs, allopts); \
+		OBJECT_DECREF(interp, allargs); \
+		OBJECT_DECREF(interp, allopts); \
+		return res; \
 	}
 
-	struct Object *res = functionobject_vcall_yesret(interp, pfud.func, allargs, allopts);
-	OBJECT_DECREF(interp, allargs);
-	OBJECT_DECREF(interp, allopts);
-	return res;
-}
-static bool partialrunner_noret(struct Interpreter *interp, struct ObjectData pfuddata, struct Object *args, struct Object *opts)
-{
-	struct PartialFunctionUserdata pfud = *(struct PartialFunctionUserdata*)pfuddata.data;
-	struct Object *allargs = arrayobject_concat(interp, pfud.args, args);
-	if (!allargs)
-		return NULL;
-	struct Object *allopts = merge_mappings(interp, pfud.opts, opts);
-	if (!allopts) {
-		OBJECT_DECREF(interp, allargs);
-		return NULL;
-	}
-
-	bool res = functionobject_vcall_noret(interp, pfud.func, allargs, allopts);
-	OBJECT_DECREF(interp, allargs);
-	OBJECT_DECREF(interp, allopts);
-	return res;
-}
+CREATE_RUNNER(struct Object *, yes)
+CREATE_RUNNER(bool, no)
+#undef CREATE_RUNNER
 
 
 static struct Object *partial(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
