@@ -17,6 +17,9 @@ struct Interpreter *interpreter_new(char *argv0)
 	if (!interp)
 		goto nomem;
 
+	// initialize all members to NULLs, including nested structs
+	*interp = (struct Interpreter){ 0 };
+
 	if (!allobjects_init(&(interp->allobjects))) {
 		free(interp);
 		goto nomem;
@@ -31,42 +34,6 @@ struct Interpreter *interpreter_new(char *argv0)
 		free(interp);
 		return NULL;
 	}
-
-	interp->importstuff.filelibcache =
-	interp->importstuff.importers =
-	interp->oparrays.add =
-	interp->oparrays.sub =
-	interp->oparrays.mul =
-	interp->oparrays.div =
-	interp->oparrays.eq =
-	interp->oparrays.lt =
-	interp->err =
-	interp->builtinscope =
-	interp->builtins.Array =
-	interp->builtins.AstNode =
-	interp->builtins.Block =
-	interp->builtins.Bool =
-	interp->builtins.Class =
-	interp->builtins.Error =
-	interp->builtins.Function =
-	interp->builtins.Integer =
-	interp->builtins.Mapping =
-	interp->builtins.MarkerError =
-	interp->builtins.Object =
-	interp->builtins.Option =
-	interp->builtins.Scope =
-	interp->builtins.StackFrame =
-	interp->builtins.String =
-	interp->builtins.yes =
-	interp->builtins.no =
-	interp->builtins.none =
-	interp->builtins.nomemerr =
-	interp->strings.else_ =
-	interp->strings.empty =
-	interp->strings.export =
-	interp->strings.return_ =
-	interp->strings.returning =
-	NULL;
 
 	return interp;
 
