@@ -2,6 +2,41 @@ var test = (import "utils").test;
 var throws = (import "utils").throws;
 
 
+test "returning and non-returning funcs" {
+    # lambdas should do the exact same things as funcs, so... no need to do many lambda tests imo
+    func "returning1" return:true { return "hi"; };
+    func "returning2" return:true { "hi" };  # with syntactic sugar
+    var returning3 = (lambda "" return:true { "hi" });
+
+    var asd = [];
+    func "notreturning1" return:false { asd.push "hi"; };
+    func "notreturning2" { asd.push "hi"; };
+
+    foreach "f" [returning1 returning2 returning3] {
+        assert ((f) == "hi");
+        throws TypeError { f; };
+    };
+
+    foreach "f" [notreturning1 notreturning2] {
+        # clear the asd
+        while { (asd.length > 0) } {
+            [].push (asd.pop);
+        };
+
+        f;
+        assert (asd == ["hi"]);
+        throws TypeError { asd.push (f); };
+        assert (asd == ["hi"]);   # it didn't run
+    };
+};
+
+test "missing return" {
+    func "broken" return:true { };
+    throws ValueError { [].push (broken); };
+};
+
+# TODO: early return: 'return;' in non-returning function should stop the func
+
 test "things that used to make my interpreter segfault" {
     # getters should be functions
     class "A" { };
@@ -10,14 +45,14 @@ test "things that used to make my interpreter segfault" {
 
     # getters should return a function instead of "lol"
     class "B" { };
-    B.getters.set "setup" (lambda "this" { return "lol"; });
+    B.getters.set "setup" (lambda "this" return:true { return "lol"; });
     throws TypeError { new B; };
 
     # in my interpreter, setup is handled a bit differently than other methods
     # so also test one of the other ones
     # this tests to_debug_string, Mapping.get calls it when creating the KeyError message
     class "C" { };
-    C.getters.set "to_debug_string" (lambda "this" { return "lol"; });
+    C.getters.set "to_debug_string" (lambda "this" return:true { return "lol"; });
     var c = (new C);
     assert (c.to_debug_string == "lol");
     var mapping = (new Mapping);
@@ -36,7 +71,7 @@ test "partial" {
         ran = 0;
     };
 
-    func "f a b c:" {
+    func "f a b c:" return:true {
         assert (a == 1);
         assert (b == 2);
         assert (c.value == 3);
@@ -64,12 +99,12 @@ test "partial" {
     runs { (partial124 c:3) };   # should override c:4 in partial124
 
     # test missing arguments
-    throws ArgError { partial; };
-    throws ArgError { partial1; };
-    throws ArgError { partial13; };
+    throws ArgError { var _ = (partial); };
+    throws ArgError { var _ = (partial1); };
+    throws ArgError { var _ = (partial13); };
 
     throws AssertError {
-        partial124;   # should use the wrong c
+        var _ = (partial124);   # should use the wrong c
     };
     assert (ran == 0);
 };

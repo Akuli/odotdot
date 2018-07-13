@@ -21,14 +21,14 @@ export {
 # TODO: add a way to insert to the beginning of an array
 # might be good for optimizing
 # behaviour doesn't change with built-in stuff, which is what's in the array before this
-eq_array.push (lambda "x y" {
+eq_array.push (lambda "x y" return:true {
     if (x `same_object` y) {
         return (new Option true);
     };
     return none;
 });
 
-eq_array.push (lambda "x y" {
+eq_array.push (lambda "x y" return:true {
     if ((x `is_instance_of` Bool) `and` (y `is_instance_of` Bool)) {
         # have fun figuring this out
         return (new Option ((x `and` y) `or` ((not x) `and` (not y))));
@@ -36,7 +36,7 @@ eq_array.push (lambda "x y" {
     return none;
 });
 
-eq_array.push (lambda "x y" {
+eq_array.push (lambda "x y" return:true {
     if ((x `is_instance_of` Array) `and` (y `is_instance_of` Array)) {
         if (x.length != y.length) {
             return (new Option false);

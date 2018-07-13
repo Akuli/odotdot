@@ -239,7 +239,7 @@ func "not x" return:true {
     return true;
 };
 
-func "and x y" {
+func "and x y" return:true {
     if x {
         if y {
             return true;
@@ -389,10 +389,7 @@ func "foreach varname array block" {
     # so for the first import, anything must be allowed
     var Library = Object;
 
-    func "import string as:" {
-        if as.is_none {
-            throw (new ArgError "missing as:\"varname\" option");
-        };
+    func "import string" return:true {
         # get a stack with an error
         var stack = [];
         catch {
@@ -407,33 +404,26 @@ func "foreach varname array block" {
         # we want the one before that
         var frame = (stack.get (stack.length - 3));
 
-        var found = false;   # because there's no break or early return yet :(((
         foreach "importer" importers {
-            if (not found) {
-                var lib = (importer string frame);
-                if (not (lib `is_instance_of` Option)) {
+            var lib = (importer string frame);
+            if (not (lib `is_instance_of` Option)) {
+                error importer lib;
+            };
+
+            if (not lib.is_none) {
+                if (not (lib.value `is_instance_of` Library)) {
                     error importer lib;
                 };
 
-                if (not lib.is_none) {
-                    if (not (lib.value `is_instance_of` Library)) {
-                        error importer lib;
-                    };
-
-                    if (Library `same_object` Object) {
-                        Library = (get_class lib.value);
-                    };
-
-                    frame.scope.local_vars.set as.value lib.value;
-                    found = true;   # return; doesn't work yet
+                if (Library `same_object` Object) {
+                    Library = (get_class lib.value);
                 };
+                return lib.value;
             };
         };
 
-        if (not found) {
-            # FIXME: ValueError feels wrong
-            throw (new ValueError ("cannot import " + (string.to_debug_string)));
-        };
+        # FIXME: ValueError feels wrong
+        throw (new ValueError ("cannot import " + (string.to_debug_string)));
     };
 
     {}.definition_scope.parent_scope.value.local_vars.set "import" import;
@@ -441,6 +431,6 @@ func "foreach varname array block" {
 
 # these files do magic, they delete stuff from the built-in scope
 # see comments in these files for details
-import "<std>/imports" as: "_";
-import "<std>/operators" as: "_";
+var _ = (import "<std>/imports");
+var _ = (import "<std>/operators");
 {}.definition_scope.local_vars.delete "_";

@@ -151,6 +151,7 @@ struct Object *blockobject_runwithreturn(struct Interpreter *interp, struct Obje
 		// it didn't return
 		// FIXME: ValueError feels wrong
 		errorobject_throwfmt(interp, "ValueError", "return wasn't called");
+		OBJECT_DECREF(interp, marker);
 		return NULL;
 	}
 	assert(interp->err);
