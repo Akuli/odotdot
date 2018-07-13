@@ -8,6 +8,7 @@
 #include "../method.h"
 #include "../objectsystem.h"
 #include "array.h"
+#include "bool.h"
 #include "classobject.h"
 #include "errors.h"
 #include "mapping.h"
@@ -93,6 +94,16 @@ bool functionobject_setname(struct Interpreter *interp, struct Object *func, cha
 }
 
 
+static struct Object *returning_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Function, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	struct FunctionData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
+	return boolobject_get(interp, data->cfunc.returning);
+}
+
+
 static bool setup(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
 	// FIXME: ValueError feels wrong for this
@@ -106,6 +117,7 @@ static struct Object *partial(struct Interpreter *interp, struct ObjectData this
 bool functionobject_addmethods(struct Interpreter *interp)
 {
 	if (!attribute_add(interp, interp->builtins.Function, "name", name_getter, name_setter)) return false;
+	if (!attribute_add(interp, interp->builtins.Function, "returning", returning_getter, NULL)) return false;
 	if (!method_add_noret(interp, interp->builtins.Function, "setup", setup)) return false;
 	if (!method_add_yesret(interp, interp->builtins.Function, "partial", partial)) return false;
 	return true;

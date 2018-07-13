@@ -30,6 +30,28 @@ test "returning and non-returning funcs" {
     };
 };
 
+test "'returning' attribute" {
+    var tests = [
+        [(lambda "" {}) false]
+        [(lambda "" returning:false {}) false]
+        [(lambda "" returning:true {}) true]
+    ];
+    foreach "test" tests {
+        var function = (test.get 0);
+        var value = (test.get 1);
+
+        assert (function.returning `same_object` value);
+        throws AttribError { function.returning = value; };
+        assert (function.returning `same_object` value);
+        throws AttribError { function.returning = (not value); };
+        assert (function.returning `same_object` value);
+    };
+    assert (not (lambda "" {}).returning);
+    foreach "value" [true false] {
+        assert ((lambda "" returning:value {}).returning `same_object` value);
+    };
+};
+
 test "missing return" {
     func "broken" returning:true { };
     throws ValueError { [].push (broken); };
