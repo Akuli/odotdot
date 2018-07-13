@@ -9,13 +9,13 @@ class "Lol" {
     };
 
     # debug calls this method
-    method "to_debug_string" {
+    method "to_debug_string" return:true {
         return (("<Lol: " + this.thing) + ">");
     };
 };
 
 
-operators.add_array.push (lambda "x y" {
+operators.add_array.push (lambda "x y" return:true {
     if ((x `is_instance_of` Lol) `and` (y `is_instance_of` Lol)) {
         return (new Option (new Lol (x.thing + y.thing)));
     };

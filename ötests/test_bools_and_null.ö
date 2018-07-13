@@ -29,7 +29,7 @@ test "creating more Bools" {
         var file_not_found = (new Bool);
     };
 
-    class "ThreeStateBool" inherits: Bool { };
+    class "ThreeStateBool" inherits:Bool { };
     throws TypeError {
         var file_not_found = (new ThreeStateBool);
     };

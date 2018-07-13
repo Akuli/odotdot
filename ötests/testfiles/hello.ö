@@ -5,6 +5,6 @@ func "private_hello" {
 
 export {
     func "hello" {
-        return (private_hello);
+        private_hello;
     };
 };

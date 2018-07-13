@@ -79,7 +79,7 @@ test "abstract" {
         abstract "setup";
     };
     throws AttribError {
-        new AbstractSetup;
+        var _ = (new AbstractSetup);
     };
 };
 

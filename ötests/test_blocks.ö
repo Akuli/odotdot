@@ -39,19 +39,27 @@ test "run and run_with_return" {
     assert (ran == 3);
 
     throws ValueError {
-        {
+        var _ = ({
             ran = (ran + 1);
             throw (new ValueError "oh shit");
             ran = (ran + 666);
-        }.run_with_return scope;
+        }.run_with_return scope);
     };
     assert (ran == 4);
 
     # this throws an error if run_with_return returns something
-    { }.run_with_return scope;
+    var ok = false;
+    catch {
+        var _ = ({ }.run_with_return scope);
+    } [ValueError "e"] {
+        assert (e.message == "return wasn't called");
+        ok = true;
+    };
+    assert ok;
 
     # test early return
-    { return; assert false; }.run_with_return scope;
+    # FIXME: early return isn't supported yet
+    #{ return; assert false; }.run_with_return scope;
 };
 
 test "implicit returning" {

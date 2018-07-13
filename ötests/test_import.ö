@@ -1,41 +1,28 @@
 var test = (import "utils").test;
 var throws = (import "utils").throws;
 
-import "<std>/imports" as: "imports";
-import "<std>/stacks" as: "stacks";
+var imports = (import "<std>/imports");
+var stacks = (import "<std>/stacks");
 
 
 test "basic stuff" {
-    import "<std>/imports" as: "a";
-    import "<std>/imports" as: "b";
     var x = (import "<std>/imports");
     var y = (import "<std>/imports");
-
-    # a, b, x and y should be local variables
-    # this throws an exception if the variable is not found
-    assert (({}.definition_scope.local_vars.get "a") `same_object` a);
-    assert (({}.definition_scope.local_vars.get "b") `same_object` b);
-    assert (({}.definition_scope.local_vars.get "x") `same_object` x);
-    assert (({}.definition_scope.local_vars.get "y") `same_object` y);
-
-    # all these things should be the same now
-    assert (a `same_object` b);
-    assert (b `same_object` x);
+    var z = (import "<std>/imports");
     assert (x `same_object` y);
+    assert (y `same_object` z);
 };
 
 test "importing something that doesn't exist" {
-    throws ValueError { import "asdijoasdfojasdiofjoiasdjf"; };
-    throws ValueError { import "<std>/asdijoasdfojasdiofjoiasdjf"; };
+    throws ValueError { var _ = (import "asdijoasdfojasdiofjoiasdjf"); };
+    throws ValueError { var _ = (import "<std>/asdijoasdfojasdiofjoiasdjf"); };
 };
 
 test "including .ö extension in the import string" {
-    import "<std>/imports" as: "imports";   # must work
-
     # the throws util doesn't support accessing the error object yet :(
     var caught = false;
     catch {
-        import "asdasd.ö" as: "asdasd";
+        var _ = (import "asdasd.ö");
     } [ValueError "e"] {
         assert (e.message == "import \"asdasd\" instead of \"asdasd.ö\"");
         caught = true;
@@ -49,7 +36,7 @@ test "simple importer" {
     var lib = (new (get_class imports));
     var count = 0;
 
-    func "importer string stackframe" {
+    func "importer string stackframe" return:true {
         assert (stackframe `is_instance_of` (get_class (stack.get 0)));
 
         if (string == "testie") {
@@ -72,7 +59,7 @@ test "simple importer" {
     assert (((import "testfiles/import_hello").get_hello) `same_object` (import "testfiles/hello"));
     assert (count == 2);
     throws ValueError {
-        import "this_doesnt_exist_AIOSDJOAISJFIOAJSFO";
+        var _ = (import "this_doesnt_exist_AIOSDJOAISJFIOAJSFO");
     };
     assert (count == 2);   # the importer was pushed to the end of the importers array
 

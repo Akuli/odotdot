@@ -64,8 +64,8 @@ test "array-like methods" {
 
     assert (("abc".get 0) == "a");
     assert (("abc".get 2) == "c");
-    throws ValueError { "abc".get (0-1); };
-    throws ValueError { "abc".get 3; };
+    throws ValueError { var _ = ("abc".get (0-1)); };
+    throws ValueError { var _ = ("abc".get 3); };
 
     assert (("abc".slice 1 2) == "b");
     assert (("abc".slice (0-123) 123) == "abc");
@@ -99,7 +99,7 @@ test "replace" {
     # test which args can be empty
     assert (("abcxyz".replace "x" "") == "abcyz");
     assert (("".replace "asd" "asda") == "");
-    throws ValueError { "lol".replace "" "asd"; };
+    throws ValueError { var _ = ("lol".replace "" "asd"); };
 
     # characters that are results of a replace must not be replaced again
     # so this needs multiple replaces, not just one

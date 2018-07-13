@@ -69,8 +69,8 @@ void test_objects_function(void)
 
 	char *x = bmalloc(1);
 	*x = 'x';
-	struct Object *func = functionobject_new(testinterp, (struct ObjectData){.data=x, .foreachref=NULL, .destructor=freee}, callback, "test func");
-	buttert(functionobject_call(testinterp, func, callback_arg1, callback_arg2, NULL) == ABCPTR);
+	struct Object *func = functionobject_new(testinterp, (struct ObjectData){.data=x, .foreachref=NULL, .destructor=freee}, functionobject_mkcfunc_yesret(callback), "test func");
+	buttert(functionobject_call_yesret(testinterp, func, callback_arg1, callback_arg2, NULL) == ABCPTR);
 
 	OBJECT_DECREF(testinterp, func);
 	OBJECT_DECREF(testinterp, callback_arg1);
@@ -189,13 +189,13 @@ void test_objects_mapping_huge(void)
 	while (counter--) {    // repeat 3 times
 		for (int i=0; i < HUGE; i++) {
 			// do it twice to make sure that second call does nothing
-			buttert(method_call(testinterp, map, "set", keys[i], vals[i], NULL) == functionobject_noreturn);
-			buttert(method_call(testinterp, map, "set", keys[i], vals[i], NULL) == functionobject_noreturn);
+			buttert(method_call_noret(testinterp, map, "set", keys[i], vals[i], NULL));
+			buttert(method_call_noret(testinterp, map, "set", keys[i], vals[i], NULL));
 		}
 		buttert(((struct MappingObjectData *) map->objdata.data)->size == HUGE);
 
 		for (int i=0; i < HUGE; i++)
-			buttert(method_call(testinterp, map, "delete", keys[i], NULL) == functionobject_noreturn);
+			buttert(method_call_noret(testinterp, map, "delete", keys[i], NULL));
 		buttert(((struct MappingObjectData *) map->objdata.data)->size == 0);
 	}
 

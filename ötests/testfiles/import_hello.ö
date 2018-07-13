@@ -1,5 +1,5 @@
 export {
-    func "get_hello" {
+    func "get_hello" return:true {
         return (import "hello");
     };
 };

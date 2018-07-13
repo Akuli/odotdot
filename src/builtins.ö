@@ -253,7 +253,8 @@ func "and x y" return:true {
     return false;
 };
 
-func "or x y" {
+func "or x y" return:true {
+    # have fun figuring this out
     return (not ((not x) `and` (not y)));
 };
 
@@ -263,8 +264,8 @@ func "assert condition" {
     };
 };
 
+# TODO: throw a good error if klass is not actually a class
 func "is_instance_of instance klass" return:true {
-    # TODO: throw a good error if klass is not actually a class
     var subclass = (get_class instance);
 
     # check if 'subclass' is a subclass of 'klass'
@@ -311,7 +312,7 @@ func "foreach varname array block" {
         var klass = (new (get_class String) class_name (inherits.value_or_default Object));
 
         func "getter name block" {
-            var function = (lambda "this" block);
+            var function = (lambda "this" block return:true);
             function.name = ("getter of " + name);
             klass.getters.set name function;
         };
@@ -341,7 +342,7 @@ func "foreach varname array block" {
             };
         };
 
-        func "method methname_and_argnames block" {
+        func "method methname_and_argnames block return:" {
             # see func for details, some of this is copied from there
             var splitted = (methname_and_argnames.split_by_whitespace);
             if (splitted.length == 0) {
@@ -355,7 +356,7 @@ func "foreach varname array block" {
                 this_and_args = (this_and_args + (splitted.get i));
             };
 
-            add_method klass (splitted.get 0) (lambda this_and_args block);
+            add_method klass (splitted.get 0) (lambda this_and_args block return:(return.value_or_default false));
         };
 
         var init_scope = (new Scope initializer_block.definition_scope);

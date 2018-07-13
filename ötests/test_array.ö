@@ -32,7 +32,7 @@ test "foreach" {
 
 test "basic stuff" {
     # [] must create a new array every time
-    func "lol" { return []; };
+    func "lol" return:true { return []; };
     assert (not ((lol) `same_object` (lol)));
     (lol).push "TOOT";
     assert ((lol).length == 0);
@@ -43,8 +43,8 @@ test "basic stuff" {
 
     assert ((array.get 0) == "a");
     assert ((array.get 2) == "c");
-    throws ValueError { array.get (0-1); };
-    throws ValueError { array.get 3; };
+    throws ValueError { var _ = (array.get (0-1)); };
+    throws ValueError { var _ = (array.get 3); };
 
     assert (array == ["a" "b" "c"]);
     assert (["a" "b" "c"] == array);
@@ -73,7 +73,7 @@ test "basic stuff" {
 
 test "to_debug_string" {
     class "Broken" {
-        method "to_debug_string" {
+        method "to_debug_string" return:true {
             throw (new MathError "numberphile is wrong, it's not -1/12");
         };
     };
@@ -84,6 +84,6 @@ test "to_debug_string" {
     assert (([ 1 [2] [ [3] ] ].to_debug_string) == "[1 [2] [[3]]]");
     assert (([ "asd" "lol" ].to_debug_string) == "[\"asd\" \"lol\"]");
     throws MathError {
-        [(new Broken)].to_debug_string;
+        var _ = ([(new Broken)].to_debug_string);
     };
 };

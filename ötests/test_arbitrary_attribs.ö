@@ -5,14 +5,14 @@ var throws = (import "utils").throws;
 class "WeirdThingy" inherits:ArbitraryAttribs {
 
     # x is defined explicitly, but y is not
-    #attrib "x";     # TODO: fix this
+    #attrib "x";     # FIXME: uncommenting this breaks things
 
     method "setup arg" {
         assert (arg == "lol");
         this.x = 1;
         this.y = 2;
     };
-    method "lol z" {
+    method "lol z" return:true {
         assert (z == 3);
         return [this.x this.y];
     };

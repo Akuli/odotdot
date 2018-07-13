@@ -5,12 +5,12 @@ var throws = (import "utils").throws;
 test "simple stuff" {
     var result = [];
     foreach "letter" ["x" "y" "z" "ö"] {
-        switch letter {
-            case "x" { result.push 1; return; };
-            case "y" { result.push 2; return; };
-            case "z" { result.push 3; return; };
-            default { result.push 4; };
-        };
+        var _ = (switch letter {
+            case "x" { result.push 1; return "lol"; };
+            case "y" { result.push 2; return "wat"; };
+            case "z" { result.push 3; return "wut"; };
+            default { result.push 4; return "toot"; };
+        });
     };
     assert (result == [1 2 3 4]);
 
@@ -29,21 +29,21 @@ test "simple stuff" {
 test "fall through" {
     var result = [];
     foreach "letter" ["x" "y" "z" "ö"] {
-        switch letter {
+        var _ = (switch letter {
             case "x" { result.push 1; };
             case "y" { result.push 2; };
             case "z" { result.push 3; };
-            default { result.push 4; };
-        };
+            default { result.push 4; return "asd"; };
+        });
     };
     assert (result == [1 4 2 4 3 4 4]);
 };
 
 test "scopes" {
     throws VariableError {
-        switch "x" {
+        var _ = (switch "x" {
             case "x" { var y = 1; };
             case "x" { y };
-        };
+        });
     };
 };

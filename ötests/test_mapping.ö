@@ -6,7 +6,7 @@ test "basic stuff" {
     var m = (new Mapping);
     assert (m.length == 0);
 
-    throws KeyError { m.get "a"; };
+    throws KeyError { var _ = (m.get "a"); };
     assert (m.length == 0);
 
     var value = [];
