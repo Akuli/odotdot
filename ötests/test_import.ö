@@ -36,7 +36,7 @@ test "simple importer" {
     var lib = (new (get_class imports));
     var count = 0;
 
-    func "importer string stackframe" return:true {
+    func "importer string stackframe" returning:true {
         assert (stackframe `is_instance_of` (get_class (stack.get 0)));
 
         if (string == "testie") {

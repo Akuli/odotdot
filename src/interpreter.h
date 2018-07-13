@@ -59,6 +59,7 @@ struct Interpreter {
 		struct Object *empty;
 		struct Object *export;
 		struct Object *return_;
+		struct Object *returning;
 	} strings;
 
 	struct {

@@ -1,5 +1,5 @@
 export {
-    func "get_stack" return:true {
+    func "get_stack" returning:true {
         catch {
             throw (new MathError "oh no");
         } [MathError "e"] {

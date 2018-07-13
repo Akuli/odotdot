@@ -1,4 +1,4 @@
-func "toot arg1 arg2" return:true {
+func "toot arg1 arg2" returning:true {
     print "toot toot!";
     print arg1;
     print arg2;

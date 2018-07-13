@@ -12,7 +12,7 @@ class "WeirdThingy" inherits:ArbitraryAttribs {
         this.x = 1;
         this.y = 2;
     };
-    method "lol z" return:true {
+    method "lol z" returning:true {
         assert (z == 3);
         return [this.x this.y];
     };

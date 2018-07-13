@@ -4,12 +4,12 @@ var throws = (import "utils").throws;
 
 test "returning and non-returning funcs" {
     # lambdas should do the exact same things as funcs, so... no need to do many lambda tests imo
-    func "returning1" return:true { return "hi"; };
-    func "returning2" return:true { "hi" };  # with syntactic sugar
-    var returning3 = (lambda "" return:true { "hi" });
+    func "returning1" returning:true { return "hi"; };
+    func "returning2" returning:true { "hi" };  # with syntactic sugar
+    var returning3 = (lambda "" returning:true { "hi" });
 
     var asd = [];
-    func "notreturning1" return:false { asd.push "hi"; };
+    func "notreturning1" returning:false { asd.push "hi"; };
     func "notreturning2" { asd.push "hi"; };
 
     foreach "f" [returning1 returning2 returning3] {
@@ -31,11 +31,11 @@ test "returning and non-returning funcs" {
 };
 
 test "missing return" {
-    func "broken" return:true { };
+    func "broken" returning:true { };
     throws ValueError { [].push (broken); };
 };
 
-# TODO: early return: 'return;' in non-returning function should stop the func
+# TODO: early returning: 'return;' in non-returning function should stop the func
 
 test "things that used to make my interpreter segfault" {
     # getters should be functions
@@ -45,14 +45,14 @@ test "things that used to make my interpreter segfault" {
 
     # getters should return a function instead of "lol"
     class "B" { };
-    B.getters.set "setup" (lambda "this" return:true { return "lol"; });
+    B.getters.set "setup" (lambda "this" returning:true { return "lol"; });
     throws TypeError { new B; };
 
     # in my interpreter, setup is handled a bit differently than other methods
     # so also test one of the other ones
     # this tests to_debug_string, Mapping.get calls it when creating the KeyError message
     class "C" { };
-    C.getters.set "to_debug_string" (lambda "this" return:true { return "lol"; });
+    C.getters.set "to_debug_string" (lambda "this" returning:true { return "lol"; });
     var c = (new C);
     assert (c.to_debug_string == "lol");
     var mapping = (new Mapping);
@@ -71,7 +71,7 @@ test "partial" {
         ran = 0;
     };
 
-    func "f a b c:" return:true {
+    func "f a b c:" returning:true {
         assert (a == 1);
         assert (b == 2);
         assert (c.value == 3);

@@ -383,6 +383,7 @@ bool builtins_setup(struct Interpreter *interp)
 	INIT_STRING(empty, "")
 	INIT_STRING(export, "export")
 	INIT_STRING(return_, "return")
+	INIT_STRING(returning, "returning")
 #undef INIT_STRING
 
 	if (!(interp->builtins.Function = functionobject_createclass(interp))) goto error;
@@ -558,5 +559,6 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(strings.empty);
 	TEARDOWN(strings.export);
 	TEARDOWN(strings.return_);
+	TEARDOWN(strings.returning);
 #undef TEARDOWN
 }

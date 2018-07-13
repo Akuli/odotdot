@@ -243,13 +243,13 @@ static struct LambdaData *create_ldata(struct Interpreter *interp, struct Object
 struct Object *lambdabuiltin(struct Interpreter *interp, struct ObjectData dummydata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.String, interp->builtins.Block, NULL)) return NULL;
-	if (!check_opts(interp, opts, interp->strings.return_, interp->builtins.Bool, NULL)) return NULL;
+	if (!check_opts(interp, opts, interp->strings.returning, interp->builtins.Bool, NULL)) return NULL;
 	struct Object *argstr = ARRAYOBJECT_GET(args, 0);
 	struct Object *block = ARRAYOBJECT_GET(args, 1);
 
 	bool returning;
 	struct Object *tmp;
-	int status = mappingobject_get(interp, opts, interp->strings.return_, &tmp);
+	int status = mappingobject_get(interp, opts, interp->strings.returning, &tmp);
 	if (status == -1)
 		return NULL;
 	if (status == 1) {

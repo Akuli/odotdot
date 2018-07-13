@@ -15,7 +15,7 @@ export {
     };
 
     # TODO: make this a string method
-    func "ends_with string substring" return:true {
+    func "ends_with string substring" returning:true {
         return ((string.slice (string.length - substring.length) string.length) == substring);
     };
 };

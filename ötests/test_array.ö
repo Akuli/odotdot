@@ -32,7 +32,7 @@ test "foreach" {
 
 test "basic stuff" {
     # [] must create a new array every time
-    func "lol" return:true { return []; };
+    func "lol" returning:true { return []; };
     assert (not ((lol) `same_object` (lol)));
     (lol).push "TOOT";
     assert ((lol).length == 0);
@@ -73,7 +73,7 @@ test "basic stuff" {
 
 test "to_debug_string" {
     class "Broken" {
-        method "to_debug_string" return:true {
+        method "to_debug_string" returning:true {
             throw (new MathError "numberphile is wrong, it's not -1/12");
         };
     };

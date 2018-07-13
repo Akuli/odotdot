@@ -70,7 +70,7 @@ test "scopes" {
     var scopes = [];
 
     # good luck with understanding this code
-    var funny_body = ((lambda "" return:true { {scopes.push {}.definition_scope;} }));
+    var funny_body = ((lambda "" returning:true { {scopes.push {}.definition_scope;} }));
     assert (funny_body.definition_scope.parent_scope.value `same_object` {}.definition_scope);
 
     for { scopes.push {}.definition_scope; var i = 0; }
@@ -94,7 +94,7 @@ test "return in loop" {
     # there was a bug that the return variable wasn't removed after running that
     # returning in the loop would call the condition's return instead of the function's return
     # functions like this one threw MarkerError
-    func "does_this_break" return:true {
+    func "does_this_break" returning:true {
         for { var i=0; } { (i<10) } { i = (i+1); } {
             if (i > 5) {
                 return i;
@@ -104,10 +104,10 @@ test "return in loop" {
     assert ((does_this_break) == 6);
 
     # returning from other places must be allowed too
-    func "f" return:true {
+    func "f" returning:true {
         for { return "x"; } { true } { } { };
     };
-    func "g" return:true {
+    func "g" returning:true {
         for { } { true } { return "y"; } { };
     };
     assert ((f) == "x");

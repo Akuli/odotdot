@@ -65,6 +65,7 @@ struct Interpreter *interpreter_new(char *argv0)
 	interp->strings.empty =
 	interp->strings.export =
 	interp->strings.return_ =
+	interp->strings.returning =
 	NULL;
 
 	return interp;
