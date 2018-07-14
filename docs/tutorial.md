@@ -617,7 +617,7 @@ func "print_box string border" {
 
 ...and call it with different borders:
 
-```
+```python
 print_box "hello" "*";
 print_box "money" "$";
 ```
@@ -635,6 +635,7 @@ func "print_box string border?" {
     print (repeat border_value (string.length + 4));
     print ((prefix + string) + suffix);
     print (repeat border_value (string.length + 4));
+};
 ```
 
 The `border` will be `none` if the function is called like
