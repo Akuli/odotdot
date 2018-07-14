@@ -149,17 +149,18 @@ Here's a list of all supported kinds of expressions:
   returned by the `expr` expression. `attr` must be an identifier.
 - List literals: `[element1 element2 element3]` and `[]` return `List` objects.
   The elements can be any expressions.
-- Function call expressions: `(function arg1 arg2 arg3)` calls the function
-  with the given arguments and returns whatever the function returned. The
-  function and the arguments can be any expressions, and you can have any
-  number of arguments you want. The argument list can also contain options
+- Function call expressions: `(function arg1 arg2 arg3)` calls a [returning]
+  function with the given arguments and returns whatever the function returned.
+  If the function is not returning, a `TypeError` is thrown. The function and
+  the arguments can be any expressions, and you can have any number of
+  arguments you want. The argument list can also contain optional arguments
   given like `name:value` where `name` is an identifier and `value` is an
-  expression. Giving two or more options with same names is a syntax error.
-  Unlike in e.g. C, options and arguments must be evaluated in order, from left
-  to right.
+  expression. Giving two or more optional arguments with same names is a syntax
+  error. Unlike in e.g. C, all arguments are evaluated in the order they appear
+  in the code, from left to right. (TODO: test this)
 - Infixed function call expressions: ``(arg1 `function` arg2)`` is equivalent
   to `(function arg1 arg2)`. Here `func`, `arg1` and `arg2` can be any
-  expressions. There must be exactly 2 arguments and no options.
+  expressions. There must be exactly 2 arguments, and no optional arguments.
 - Operator calls: `(a == b)`, `(a != b)`, `(a > b)`, `(a < b)`, `(a >= b)`,
   `(a <= b)`, `(a + b)`, `(a - b)`, `(a * b)` and `(a / b)` behave a lot like
   infixed function calls: `a` and `b` can be any expressions, and the
@@ -173,10 +174,12 @@ Here's a list of all supported kinds of expressions:
 
 Here's a list of statements:
 - Function calls: `function arg1 arg2 arg3;` is like the
-  `(function arg1 arg2 arg3)` [expression](#expressions), but the return value
-  is ignored. Arguments and options are treated the same way.
+  `(function arg1 arg2 arg3)` [expression](#expressions), but for
+  [non-returning] functions. Things like optional arguments and evaluation
+  order work the same way.
 - Infixed function calls: ``arg1 `function` arg2;`` is equivalent to
-  `function arg1 arg2;`.
+  `function arg1 arg2;`. As usual, `arg1`, `function` and `arg2` can be any
+  expressions.
 - Variable creation: `var a = b;` sets the variable `a` to `b` **locally**.
   `a` can be any identifier, and `b` can be any expression.
 - Assignments: `a = b;` is like `var a = b;`, but it sets the variable
@@ -185,10 +188,10 @@ Here's a list of statements:
 - Setting attributes: `a.b = c;` sets the `b` attribute of `a` to `c`. `b` must
   be an identifier, and `a` and `c` can be any expressions.
 
-Note that `a + b;` and `a == b;` are not valid statements, even though
-``(a `some_function` b)`` *is* a valid statement. This is because `a + b;` is
-probably an error because `+` isn't supposed to have side effects, but
-``a `some_function` b;`` might do something useful.
+Note that `a + b;` and `a == b;` are invalid syntax, but
+``a `some_function` b;`` is a valid statement. This is because operators are
+[implemented](std/operators.md) with returning functions, but
+``a `some_nonreturning_function` b;`` can be useful.
 
 When parsing a file or the content of a `Block`, the parser simply parses the
 tokens statement by statement until there are no more tokens left. The
@@ -209,10 +212,10 @@ is.
 The Ö interpreter does these things on startup:
 
 1. Create [the built-in scope](tutorial.md#scopes). The `parent_scope` should be
-   set to `null`.
-2. Add everything that `builtins.ö` needs to the built-in scope. It's best to
-   read `builtins.ö` yourself to see which things it expects to have there
-   already and which things it creates.
+   set to `none`.
+2. Add everything that [builtins.ö](../src/builtins.ö) needs to the built-in
+   scope. It's best to read `builtins.ö` yourself to see which things it
+   expects to have there already and which things it creates.
 3. Tokenize and parse `builtins.ö`, and execute it in the built-in scope.
 4. Create a new subscope of the built-in scope for the file that is being ran.
 5. Tokenize and parse the file, and execute it in the subscope.
@@ -225,3 +228,7 @@ need the `Object` class because every class inherits from `Object`, but
 `Object` should also be a `Class` instance because it's a class even though
 `Class` wasn't supposed to exist yet... You get the idea. If you are writing an
 Ö interpreter, you can solve these problems however you want to.
+
+
+[returning]: tutorial.md#different-kinds-of-functions
+[non-returning]: tutorial.md#different-kinds-of-functions

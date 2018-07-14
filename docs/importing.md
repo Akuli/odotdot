@@ -14,7 +14,7 @@ export {
 };
 ```
 
-Here's `run.ö`.
+Here's `run.ö`:
 
 ```python
 var hello = (import "hello");
@@ -51,22 +51,6 @@ path to Ö's [std](../std) directory. For example, the
 
 ```python
 var imports = (import "<std>/imports");
-```
-
-`import` also has a convenient `as` option that lets you import libraries like
-this:
-
-```python
-import "<std>/imports" as: "imports";
-```
-
-The string after `as:` is a name of a local variable name that `import`
-creates. When using the `as` option, the library ends up in the variable as
-with using `var`, but `import` also returns it, so this will set `x` and `y` to
-the same library:
-
-```python
-var x = (import "something" as: "y");
 ```
 
 

@@ -82,16 +82,16 @@ details about arrays [below](#arrays).
 
 ## Function Call Expressions
 
-So far we have called functions so that we throw away the return value, like
-this:
+So far we have called functions like this:
 
 ```python
 some_function a b;
 ```
 
 This is like `some_function(a, b);` in many other programming languages. But
-what if we need to do `some_function(a, other_function(b))`? This doesn't do
-that...
+what if we need to use the return value for something? In many other
+programming languages you can do things like
+`some_function(a, other_function(b))`. This doesn't do that...
 
 ```python
 # some_function(a, other_function, b) in many other languages
@@ -110,10 +110,10 @@ some_function a (other_function b);
 
 So, let's go through that just to make sure you know it:
 
-- If you don't care about the return value of a function, use a statement like
+- If the function has no return value (see below), use a statement like
   `function a b c;`.
-- If you want to do something with the return value, wrap the function call in
-  parentheses, like `(function a b c)`.
+- If the function returns something, wrap the function call in parentheses,
+  like `(function a b c)`.
 
 It's really that simple: *always* use parentheses if you want to use the return
 value for something, and *never* use them otherwise.
@@ -121,6 +121,75 @@ value for something, and *never* use them otherwise.
 ```python
 var x = (some_function a b c);    # assigns the return value to x
 ```
+
+
+## Different Kinds of Functions
+
+Ö has two kinds of functions that behave differently:
+- *Returning functions* return a value, and they must be called like
+  `(function a b c)`.
+- *Non-returning functions* must be called like `function a b c;`.
+
+If you call a returning-function like `function a b c;` or a non-returning
+function like `(function a b c)`, you'll get an error message.
+
+This helps to avoid bugs. Here's a typical Python mistake:
+
+```python3
+message = "hello world"
+message.split()
+print(message)     # prints "hello world", not ["hello", "world"]
+```
+
+The message didn't get split because `message.split()` returns its result as a
+new list, leaving `message` as it is. However, if you try to do the same thing
+in Ö, like this...
+
+```python
+var message = "hello world";
+message.split_by_whitespace;
+debug message;
+```
+
+...it'll fail, which is *much* better than silently doing the wrong thing:
+
+```
+TypeError: expected a function that returns nothing, got <Function "split_by_whitespace method">
+  in file /some/path/to/the/file.ö, line 2
+```
+
+Here is the correct code.
+
+```python3
+var message = "hello world";
+var splitted = (message.split_by_whitespace);
+debug splitted;    # prints ["hello" "world"]
+```
+
+Or without a temporary `splitted` variable:
+
+```python3
+var message = "hello world";
+debug (message.split_by_whitespace);
+```
+
+Here `message.split_by_whitespace` is a method; we'll talk more about methods
+[later in this tutorial](#arrays).
+
+In the buggy Python code, the return value of `message.split()` was implicitly
+ignored. If you want to ignore a return value in Ö, you need to do it
+explicitly by creating a dummy variable:
+
+```python3
+var _ = (message.split_by_whitespace);
+```
+
+Here `_` is just an idiomatic variable name for throw-away variables.
+
+By convention, returning functions are documented like
+"`(the_function argument1 argument2)` does blah blah" and non-returning
+functions are documented like "`the_function argument1 argument2;` does blah
+blah".
 
 
 ## Infixes
@@ -244,6 +313,68 @@ print (thingy.get "key 2");   # prints "value 2"
 more information about mappings.
 
 
+## Option Objects
+
+In many other languages, an object often named `null` or `None` represents a
+"nothing" value, so you can write code like this Python code:
+
+```python3
+try:
+    website = get_website()
+except WebsiteError:
+    website = None
+
+if website is None:
+    print("No website was specified! Cannot print the URL.")
+else:
+    print(website.url)
+```
+
+It's also easy to forget the `None` check:
+
+```python3
+print(website.url)
+```
+
+If `website` happens to be `None`, you'll get an error for accessing
+`None.url`. The problem with this is that you don't know whether `website` can
+be `None` by looking at just the `print(website.url)` line. Your program might
+work for a long time and *then* break unexpectedly.
+
+Ö has a `none` object as well, but **don't use it** like Python's `None`. The
+equivalent Ö code should look like this:
+
+```python3
+var website = none;
+catch {
+    website = (new Option (get_website));
+} WebsiteError { };   # do nothing on WebsiteError because website is already set to none
+
+if website.is_none {
+    print "No website was specified! Cannot print the URL.";
+} else: {
+    print website.value.url;
+};
+```
+
+**If some value may be `none`, wrap that value in an `Option` object whenever
+it's not `none`.** Option objects have a `value` attribute that represents the
+value passed to `new Option`, and a convenient `is_none` attribute that works
+so that `none.is_none` is `true`, and `any_other_option.is_none` is `false`.
+
+Here is the broken code:
+
+```python3
+print website.value.url;
+```
+
+It's *very* easy to see that something's wrong here because the `.value`
+attribute is accessed with out a `none` check.
+
+Option objects have more convenient attributes and methods. See [the Option
+documentation](builtins.md#option) for more details.
+
+
 ## Scopes
 
 If you create a variable in an `if`, you'll notice that it can't be accessed
@@ -255,6 +386,16 @@ if true {
     print x;
 };
 print x;    # error: no variable named 'x'
+```
+
+If you want to use the `x` outside the `if`, do this:
+
+```python
+var x = "default value";
+if true {
+    x = "lol";
+};
+print x;   # prints lol
 ```
 
 This is the behaviour you would expect to get with most programming languages,
@@ -284,13 +425,15 @@ print y;          # prints "lol wat"
 Here `{ }` is a `Block` object, and its `.definition_scope` is a handy way to
 access the scope that our code is running in.
 
-Scopes also have a `parent_scope` attribute. When looking up a variable, like
-the `y` in `print y;`, Ö first checks if the variable is in
-`this_scope.local_vars`. If it's not, `this_scope.parent_scope.local_vars` is
-checked, and if it's not there, `this_scope.parent_scope.parent_scope.local_vars`
-is checked and so on. Eventually, Ö gets to the built-in scope; that is the
-scope that built-in functions and other things like `true`, `null`, `new` and
-`Mapping` are in. The `parent_scope` of the built-in scope is `null`.
+Scopes also have a `parent_scope` attribute, which is an
+[Option](#option-objects) of a `Scope`. When looking up a variable, like the `y`
+in `print y;`, Ö first checks if the variable is in `this_scope.local_vars`. If
+it's not, `this_scope.parent_scope.value.local_vars` is checked, and if it's
+not there, `this_scope.parent_scope.value.parent_scope.value.local_vars` is
+checked and so on. Eventually, Ö gets to the built-in scope; that is the scope
+that built-in functions and other things like `true`, `none`, `new` and
+`Option` are in. The `parent_scope` of the built-in scope is `none`, and that's
+why `parent_scope` is an [Option](#option-objects).
 
 It's also possible to create new Scopes; just create a `Scope` object with
 `new`, and pass a parent scope as an argument:
@@ -379,10 +522,12 @@ functions are actually implemented in Ö; see
 
 ## Returning
 
-You can return values a lot like in many other programming languages.
+You can return values a lot like in many other programming languages, but you
+must say explicitly that you want to define a
+[returning function](#different-kinds-of-functions):
 
 ```python
-func "asd" {
+func "asd" returning:true {
     return "asd asd";
     print "this never gets printed, returning ends the function";
 };
@@ -390,9 +535,11 @@ func "asd" {
 print (asd);    # prints "asd asd"
 ```
 
-Here the `return` function is just a local variable added to the scope that the
-code runs in. The function returns `null` if `return` is never called, and
-`return;` is equivalent to `return null;`.
+Here `returning:true` is an *optional argument*; we'll talk more about these
+[soon](#optional-arguments).
+
+The `return` function is just a local variable added to the scope that the code
+runs in. An error is thrown if `return` is never called.
 
 There's also some syntactic sugar: `{ value }` without a `;` is equivalent to
 `{ return value; }`.
@@ -414,6 +561,7 @@ while { (i < 10) } {
 ```
 
 Here `{ (i < 10) }` returns the value of `(i < 10)` to the `while` function.
+The parentheses are needed as explained [above](#operators).
 
 Rust-style `{ something; the_return_value }` syntax is not supported because
 `{ value }` is meant to be used when writing `return` everywhere would be
@@ -421,45 +569,90 @@ annoying, not as a replacement to `{ return value; }`. In other words,
 `{ return value; }` is not bad style in Ö like it is in rust.
 
 
-## Options
+## Optional Arguments
 
-Functions can also take options. They are like arguments, but every option has
-a name associated with it. Options are also *optional*, so you can call the
-function with an option or without an option.
-
-Here's an example:
+Here's some code that you should be able to understand with what we have
+learned so far.
 
 ```python
-func "thingy message twice:" {   # twice is an option
-    if (twice `same_object` null) {
-        # the twice option wasn't given
-        twice = false;
+func "repeat string how_many_times" returning:true {
+    var result = "";
+    for { var i=0; } { (i < how_many_times) } { i = (i+1); } {
+        result = (result + string);
     };
-
-    print message;
-    if twice {
-        print message;
-    };
+    return result;
 };
 
-thingy "hello";              # prints hello
-thingy "hello" twice:true;   # prints hello two times
+func "print_box string" {
+    print (repeat "*" (string.length + 4));
+    print (("* " + string) + " *");
+    print (repeat "*" (string.length + 4));
+};
+
+print_box "hello";
 ```
 
-Here we need to use [same_object](builtins.md#same_object) instead of `==`
-because otherwise passing `twice:true` gives an error. Things like
-`true == null` silently return `false` in many other programming languages, but
-Ö throws an error instead to make finding problems like `("1" == 1)` easier.
+Here's the output:
 
-The `twice:` in `"thingy message twice:"` looks a lot like the beginning of
-`twice:true`, and that's why we add `:` at the end of an argument name to make
-it an option.
+```
+*********
+* hello *
+*********
+```
 
-Let's make a `better_fake_if` function that's like the `safe_if` we wrote
-earlier, but with support for an `else:` option.
+What if you want to print a box with some other character instead of `*`? You
+could define the function like this...
 
 ```python
-# this is copied from the previous example
+func "print_box string border" {
+    var prefix = (border + " ");
+    var suffix = (" " + border);
+
+    print (repeat border (string.length + 4));
+    print ((prefix + string) + suffix);
+    print (repeat border (string.length + 4));
+};
+```
+
+...and call it with different borders:
+
+```
+print_box "hello" "*";
+print_box "money" "$";
+```
+
+But now we can't do `print_box "hello";` anymore because we'll get an error for
+not giving the border argument. We can still do that if we make the border
+*optional* by putting a `?` after it when defining the function:
+
+```python
+func "print_box string border?" {
+    var border_value = (border.value_or_default "*");
+    var prefix = (border_value + " ");
+    var suffix = (" " + border_value);
+
+    print (repeat border_value (string.length + 4));
+    print ((prefix + string) + suffix);
+    print (repeat border_value (string.length + 4));
+```
+
+The `border` will be `none` if the function is called like
+`print_box "hello";`, and an [Option](#option-objects) of the border if it is
+given. `Option` objects have a `value_or_default` method that takes 1 argument
+and returns the value of the option, or the argument if the option is `none`.
+Now we can call the function like this:
+
+```python
+print_box "hello";              # uses "*" as the border
+print_box "hello" border:"*";   # uses "*" as the border
+print_box "money" border:"$";   # uses "$" as the border
+```
+
+Let's make a `better_fake_if` function that's like the `fake_if` we wrote
+earlier, but with support for an optional `else:` argument.
+
+```python
+# this is copied from the fake_if example
 func "fake_if condition block" {
     var mapping = (new Mapping [
         [true { block.run (new Scope block.definition_scope); }]
@@ -469,14 +662,12 @@ func "fake_if condition block" {
     (mapping.get condition).run {}.definition_scope;
 };
 
-func "better_fake_if condition block else:" {
+func "better_fake_if condition block else?" {
     fake_if condition {
         block.run (new Scope block.definition_scope);
     };
-    fake_if (not condition) {
-        fake_if (not (else `same_object` null)) {
-            else.run (new Scope else.definition_scope);
-        };
+    fake_if ((not condition) `and` (not else.is_none)) {
+        else.value.run (new Scope else.value.definition_scope);
     };
 };
 
@@ -487,7 +678,7 @@ better_fake_if (1 == 2) {
 };
 ```
 
-The built-in `if` has a similar `else:` option.
+The built-in `if` can take an `else:` argument that works similarly.
 
 
 ## Defining Classes
@@ -501,7 +692,7 @@ class "Foo" {
     };
 
     method "toot bar" {
-        print ("tooting with ".concat bar);
+        print ("tooting with " + bar);
     };
 };
 
@@ -549,6 +740,8 @@ debug method;       # error: no variable named 'method'
 class "Baz" {
     debug method;   # prints <Function "method">
 };
+
+# now Baz is a class with no methods
 ```
 
 `method` is a function that is inserted to the scope that the block is running
@@ -581,7 +774,7 @@ class "Tooter" {
     };
 
     method "toot" {
-        print ("Toot toot! ".concat this.message);
+        print ("Toot toot! " + this.message);
     };
 };
 

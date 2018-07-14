@@ -125,17 +125,14 @@ add_method Error "print_stack" (lambda "this" {
     catch {
         print (((get_class this).name + ": ") + this.message);
 
-        # not isn't defined yet when this runs
-        if (this.stack.is_none `same_object` false) {
-            var prefix = "in";
-            for { var stack_copy = (this.stack.value.slice 0); } { (stack_copy.length != 0) } {} {
-                var frame = (stack_copy.pop);
-                print ((("  " + prefix) + " ") + (frame.to_string));
-                # TODO: print the source line
+        var prefix = "in";
+        for { var stack_copy = ((this.stack.value_or_default []).slice 0); } { (stack_copy.length != 0) } {} {
+            var frame = (stack_copy.pop);
+            print ((("  " + prefix) + " ") + (frame.to_string));
+            # TODO: print the source line
 
-                if (prefix == "in") {
-                    prefix = "by";
-                };
+            if (prefix == "in") {
+                prefix = "by";
             };
         };
     } [Error "e"] {    # avoid recursion!

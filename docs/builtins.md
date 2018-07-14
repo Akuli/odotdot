@@ -15,7 +15,8 @@ needed functions. They are listed here.
 ### func
 
 `func "name arg1 arg2 arg3" block;` defines a new function with arguments named
-`arg1`, `arg2` and `arg3`.
+`arg1`, `arg2` and `arg3`. `func "name arg1 arg2 arg3" returning:true block;`
+defines [a returning function](tutorial.md#different-kinds-of-functions).
 
 The string argument of `func` is first split with the `split_by_whitespace`
 string method; see [String's method documentation](#string). Everything except
@@ -23,19 +24,29 @@ the first part of the split result are argument names, and there may be 0 or
 more of them. The resulting [Function object](#function) is then set to
 `block`'s [definition scope] with the name from the string.
 
-Argument names ending with `:` are option names, so `thing:` defines an option
-named `thing`. The option may be specified when calling the function like
-`the_function thing:"hello";`, and `the_function;` without specifying `thing`
-is equivalent to `the_function thing:null;`. Option names must be after
-argument names when defining the function, but not when calling the function;
-`func "name arg1 opt: arg2" { ... };` throws [ValueError], but
-`class "Someclass" inherits:AnotherClass { ... };` works.
+`func` itself takes a `returning` option that should be set to [true] or
+[false], defaulting to [false]. If `returning` is `true`, the block will be ran
+with return; see [Block](#block)'s `run_with_return` method.
 
 When called, the function creates a new subscope of `block`'s
 [definition scope], and inserts the values of the arguments there as local
-variables. A `return` function that behaves like the `return` of
-[Block](#block)'s `run_with_return` is also added, so `return foo;` inside the
-function makes the function return `foo` and exits it.
+variables. If the function is returning, a `return` function that behaves like
+the `return` of [Block](#block)'s `run_with_return` is also added, so
+`return foo;` inside the function makes the function return `foo` and exits it.
+If a returning function doesn't call `return`, a [ValueError] is thrown when
+the function is called.
+
+The string argument to `func` may contain parts ending with `?`. They are names
+of optional arguments, so `thing?` adds an option named `thing`. Calling the
+function without specifying a `thing` runs the `block` so that `thing` is set
+to `none`, and calling the function like `the_function thing:something;` runs
+the block so that `thing` is set to `(new Option something)`. See also
+[Option documentation](#option).
+
+Optional arguments must be after non-optional arguments when defining the
+function, but not when calling the function. For example,
+`func "name arg1 opt? arg2" { ... };` throws [ValueError], but
+`class "Someclass" inherits:AnotherClass { ... };` works.
 
 **See Also:** There's more info about functions in the [Function](#function)
 class documentation. The functions created by `func` are `Function` objects.
@@ -60,9 +71,9 @@ If `condition` is [true], `block` will be ran in a new [subscope] of its
 [definition scope]. [TypeError] is thrown if the `condition` is not [true] or
 [false] or the block is not a [Block](#block) object.
 
-`if` can also take another block with an `else` option, and it's ran in a new
-subscope of its definition scope if the condition turns out to be false. For
-example:
+`if` can also take another block with an optional `else` argument, and it's ran
+in a new subscope of its definition scope if the condition turns out to be
+false. For example:
 
 ```python
 if (1 == 2) {
@@ -77,7 +88,7 @@ if (1 == 2) {
 This is ugly...
 
 ```python
-var y = null;    # needed to bring y out of the if scopes
+var y = none;    # needed to bring y out of the if scopes
 if (x == 1) {
     y = "a";
 } else: {
@@ -111,18 +122,35 @@ Here the `{ "a" }` blocks use [implicit returns].
 You can put any code you want to the `case` and `default` blocks:
 
 ```python
-switch x {
-    case 1 { print "a"; return; };
-    case 2 { print "b"; return; };
-    case 3 { print "c"; return; };
-    default { print "d"; };
-};
+var y = (switch x {
+    case 1 { print "a"; return "a"; };
+    case 2 { print "b"; return "b"; };
+    case 3 { print "c"; return "c"; };
+    default { print "d"; return "d"; };
+});
 ```
 
 The `return`s are needed to prevent falling through; without them, both `a` and
-`d` would be printed if `x` is `1`.
+`d` would be printed if `x` is `1`. [ValueError] is thrown if the switch
+doesn't return anything.
 
-Here's a more detailed description of what `switch x switchblock` does:
+If you want to run code without returning anything from the `switch`, use a
+throw-away variable:
+
+```python
+var y = none;    # needed to bring y out of the switch scopes
+var _ = (switch x {
+    case 1 { y = "a"; return none; };
+    case 2 { y = "b"; return none; };
+    case 3 { y = "c"; return none; };
+    default { y = "d"; return none; };
+});
+```
+
+This is less idiomatic than `var y = (switch x { ... });`, but it can be useful
+in some cases.
+
+Here's a more detailed description of what `(switch x switchblock)` does:
 
 1. A new subscope of `switchblock`'s definition scope is created. Let's call
    this scope the switch scope.
@@ -132,13 +160,9 @@ Here's a more detailed description of what `switch x switchblock` does:
       `(x == y)`.
     - `default block;` always runs `block` in a new subscope of the switch
       scope.
-3. `switchblock` is ran with return in the switch scope, and `switch` returns
-   the result. See [Block](#block)'s `run_with_return` method. This means that
-   a `return` function is inserted to the switch scope, and the `switch` will
-   return whatever that `return` is called with. However, `case` and `default`
-   do *not* run their scopes using `run_with_return`, so they get the `return`
-   variable from the switch scope, and returning in them makes the whole
-   `switch` return.
+3. A `return` function that returns from the `switch` call is added to the
+   switch scope.
+4. `switchblock` is ran in the switch scope.
 
 ### not
 
@@ -175,10 +199,9 @@ var y = x;
 ...so you get behaviour like this:
 - `x` and `y` are both empty, so `(x == y)` returns [true].
 - ``(x `same_object` y)`` returns [true].
-- If you do `x.push "hi";` and then `print (y.to_debug_string)`, you'll get
-  `["hi"]`. The `x` and `y` variables point to the same [array](#array), so
-  doing something with `x` or `y` does that something to the array, regardless
-  of the variable used.
+- If you do `x.push "hi";` and then `debug y;`, you'll get `["hi"]`. The `x`
+  and `y` variables point to the same [array](#array), so doing something with
+  `x` or `y` does that something to the array, regardless of the variable used.
 
 But this creates two different objects...
 
@@ -361,8 +384,9 @@ Classes have these attributes:
 - `some_class.name` is the name of the class as a [String](#string). This
   attribute is only for debugging, and it cannot be set after creating the
   class.
-- `some_class.baseclass` is the class that `some_class` inherits from (see
-  the [*] note below). `Object.baseclass` is [null](#null).
+- `some_class.baseclass` is an [Option](#option) of the class that
+  `some_class` inherits from (see the [*] note below). `Object.baseclass` is
+  [none](#none).
 - `some_class.getters` is a mapping with attribute name strings as keys and
   attribute getter functions (see below) as values.
 - `some_class.setters` is a similar mapping as `getters` for setter functions.
@@ -450,6 +474,34 @@ print aa.lol;     # prints "wat"
 ```
 
 Subclasses of `ArbitraryAttribs` also behave this way.
+
+### Option
+
+**See also:** There's [a more detailed introduction to
+options](tutorial.md#option-objects).
+
+Option objects should be used every time something may be `none`. This way you
+won't forget to check the `none` case because accessing the value requires an
+explicit `thingy.value`. `none` is a special `Option` object that represents
+the no value case.
+
+New options can be created with `(new Option the_value)`.
+
+Attributes:
+- `option.value` is the value that option. Accessing `none.value` throws
+  [ValueError].
+- `option.is_none` is a handy way to do ``(option `same_object` none)``. See
+  [same_object](#same_object). It is recommended to use `is_none` instead of
+  checking with `same_object` because `something_that_is_not_an_option.is_none`
+  will fail, and that helps with debugging.
+
+Methods:
+- `(option.value_or_default default)` returns `default` if `option.is_none`,
+  and `option.value` otherwise.
+- `(option.to_debug_string)` returns a string like `"<Option: valuestring>"`
+  where `valuestring` is `(option.value.to_debug_string)`.
+  `(none.to_debug_string)` returns `"none"`. See [Object](#object)'s
+  `to_debug_string`.
 
 ### Bool
 
@@ -616,7 +668,7 @@ New Mappings can be created in a few different ways:
 1. `(new Mapping)` creates an empty mapping.
 2. `(new Mapping pair_array)` takes an array of `[key value]` pair arrays and
    adds the keys and values to the mapping.
-3. [Options][options] can be used together with 1. or 2. to add values with
+3. [Optional arguments][options] can be used together with 1. or 2. to add values with
    string keys to the mapping.
 
 For example, the following two lines are equivalent:
@@ -681,10 +733,11 @@ Methods:
   function. This method does nothing with `definition_scope`.
 - `(block.run_with_return scope)` inserts a `return` function to the scope's
   local variables and runs the scope as with `block.run scope;`. The `return`
-  function takes 1 or 0 arguments, throws a [MarkerError], and running the
-  block terminates. `run_with_return` then catches the `MarkerError` and
-  returns the value that was passed to the `return` function. If `return` was
-  not called at all or it was called with no arguments, `null` is returned.
+  function takes 1 arguments and throws a [MarkerError] to stop the running.
+  `run_with_return` then catches that `MarkerError` (but ignores all other
+  `MarkerError`s, only the [same](#same_object) `MarkerError` object is
+  caught) and returns the value that was passed to the `return` function. If
+  `return` was not called, a [ValueError] is thrown.
 
 ### Scopes
 
@@ -701,15 +754,16 @@ Attributes:
 - `scope.local_vars` is a [Mapping](#mapping) of local variables in the scope
   with variable name strings as keys. `{ var x = 123; }.run scope;` is
   equivalent to `scope.local_vars.set "x" 123;`.
-- `scope.parent_scope` is the scope that non-local variables are looked up from
-  (see below), or [null](#null) if `scope` is the built-in scope.
+- `scope.parent_scope` is an [Option](#option) of the scope that non-local
+  variables are looked up from (see below), or [none](#none) if `scope` is the
+  built-in scope.
 
 For example, you can access the built-in scope like this:
 
 ```python
 var builtin_scope = {}.definition_scope;
-while { (not (builtin_scope.definition_scope `same_object` null)) } {
-    builtin_scope = builtin_scope.parent_scope;
+while { (not builtin_scope.parent_scope.is_none) } {
+    builtin_scope = builtin_scope.parent_scope.value;
 };
 # now (builtin_scope.local_vars.get "while") works
 ```
@@ -737,6 +791,8 @@ Attributes:
   `"print"` or `"to_string method"`. You can set the `.name` of any function to
   any string; this is not considered a problem because `.name` is just for
   debugging anyway.
+- `function.returning` is [true] or [false]. The tutorial
+  [explains this nicely](tutorial.md#different-kinds-of-functions).s
 
 Methods:
 - `(function.partial arg1 arg2 arg3)` returns a new function that calls the
@@ -752,13 +808,9 @@ Methods:
 
 These objects are not functions or classes.
 
-### null
+### none
 
-A dummy value like e.g. `none` or `nil` in many other programming languages.
-
-The only instance of null's class is `null`. The class has a name `Null`, and
-it has no methods or other attributes. You can access the class with
-`(get_class null)` if you need that for some reason.
+This is a special `Option` object. See [the Option documentation](#option).
 
 
 [true]: #bool
@@ -771,7 +823,7 @@ it has no methods or other attributes. You can access the class with
 [string literals]: syntax-spec.md#tokenizing
 [integer literals]: syntax-spec.md#tokenizing
 [hash table]: https://en.wikipedia.org/wiki/Hash_table
-[options]: tutorial.md#options
+[optional arguments]: tutorial.md#optional-arguments
 [the debugging section of the tutorial]: tutorial.md#debugging
 [implicit returns]: tutorial.md#returning
 

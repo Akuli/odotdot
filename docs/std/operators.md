@@ -7,10 +7,10 @@
 ## Operator arrays
 
 An operator call like `(x + y)` makes the interpreter loop through an array of
-functions. It calls each function with `x` and `y` as arguments, and if the
-function returns something else than `null`, that's the result of `(x + y)` and
-no more functions will be called. If all functions in the array return `null`,
-a [TypeError] is thrown.
+functions that return [Option objects]. It calls each function with `x` and `y`
+as arguments, and if one of the functions returns a non-none option, that's the
+result of `(x + y)` and no more functions will be called. If all functions in
+the array return `none`, a [TypeError] is thrown.
 
 The array used for `(x + y)` is accessible as
 `(import "<std>/operators").add_array`. This function behaves as if it was
@@ -22,7 +22,7 @@ var operators = (import "<std>/operators");
 func "do_plus x y" {
     foreach "function" operators.add_array {
         var result = (function x y);
-        if (not (result `same_object` null)) {
+        if (not result.is_none) {
             return result;
         };
     };
@@ -47,9 +47,10 @@ class "Lol" {
 # (lol1 + lol2) returns a lol with things added
 operators.add_array.push (lambda "lol1 lol2" {
     if ((lol1 `is_instance_of` Lol) `and` (lol2 `is_instance_of` Lol)) {
-        return (new Lol (lol1.thing + lol2.thing));
+        var result = (new Lol (lol1.thing + lol2.thing));
+        return (new Option result);
     };
-    return null;
+    return none;
 });
 
 var lola = (new Lol "a");
@@ -58,9 +59,9 @@ print (lola + lolb).thing;    # prints "ab"
 ```
 
 Usually it's best to use [is_instance_of] in the functions added to `add_array`
-as shown above, but you don't need to do that; you can check the values in any
-way you want. However, note that the function should silently return `null` for
-any values that it doesn't care about.
+as shown above, but you don't need to do that. You can check the values in any
+way you want, but make sure that the function silently returns `none` for any
+values that it doesn't care about.
 
 `<std>/operators` contains more arrays for customizing operators:
 
@@ -103,3 +104,4 @@ that may or may not change what `(a != b)` does.
 [or]: ../builtins.md#or
 [not]: ../builtins.md#not
 [Bool]: ../builtins.md#Bool
+[Option objects]: ../tutorial.md#option-objects

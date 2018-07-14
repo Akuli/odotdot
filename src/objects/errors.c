@@ -85,6 +85,7 @@ static bool setup(struct Interpreter *interp, struct ObjectData thisdata, struct
 
 ATTRIBUTE_DEFINE_STRUCTDATA_GETTER(Error, ErrorData, message)
 
+// TODO: use an empty array instead of none?
 static struct Object *stack_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;

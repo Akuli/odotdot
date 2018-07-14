@@ -25,8 +25,8 @@ their [setup methods] take 1 argument, the error message string.
   throw (new ValueError "the value is too small");
   ```
 - `ArgError` is thrown when a function is called with the wrong number of
-  arguments or an unsupported option. However, if the arguments are of the
-  wrong type, `TypeError` should be used instead.
+  arguments or an unsupported optional argument. However, if the arguments are
+  of the wrong type, `TypeError` should be used instead.
 - `AssertError` is thrown by [assert](builtins.md#assert).
 - `AttribError` is thrown when an attribute is not found. For example,
   `[].aasdasd` and `[].aasdasd = "lol";` throw `AttribError`.
@@ -35,10 +35,9 @@ their [setup methods] take 1 argument, the error message string.
   files from Ö code yet, but importing can throw this in some cases.
 - `KeyError` is thrown when a key of a mapping is not found.
   `(new Mapping [[1 2] [3 4]]).get 5;` throws a `KeyError`.
-- `MarkerError` is used internally by `return`. It's not in the
-  [built-in scope] because there's usually no need to catch it, and even if you
-  catch a `MarkerError`, there's no documented way to check which return value
-  it represents or which function call it came from.
+- `MarkerError` is used internally by `return`. There's usually no need to
+  catch it, and even if you catch a `MarkerError`, there's no documented way to
+  check which return value it represents or which function call it came from.
 - `MathError` is currently never thrown by any built-in functions as addition
   is the only supported math operation (I know, it sucks). In the future, this
   will probably be used for things like division by zero.
@@ -56,14 +55,15 @@ Attributes of `Error`:
 - `error.message` is the message as a human-readable string. This can be set
   after creating the error object, but setting it to something else than a
   [String](builtins.md#string) throws `TypeError`.
-- `error.stack` is an [Array] of StackFrame objects, or `null` if the error has
-  never been thrown. See [the stacks library's documentation](std/stacks.md)
-  for more information about stack frames. When throwing an error, `error.stack`
-  is set to a new array, but only if it's `null`; see [rethrowing](#rethrowing).
+- `error.stack` is an [Option](#option) of an [Array] of StackFrame objects, or
+  `none` if the error has never been thrown. See
+  [the stacks library's documentation](std/stacks.md) for more information
+  about stack frames. When throwing an error, `error.stack` is set to a new
+  array, but only if it's `none`; see [rethrowing](#rethrowing).
 
 Methods of `Error`:
 - `(error.print_stack)` prints a stack trace. If the error has never been
-  thrown and `error.stack` is `null`, this prints `SomeError: message` where
+  thrown and `error.stack` is `none`, this prints `SomeError: message` where
   `message` is `error.message` and `SomeError` is the name of the error's
   class.
 - `(error.to_debug_string)` returns a string like `<SomeError: "message">`
@@ -85,7 +85,7 @@ throw (new TypeError "expected an instance of String, got 123");
 ```
 
 The [built-in] `throw` function takes exactly 1 argument, the error, and no
-options.
+optional arguments.
 
 
 ## Catching

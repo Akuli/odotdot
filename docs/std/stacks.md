@@ -49,10 +49,10 @@ with stack frames.
 
 ## get_stack
 
-This function takes no arguments or options, and returns an
-[array](../builtins.md) of `StackFrame` objects similar to the `stack`
-attribute of error objects. For example, this function prints the name of the
-file it was called from (see [Importing](../importing.md)):
+This function takes no arguments, and returns an [array](../builtins.md) of
+`StackFrame` objects similar to the `stack` attribute of error objects. For
+example, this function prints the name of the file it was called from (see
+[Importing](../importing.md)):
 
 ```python
 func "who_called_me" {
