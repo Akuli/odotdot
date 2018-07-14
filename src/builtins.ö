@@ -181,12 +181,8 @@ func "while condition body" {
 func "switch value switchblock" returning:true {
     var switchscope = (new Scope switchblock.definition_scope);
 
-    func "case matched block" {
-        if (value == matched) {
-            # if the block calls return, it's the switchscope's return
-            # that is added by the run_with_return
-            # if the block doesn't call return, executing the cases continues
-            # aka fall through
+    func "case match block" {
+        if (value == match) {
             block.run (new Scope switchscope);
         };
     };
@@ -198,7 +194,7 @@ func "switch value switchblock" returning:true {
 
     switchscope.local_vars.set "case" case;
     switchscope.local_vars.set "default" default;
-    switchscope.local_vars.set "return" return;   # returning from the switchblock returns from the whole switch
+    switchscope.local_vars.set "return" return;
     switchblock.run switchscope;
 };
 
