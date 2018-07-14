@@ -57,7 +57,7 @@ add_method Option "to_debug_string" (lambda "this" returning:true {
     return (("<Option: " + ((this.get_value).to_debug_string)) + ">");
 });
 
-add_method Option "value_or_default" (lambda "this default" returning:true {
+add_method Option "get_with_fallback" (lambda "this default" returning:true {
     if this.is_none {
         return default;
     };
@@ -126,7 +126,7 @@ add_method Error "print_stack" (lambda "this" {
         print (((get_class this).name + ": ") + this.message);
 
         var prefix = "in";
-        for { var stack_copy = ((this.stack.value_or_default []).slice 0); } { (stack_copy.length != 0) } {} {
+        for { var stack_copy = ((this.stack.get_with_fallback []).slice 0); } { (stack_copy.length != 0) } {} {
             var frame = (stack_copy.pop);
             print ((("  " + prefix) + " ") + (frame.to_string));
             # TODO: print the source line
@@ -164,7 +164,7 @@ var func = (lambda "funcname_and_argnames block returning?" {
         argnames = (argnames + " ");
     };
 
-    var result = (lambda argnames block returning:(returning.value_or_default false));
+    var result = (lambda argnames block returning:(returning.get_with_fallback false));
     result.name = (splitted.get 0);
     block.definition_scope.local_vars.set result.name result;
 });
@@ -302,7 +302,7 @@ func "foreach varname array block" {
     var add_method = (get_and_hide_builtin "add_method");
 
     func "class class_name initializer_block inherits?" {
-        var klass = (new (get_class String) class_name (inherits.value_or_default Object));
+        var klass = (new (get_class String) class_name (inherits.get_with_fallback Object));
 
         func "getter name block" {
             var function = (lambda "this" block returning:true);
@@ -349,7 +349,7 @@ func "foreach varname array block" {
                 this_and_args = (this_and_args + (splitted.get i));
             };
 
-            add_method klass (splitted.get 0) (lambda this_and_args block returning:(returning.value_or_default false));
+            add_method klass (splitted.get 0) (lambda this_and_args block returning:(returning.get_with_fallback false));
         };
 
         var init_scope = (new Scope initializer_block.definition_scope);

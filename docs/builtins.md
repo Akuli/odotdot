@@ -496,7 +496,7 @@ Attributes:
   will fail, and that helps with debugging.
 
 Methods:
-- `(option.value_or_default default)` returns `default` if `option.is_none`,
+- `(option.get_with_fallback default)` returns `default` if `option.is_none`,
   and the value of the option otherwise.
 - `(option.to_debug_string)` returns a string like `"<Option: valuestring>"`
   where `valuestring` is `((option.get_value).to_debug_string)`.

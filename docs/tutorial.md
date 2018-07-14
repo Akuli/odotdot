@@ -628,7 +628,7 @@ not giving the border argument. We can still do that if we make the border
 
 ```python
 func "print_box string border?" {
-    var border_value = (border.value_or_default "*");
+    var border_value = (border.get_with_fallback "*");
     var prefix = (border_value + " ");
     var suffix = (" " + border_value);
 
@@ -639,7 +639,7 @@ func "print_box string border?" {
 
 The `border` will be `none` if the function is called like
 `print_box "hello";`, and an [Option](#option-objects) of the border if it is
-given. `Option` objects have a `value_or_default` method that takes 1 argument
+given. `Option` objects have a `get_with_fallback` method that takes 1 argument
 and returns the value of the option, or the argument if the option is `none`.
 Now we can call the function like this:
 

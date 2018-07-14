@@ -19,6 +19,11 @@ test "none" {
     };
 };
 
+test "get_with_fallback" {
+    assert (((new Option "asd").get_with_fallback "toot") == "asd");
+    assert ((none.get_with_fallback "toot") == "toot");
+};
+
 test "immutable" {
     var option = (new Option "hi");
     assert ((option.get_value) == "hi");
