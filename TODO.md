@@ -41,47 +41,13 @@ things that I would like to do some day. It's a mess.
         };
         ```
 
-- `Maybe` objects instead of `null`
-    - `Maybe` objects would be like Scala's `Option`
-    - instead of this...
+- `Mapping` and `Option`: `get_with_default` should probably be replaced with
+  an option
 
-        ```
-        var stuff = default_stuff;
-        if (not (thing `same_object` null)) {
-            stuff = thing;
-        };
-        ```
-
-        ... one could do this:
-
-        ```
-        var stuff = thing.get(fallback: default_stuff);
-        ```
-
-        where the `get` method of `Maybe` objects would return the value of the
-        `Maybe` or throw an exception, or if `fallback` is given, use that
-        instead of an exception
-
-    - good because things can't be `null` unexpectedly
-    - optional arguments could be `Maybe` objects
-    - I'm not sure if `Maybe` is the best possible name for the class yet,
-      `Option` would probably be less wtf when seeing it the first time
-        - i think haskell has something called `Maybe`? check what it is
-        - if haskell uses `Maybe`, it can't be shit (but it's not necessarily
-          good either)
-    - must have methods for doing at least these things:
-        - get the value, and throw an error if it's not set
-        - get the value, and return a fallback value if it's not set
-        - check if the value is set, returning a `Bool`
-        - if `Option` objects will be mutable (probably not a good idea):
-            - set the value
-            - unset the value
-        - running blocks?
-            - run a `Block` if the value is set so that returning in the block
-              returns from the function that the block is running from
-            - run a `Block` if the value is set, returning whatever the block
-              returns
-            - not sure if these are a good idea... explicit > implicit
+    ```
+    var x = (option.get);                 # throws an error if option is null
+    var y = (option.get fallback:"asd");  # doesn't throw errors
+    ```
 
 - oopy List baseclass and stuff to `std/datastructures.ö` or something,
   or maybe `std/lists.ö`?
@@ -113,7 +79,70 @@ things that I would like to do some day. It's a mess.
     var wut = "it costs \$100";   # escaping the $ for a literal dollar sign
     ```
 
-    which could be implemented with an `eval` function
+    this could be implemented in pure ö if an `eval` function is added:
+
+    ```
+    var lol = (format "${a}, ${b} and ${c}");
+    ```
+
+    `format` is too long though, should be `fmt` or something
+
+    if the non-function-call alternative is chosen, a function is needed anyway
+    because things like gettext work so that `"cannot open ${filename}"` is
+    translated to a non-english language (e.g. finnish:
+    `"tiedostoa ${filename} ei voi avata"`), and the value of `filename` must
+    be substituted **after** the translation
+
+    so it would look like this:
+
+    ```
+    var message = (format (translate "cannot open ${filename}"));
+    ```
+
+- `eval` and `compile_ast`
+    - would be useful for testing and the pure-ö string formatting alternative
+    - for testing, we also need `compile_ast` or something that takes a string
+      and returns an array of ast nodes
+        - `eval` could just call `compile_ast`, and then create a `Block`
+          object and run it
+        - if there was this and an io lib, `file_importer` could be pure ö
+
+- `ByteArray` objects
+    - would be like `Array`s of `Integer`s between 0 and 255, but represented
+      in C as arrays of unsigned char, taking up a lot less space
+    - useful for e.g. io without implicit encoding and decoding
+    - could then implement utf8 encoding and decoding methods and test `utf8.c`
+      in pure ö
+        - maybe even a small `<std>/encodings` library that supports implementing
+          more encodings in pure ö and looking up encodings by name
+
+- i/o lib
+    - can't be implemented in pure ö unless i get a magic cffi thing working
+    - stack traces would include source lines etc... good stuffs
+    - there are 2 ways to handle both bytes io and text io with same lib:
+        - have all classes work with either bytes or strings, depending on an
+          option passed to the constructor
+            - `(new ReadFile "hello.txt")` for text files,
+              `(new ReadFile "porn.png" binary:true)` for data
+                - feels nice and oopy because there's no `open` constructor
+                  function
+            - implementing custom file-like objects would mean dealing with
+              encode and decode manually, maybe not a good thing
+                - not a problem if there are not many methods that need
+                  overriding?
+            - wouldn't be a big problem with a file-like that represents a
+              string if `ByteArray`s and strings behave similarly, but would be
+              a problem when implementing a file-like that receives or sends a
+              socket
+        - write everything that does the actual work with bytes, and have
+          objects that wrap the bytes objects and encode/decode implicitly
+            - this is what python does
+            - `open` returns a different type depending on the arguments:
+              `TextIOWrapper` for text files, `BufferedReader` or
+              `BufferedWriter` for binary files
+            - confusing when people do `type(open('asd.txt', 'r'))` and get
+              `io.TextIOWrapper` instead of something like `io.FileReader`
+        - not sure which way i should do it
 
 - recursive `to_debug_string`s?
 
@@ -121,6 +150,7 @@ things that I would like to do some day. It's a mess.
     ö> var a = [];
     ö> a.push a;
     ö> debug a;
+    ...and we have a huge error message...
     ```
 
     python does this:
