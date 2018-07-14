@@ -8,9 +8,8 @@
 // RETURNS A NEW REFERENCE or NULL on error
 struct Object *stackframeobject_createclass(struct Interpreter *interp);
 
-// converts interp->stack to an array of StackFrame objects
-// RETURNS A NEW REFERENCE or NULL on error
-struct Object *stackframeobject_getstack(struct Interpreter *interp);
+// adds interp->stack to an array as StackFrame objects
+bool stackframeobject_getstack(struct Interpreter *interp, struct Object *arr);
 
 
 #endif   // OBJECTS_STACKFRAME_H

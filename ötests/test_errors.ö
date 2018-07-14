@@ -99,30 +99,21 @@ test "catch" {
 
 test "the stack attribute" {
     var e = (new AsdError "lol");
-    assert e.stack.is_none;
+    assert (e.stack == []);
 
-    throws TypeError { e.stack = "lol"; };
-    assert e.stack.is_none;
+    throws AttribError { e.stack = []; };
+    assert (e.stack == []);
 
-    throws TypeError {
-        e.stack = [1 2 3];
-    };
-    assert e.stack.is_none;
-
-    # right now any arrays are allowed
-    # because e.stack is an array, and anything can be added to arrays at any time
-    var option = (new Option [1 2 3]);
-    e.stack = option;
-    assert ((e.stack.get_value) == [1 2 3]);
-    assert ((e.stack.get_value) `same_object` (option.get_value));
-
-    e.stack = none;
-    assert e.stack.is_none;
+    # e.stack can't be set to a new array, but anything can be added to it
+    e.stack.push 1;
+    e.stack.push 2;
+    e.stack.push 3;
+    assert (e.stack == [1 2 3]);
 };
 
 test "how throw sets the stack attribute" {
     var e = (new AsdError "lol");
-    assert e.stack.is_none;
+    assert (e.stack == []);
 
     var throwscope = "lol";
     throws AsdError {
@@ -130,13 +121,12 @@ test "how throw sets the stack attribute" {
         throw e;
     };
     assert (throwscope `is_instance_of` Scope);
-    assert ((e.stack.get_value) `is_instance_of` Array);
+    assert (e.stack.length > 0);
 
     # lineno isn't cheked exactly because changing the tests changes line numbers
-    var stack = (e.stack.get_value);
-    var last_frame = (stack.get (stack.length - 1));
+    var last_frame = (e.stack.get (e.stack.length - 1));
     assert (last_frame.scope `same_object` throwscope);
-    assert (last_frame.filename `ends_with` "ötests/test_errors.ö");
+    assert (last_frame.filename `ends_with` "/ötests/test_errors.ö");
     assert (last_frame.lineno `is_instance_of` Integer);
 };
 
@@ -146,14 +136,15 @@ test "that the stack doesn't get set on rethrowing" {
         throw e;
     };
 
-    var old_stack = (e.stack.get_value);
-    var old_stack_copy = ((e.stack.get_value).slice 0);   # because rethrowing must not change the content of the array
+    assert (e.stack.length > 0);
+    var old_stack = e.stack;
+    var old_stack_copy = (e.stack.slice 0);   # because rethrowing must not change the content of the array
     assert (not (old_stack `same_object` old_stack_copy));
     assert (old_stack == old_stack_copy);
 
     throws AsdError {
         throw e;
     };
-    assert ((e.stack.get_value) `same_object` old_stack);
-    assert ((e.stack.get_value) == old_stack_copy);
+    assert (e.stack `same_object` old_stack);
+    assert (e.stack == old_stack_copy);
 };

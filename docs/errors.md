@@ -55,17 +55,20 @@ Attributes of `Error`:
 - `error.message` is the message as a human-readable string. This can be set
   after creating the error object, but setting it to something else than a
   [String](builtins.md#string) throws `TypeError`.
-- `error.stack` is an [Option](#option) of an [Array] of StackFrame objects, or
-  `none` if the error has never been thrown. See
-  [the stacks library's documentation](std/stacks.md) for more information
-  about stack frames. When throwing an error, `error.stack` is set to a new
-  array, but only if it's `none`; see [rethrowing](#rethrowing).
+- `error.stack` is an [Array] of StackFrame objects, empty if the error has
+  never been thrown. See [the stacks library's documentation](std/stacks.md)
+  for more information about stack frames. When throwing the error, the content
+  of `error.stack` is set only if the stack is non-empty; see
+  [rethrowing](#rethrowing). The `stack` itself cannot be set to a new array,
+  but the objects in the `stack` may be modified.
 
 Methods of `Error`:
-- `(error.print_stack)` prints a stack trace. If the error has never been
-  thrown and `error.stack` is `none`, this prints `SomeError: message` where
-  `message` is `error.message` and `SomeError` is the name of the error's
-  class.
+- `(error.print_stack)` prints a stack trace. If `error.stack` is empty
+  (usually it means that the error has never been thrown), this prints
+  `SomeError: message` where `message` is `error.message` and `SomeError` is
+  the name of the error's class. If the stack is non-empty, the
+  `SomeError: message` part is followed by details about which lines of code
+  caused the error.
 - `(error.to_debug_string)` returns a string like `<SomeError: "message">`
   where `SomeError` and `message` mean the same things as above. See also
   [Object](builtins.md#object)'s `to_debug_string` documentation.

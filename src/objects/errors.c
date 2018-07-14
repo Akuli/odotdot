@@ -18,9 +18,12 @@
 #include "stackframe.h"
 #include "string.h"
 
+// stack is kind of funny
+// it can't be set to an array when running in an asd_noerr function because arrayobject_newempty() needs error objects
+// so if it's NULL, it should be set to an empty array whenever it's used
 struct ErrorData {
 	struct Object *message;    // String
-	struct Object *stack;      // Array of StackFrames, or the null object (i.e. never NULL)
+	struct Object *stack;      // Array of StackFrames or NULL, can be empty
 };
 
 
@@ -50,14 +53,14 @@ static struct Object *newinstance(struct Interpreter *interp, struct Object *arg
 	// this is not documented, but it doesn't really matter
 	// the important thing is that forgetting to call super setup in the subclass doesn't cause a segfault
 	// see also setup() below
-	data->message = stringobject_newfromcharptr(interp, "");
-	if (!data->message)
-		return NULL;
+	data->message = interp->strings.empty;
+	OBJECT_INCREF(interp, data->message);
 	data->stack = NULL;
 
 	struct Object *err = object_new_noerr(interp, ARRAYOBJECT_GET(args, 0), (struct ObjectData){.data=data, .foreachref=error_foreachref, .destructor=error_destructor});
 	if (!err) {
 		errorobject_thrownomem(interp);
+		OBJECT_DECREF(interp, data->message);
 		return NULL;
 	}
 	return err;
@@ -91,11 +94,14 @@ static struct Object *stack_getter(struct Interpreter *interp, struct ObjectData
 	if (!check_args(interp, args, interp->builtins.Error, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct ErrorData data = *(struct ErrorData*) ARRAYOBJECT_GET(args, 0)->objdata.data;
-	if (data.stack)
-		return optionobject_new(interp, data.stack);
-	OBJECT_INCREF(interp, interp->builtins.none);
-	return interp->builtins.none;
+	struct ErrorData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
+	if (!data->stack) {
+		if (!(data->stack = arrayobject_newempty(interp)))
+			return NULL;
+	}
+
+	OBJECT_INCREF(interp, data->stack);
+	return data->stack;
 }
 
 static bool message_setter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
@@ -107,36 +113,6 @@ static bool message_setter(struct Interpreter *interp, struct ObjectData nulldat
 	OBJECT_DECREF(interp, data->message);
 	data->message = ARRAYOBJECT_GET(args, 1);
 	OBJECT_INCREF(interp, data->message);
-	return true;
-}
-
-static bool stack_setter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
-{
-	// doesn't make sense to check if the new stack contains nothing but StackFrames
-	// because it's possible to push anything to the array
-	// the Object must be null or an Array, that is checked below
-	if (!check_args(interp, args, interp->builtins.Error, interp->builtins.Option, NULL)) return false;
-	if (!check_no_opts(interp, opts)) return false;
-	struct Object *err = ARRAYOBJECT_GET(args, 0);
-	struct ErrorData *data = err->objdata.data;
-	struct Object *newstackopt = ARRAYOBJECT_GET(args, 1);
-
-	if (newstackopt == interp->builtins.none) {
-		if (data->stack)
-			OBJECT_DECREF(interp, data->stack);
-		data->stack = NULL;
-		return true;
-	}
-
-	struct Object *newstack = OPTIONOBJECT_VALUE(newstackopt);
-	if (!check_type(interp, interp->builtins.Array, newstack))
-		return false;
-
-	if (data->stack)
-		OBJECT_DECREF(interp, data->stack);
-	data->stack = newstack;
-	OBJECT_INCREF(interp, newstack);
-
 	return true;
 }
 
@@ -179,7 +155,7 @@ static bool print_stack(struct Interpreter *interp, struct ObjectData thisdata, 
 bool errorobject_addmethods(struct Interpreter *interp)
 {
 	if (!attribute_add(interp, interp->builtins.Error, "message", message_getter, message_setter)) return false;
-	if (!attribute_add(interp, interp->builtins.Error, "stack", stack_getter, stack_setter)) return false;
+	if (!attribute_add(interp, interp->builtins.Error, "stack", stack_getter, NULL)) return false;
 	if (!method_add_noret(interp, interp->builtins.Error, "setup", setup)) return false;
 	if (!method_add_noret(interp, interp->builtins.Error, "print_stack", print_stack)) return false;
 	return true;
@@ -268,11 +244,13 @@ void errorobject_throw(struct Interpreter *interp, struct Object *err)
 
 	struct ErrorData *data = err->objdata.data;
 	if (!data->stack) {
-		// the stack hasn't been set yet, so we're throwing this error for the 1st time
-		struct Object *stack = stackframeobject_getstack(interp);
-		if (!stack)
+		if (!(data->stack = arrayobject_newempty(interp)))
 			return;
-		data->stack = stack;
+	}
+	if (ARRAYOBJECT_LEN(data->stack) == 0) {
+		// the stack hasn't been set yet, so we're throwing this error for the 1st time
+		if (!stackframeobject_getstack(interp, data->stack))
+			return;
 	}
 
 	interp->err = err;

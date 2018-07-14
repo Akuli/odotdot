@@ -107,7 +107,7 @@ add_method Array "to_debug_string" (lambda "this" returning:true {
     catch {
         throw (new MathError "1 + 2 is not 3");
     } [MathError "e"] {
-        stackframe_option = (new Option (get_class ((e.stack.get_value).get 0)));
+        stackframe_option = (new Option (get_class (e.stack.get 0)));
     };
 
     add_method (stackframe_option.get_value) "to_string" (lambda "this" returning:true {
@@ -126,7 +126,7 @@ add_method Error "print_stack" (lambda "this" {
         print (((get_class this).name + ": ") + this.message);
 
         var prefix = "in";
-        for { var stack_copy = ((this.stack.get_with_fallback []).slice 0); } { (stack_copy.length != 0) } {} {
+        for { var stack_copy = (this.stack.slice 0); } { (stack_copy.length != 0) } {} {
             var frame = (stack_copy.pop);
             print ((("  " + prefix) + " ") + (frame.to_string));
             # TODO: print the source line
@@ -389,7 +389,7 @@ func "foreach varname array block" {
         catch {
             throw (new Error "oh no");
         } [Error "e"] {
-            stack = (e.stack.get_value);
+            stack = e.stack;
         };
         assert (stack.length > 0);
 

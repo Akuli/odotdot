@@ -99,26 +99,17 @@ static struct Object *new_frame_object(struct Interpreter *interp, struct StackF
 	return res;
 }
 
-struct Object *stackframeobject_getstack(struct Interpreter *interp)
+bool stackframeobject_getstack(struct Interpreter *interp, struct Object *arr)
 {
-	struct Object *result = arrayobject_newwithcapacity(interp, interp->stackptr - interp->stack);
-	if (!result)
-		return NULL;
-
 	for (struct StackFrame *f = interp->stack; f != interp->stackptr; f++) {
 		struct Object *fobj = new_frame_object(interp, *f);
-		if (!fobj) {
-			OBJECT_DECREF(interp, result);
-			return NULL;
-		}
+		if (!fobj)
+			return false;
 
-		bool ok = arrayobject_push(interp, result, fobj);
+		bool ok = arrayobject_push(interp, arr, fobj);
 		OBJECT_DECREF(interp, fobj);
-		if (!ok) {
-			OBJECT_DECREF(interp, result);
-			return NULL;
-		}
+		if (!ok)
+			return false;
 	}
-
-	return result;
+	return true;
 }
