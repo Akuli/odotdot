@@ -446,6 +446,7 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!interpreter_addbuiltin(interp, "Error", interp->builtins.Error)) goto error;
 	if (!interpreter_addbuiltin(interp, "Integer", interp->builtins.Integer)) goto error;
 	if (!interpreter_addbuiltin(interp, "Mapping", interp->builtins.Mapping)) goto error;
+	if (!interpreter_addbuiltin(interp, "MarkerError", interp->builtins.MarkerError)) goto error;
 	if (!interpreter_addbuiltin(interp, "MemError", interp->builtins.nomemerr->klass)) goto error;
 	if (!interpreter_addbuiltin(interp, "Object", interp->builtins.Object)) goto error;
 	if (!interpreter_addbuiltin(interp, "Option", interp->builtins.Option)) goto error;

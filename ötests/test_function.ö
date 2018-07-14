@@ -83,6 +83,19 @@ test "things that used to make my interpreter segfault" {
     };
 };
 
+test "throwing MarkerError" {
+    # functions use MarkerError to implement returning, so make sure they do it right
+    func "one" {
+        throw (new MarkerError "oh no");
+    };
+    func "two" returning:true {
+        throw (new MarkerError "oh no");
+    };
+
+    throws MarkerError { one; };
+    throws MarkerError { _ = (two); };
+};
+
 test "partial" {
     var ran = 0;
     func "runs block" {
