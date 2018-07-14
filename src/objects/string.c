@@ -24,7 +24,6 @@ check these places instead:
 #include "../unicode.h"
 #include "../utf8.h"
 #include "array.h"
-#include "bool.h"
 #include "classobject.h"
 #include "errors.h"
 #include "function.h"

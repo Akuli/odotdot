@@ -5,7 +5,6 @@
 #include <string.h>
 #include "check.h"
 #include "interpreter.h"
-#include "method.h"
 #include "objectsystem.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"

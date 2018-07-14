@@ -2,6 +2,7 @@
 #ifndef OBJECTS_OPTION_H
 #define OBJECTS_OPTION_H
 
+#include <stdbool.h>
 #include "../interpreter.h"   // IWYU pragma: keep
 #include "../objectsystem.h"  // IWYU pragma: keep
 

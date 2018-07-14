@@ -9,7 +9,6 @@
 #include "objects/array.h"
 #include "objects/astnode.h"
 #include "objects/block.h"
-#include "objects/errors.h"
 #include "objects/function.h"
 #include "objects/mapping.h"
 #include "objects/scope.h"
