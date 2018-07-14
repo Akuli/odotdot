@@ -358,9 +358,9 @@ if website.is_none {
 ```
 
 **If some value may be `none`, wrap that value in an `Option` object whenever
-it's not `none`.** Option objects have a `get` method that returns the value
-passed to `new Option`, and a convenient `is_none` attribute that works so that
-`none.is_none` is `true`, and `any_other_option.is_none` is `false`.
+it's not `none`.** Option objects have a `get_value` method that returns the
+value passed to `new Option`, and a convenient `is_none` attribute that works
+so that `none.is_none` is `true`, and `any_other_option.is_none` is `false`.
 
 Here is the broken code:
 
@@ -368,8 +368,8 @@ Here is the broken code:
 print (website.get_value).url;
 ```
 
-It's *very* easy to see that something's wrong here because the `.get` method
-is called without a `none` check.
+It's *very* easy to see that something's wrong here because the `.get_value`
+method is called without a `none` check.
 
 Option objects have more convenient attributes and methods. See [the Option
 documentation](builtins.md#option) for more details.
@@ -428,8 +428,9 @@ access the scope that our code is running in.
 Scopes also have a `parent_scope` attribute, which is an
 [Option](#option-objects) of a `Scope`. When looking up a variable, like the `y`
 in `print y;`, Ö first checks if the variable is in `this_scope.local_vars`. If
-it's not, `(this_scope.parent_scope.get_value).local_vars` is checked, and if it's
-not there, `((this_scope.parent_scope.get_value).parent_scope.get_value).local_vars` is
+it's not, `(this_scope.parent_scope.get_value).local_vars` is checked, and if
+it's not there,
+`((this_scope.parent_scope.get_value).parent_scope.get_value).local_vars` is
 checked and so on. Eventually, Ö gets to the built-in scope; that is the scope
 that built-in functions and other things like `true`, `none`, `new` and
 `Option` are in. The `parent_scope` of the built-in scope is `none`, and that's
