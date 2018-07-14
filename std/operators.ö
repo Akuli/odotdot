@@ -1,4 +1,4 @@
-var builtin_scope = {}.definition_scope.parent_scope.value;
+var builtin_scope = ({}.definition_scope.parent_scope.get_value);
 assert builtin_scope.parent_scope.is_none;   # it is actually the built-in scope
 
 # the interpreter creates these as built-in functions

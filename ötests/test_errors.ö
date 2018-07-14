@@ -113,8 +113,8 @@ test "the stack attribute" {
     # because e.stack is an array, and anything can be added to arrays at any time
     var option = (new Option [1 2 3]);
     e.stack = option;
-    assert (e.stack.value == [1 2 3]);
-    assert (e.stack.value `same_object` option.value);
+    assert ((e.stack.get_value) == [1 2 3]);
+    assert ((e.stack.get_value) `same_object` (option.get_value));
 
     e.stack = none;
     assert e.stack.is_none;
@@ -130,10 +130,11 @@ test "how throw sets the stack attribute" {
         throw e;
     };
     assert (throwscope `is_instance_of` Scope);
-    assert (e.stack.value `is_instance_of` Array);
+    assert ((e.stack.get_value) `is_instance_of` Array);
 
     # lineno isn't cheked exactly because changing the tests changes line numbers
-    var last_frame = (e.stack.value.get (e.stack.value.length - 1));
+    var stack = (e.stack.get_value);
+    var last_frame = (stack.get (stack.length - 1));
     assert (last_frame.scope `same_object` throwscope);
     assert (last_frame.filename `ends_with` "ötests/test_errors.ö");
     assert (last_frame.lineno `is_instance_of` Integer);
@@ -145,14 +146,14 @@ test "that the stack doesn't get set on rethrowing" {
         throw e;
     };
 
-    var old_stack = e.stack.value;
-    var old_stack_copy = (e.stack.value.slice 0);   # because rethrowing must not change the content of the array
+    var old_stack = (e.stack.get_value);
+    var old_stack_copy = ((e.stack.get_value).slice 0);   # because rethrowing must not change the content of the array
     assert (not (old_stack `same_object` old_stack_copy));
     assert (old_stack == old_stack_copy);
 
     throws AsdError {
         throw e;
     };
-    assert (e.stack.value `same_object` old_stack);
-    assert (e.stack.value == old_stack_copy);
+    assert ((e.stack.get_value) `same_object` old_stack);
+    assert ((e.stack.get_value) == old_stack_copy);
 };

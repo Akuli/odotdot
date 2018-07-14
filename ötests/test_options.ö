@@ -5,7 +5,7 @@ var throws = (import "utils").throws;
 
 test "basic stuff" {
     var option = (new Option "hi");
-    assert (option.value == "hi");
+    assert ((option.get_value) == "hi");
     assert (not option.is_none);
     assert ((option.to_debug_string) == "<Option: \"hi\">");
 };
@@ -15,24 +15,18 @@ test "none" {
     assert none.is_none;
     assert ((none.to_debug_string) == "none");
     throws ValueError {
-        var lol = none.value;
+        var _ = (none.get_value);
     };
 };
 
 test "immutable" {
     var option = (new Option "hi");
-    assert (option.value == "hi");
-    assert (not option.is_none);
-
-    throws AttribError {
-        option.value = "lmao";
-    };
-    assert (option.value == "hi");
+    assert ((option.get_value) == "hi");
     assert (not option.is_none);
 
     throws AttribError {
         option.is_none = true;
     };
-    assert (option.value == "hi");
+    assert ((option.get_value) == "hi");
     assert (not option.is_none);
 };

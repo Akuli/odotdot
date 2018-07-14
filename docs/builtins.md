@@ -482,13 +482,13 @@ options](tutorial.md#option-objects).
 
 Option objects should be used every time something may be `none`. This way you
 won't forget to check the `none` case because accessing the value requires an
-explicit `thingy.value`. `none` is a special `Option` object that represents
+explicit `(thingy.get_value)`. `none` is a special `Option` object that represents
 the no value case.
 
 New options can be created with `(new Option the_value)`.
 
 Attributes:
-- `option.value` is the value that option. Accessing `none.value` throws
+- `(option.get_value)` returns the value that option, and `(none.get_value)` throws
   [ValueError].
 - `option.is_none` is a handy way to do ``(option `same_object` none)``. See
   [same_object](#same_object). It is recommended to use `is_none` instead of
@@ -497,9 +497,9 @@ Attributes:
 
 Methods:
 - `(option.value_or_default default)` returns `default` if `option.is_none`,
-  and `option.value` otherwise.
+  and the value of the option otherwise.
 - `(option.to_debug_string)` returns a string like `"<Option: valuestring>"`
-  where `valuestring` is `(option.value.to_debug_string)`.
+  where `valuestring` is `((option.get_value).to_debug_string)`.
   `(none.to_debug_string)` returns `"none"`. See [Object](#object)'s
   `to_debug_string`.
 
@@ -763,7 +763,7 @@ For example, you can access the built-in scope like this:
 ```python
 var builtin_scope = {}.definition_scope;
 while { (not builtin_scope.parent_scope.is_none) } {
-    builtin_scope = builtin_scope.parent_scope.value;
+    builtin_scope = (builtin_scope.parent_scope.get_value);
 };
 # now (builtin_scope.local_vars.get "while") works
 ```

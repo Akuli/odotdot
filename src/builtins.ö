@@ -54,14 +54,14 @@ add_method Option "to_debug_string" (lambda "this" returning:true {
     if this.is_none {
         return "none";
     };
-    return (("<Option: " + (this.value.to_debug_string)) + ">");
+    return (("<Option: " + ((this.get_value).to_debug_string)) + ">");
 });
 
 add_method Option "value_or_default" (lambda "this default" returning:true {
     if this.is_none {
         return default;
     };
-    return this.value;
+    return (this.get_value);
 });
 
 add_method Mapping "delete" (lambda "this key" {
@@ -107,14 +107,14 @@ add_method Array "to_debug_string" (lambda "this" returning:true {
     catch {
         throw (new MathError "1 + 2 is not 3");
     } [MathError "e"] {
-        stackframe_option = (new Option (get_class (e.stack.value.get 0)));
+        stackframe_option = (new Option (get_class ((e.stack.get_value).get 0)));
     };
 
-    add_method stackframe_option.value "to_string" (lambda "this" returning:true {
+    add_method (stackframe_option.get_value) "to_string" (lambda "this" returning:true {
         return ((("file " + this.filename) + ", line ") + (this.lineno.to_string));
     });
 
-    add_method stackframe_option.value "to_debug_string" (lambda "this" returning:true {
+    add_method (stackframe_option.get_value) "to_debug_string" (lambda "this" returning:true {
         return (("<StackFrame: " + (this.to_string)) + ">");
     });
 }.run (new Scope {}.definition_scope);
@@ -270,7 +270,7 @@ func "is_instance_of instance klass" returning:true {
         if subclass.baseclass.is_none {
             running = false;   # there's no break yet :(
         } else: {
-            subclass = subclass.baseclass.value;
+            subclass = (subclass.baseclass.get_value);
         };
     };
     return false;
@@ -293,7 +293,7 @@ func "foreach varname array block" {
 
 {
     # gets and deletes a variable from built-in scope
-    var get_and_hide_builtin = {}.definition_scope.parent_scope.value.local_vars.get_and_delete;
+    var get_and_hide_builtin = ({}.definition_scope.parent_scope.get_value).local_vars.get_and_delete;
 
     # objects have an attrdata mapping that attributes can store their values in
     # it's not useful anywhere else because one can just create attributes using this code
@@ -364,7 +364,7 @@ func "foreach varname array block" {
     };
 
     # export class to the built-in scope, but keep get_attrdata and stuff here
-    {}.definition_scope.parent_scope.value.local_vars.set "class" class;
+    ({}.definition_scope.parent_scope.get_value).local_vars.set "class" class;
 }.run (new Scope {}.definition_scope);
 
 
@@ -389,7 +389,7 @@ func "foreach varname array block" {
         catch {
             throw (new Error "oh no");
         } [Error "e"] {
-            stack = e.stack.value;
+            stack = (e.stack.get_value);
         };
         assert (stack.length > 0);
 
@@ -405,14 +405,14 @@ func "foreach varname array block" {
             };
 
             if (not lib.is_none) {
-                if (not (lib.value `is_instance_of` Library)) {
+                if (not ((lib.get_value) `is_instance_of` Library)) {
                     error importer lib;
                 };
 
                 if (Library `same_object` Object) {
-                    Library = (get_class lib.value);
+                    Library = (get_class (lib.get_value));
                 };
-                return lib.value;
+                return (lib.get_value);
             };
         };
 
@@ -420,7 +420,7 @@ func "foreach varname array block" {
         throw (new ValueError ("cannot import " + (string.to_debug_string)));
     };
 
-    {}.definition_scope.parent_scope.value.local_vars.set "import" import;
+    ({}.definition_scope.parent_scope.get_value).local_vars.set "import" import;
 }.run (new Scope {}.definition_scope);
 
 # these files do magic, they delete stuff from the built-in scope

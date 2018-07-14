@@ -59,12 +59,13 @@ static struct Object *isnone_getter(struct Interpreter *interp, struct ObjectDat
 	return boolobject_get(interp, !ARRAYOBJECT_GET(args, 0)->objdata.data);
 }
 
-static struct Object *value_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+static struct Object *get_value(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Option, NULL)) return NULL;
+	if (!check_args(interp, args, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
-	struct Object *val = ARRAYOBJECT_GET(args, 0)->objdata.data;
+	struct Object *option = thisdata.data;
+	struct Object *val = option->objdata.data;
 	if (!val) {
 		errorobject_throwfmt(interp, "ValueError", "cannot get the value of none");
 		return NULL;
@@ -76,8 +77,8 @@ static struct Object *value_getter(struct Interpreter *interp, struct ObjectData
 bool optionobject_addmethods(struct Interpreter *interp)
 {
 	if (!method_add_noret(interp, interp->builtins.Option, "setup", setup)) return false;
+	if (!method_add_yesret(interp, interp->builtins.Option, "get_value", get_value)) return false;
 	if (!attribute_add(interp, interp->builtins.Option, "is_none", isnone_getter, NULL)) return false;
-	if (!attribute_add(interp, interp->builtins.Option, "value", value_getter, NULL)) return false;
 	return true;
 }
 

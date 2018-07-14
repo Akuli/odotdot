@@ -109,7 +109,7 @@ test "partial" {
     func "f a b c?" returning:true {
         assert (a == 1);
         assert (b == 2);
-        assert (c.value == 3);
+        assert ((c.get_value) == 3);
         ran = (ran+1);
         return "hello";
     };
