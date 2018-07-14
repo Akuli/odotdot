@@ -153,7 +153,7 @@ add_method Error "print_stack" (lambda "this" {
 });
 
 
-var func = (lambda "funcname_and_argnames block returning:" {
+var func = (lambda "funcname_and_argnames block returning?" {
     var splitted = (funcname_and_argnames.split_by_whitespace);
     if (splitted.length == 0) {
         throw (new ValueError "func's string argument must not be empty");
@@ -308,7 +308,7 @@ func "foreach varname array block" {
     var get_attrdata = (get_and_hide_builtin "get_attrdata");
     var add_method = (get_and_hide_builtin "add_method");
 
-    func "class class_name initializer_block inherits:" {
+    func "class class_name initializer_block inherits?" {
         var klass = (new (get_class String) class_name (inherits.value_or_default Object));
 
         func "getter name block" {
@@ -342,7 +342,7 @@ func "foreach varname array block" {
             };
         };
 
-        func "method methname_and_argnames block returning:" {
+        func "method methname_and_argnames block returning?" {
             # see func for details, some of this is copied from there
             var splitted = (methname_and_argnames.split_by_whitespace);
             if (splitted.length == 0) {

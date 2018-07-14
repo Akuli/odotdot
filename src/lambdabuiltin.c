@@ -161,9 +161,9 @@ static bool parse_arg_and_opt_names(struct Interpreter *interp, struct Object *s
 			goto error;
 		}
 
-		if (u.val[u.len-1] == ':') {   // an option
+		if (u.val[u.len-1] == '?') {   // an option
 			opts = true;
-			u.len--;    // ignore ':'
+			u.len--;    // ignore '?'
 			if (!check_identifier(interp, u))
 				goto error;
 
