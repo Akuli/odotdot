@@ -3,9 +3,9 @@
 This list contains things that are horribly broken, things that annoy me and
 things that I would like to do some day. It's a mess.
 
-## Language design stuff
+## class: docs are outdated
 
-- `class`: document `getter` and `setter`
+- document getter and setter
 
     example usage:
 
@@ -19,7 +19,7 @@ things that I would like to do some day. It's a mess.
     (new Lol).x = 123;
     ```
 
-- `class`: document `abstract`
+- document `abstract`
 
     example usage:
 
@@ -31,139 +31,143 @@ things that I would like to do some day. It's a mess.
     # now (new Lol).x throws AttribError
     ```
 
-- `for`: want break and continue
-    - they would also work in `while` right away because `while` is implemented
-      like this:
+## for: want break and continue
 
-        ```
-        func "while condition body" {
-            for {} condition {} body;
-        };
-        ```
-
-- `Mapping` and `Option`: `get_with_default` should probably be replaced with
-  an option
+they would also work in `while` right away because `while` is implemented
+like this:
 
     ```
-    var x = (option.get);                 # throws an error if option is null
-    var y = (option.get fallback:"asd");  # doesn't throw errors
+    func "while condition body" {
+        for {} condition {} body;
+    };
     ```
 
-- oopy List baseclass and stuff to `std/datastructures.ö` or something,
-  or maybe `std/lists.ö`?
-    - similar stuff for Mapping
+## Mapping and Option: get_with_default should probably be replaced with an option
 
-    - maybe it'd be best to rename Mapping to HashTable, and have
-      Mapping be an abstract class
+```
+var x = (option.get);                 # throws an error if option is null
+var y = (option.get fallback:"asd");  # doesn't throw errors
+```
 
-- repl: handle multiline input
-    - the parser should return a different value for unexpected end-of-file
-      than other errors
-    - when an unexpected EOF occurs, just read another line with a `...` prompt
-      or something and concatenate
+## oopy List baseclass and stuff
 
-- string formatting
+- maybe this should go to e.g. `std/datastructures.ö` or `std/lists.ö`
+- similar stuff for Mapping
+- maybe it'd be best to rename Mapping to HashTable, and have
+  Mapping be an abstract class
 
-    this is not very good:
+## repl: handle multiline input
+- the parser should return a different value for unexpected end-of-file
+  than other errors
+- when an unexpected EOF occurs, just read another line with a `...` prompt
+  or something and concatenate
 
-    ```
-    var lol = ((((a + ", ") + b) + " and ") + c);
-    ```
+## document repl
 
-    is hard to debug and maintain and write and everything and i hate it
+now it's just mentioned in the readme
 
-    i want something like
+## string formatting
 
-    ```
-    var lol = "${a}, ${b} and ${c}";
-    var wut = "it costs \$100";   # escaping the $ for a literal dollar sign
-    ```
+this is not very good:
 
-    this could be implemented in pure ö if an `eval` function is added:
+```
+var lol = ((((a + ", ") + b) + " and ") + c);
+```
 
-    ```
-    var lol = (format "${a}, ${b} and ${c}");
-    ```
+is hard to debug and maintain and write and everything and i hate it
 
-    `format` is too long though, should be `fmt` or something
+i want something like
 
-    if the non-function-call alternative is chosen, a function is needed anyway
-    because things like gettext work so that `"cannot open ${filename}"` is
-    translated to a non-english language (e.g. finnish:
-    `"tiedostoa ${filename} ei voi avata"`), and the value of `filename` must
-    be substituted **after** the translation
+```
+var lol = "${a}, ${b} and ${c}";
+var wut = "it costs \$100";   # escaping the $ for a literal dollar sign
+```
 
-    so it would look like this:
+this could be implemented in pure ö if an `eval` function is added:
 
-    ```
-    var message = (format (translate "cannot open ${filename}"));
-    ```
+```
+var lol = (format "${a}, ${b} and ${c}");
+```
 
-- `eval` and `compile_ast`
-    - would be useful for testing and the pure-ö string formatting alternative
-    - for testing, we also need `compile_ast` or something that takes a string
-      and returns an array of ast nodes
-        - `eval` could just call `compile_ast`, and then create a `Block`
-          object and run it
-        - if there was this and an io lib, `file_importer` could be pure ö
+`format` is too long though, should be `fmt` or something
 
-- `ByteArray` objects
-    - would be like `Array`s of `Integer`s between 0 and 255, but represented
-      in C as arrays of unsigned char, taking up a lot less space
-    - useful for e.g. io without implicit encoding and decoding
-    - could then implement utf8 encoding and decoding methods and test `utf8.c`
-      in pure ö
-        - maybe even a small `<std>/encodings` library that supports implementing
-          more encodings in pure ö and looking up encodings by name
+if the non-function-call alternative is chosen, a function is needed anyway
+because things like gettext work so that `"cannot open ${filename}"` is
+translated to a non-english language (e.g. finnish:
+`"tiedostoa ${filename} ei voi avata"`), and the value of `filename` must
+be substituted **after** the translation
 
-- i/o lib
-    - can't be implemented in pure ö unless i get a magic cffi thing working
-    - stack traces would include source lines etc... good stuffs
-    - there are 2 ways to handle both bytes io and text io with same lib:
-        - have all classes work with either bytes or strings, depending on an
-          option passed to the constructor
-            - `(new ReadFile "hello.txt")` for text files,
-              `(new ReadFile "porn.png" binary:true)` for data
-                - feels nice and oopy because there's no `open` constructor
-                  function
-            - implementing custom file-like objects would mean dealing with
-              encode and decode manually, maybe not a good thing
-                - not a problem if there are not many methods that need
-                  overriding?
-            - wouldn't be a big problem with a file-like that represents a
-              string if `ByteArray`s and strings behave similarly, but would be
-              a problem when implementing a file-like that receives or sends a
-              socket
-        - write everything that does the actual work with bytes, and have
-          objects that wrap the bytes objects and encode/decode implicitly
-            - this is what python does
-            - `open` returns a different type depending on the arguments:
-              `TextIOWrapper` for text files, `BufferedReader` or
-              `BufferedWriter` for binary files
-            - confusing when people do `type(open('asd.txt', 'r'))` and get
-              `io.TextIOWrapper` instead of something like `io.FileReader`
-        - not sure which way i should do it
+so it would look like this:
 
-- recursive `to_debug_string`s?
+```
+var message = (format (translate "cannot open ${filename}"));
+```
 
-    ```
-    ö> var a = [];
-    ö> a.push a;
-    ö> debug a;
-    ...and we have a huge error message...
-    ```
+## eval and compile_ast
+- would be useful for testing and the pure-ö string formatting alternative
+- for testing, we also need `compile_ast` or something that takes a string
+  and returns an array of ast nodes
+    - `eval` could just call `compile_ast`, and then create a `Block`
+      object and run it
+    - if there was this and an io lib, `file_importer` could be pure ö
 
-    python does this:
+## ByteArray objects
+- would be like `Array`s of `Integer`s between 0 and 255, but represented
+  in C as arrays of unsigned char, taking up a lot less space
+- useful for e.g. io without implicit encoding and decoding
+- could then implement utf8 encoding and decoding methods and test `utf8.c`
+  in pure ö
+    - maybe even a small `<std>/encodings` library that supports implementing
+      more encodings in pure ö and looking up encodings by name
 
-    ```
-    >>> a = []
-    >>> a.append(a)
-    >>> a
-    [[...]]
-    >>>
-    ```
+## i/o lib
+- can't be implemented in pure ö unless i get a magic cffi thing working
+- stack traces would include source lines etc... good stuffs
+- there are 2 ways to handle both bytes io and text io with same lib:
+    - have all classes work with either bytes or strings, depending on an
+      option passed to the constructor
+        - `(new ReadFile "hello.txt")` for text files,
+          `(new ReadFile "porn.png" binary:true)` for data
+            - feels nice and oopy because there's no `open` constructor
+              function
+        - implementing custom file-like objects would mean dealing with
+          encode and decode manually, maybe not a good thing
+            - not a problem if there are not many methods that need
+              overriding?
+        - wouldn't be a big problem with a file-like that represents a
+          string if `ByteArray`s and strings behave similarly, but would be
+          a problem when implementing a file-like that receives or sends a
+          socket
+    - write everything that does the actual work with bytes, and have
+      objects that wrap the bytes objects and encode/decode implicitly
+        - this is what python does
+        - `open` returns a different type depending on the arguments:
+          `TextIOWrapper` for text files, `BufferedReader` or
+          `BufferedWriter` for binary files
+        - confusing when people do `type(open('asd.txt', 'r'))` and get
+          `io.TextIOWrapper` instead of something like `io.FileReader`
+    - not sure which way i should do it
 
-    maybe should use the `…` character instead?
+## recursive `to_debug_string`s?
+
+```
+ö> var a = [];
+ö> a.push a;
+ö> debug a;
+...and we have a huge error message...
+```
+
+python does this:
+
+```
+>>> a = []
+>>> a.append(a)
+>>> a
+[[...]]
+>>>
+```
+
+maybe should use the `…` character instead?
 
 ## testing
 - there are lots of ötests already... which is good
