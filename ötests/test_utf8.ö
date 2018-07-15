@@ -1,0 +1,104 @@
+var test = (import "utils").test;
+var throws = (import "utils").throws;
+
+
+# this doesn't test wikipedia table's pink and red cells because i don't understand the table :(
+# https://en.wikipedia.org/wiki/UTF-8#Codepage_layout
+var tests = [
+    # [utf8 unicode_option error_option]
+    # if error_option is not none, decoding utf8 must throw an error with that as message
+    # if unicode_option is not none, encoding it must work or throw depending on error_option
+
+    [[]
+     (new Option "")
+     none]
+    [[104 101 108 108 111]
+     (new Option "hello")
+     none]
+
+    # ö strings are not implemented as \0 strings
+    [[104 101 108 108 0 111]
+     (new Option (("hell" + (chr 0)) + "o"))
+     none]
+
+    # 1, 2, 3 and 4 byte unicode characters
+    [[100 207 168 224 174 184 240 144 133 131]
+     (new Option ((((chr 100) + (chr 1000)) + (chr 3000)) + (chr 65859)))
+     none]
+
+    # euro sign
+    [[226 130 172]
+     (new Option (chr 8364))
+     none]
+
+    # euro sign with an overlong encoding, from wikipedia
+    [[240 130 130 172]
+     none
+     (new Option "overlong encoding: 0xf0 0x82 0x82 0xac")]
+
+    # euro sign without first byte, first byte is an unexpected continuation byte
+    [[130 172]
+     none
+     (new Option "invalid start byte 0x82")]
+    [[130 130 172]
+     none
+     (new Option "invalid start byte 0x82")]   # overlong
+
+    # euro sign without last byte
+    [[226 130]
+     none
+     (new Option "unexpected end of string")]
+    [[240 130 130]
+     none
+     (new Option "unexpected end of string")]  # overlong
+
+    # code points from 55296 (U+D800) to 57343 (U+DFFF) are invalid
+    [[237 159 191] (new Option (chr (55296-1))) none]
+    [[237 160 128] (new Option (chr 55296)) (new Option "invalid Unicode code point U+D800")]
+    [[237 191 191] (new Option (chr 57343)) (new Option "invalid Unicode code point U+DFFF")]
+    [[238 128 128] (new Option (chr (57343+1))) none]
+];
+
+
+test "utf8_decode" {
+    foreach "utf8test" tests {
+        var utf8 = (new ByteArray (utf8test.get 0));
+        var unicode = (utf8test.get 1);
+        var error = (utf8test.get 2);
+
+        if error.is_none {
+            # if there's no error, there must be unicode
+            # otherwise the test makes no sense
+            assert ((utf8_decode utf8) == (unicode.get_value));
+        } else: {
+            catch {
+                var _ = (utf8_decode utf8);
+                assert false;   # didn't throw
+            } [ValueError "e"] {
+                assert (e.message == (error.get_value));
+            };
+        };
+    };
+};
+
+
+test "utf8_encode" {
+    foreach "utf8test" tests {
+        var utf8 = (new ByteArray (utf8test.get 0));
+        var unicode = (utf8test.get 1);
+        var error = (utf8test.get 2);
+
+        if (not unicode.is_none) {
+            if error.is_none {
+                assert ((utf8_encode (unicode.get_value)) == utf8);
+            } else: {
+                catch {
+                    var _ = (utf8_encode (unicode.get_value));
+                    assert false;   # didn't throw
+                } [ValueError "e"] {
+                    assert (e.message == (error.get_value));
+                };
+            };
+        };
+    };
+};

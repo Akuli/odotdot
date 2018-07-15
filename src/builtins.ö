@@ -140,6 +140,10 @@ add_method Error "print_stack" (lambda "this" {
             print "got another error while printing the stack trace of an error";
             print (get_class e).name;
             print e.message;
+            print "";
+            print "original error was:";
+            print (get_class this).name;
+            print this.message;
         } Error {
             # printing doesn't seem to work, which is not impossible
             # stdout could be closed or whatever

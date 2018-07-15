@@ -276,6 +276,23 @@ static struct Object *utf8_decode_builtin(struct Interpreter *interp, struct Obj
 	return stringobject_newfromustr(interp, unicode);
 }
 
+// like chr in python
+// TODO: this should be a string method or something like that, but there are no classmethods yet :(
+static struct Object *chr(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Integer, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	long long val = integerobject_tolonglong(ARRAYOBJECT_GET(args, 0));
+	if (val < 0 || val > 0x10FFFFL) {
+		errorobject_throwfmt(interp, "ValueError", "chr argument must be between 0 and %L", 0x10FFFFLL);
+		return NULL;
+	}
+
+	unicode_char uval = val;
+	return stringobject_newfromustr_copy(interp, (struct UnicodeString){.len=1, .val=&uval});
+}
+
 
 static struct Object *get_class(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
@@ -544,6 +561,7 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!add_function_noret(interp, "for", for_)) goto error;
 	if (!add_function_yesret(interp, "utf8_encode", utf8_encode_builtin)) goto error;
 	if (!add_function_yesret(interp, "utf8_decode", utf8_decode_builtin)) goto error;
+	if (!add_function_yesret(interp, "chr", chr)) goto error;
 
 	// compile like this:   $ CFLAGS=-DDEBUG_BUILTINS make clean all
 #ifdef DEBUG_BUILTINS

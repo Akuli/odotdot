@@ -2,10 +2,29 @@ var test = (import "utils").test;
 var throws = (import "utils").throws;
 
 
+test "chr" {
+    var _ = (chr 0);
+    var _ = (chr 1114111);
+    throws ValueError { var _ = (chr 1114112); };
+    throws ValueError { var _ = (chr (0-1)); };
+    assert ((((((chr 104) + (chr 101)) + (chr 108)) + (chr 108)) + (chr 246)) == "hellö");
+};
+
 test "+, ==" {
     assert ("" == "");
     assert ("ab" == "ab");
-    assert (("a" + "b") == "ab");   # probably not relying on an optimization
+    assert ("ab" != "ac");
+    assert ("ab" != "abc");
+    assert ("ä" != "a");
+    assert ("ö" != "o");
+    assert (("ä" + "ö") == "äö");
+};
+
+test "length" {
+    assert ("o".length == 1);
+    assert ("ö".length == 1);
+    assert ("字".length == 1);   # the first chinese character i found on wikipedia
+    assert ("oö字".length == 3);
 };
 
 test "escape sequences" {
@@ -28,7 +47,7 @@ test "escape sequences" {
 };
 
 test "to_string" {
-    foreach "string" ["" "asd" "tootttö ö"] {
+    foreach "string" ["" "asd" "töötttö ö"] {
         # should use equals instead of same_object
         # but what implementation would really be so insane that these would be different objects...
         assert ((string.to_string) `same_object` string);
@@ -39,10 +58,10 @@ test "to_debug_string" {
     assert (("lol lmao".to_debug_string) == "\"lol lmao\"");
 
     # https://xkcd.com/1638/
-    assert (("a\nb".to_debug_string) == "\"a\\nb\"");
-    assert (("a\tb".to_debug_string) == "\"a\\tb\"");
-    assert (("a\"b".to_debug_string) == "\"a\\\"b\"");
-    assert (("a\\b".to_debug_string) == "\"a\\\\b\"");
+    assert (("ä\nö".to_debug_string) == "\"ä\\nö\"");
+    assert (("ä\tö".to_debug_string) == "\"ä\\tö\"");
+    assert (("ä\"ö".to_debug_string) == "\"ä\\\"ö\"");
+    assert (("ä\\ö".to_debug_string) == "\"ä\\\\ö\"");
 
     # https://explainxkcd.com/wiki/index.php/1638:_Backslashes
     # the number of backslashes should grow exponentially, so let's test that :D
@@ -59,25 +78,25 @@ test "to_debug_string" {
 };
 
 test "array-like methods" {
-    assert ("abc".length == 3);
-    throws AttribError { "abc".length = 100; };
+    assert ("aåä".length == 3);
+    throws AttribError { "aåä".length = 100; };
 
-    assert (("abc".get 0) == "a");
-    assert (("abc".get 2) == "c");
-    throws ValueError { var _ = ("abc".get (0-1)); };
-    throws ValueError { var _ = ("abc".get 3); };
+    assert (("aåä".get 0) == "a");
+    assert (("aåä".get 2) == "ä");
+    throws ValueError { var _ = ("aåä".get (0-1)); };
+    throws ValueError { var _ = ("aåä".get 3); };
 
-    assert (("abc".slice 1 2) == "b");
-    assert (("abc".slice (0-123) 123) == "abc");
+    assert (("aåä".slice 1 2) == "å");
+    assert (("aåä".slice (0-123) 123) == "aåä");
 };
 
 test "split_by_whitespace" {
     var tests = [
-        [" asd toot " ["asd" "toot"]]
-        ["  asd  toot  " ["asd" "toot"]]
-        ["  asd  toot" ["asd" "toot"]]
-        ["asd  toot  " ["asd" "toot"]]
-        ["asd  toot" ["asd" "toot"]]
+        [" asd tööt " ["asd" "tööt"]]
+        ["  asd  tööt  " ["asd" "tööt"]]
+        ["  asd  tööt" ["asd" "tööt"]]
+        ["asd  tööt  " ["asd" "tööt"]]
+        ["asd  tööt" ["asd" "tööt"]]
         ["  " []]
         [" " []]
         ["" []]
