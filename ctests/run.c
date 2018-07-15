@@ -79,10 +79,6 @@ int main(int argc, char **argv)
 
 	RUN_TEST(test_tokenizer_tokenize);
 
-	void unicode_test_setup(void); unicode_test_setup();
-	RUN_TEST(test_utf8_encode);
-	RUN_TEST(test_utf8_decode);
-
 	builtins_teardown(testinterp);
 	gc_run(testinterp);
 	interpreter_free(testinterp);

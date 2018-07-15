@@ -14,7 +14,7 @@ executables:
 
 
 ctests: executables
-	./ctestsrunner
+	$(VALGRIND) $(VALGRINDOPTS) ./ctestsrunner
 
 # http://clarkgrubb.com/makefile-style-guide#phony-target-arg
 ötests/test_%.ö: executables FORCE
