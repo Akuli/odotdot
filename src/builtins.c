@@ -15,6 +15,7 @@
 #include "objects/astnode.h"
 #include "objects/block.h"
 #include "objects/bool.h"
+#include "objects/bytearray.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
 #include "objects/function.h"
@@ -413,6 +414,7 @@ bool builtins_setup(struct Interpreter *interp)
 	OBJECT_INCREF(interp, interp->builtins.Bool);
 
 	if (!(interp->builtins.Array = arrayobject_createclass(interp))) goto error;
+	if (!(interp->builtins.ByteArray = bytearrayobject_createclass(interp))) goto error;
 	if (!(interp->builtins.Integer = integerobject_createclass(interp))) goto error;
 	if (!(interp->builtins.AstNode = astnodeobject_createclass(interp))) goto error;
 	if (!(interp->builtins.Scope = scopeobject_createclass(interp))) goto error;
@@ -438,11 +440,13 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!stringobject_initoparrays(interp)) goto error;
 	if (!integerobject_initoparrays(interp)) goto error;
 	if (!mappingobject_initoparrays(interp)) goto error;
+	if (!bytearrayobject_initoparrays(interp)) goto error;
 
 	if (!interpreter_addbuiltin(interp, "ArbitraryAttribs", interp->builtins.ArbitraryAttribs)) goto error;
 	if (!interpreter_addbuiltin(interp, "Array", interp->builtins.Array)) goto error;
 	if (!interpreter_addbuiltin(interp, "Block", interp->builtins.Block)) goto error;
 	if (!interpreter_addbuiltin(interp, "Bool", interp->builtins.Bool)) goto error;
+	if (!interpreter_addbuiltin(interp, "ByteArray", interp->builtins.ByteArray)) goto error;
 	if (!interpreter_addbuiltin(interp, "Error", interp->builtins.Error)) goto error;
 	if (!interpreter_addbuiltin(interp, "Integer", interp->builtins.Integer)) goto error;
 	if (!interpreter_addbuiltin(interp, "Mapping", interp->builtins.Mapping)) goto error;
@@ -484,6 +488,7 @@ bool builtins_setup(struct Interpreter *interp)
 	debug(builtins.AstNode);
 	debug(builtins.Block);
 	debug(builtins.Bool);
+	debug(builtins.ByteArray);
 	debug(builtins.Class);
 	debug(builtins.Error);
 	debug(builtins.Function);
@@ -531,6 +536,7 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(builtins.AstNode);
 	TEARDOWN(builtins.Block);
 	TEARDOWN(builtins.Bool);
+	TEARDOWN(builtins.ByteArray);
 	TEARDOWN(builtins.Class);
 	TEARDOWN(builtins.Error);
 	TEARDOWN(builtins.Function);

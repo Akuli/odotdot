@@ -35,6 +35,7 @@ struct Interpreter {
 		struct Object *AstNode;
 		struct Object *Block;
 		struct Object *Bool;
+		struct Object *ByteArray;
 		struct Object *Class;    // the class of class objects
 		struct Object *Error;
 		struct Object *Function;
