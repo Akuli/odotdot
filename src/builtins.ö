@@ -68,8 +68,8 @@ add_method Mapping "delete" (lambda "this key" {
     var _ = (this.get_and_delete key);
 });
 
-# TODO: use an option instead
-add_method Mapping "get_with_fallback" (lambda "this key fallback" {
+# TODO: use an optional argument instead
+add_method Mapping "get_with_fallback" (lambda "this key fallback" returning:true {
     catch {
         return (this.get key);
     } KeyError {

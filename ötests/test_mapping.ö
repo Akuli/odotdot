@@ -67,6 +67,12 @@ test "constructors" {
     throws ValueError { var m = (new Mapping [[1 2 3]]); };
 };
 
+test "get_with_fallback" {
+    var m = (new Mapping a:"b");
+    assert ((m.get_with_fallback "a" "f") == "b");
+    assert ((m.get_with_fallback "b" "f") == "f");
+};
+
 test "unhashable keys" {
     var unhashable = [ [] (new Mapping []) ];
 
