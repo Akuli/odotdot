@@ -1,6 +1,7 @@
 #include "builtins.h"
 #include <assert.h>
 #include <errno.h>
+#include <limits.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -210,6 +211,69 @@ static bool catch(struct Interpreter *interp, struct ObjectData nulldata, struct
 	ok = blockobject_run(interp, caught, scope);
 	OBJECT_DECREF(interp, scope);
 	return ok;
+}
+
+
+// TODO: these shouldn't be in the built-in scope imo
+static struct Object *utf8_encode_builtin(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.String, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	struct UnicodeString unicode = *(struct UnicodeString*) ARRAYOBJECT_GET(args, 0)->objdata.data;
+	char *utf8;
+	size_t utf8len;
+	if (!utf8_encode(interp, unicode, &utf8, &utf8len))
+		return NULL;
+
+	// i think the compiler will optimize this on platforms where char is unsigned or signed char pointers cast nicely
+	// i'm not sure if there are platforms where that wouldn't work
+	unsigned char *uutf8 = (unsigned char*) utf8;
+	for (size_t i=0; i < utf8len; i++) {
+		uutf8[i] = (unsigned char) utf8[i];
+	}
+
+	return bytearrayobject_new(interp, uutf8, utf8len);
+}
+
+static struct Object *utf8_decode_builtin(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.ByteArray, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	struct ByteArrayObjectData uutf8 = *(struct ByteArrayObjectData*) ARRAYOBJECT_GET(args, 0)->objdata.data;
+	struct UnicodeString unicode;
+
+	char *utf8;
+
+#if CHAR_MIN < 0
+	// char is signed, i'm not sure if a char* can be cast to unsigned char* like char to unsigned char
+	// must not change the utf8 because ByteArrays should be immutable
+	// FIXME: this is dumb
+#define freeutf8
+	utf8 = malloc(uutf8.len);
+	if (uutf8.len > 0 && !utf8) {
+		errorobject_thrownomem(interp);
+		return NULL;
+	}
+
+	for (size_t i=0; i < uutf8.len; i++)
+		utf8[i] = (char)uutf8.val[i];
+#else
+#undef freeutf8
+	utf8 = uutf8.val;
+#endif
+
+#ifdef freeutf8
+	bool ok = utf8_decode(interp, utf8, uutf8.len, &unicode);
+	free(utf8);
+	if (!ok)
+#else
+	if (!utf8_decode(interp, utf8, usutf8.len, &unicode))
+#endif
+#undef freeutf8
+		return NULL;
+	return stringobject_newfromustr(interp, unicode);
 }
 
 
@@ -478,6 +542,8 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!add_function_yesret(interp, "same_object", same_object)) goto error;
 	if (!add_function_yesret(interp, "get_attrdata", get_attrdata)) goto error;
 	if (!add_function_noret(interp, "for", for_)) goto error;
+	if (!add_function_yesret(interp, "utf8_encode", utf8_encode_builtin)) goto error;
+	if (!add_function_yesret(interp, "utf8_decode", utf8_decode_builtin)) goto error;
 
 	// compile like this:   $ CFLAGS=-DDEBUG_BUILTINS make clean all
 #ifdef DEBUG_BUILTINS
