@@ -14,7 +14,6 @@
 #include "../utf8.h"
 #include "array.h"
 #include "classobject.h"
-#include "option.h"
 #include "stackframe.h"
 #include "string.h"
 

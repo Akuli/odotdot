@@ -1,6 +1,4 @@
 #include "bytearray.h"
-#include <assert.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include "../attribute.h"
@@ -11,6 +9,7 @@
 #include "array.h"
 #include "classobject.h"
 #include "errors.h"
+#include "function.h"
 #include "integer.h"
 #include "option.h"
 
