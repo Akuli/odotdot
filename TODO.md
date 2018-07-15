@@ -112,13 +112,18 @@ var message = (format (translate "cannot open ${filename}"));
     - if there was this and an io lib, `file_importer` could be pure ö
 
 ## ByteArray objects
+
+not documented yet! here are old notes about what these are:
 - would be like `Array`s of `Integer`s between 0 and 255, but represented
   in C as arrays of unsigned char, taking up a lot less space
 - useful for e.g. io without implicit encoding and decoding
-- could then implement utf8 encoding and decoding methods and test `utf8.c`
-  in pure ö
-    - maybe even a small `<std>/encodings` library that supports implementing
-      more encodings in pure ö and looking up encodings by name
+
+# Ö functions: utf8_encode, utf8_decode, chr
+
+not documented yet!
+
+maybe should add a small `<std>/encodings` library with support for adding more
+encodings
 
 ## i/o lib
 - can't be implemented in pure ö unless i get a magic cffi thing working
