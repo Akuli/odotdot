@@ -573,21 +573,26 @@ Missing features:
 ### ByteArray
 
 A byte is an [Integer](#integer) between 0 and 255, and a `ByteArray` object
-represents sequences of bytes. Many things, like files and network I/O, store
+represents a sequence of bytes. Many things, like files and network I/O, store
 everything as sequences of bytes, and these bytes are represented with
 `ByteArray` objects in Ö.
 
 It's possible to represent string as bytes, and that's how text can be saved to
-files. There is more documentation about this [here](std/encodings.md).
+files. See [String](#string)'s `to_byte_array` method and `ByteArray`'s
+`to_string` method.
 
 `(new ByteArray integer_array)` creates a new `ByteArray` object from an
-[Array](#array) from [Integer](#integer) values of bytes. `ByteArray` objects
-behave a lot like the integer arrays that they can be created from, but they
-don't have methods like `push` or `set`; you cannot change the content of a
-`ByteArray` after creating a `ByteArray`. However, `ByteArray` objects take up
-much less memory, so if you have 1GB of data and 2GB of RAM, the 1GB should fit
-just fine in a `ByteArray`, but you'll run out of RAM if you try to convert the
-`ByteArray` to an [Array](#array) of [Integer](#integer)s.
+[Array](#array) from [Integer](#integer) values of bytes, throwing `ValueError`
+if any of the [Integer](#integer)s are smaller than 0 or greater than 255.
+`ByteArray` objects behave a lot like the integer arrays that they can be
+created from, but they don't have methods like `push` or `set`; you cannot
+change the content of a `ByteArray` after creating a `ByteArray`.
+
+`ByteArray` objects take up much less memory than [Array](#array)s of
+[Integer](#integer)s, and that's why there is a separate class for sequences of
+bytes in the first place. For example, if you have 1GB of data and 2GB of RAM,
+the 1GB should fit just fine in a `ByteArray`, but you'll run out of RAM if you
+try to convert the `ByteArray` to an [Array](#array) of [Integer](#integer)s.
 
 `ByteArray` objects can be compared with `==`, but it can be very slow if *all*
 of the following are true:
@@ -599,9 +604,9 @@ of the following are true:
    end.
 
 In this corner case with **all** these conditions, the arrays need to be
-compared *byte by byte*. If you have 1GB `ByteArray`s, that's 1 billion bytes
-to compare. It will take a long time, but on the other hand, these corner cases
-won't occur very often.
+compared *byte by byte*. A 1GB `ByteArray` contains 1 billion bytes. Comparing
+them with another 1GB `ByteArray`  will take a long time, but on the other
+hand, these corner cases don't occur very often.
 
 Methods:
 - `bytearray.get` is like the array `.get` method.
