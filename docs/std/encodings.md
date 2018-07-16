@@ -1,9 +1,12 @@
 # encodings
 
+**Note:** This documentation assumes that you are familiar with [ByteArray]
+objects.
+
 `<std>/encodings` contains functions for encoding and decoding text.
-**Encoding** means converting a [String] object to a `ByteArray` (sorry,
-`ByteArray` is not documented yet!), and **decoding** means converting a
-`ByteArray` back to a string.
+**Encoding** means converting a [String] object to a [ByteArray] (sorry,
+[ByteArray] is not documented yet!), and **decoding** means converting a
+[ByteArray] back to a string.
 
 This is useful for passing strings to things that can only handle bytes. One
 byte can have values between 0 and 255, but there are more than 255 different
@@ -20,8 +23,8 @@ if Ö doesn't know it by default.
 
 `encode` and `decode` are attributes with functions as values, so they can be
 used just like methods:
-- `(encoding.encode string)` converts the [String] to a `ByteArray`.
-- `(encoding.decode bytearray)` converts the `ByteArray` to a [String].
+- `(encoding.encode string)` converts the [String] to a [ByteArray].
+- `(encoding.decode bytearray)` converts the [ByteArray] to a [String].
 
 
 ## Functions for working with Encoding objects
@@ -55,3 +58,4 @@ used the same way that other encodings can, so after
 
 [ValueError]: ../errors.md
 [String]: ../builtins.md#string
+[ByteArray]: ../builtins.md#bytearray

@@ -526,6 +526,12 @@ Strings are immutable, so they cannot be changed after creating the string;
 there is no [array](#array)-like `set` method even though there's a `get`
 method. Create a new string instead of modifying existing strings.
 
+Strings can be compared with `==` as you would expect; `("asd" == "asd")`
+returns `true`, and `("asd" == "ass")` returns `false`. Don't use
+[same_object](#same_object) for comparing strings; it *may* work in some
+special cases, but ``(string1 `same_object` string2)`` is not *guaranteed* to
+have any meaningful value. tl;dr: don't do it.
+
 Strings behave a lot like [arrays](#array) of strings of length 1. For example,
 `(["h" "e" "l" "l" "o"].get 3)` and `("hello".get 3)` both return `"l"`.
 
@@ -533,6 +539,8 @@ Methods:
 - `string.get` is like the array `.get` method.
 - `string.slice` is like the array `.slice` method, but it returns a string
   instead of an array of characters.
+- `string.length` is like the array `.length` attribute; it is the number of
+  characters in the string as an [Integer](#integer).
 - `(string.split_by_whitespace)` splits the string into an array of substrings
   separated by one or more Unicode whitespace characters (e.g. spaces, tabs or
   newlines). For example, `(" hello world test ".split_by_whitespace)` returns
@@ -556,12 +564,59 @@ Strings can be concatenated with the `+` operator: `("hello" + "world")`
 returns `"helloworld"`.
 
 Missing features:
-- There's no `length` attribute.
 - There are very little methods; there's no way to e.g. make the string
   uppercase or join by a separator efficiently.
 - There's no string formatting, so you need to do
   `((((a + ", ") + b) + " and ") + c)`. I know, it's hard to get right and ugly
   and unmaintainable and bad in every possible way.
+
+### ByteArray
+
+A byte is an [Integer](#integer) between 0 and 255, and a `ByteArray` object
+represents sequences of bytes. Many things, like files and network I/O, store
+everything as sequences of bytes, and these bytes are represented with
+`ByteArray` objects in Ö.
+
+It's possible to represent string as bytes, and that's how text can be saved to
+files. There is more documentation about this [here](std/encodings.md).
+
+`(new ByteArray integer_array)` creates a new `ByteArray` object from an
+[Array](#array) from [Integer](#integer) values of bytes. `ByteArray` objects
+behave a lot like the integer arrays that they can be created from, but they
+don't have methods like `push` or `set`; you cannot change the content of a
+`ByteArray` after creating a `ByteArray`. However, `ByteArray` objects take up
+much less memory, so if you have 1GB of data and 2GB of RAM, the 1GB should fit
+just fine in a `ByteArray`, but you'll run out of RAM if you try to convert the
+`ByteArray` to an [Array](#array) of [Integer](#integer)s.
+
+`ByteArray` objects can be compared with `==`, but it can be very slow if *all*
+of the following are true:
+1. the `ByteArray`s are different objects (i.e. [same_object](#same_object)
+   returns `false`, so if both arrays are 1GB in size, together they consume 2GB
+   of RAM) **AND**
+2. the `ByteArray`s are of the same lengths **AND**
+3. the `ByteArray`s have identical content or the content differs only near the
+   end.
+
+In this corner case with **all** these conditions, the arrays need to be
+compared *byte by byte*. If you have 1GB `ByteArray`s, that's 1 billion bytes
+to compare. It will take a long time, but on the other hand, these corner cases
+won't occur very often.
+
+Methods:
+- `bytearray.get` is like the array `.get` method.
+- `bytearray.slice` is like the array `.slice` method, but it returns another
+  `ByteArray` instead of an [Array](#array). The bytes are copied to a news
+  `ByteArray`, so if you have a 2GB `ByteArray` and you take a 1GB slice of it,
+  you use 3GB of RAM. If this is a problem for you, let me know and I'll
+  optimize this.
+
+Attributes:
+- `bytearray.length` is the number of bytes in the ByteArray.
+
+Missing features:
+- There's no nice `to_debug_string`, so if you `debug` a `ByteArray`, the
+  output doesn't actually show the bytes in it.
 
 ### Integer
 
@@ -624,6 +679,9 @@ var array = [1 2 3];
 There are no size limits; you can add as many elements to an array as you want
 (as long as the array fits in the computer's memory).
 
+Arrays can be compared with `==`, and two arrays compare equal if and only if
+they are of the same length, and they have equal elements in the same order.
+
 Attributes:
 - `array.length` is the number of elements in the array as an
   [Integer](#integer).
@@ -660,6 +718,8 @@ Annoyances:
         return mapped;
     };
     ```
+
+**See also:** [same_object](#same_object)
 
 ### Mapping
 
