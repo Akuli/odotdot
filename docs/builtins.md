@@ -549,6 +549,8 @@ Methods:
   human-readable string representing a string is the string itself.
 - `(string.to_debug_string)` returns the string with quotes around it. This
   overrides [Object](#object)'s `to_debug_string`.
+- `(string.to_byte_array encoding_name)` [encodes] the string. The
+  `encoding_name` is interpreted as if passed to [encodings.get].
 
 Strings can be concatenated with the `+` operator: `("hello" + "world")`
 returns `"helloworld"`.
@@ -826,6 +828,8 @@ This is a special `Option` object. See [the Option documentation](#option).
 [optional arguments]: tutorial.md#optional-arguments
 [the debugging section of the tutorial]: tutorial.md#debugging
 [implicit returns]: tutorial.md#returning
+[encodes]: std/encodings.md
+[encodings.get]: std/encodings.md#get
 
 [ArgError]: errors.md
 [TypeError]: errors.md

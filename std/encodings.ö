@@ -1,0 +1,92 @@
+# FIXME: this sucks
+var lowercase_mapping = (new Mapping [
+    ["A" "a"]
+    ["B" "b"]
+    ["C" "c"]
+    ["D" "d"]
+    ["E" "e"]
+    ["F" "f"]
+    ["G" "g"]
+    ["H" "h"]
+    ["I" "i"]
+    ["J" "j"]
+    ["K" "k"]
+    ["L" "l"]
+    ["M" "m"]
+    ["N" "n"]
+    ["O" "o"]
+    ["P" "p"]
+    ["Q" "q"]
+    ["R" "r"]
+    ["S" "s"]
+    ["T" "t"]
+    ["U" "u"]
+    ["V" "v"]
+    ["W" "w"]
+    ["X" "x"]
+    ["Y" "y"]
+    ["Z" "z"]
+    ["Å" "å"]
+    ["Ä" "ä"]
+    ["Ö" "ö"]
+]);
+
+func "lowercase string" returning:true {
+    var result = "";
+    for { var i=0; } { (i < string.length) } { i = (i+1); } {
+        var letter = (string.get i);
+        result = (result + (lowercase_mapping.get_with_fallback letter letter));
+    };
+    return result;
+};
+
+var encodings = (new Mapping);
+
+export {
+    class "Encoding" {
+        attrib "encode";
+        attrib "decode";
+
+        method "setup encode decode" {
+            this.encode = encode;
+            this.decode = decode;
+        };
+    };
+
+    func "get name" returning:true {
+        catch {
+            return (encodings.get (lowercase name));
+        } KeyError {
+            throw (new ValueError ("cannot find encoding: " + (name.to_debug_string)));
+        };
+    };
+
+    func "add name encodingobj" {
+        encodings.set (lowercase name) encodingobj;
+    };
+};
+
+# utf8_encode and utf8_decode are implemented in c because they are needed for
+# loading ö files like this one, and they are used for most things so it's best
+# if they are fast
+var utf8 = (new Encoding utf8_encode utf8_decode);
+add "utf-8" utf8;
+add "utf8" utf8;
+
+var builtin_scope = {}.definition_scope;
+while { (not builtin_scope.parent_scope.is_none) } {
+    builtin_scope = (builtin_scope.parent_scope.get_value);
+};
+builtin_scope.local_vars.delete "utf8_encode";
+builtin_scope.local_vars.delete "utf8_decode";
+
+
+# have fun figuring this out
+
+class "MoreMethods" {
+    method "to_byte_array encoding_name" returning:true { ((get encoding_name).encode this) };
+    method "to_string encoding_name" returning:true { ((get encoding_name).decode this) };
+};
+
+String.getters.set "to_byte_array" (MoreMethods.getters.get "to_byte_array");
+ByteArray.getters.set "to_string" (MoreMethods.getters.get "to_string");

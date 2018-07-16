@@ -1,0 +1,29 @@
+var test = (import "utils").test;
+var throws = (import "utils").throws;
+var encodings = (import "<std>/encodings");
+
+
+test "get" {
+    assert ((encodings.get "UTF-8") `same_object` (encodings.get "uTf-8"));
+    throws ValueError {
+        var _ = (encodings.get "asdasdasd");
+    };
+};
+
+test "add" {
+    func "lol_encode string" returning:true {
+        assert (string == "asd");
+        return (new ByteArray [1 2 3]);
+    };
+    func "lol_decode bytearray" returning:true {
+        assert (bytearray == (new ByteArray [1 2 3]));
+        return "asd";
+    };
+
+    var lol = (new encodings.Encoding lol_encode lol_decode);
+    encodings.add "lol" lol;
+    assert ((encodings.get "lol") `same_object` lol);
+
+    assert (("asd".to_byte_array "lol") == (new ByteArray [1 2 3]));
+    assert (((new ByteArray [1 2 3]).to_string "lol") == "asd");
+};

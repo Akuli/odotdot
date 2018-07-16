@@ -427,8 +427,9 @@ func "foreach varname array block" {
     ({}.definition_scope.parent_scope.get_value).local_vars.set "import" import;
 }.run (new Scope {}.definition_scope);
 
-# these files do magic, they delete stuff from the built-in scope
+# these files do magic, they delete stuff from the built-in scope and initialize other important things
 # see comments in these files for details
 var _ = (import "<std>/imports");
 var _ = (import "<std>/operators");
+var _ = (import "<std>/encodings");
 {}.definition_scope.local_vars.delete "_";
