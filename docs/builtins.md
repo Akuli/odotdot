@@ -615,6 +615,8 @@ Methods:
   `ByteArray`, so if you have a 2GB `ByteArray` and you take a 1GB slice of it,
   you use 3GB of RAM. If this is a problem for you, let me know and I'll
   optimize this.
+- `(bytearray.to_string encoding_name)` [decodes] the `ByteArray`. The
+  `encoding_name` is interpreted as if passed to [encodings.get].
 
 Attributes:
 - `bytearray.length` is the number of bytes in the ByteArray.
@@ -894,6 +896,7 @@ This is a special `Option` object. See [the Option documentation](#option).
 [the debugging section of the tutorial]: tutorial.md#debugging
 [implicit returns]: tutorial.md#returning
 [encodes]: std/encodings.md
+[decodes]: std/encodings.md
 [encodings.get]: std/encodings.md#get
 
 [ArgError]: errors.md
