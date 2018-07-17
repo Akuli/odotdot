@@ -111,12 +111,10 @@ var message = (format (translate "cannot open ${filename}"));
       object and run it
     - if there was this and an io lib, `file_importer` could be pure ö
 
-## ByteArray objects
+## crazy idea: Block + Block
 
-not documented yet! here are old notes about what these are:
-- would be like `Array`s of `Integer`s between 0 and 255, but represented
-  in C as arrays of unsigned char, taking up a lot less space
-- useful for e.g. io without implicit encoding and decoding
+would only work for Blocks that have the same `definition_scope`, would
+concatenate `ast_statements`
 
 # Ö functions: utf8_encode, utf8_decode, chr
 

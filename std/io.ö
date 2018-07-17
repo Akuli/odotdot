@@ -1,0 +1,132 @@
+export {
+    class "FileLikeBase" {
+
+        # always override with a getter and no setter
+        abstract "closed";
+
+        # override with a method
+        # no args, returns nothing
+        # should call check_closed, do its thing and make the closed attribute return true
+        abstract "close";
+
+        # meant to be used by subclasses when calling pretty much anything
+        method "check_closed" {
+            if this.closed {
+                throw (new ValueError ("cannot read from a closed " + (get_class this).name));
+            };
+        };
+
+        # override for readable file-likes
+        # call check_closed, read at most maxsize bytes, move pos by number of bytes read and return the bytes
+        method "read_chunk maxsize" returning:true {
+            throw (new ValueError ("cannot read from " + (this.to_debug_string)));
+        };
+
+        # override for writable file-likes
+        # write the bytes, moving pos forward by bytearray.length
+        method "write bytearray" {
+            throw (new ValueError ("cannot write to " + (this.to_debug_string)));
+        };
+
+        # override set_pos and get_pos for seekable file-likes
+        # set_pos is like fseek(f, pos, SEEK_SET) in C, get_pos is like ftell
+        # pos is not a magic attribute because it would "do too much" imo
+        method "set_pos pos" {
+            throw (new ValueError ("cannot seek " + (this.to_debug_string)));
+        };
+        method "get_pos" returning:true {
+            throw (new ValueError ("cannot tell the current position of " + (this.to_debug_string)));
+        };
+
+        method "run block as?" {
+            this.check_closed;
+            var scope = (new Scope block.definition_scope);
+            if (not as.is_none) {
+                scope.local_vars.set (as.get_value) this;
+            };
+
+            var error = none;
+            catch {
+                block.run scope;
+            } [Error "e"] {
+                error = (new Option e);
+            };
+
+            this.close;
+            if (not error.is_none) {
+                throw error;
+            };
+        };
+
+        method "read_all" returning:true {
+            # TODO: optimize (ByteArray + ByteArray)
+            var result = (new ByteArray []);
+
+            while { true } {
+                var chunk = (this.read_chunk 4096);    # calls check_closed
+                if (chunk.length == 0) {
+                    return result;
+                };
+                result = (result + chunk);
+            };
+        };
+
+        # override and call super if there is something that can be done to flush stuff
+        method "flush" { };
+    };
+
+    class "ByteArrayFileLike" inherits:FileLikeBase {
+
+        # TODO: need real privates :(
+        attrib "_private_bytearray";
+        attrib "_private_pos";
+        attrib "_private_closed";
+
+        method "setup initial_value?" {
+            this._private_bytearray = (initial_value.get_with_fallback (new ByteArray []));
+            this._private_pos = 0;
+            this._private_closed = false;
+        };
+
+        getter "bytearray" { this._private_bytearray };
+        getter "closed" { this._private_closed };
+
+        # TODO: add a to_debug_string when ByteArrays have it
+
+        method "read_chunk maxsize" returning:true {
+            this.check_closed;
+            var slice = (this._private_bytearray.slice this._private_pos (this._private_pos+maxsize));
+            this._private_pos = (this._private_pos + slice.length);   # handles reading past end of file
+            return slice;
+        };
+
+        method "write bytearray" {
+            this.check_closed;
+            var before = (this._private_bytearray.slice 0 this._private_pos);
+            this._private_pos = (this._private_pos + bytearray.length);
+            var after = (this._private_bytearray.slice this._private_pos this._private_bytearray.length);
+            this._private_bytearray = ((before + bytearray) + after);
+        };
+
+        method "set_pos pos" {
+            this.check_closed;
+            if (pos < 0) {
+                pos = 0;
+            };
+            if (pos > this._private_bytearray.length) {
+                pos = this._private_bytearray.length;
+            };
+            this._private_pos = pos;
+        };
+
+        method "get_pos" returning:true {
+            this.check_closed;
+            return this._private_pos;
+        };
+
+        method "close" {
+            this.check_closed;
+            this._private_closed = true;
+        };
+    };
+};

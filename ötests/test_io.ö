@@ -1,0 +1,62 @@
+var test = (import "utils").test;
+var throws = (import "utils").throws;
+
+var io = (import "<std>/io");
+
+
+test "ByteArrayFileLike" {
+    var f = (new io.ByteArrayFileLike);
+    assert ((f.get_pos) == 0);
+    assert ((f.read_all) == (new ByteArray []));
+    assert (f.bytearray == (new ByteArray []));
+
+    f.write (new ByteArray [1 2 3 4]);
+    assert ((f.get_pos) == 4);
+    assert ((f.read_all) == (new ByteArray []));
+    assert ((f.get_pos) == 4);
+    assert (f.bytearray == (new ByteArray [1 2 3 4]));
+
+    f.set_pos (0-1);
+    assert ((f.get_pos) == 0);
+    assert (f.bytearray == (new ByteArray [1 2 3 4]));
+
+    assert ((f.read_chunk 3) == (new ByteArray [1 2 3]));
+    assert ((f.get_pos) == 3);
+    assert ((f.read_all) == (new ByteArray [4]));
+    assert ((f.get_pos) == 4);
+
+    assert (not f.closed);
+    f.close;
+    assert f.closed;
+    throws ValueError { var _ = (f.read_chunk 0); };
+    throws ValueError { var _ = (f.read_all); };
+    throws ValueError { f.write (new ByteArray []); };
+    throws ValueError { f.set_pos 123; };
+    throws ValueError { var _ = (f.get_pos); };
+    throws ValueError { f.close; };
+    throws ValueError { f.run { }; };
+};
+
+test "run" {
+    var f = (new io.ByteArrayFileLike);
+    assert (not f.closed);
+
+    var ran = false;
+    f.run as: "g" {
+        assert (f `same_object` g);
+        assert (not f.closed);
+        ran = true;
+    };
+    assert ran;
+    assert f.closed;
+
+    f = (new io.ByteArrayFileLike);
+    assert (not f.closed);
+
+    throws MathError {
+        f.run {
+            throw (new MathError "oh no");
+        };
+    };
+    assert f.closed;
+};
