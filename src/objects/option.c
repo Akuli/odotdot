@@ -52,13 +52,6 @@ static bool setup(struct Interpreter *interp, struct ObjectData thisdata, struct
 	return true;
 }
 
-static struct Object *isnone_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
-{
-	if (!check_args(interp, args, interp->builtins.Option, NULL)) return NULL;
-	if (!check_no_opts(interp, opts)) return NULL;
-	return boolobject_get(interp, !ARRAYOBJECT_GET(args, 0)->objdata.data);
-}
-
 static struct Object *get_value(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, NULL)) return NULL;
@@ -78,7 +71,6 @@ bool optionobject_addmethods(struct Interpreter *interp)
 {
 	if (!method_add_noret(interp, interp->builtins.Option, "setup", setup)) return false;
 	if (!method_add_yesret(interp, interp->builtins.Option, "get_value", get_value)) return false;
-	if (!attribute_add(interp, interp->builtins.Option, "is_none", isnone_getter, NULL)) return false;
 	return true;
 }
 

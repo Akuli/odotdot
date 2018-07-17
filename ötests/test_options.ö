@@ -6,32 +6,28 @@ var throws = (import "utils").throws;
 test "basic stuff" {
     var option = (new Option "hi");
     assert ((option.get_value) == "hi");
-    assert (not option.is_none);
     assert ((option.to_debug_string) == "<Option: \"hi\">");
 };
 
 test "none" {
     assert (none `is_instance_of` Option);
-    assert none.is_none;
     assert ((none.to_debug_string) == "none");
     throws ValueError {
         var _ = (none.get_value);
     };
 };
 
+test "==" {
+    assert (none == none);
+    assert (none != (new Option "asd"));
+    assert ((new Option "asd") != none);
+    assert ((new Option "asd") == (new Option "asd"));
+    assert ((new Option "asd") != (new Option "asdaa"));
+    throws TypeError { var _ = ("asd" == 123); };
+    throws TypeError { var _ = ((new Option "asd") == (new Option 123)); };
+};
+
 test "get_with_fallback" {
     assert (((new Option "asd").get_with_fallback "toot") == "asd");
     assert ((none.get_with_fallback "toot") == "toot");
-};
-
-test "immutable" {
-    var option = (new Option "hi");
-    assert ((option.get_value) == "hi");
-    assert (not option.is_none);
-
-    throws AttribError {
-        option.is_none = true;
-    };
-    assert ((option.get_value) == "hi");
-    assert (not option.is_none);
 };

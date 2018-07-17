@@ -51,14 +51,15 @@ add_method Bool "to_debug_string" (lambda "this" returning:true {
 });
 
 add_method Option "to_debug_string" (lambda "this" returning:true {
-    if this.is_none {
+    if (this `same_object` none) {
         return "none";
     };
     return (("<Option: " + ((this.get_value).to_debug_string)) + ">");
 });
 
 add_method Option "get_with_fallback" (lambda "this default" returning:true {
-    if this.is_none {
+    # Option == is defined in std/operator.ö, which is not loaded yet
+    if (this `same_object` none) {
         return default;
     };
     return (this.get_value);
@@ -266,18 +267,15 @@ func "is_instance_of instance klass" returning:true {
     var subclass = (get_class instance);
 
     # check if 'subclass' is a subclass of 'klass'
-    var running = true;
-    while { running } {
+    while { true } {
         if (subclass `same_object` klass) {
             return true;
         };
-        if subclass.baseclass.is_none {
-            running = false;   # there's no break yet :(
-        } else: {
-            subclass = (subclass.baseclass.get_value);
+        if (subclass.baseclass == none) {
+            return false;
         };
+        subclass = (subclass.baseclass.get_value);
     };
-    return false;
 };
 
 # example:
@@ -408,7 +406,7 @@ func "foreach varname array block" {
                 error importer lib;
             };
 
-            if (not lib.is_none) {
+            if (lib != none) {
                 if (not ((lib.get_value) `is_instance_of` Library)) {
                     error importer lib;
                 };
@@ -429,7 +427,7 @@ func "foreach varname array block" {
 
 # these files do magic, they delete stuff from the built-in scope and initialize other important things
 # see comments in these files for details
-var _ = (import "<std>/imports");
 var _ = (import "<std>/operators");
+var _ = (import "<std>/imports");
 var _ = (import "<std>/encodings");
 {}.definition_scope.local_vars.delete "_";

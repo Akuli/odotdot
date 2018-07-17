@@ -350,7 +350,7 @@ catch {
     website = (new Option (get_website));
 } WebsiteError { };   # do nothing on WebsiteError because website is already set to none
 
-if website.is_none {
+if (website == none) {
     print "No website was specified! Cannot print the URL.";
 } else: {
     print (website.get_value).url;
@@ -359,8 +359,7 @@ if website.is_none {
 
 **If some value may be `none`, wrap that value in an `Option` object whenever
 it's not `none`.** Option objects have a `get_value` method that returns the
-value passed to `new Option`, and a convenient `is_none` attribute that works
-so that `none.is_none` is `true`, and `any_other_option.is_none` is `false`.
+value passed to `new Option`, and they can be conveniently compared with `==`.
 
 Here is the broken code:
 
@@ -668,7 +667,7 @@ func "better_fake_if condition block else?" {
     fake_if condition {
         block.run (new Scope block.definition_scope);
     };
-    fake_if ((not condition) `and` (not else.is_none)) {
+    fake_if ((not condition) `and` (else != none)) {
         (else.get_value).run (new Scope (else.get_value).definition_scope);
     };
 };

@@ -82,7 +82,7 @@ test "decode" {
         var unicode = (utf8test.get 1);
         var error = (utf8test.get 2);
 
-        if error.is_none {
+        if (error == none) {
             # if there's no error, there must be unicode
             # otherwise the test makes no sense
             assert ((bytes.to_string "utf-8") == (unicode.get_value));
@@ -104,8 +104,8 @@ test "encode" {
         var unicode = (utf8test.get 1);
         var error = (utf8test.get 2);
 
-        if (not unicode.is_none) {
-            if error.is_none {
+        if (unicode != none) {
+            if (error == none) {
                 assert (((unicode.get_value).to_byte_array "utf-8") == bytes);
             } else: {
                 catch {
