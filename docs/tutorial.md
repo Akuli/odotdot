@@ -545,7 +545,7 @@ There's also some syntactic sugar: `{ value }` without a `;` is equivalent to
 `{ return value; }`.
 
 ```python
-func "lol" { "asda" };
+func "lol" returning:true { "asda" };
 print (lol);    # prints "asda"
 ```
 
