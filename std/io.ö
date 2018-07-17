@@ -38,12 +38,10 @@ export {
             throw (new ValueError ("cannot tell the current position of " + (this.to_debug_string)));
         };
 
-        method "run block as?" {
+        method "as varname" {
             this.check_closed;
             var scope = (new Scope block.definition_scope);
-            if (not as.is_none) {
-                scope.local_vars.set (as.get_value) this;
-            };
+            scope.local_vars.set varname this;
 
             var error = none;
             catch {

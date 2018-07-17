@@ -34,15 +34,15 @@ test "ByteArrayFileLike" {
     throws ValueError { f.set_pos 123; };
     throws ValueError { var _ = (f.get_pos); };
     throws ValueError { f.close; };
-    throws ValueError { f.run { }; };
+    throws ValueError { f.as "g" { }; };
 };
 
-test "run" {
+test "as" {
     var f = (new io.ByteArrayFileLike);
     assert (not f.closed);
 
     var ran = false;
-    f.run as: "g" {
+    f.as "g" {
         assert (f `same_object` g);
         assert (not f.closed);
         ran = true;
@@ -54,7 +54,7 @@ test "run" {
     assert (not f.closed);
 
     throws MathError {
-        f.run {
+        f.as "g" {
             throw (new MathError "oh no");
         };
     };
