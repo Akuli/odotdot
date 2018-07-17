@@ -218,7 +218,37 @@ static struct Object *eq(struct Interpreter *interp, struct ObjectData nulldata,
 		memcmp(BYTEARRAYOBJECT_DATA(b1), BYTEARRAYOBJECT_DATA(b2), BYTEARRAYOBJECT_LEN(b1))==0);
 }
 
+static struct Object *add(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Object, interp->builtins.Object, NULL)) return NULL;
+	if (!check_no_opts(interp, opts)) return NULL;
+
+	struct Object *b1 = ARRAYOBJECT_GET(args, 0), *b2 = ARRAYOBJECT_GET(args, 1);
+	if (!(classobject_isinstanceof(b1, interp->builtins.ByteArray) && classobject_isinstanceof(b2, interp->builtins.ByteArray))) {
+		OBJECT_INCREF(interp, interp->builtins.none);
+		return interp->builtins.none;
+	}
+
+	unsigned char *resval = malloc(BYTEARRAYOBJECT_LEN(b1) + BYTEARRAYOBJECT_LEN(b2));
+	if (!resval) {
+		errorobject_thrownomem(interp);
+		return NULL;
+	}
+	memcpy(resval, BYTEARRAYOBJECT_DATA(b1), BYTEARRAYOBJECT_LEN(b1));
+	memcpy(resval+BYTEARRAYOBJECT_LEN(b1), BYTEARRAYOBJECT_DATA(b2), BYTEARRAYOBJECT_LEN(b2));
+
+	struct Object *res = bytearrayobject_new(interp, resval, BYTEARRAYOBJECT_LEN(b1) + BYTEARRAYOBJECT_LEN(b2));
+	if (!res)
+		return NULL;
+
+	struct Object *opt = optionobject_new(interp, res);
+	OBJECT_DECREF(interp, res);
+	return opt;
+}
+
 bool bytearrayobject_initoparrays(struct Interpreter *interp)
 {
-	return functionobject_add2array(interp, interp->oparrays.eq, "bytearray_eq", functionobject_mkcfunc_yesret(eq));
+	if (!functionobject_add2array(interp, interp->oparrays.eq, "bytearray_eq", functionobject_mkcfunc_yesret(eq))) return false;
+	if (!functionobject_add2array(interp, interp->oparrays.add, "bytearray_add", functionobject_mkcfunc_yesret(add))) return false;
+	return true;
 }

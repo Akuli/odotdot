@@ -581,6 +581,13 @@ It's possible to represent string as bytes, and that's how text can be saved to
 files. See [String](#string)'s `to_byte_array` method and `ByteArray`'s
 `to_string` method.
 
+`ByteArray`s can be concatenated with `+`. However, note that it takes up a lot
+of memory if the `ByteArray`s are big; adding together a 1GB `ByteArray` with a
+2GB `ByteArray` does **not** consume 3GB of RAM, it consumes 6GB temporarily;
+first the `ByteArray` is created so that we have that and the old `ByteArray`s
+(using 1GB + 2GB + 3GB of RAM), and if the old `ByteArray`s aren't used
+anywhere else, they are then destroyed, bringing the memory usage back to 3GB.
+
 `(new ByteArray integer_array)` creates a new `ByteArray` object from an
 [Array](#array) from [Integer](#integer) values of bytes, throwing `ValueError`
 if any of the [Integer](#integer)s are smaller than 0 or greater than 255.
