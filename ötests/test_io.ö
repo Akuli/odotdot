@@ -35,6 +35,11 @@ test "ByteArrayFileLike" {
     throws ValueError { var _ = (f.get_pos); };
     throws ValueError { f.close; };
     throws ValueError { f.as "g" { }; };
+
+    # initial_value should end up in the file-like, and seek position should be 0 initially
+    (new io.ByteArrayFileLike initial_value:(new ByteArray [1 2 3])).as "f" {
+        assert ((f.read_all) == (new ByteArray [1 2 3]));
+    };
 };
 
 test "as" {
