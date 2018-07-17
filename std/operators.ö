@@ -1,5 +1,5 @@
 var builtin_scope = ({}.definition_scope.parent_scope.get_value);
-assert builtin_scope.parent_scope.is_none;   # it is actually the built-in scope
+assert (builtin_scope.parent_scope `same_object` none);   # it is actually the built-in scope
 
 # the interpreter creates these as built-in functions
 # that's the only way to get stuff from the interpreter to an ö library (lol)
@@ -18,12 +18,23 @@ export {
 # right now the arrays contain stuff that are needed for starting up the interpreter this far
 # but as much as possible is implemented here
 
-# TODO: add a way to insert to the beginning of an array
-# might be good for optimizing
-# behaviour doesn't change with built-in stuff, which is what's in the array before this
+# TODO: get rid of this?? this is dumb, comparing objects should make TypeError by default
 eq_array.push (lambda "x y" returning:true {
     if (x `same_object` y) {
         return (new Option true);
+    };
+    return none;
+});
+
+eq_array.push (lambda "x y" returning:true {
+    if ((x `is_instance_of` Option) `and` (y `is_instance_of` Option)) {
+        if ((x `same_object` none) `and` (y `same_object` none)) {
+            return (new Option true);
+        };
+        if ((x `same_object` none) `or` (y `same_object` none)) {
+            return (new Option false);
+        };
+        return (new Option ((x.get_value) == (y.get_value)));
     };
     return none;
 });

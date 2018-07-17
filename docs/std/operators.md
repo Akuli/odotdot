@@ -22,7 +22,7 @@ var operators = (import "<std>/operators");
 func "do_plus x y" {
     foreach "function" operators.add_array {
         var result = (function x y);
-        if (not result.is_none) {
+        if (result != none) {
             return result;
         };
     };
