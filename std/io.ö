@@ -51,7 +51,7 @@ export {
             };
 
             this.close;
-            if (not error.is_none) {
+            if (error != none) {
                 throw (error.get_value);
             };
         };
