@@ -38,7 +38,7 @@ export {
             throw (new ValueError ("cannot tell the current position of " + (this.to_debug_string)));
         };
 
-        method "as varname" {
+        method "as varname block" {
             this.check_closed;
             var scope = (new Scope block.definition_scope);
             scope.local_vars.set varname this;
@@ -52,7 +52,7 @@ export {
 
             this.close;
             if (not error.is_none) {
-                throw error;
+                throw (error.get_value);
             };
         };
 

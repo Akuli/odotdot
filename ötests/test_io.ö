@@ -59,4 +59,14 @@ test "as" {
         };
     };
     assert f.closed;
+
+    var scope = none;
+    (new io.ByteArrayFileLike).as "g" {
+        scope = {}.definition_scope;
+    };
+    assert (not (scope `same_object` {}.definition_scope));
+    assert ((scope.parent_scope.get_value) `same_object` {}.definition_scope);
+    throws VariableError {
+        var _ = g;
+    };
 };
