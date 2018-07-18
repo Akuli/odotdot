@@ -11,6 +11,9 @@ export {
         } errorclass {
             lol = (lol+7);
         };
+        if (lol == 13) {
+            throw (new AssertError "it didn't throw!");
+        };
         assert (lol == 7);
     };
 

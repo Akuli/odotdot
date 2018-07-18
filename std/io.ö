@@ -76,11 +76,13 @@ export {
             run_block_with_file_as_var block this varname;
         };
 
-        # override and call super if there is something that can be done to flush stuff
-        method "flush" { };
+        # override and call check_closed if there is something that can be done to flush stuff
+        method "flush" {
+            this.check_closed;
+        };
     };
 
-    class "ByteArrayFileLike" inherits:FileLikeBase {
+    class "FakeFile" inherits:FileLikeBase {
 
         # TODO: need real privates :(
         attrib "_private_bytearray";

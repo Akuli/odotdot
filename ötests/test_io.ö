@@ -4,8 +4,8 @@ var throws = (import "utils").throws;
 var io = (import "<std>/io");
 
 
-test "ByteArrayFileLike" {
-    var f = (new io.ByteArrayFileLike);
+test "FakeFile" {
+    var f = (new io.FakeFile);
     assert ((f.get_pos) == 0);
     assert ((f.read_all) == (new ByteArray []));
     assert (f.bytearray == (new ByteArray []));
@@ -25,6 +25,8 @@ test "ByteArrayFileLike" {
     assert ((f.read_all) == (new ByteArray [4]));
     assert ((f.get_pos) == 4);
 
+    f.flush;    # should do nothing, but must not throw an error
+
     assert (not f.closed);
     f.close;
     assert f.closed;
@@ -32,18 +34,19 @@ test "ByteArrayFileLike" {
     throws ValueError { var _ = (f.read_all); };
     throws ValueError { f.write (new ByteArray []); };
     throws ValueError { f.set_pos 123; };
+    throws ValueError { f.flush; };
     throws ValueError { var _ = (f.get_pos); };
     throws ValueError { f.close; };
     throws ValueError { f.as "g" { }; };
 
     # initial_value should end up in the file-like, and seek position should be 0 initially
-    (new io.ByteArrayFileLike initial_value:(new ByteArray [1 2 3])).as "f" {
+    (new io.FakeFile initial_value:(new ByteArray [1 2 3])).as "f" {
         assert ((f.read_all) == (new ByteArray [1 2 3]));
     };
 };
 
 test "as" {
-    var f = (new io.ByteArrayFileLike);
+    var f = (new io.FakeFile);
     assert (not f.closed);
 
     var ran = false;
@@ -55,7 +58,7 @@ test "as" {
     assert ran;
     assert f.closed;
 
-    f = (new io.ByteArrayFileLike);
+    f = (new io.FakeFile);
     assert (not f.closed);
 
     throws MathError {
@@ -66,7 +69,7 @@ test "as" {
     assert f.closed;
 
     var scope = none;
-    (new io.ByteArrayFileLike).as "g" {
+    (new io.FakeFile).as "g" {
         scope = {}.definition_scope;
     };
     assert (not (scope `same_object` {}.definition_scope));
@@ -77,7 +80,7 @@ test "as" {
 };
 
 test "StringWrapper" {
-    var f = (new io.ByteArrayFileLike);
+    var f = (new io.FakeFile);
 
     var ran = false;
     (new io.StringWrapper f).as "w" {
@@ -95,11 +98,11 @@ test "StringWrapper" {
         throws ValueError {
             var _ = (w.read_all);
         };
-        assert ((w.wrapped.get_pos) == 6);
+        assert ((w.wrapped.get_pos) == 6);   # it must have read it without implicit seeking on error
     };
     assert f.closed;
 
-    f = (new io.ByteArrayFileLike);
+    f = (new io.FakeFile);
     var wrapper = none;
     throws MathError {
         (new io.StringWrapper f).as "w" {
@@ -111,23 +114,24 @@ test "StringWrapper" {
     assert f.closed;
     assert wrapper.closed;
 
-    var wrapper = (new io.StringWrapper (new io.ByteArrayFileLike));
+    var wrapper = (new io.StringWrapper (new io.FakeFile));
     assert (not wrapper.closed);
     assert (not wrapper.wrapped.closed);
+    wrapper.flush;  # TODO: test that wrapper.wrapped.flush was called
     wrapper.close;
     assert wrapper.closed;
     assert wrapper.wrapped.closed;
 
     throws ValueError { var _ = (wrapper.read_all); };
     throws ValueError { wrapper.write "asd"; };
-    throws ValueError { wrapper.close; };
     throws ValueError { wrapper.flush; };
+    throws ValueError { wrapper.close; };
 
     var ran = false;
     throws ValueError { wrapper.as "x" { ran = true; }; };
     assert (not ran);
 
-    (new io.StringWrapper (new io.ByteArrayFileLike)).as "wrapper" {
+    (new io.StringWrapper (new io.FakeFile)).as "wrapper" {
         throws AttribError { wrapper.set_pos 123; };
         throws AttribError { var _ = (wrapper.get_pos); };
     };
