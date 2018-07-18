@@ -82,6 +82,7 @@ export {
         };
     };
 
+
     class "FakeFile" inherits:FileLikeBase {
 
         # TODO: need real privates :(
@@ -137,6 +138,14 @@ export {
         };
     };
 
+
+    # TODO: come up with a better name for this
+    # StringWrapper sounds like it wraps a string
+    # TextWrapper sounds like it wraps text
+    # TextFileWrapper is too long
+    # TextFile doesn't specify that it wraps
+    # TextFileLike is too long and makes it feel like it inherits FileLike, but it doesn't
+    # TextWrapperFileStringWrapperText is java
     class "StringWrapper" {
         attrib "_private_wrapped";
         attrib "_private_encoding";
