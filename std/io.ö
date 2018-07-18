@@ -1,3 +1,23 @@
+var encodings = (import "encodings");
+
+
+func "run_block_with_file_as_var block file varname" {
+    var scope = (new Scope block.definition_scope);
+    scope.local_vars.set varname file;
+
+    var error = none;
+    catch {
+        block.run scope;
+    } [Error "e"] {
+        error = (new Option e);
+    };
+
+    file.close;
+    if (error != none) {
+        throw (error.get_value);
+    };
+};
+
 export {
     class "FileLikeBase" {
 
@@ -22,6 +42,19 @@ export {
             throw (new ValueError ("cannot read from " + (this.to_debug_string)));
         };
 
+        method "read_all" returning:true {
+            # TODO: optimize (ByteArray + ByteArray)
+            var result = (new ByteArray []);
+
+            while { true } {
+                var chunk = (this.read_chunk 4096);    # calls check_closed
+                if (chunk.length == 0) {
+                    return result;
+                };
+                result = (result + chunk);
+            };
+        };
+
         # override for writable file-likes
         # write the bytes, moving pos forward by bytearray.length
         method "write bytearray" {
@@ -40,33 +73,7 @@ export {
 
         method "as varname block" {
             this.check_closed;
-            var scope = (new Scope block.definition_scope);
-            scope.local_vars.set varname this;
-
-            var error = none;
-            catch {
-                block.run scope;
-            } [Error "e"] {
-                error = (new Option e);
-            };
-
-            this.close;
-            if (error != none) {
-                throw (error.get_value);
-            };
-        };
-
-        method "read_all" returning:true {
-            # TODO: optimize (ByteArray + ByteArray)
-            var result = (new ByteArray []);
-
-            while { true } {
-                var chunk = (this.read_chunk 4096);    # calls check_closed
-                if (chunk.length == 0) {
-                    return result;
-                };
-                result = (result + chunk);
-            };
+            run_block_with_file_as_var block this varname;
         };
 
         # override and call super if there is something that can be done to flush stuff
@@ -125,6 +132,33 @@ export {
         method "close" {
             this.check_closed;
             this._private_closed = true;
+        };
+    };
+
+    class "StringWrapper" {
+        attrib "_private_wrapped";
+        attrib "_private_encoding";
+
+        method "setup wrapped encoding?" {
+            this._private_wrapped = wrapped;
+            this._private_encoding = (encoding.get_with_fallback "utf-8");
+            var _ = (encodings.get this._private_encoding);   # make sure the encoding exists
+        };
+
+        getter "wrapped" { this._private_wrapped };
+        getter "encoding" { this._private_encoding };
+
+        getter "closed" { this.wrapped.closed };
+        getter "close" { this.wrapped.close };
+        # TODO: read_chunk, but it requires decoding data that may be incomplete
+        method "read_all" returning:true { ((this.wrapped.read_all).to_string this.encoding) };
+        method "write string" { this.wrapped.write (string.to_byte_array this.encoding); };
+        # set_pos and get_pos work with bytes, so they don't make sense for text
+        getter "flush" { this.wrapped.flush };
+
+        method "as varname block" {
+            this.wrapped.check_closed;
+            run_block_with_file_as_var block this varname;
         };
     };
 };

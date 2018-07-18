@@ -75,3 +75,60 @@ test "as" {
         var _ = g;
     };
 };
+
+test "StringWrapper" {
+    var f = (new io.ByteArrayFileLike);
+
+    var ran = false;
+    (new io.StringWrapper f).as "w" {
+        assert (w.encoding == "utf-8");
+        assert (w.wrapped `same_object` f);
+        assert (not f.closed);
+        assert (not w.closed);
+
+        w.write "hellö";
+        assert ((w.wrapped.get_pos) == 6);   # utf8: hell is 4 bytes, ö is 2 bytes
+        w.wrapped.set_pos 0;
+        assert ((w.read_all) == "hellö");
+
+        w.wrapped.set_pos 5;    # to the middle of ö
+        throws ValueError {
+            var _ = (w.read_all);
+        };
+        assert ((w.wrapped.get_pos) == 6);
+    };
+    assert f.closed;
+
+    f = (new io.ByteArrayFileLike);
+    var wrapper = none;
+    throws MathError {
+        (new io.StringWrapper f).as "w" {
+            assert (not w.closed);
+            wrapper = w;
+            throw (new MathError "oh no");
+        };
+    };
+    assert f.closed;
+    assert wrapper.closed;
+
+    var wrapper = (new io.StringWrapper (new io.ByteArrayFileLike));
+    assert (not wrapper.closed);
+    assert (not wrapper.wrapped.closed);
+    wrapper.close;
+    assert wrapper.closed;
+    assert wrapper.wrapped.closed;
+
+    throws ValueError { var _ = (wrapper.read_all); };
+    throws ValueError { wrapper.write "asd"; };
+    throws ValueError { wrapper.close; };
+    throws ValueError { wrapper.flush; };
+
+    var ran = false;
+    throws ValueError { wrapper.as "x" { ran = true; }; };
+    assert (not ran);
+
+    (new io.StringWrapper (new io.ByteArrayFileLike)).as "wrapper" {
+        throws AttribError { wrapper.set_pos 123; };
+        throws AttribError { var _ = (wrapper.get_pos); };
+    };
+};
