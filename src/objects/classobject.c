@@ -186,6 +186,35 @@ static struct Object *baseclass_getter(struct Interpreter *interp, struct Object
 	return optionobject_new(interp, data->baseclass);
 }
 
+// this is a funny thing, builtins.ö deletes this when it has finished importing libs that need this
+static bool baseclass_setter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
+{
+	if (!check_args(interp, args, interp->builtins.Class, interp->builtins.Option, NULL)) return false;
+	if (!check_no_opts(interp, opts)) return false;
+
+	struct ClassObjectData *data = ARRAYOBJECT_GET(args, 0)->objdata.data;
+	if (!data->baseclass) {
+		assert(ARRAYOBJECT_GET(args, 0) == interp->builtins.Object);
+		errorobject_throwfmt(interp, "TypeError", "cannot set Object.baseclass");
+		return false;
+	}
+	assert(ARRAYOBJECT_GET(args, 0) != interp->builtins.Object);
+
+	if (ARRAYOBJECT_GET(args, 1) == interp->builtins.none) {
+		errorobject_throwfmt(interp, "ValueError", "baseclass can't be set to null");
+		return false;
+	}
+
+	struct Object *val = OPTIONOBJECT_VALUE(ARRAYOBJECT_GET(args, 1));
+	if (!check_type(interp, interp->builtins.Class, val))
+		return false;
+
+	OBJECT_DECREF(interp, data->baseclass);
+	data->baseclass = val;
+	OBJECT_INCREF(interp, val);
+	return true;
+}
+
 static struct Object *getters_getter(struct Interpreter *interp, struct ObjectData nulldata, struct Object *args, struct Object *opts)
 {
 	if (!check_args(interp, args, interp->builtins.Class, NULL)) return NULL;
@@ -220,7 +249,7 @@ bool classobject_addmethods(struct Interpreter *interp)
 {
 	if (!method_add_noret(interp, interp->builtins.Class, "setup", setup)) return false;
 	if (!attribute_add(interp, interp->builtins.Class, "name", name_getter, NULL)) return false;
-	if (!attribute_add(interp, interp->builtins.Class, "baseclass", baseclass_getter, NULL)) return false;
+	if (!attribute_add(interp, interp->builtins.Class, "baseclass", baseclass_getter, baseclass_setter)) return false;
 	if (!attribute_add(interp, interp->builtins.Class, "getters", getters_getter, NULL)) return false;
 	if (!attribute_add(interp, interp->builtins.Class, "setters", setters_getter, NULL)) return false;
 	return true;

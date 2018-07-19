@@ -430,4 +430,9 @@ func "foreach varname array block" {
 var _ = (import "<std>/operators");
 var _ = (import "<std>/imports");
 var _ = (import "<std>/encodings");
+var _ = (import "<std>/io");
 {}.definition_scope.local_vars.delete "_";
+
+# <std>/io.ö also changes the base class of a class implemented in C (lol)
+# but doing that elsewhere should be unnecessary imo
+(get_class String).setters.delete "baseclass";

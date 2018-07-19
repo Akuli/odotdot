@@ -38,6 +38,7 @@ struct Interpreter {
 		struct Object *ByteArray;
 		struct Object *Class;    // the class of class objects
 		struct Object *Error;
+		struct Object *File;     // std/io.ö does some stuff to this
 		struct Object *Function;
 		struct Object *Integer;
 		struct Object *Library;

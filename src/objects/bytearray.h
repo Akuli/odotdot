@@ -19,6 +19,7 @@ bool bytearrayobject_initoparrays(struct Interpreter *interp);
 
 // RETURNS A NEW REFERENCE or NULL on error
 // data should be allocated with malloc and should NOT be modified or freed after calling this
+// use bytearrayobject_new(interp, NULL, 0) to create an empty ByteArray
 struct Object *bytearrayobject_new(struct Interpreter *interp, unsigned char *val, size_t len);
 
 // bad things happen if arr is not an array object, otherwise these never fail

@@ -64,6 +64,7 @@ export {
         # override set_pos and get_pos for seekable file-likes
         # set_pos is like fseek(f, pos, SEEK_SET) in C, get_pos is like ftell
         # pos is not a magic attribute because it would "do too much" imo
+        # set_pos: if pos is negative or bigger than length of file, use closest ok value instead
         method "set_pos pos" {
             throw (new ValueError ("cannot seek " + (this.to_debug_string)));
         };
@@ -173,3 +174,14 @@ export {
         };
     };
 };
+
+
+var builtin_scope = {}.definition_scope;
+while { (builtin_scope.parent_scope != none) } {
+    builtin_scope = (builtin_scope.parent_scope.get_value);
+};
+
+export {
+    var File = (builtin_scope.local_vars.get_and_delete "File");
+};
+File.baseclass = (new Option FileLikeBase);

@@ -19,6 +19,7 @@
 #include "objects/bytearray.h"
 #include "objects/classobject.h"
 #include "objects/errors.h"
+#include "objects/file.h"
 #include "objects/function.h"
 #include "objects/integer.h"
 #include "objects/library.h"
@@ -504,6 +505,7 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!(interp->builtins.MarkerError = errorobject_createmarkererrorclass(interp))) goto error;
 	if (!(interp->builtins.ArbitraryAttribs = libraryobject_createaaclass(interp))) goto error;
 	if (!(interp->builtins.Library = libraryobject_createclass(interp))) goto error;
+	if (!(interp->builtins.File = fileobject_createclass(interp))) goto error;
 
 	if (!(interp->builtinscope = scopeobject_newbuiltin(interp))) goto error;
 
@@ -529,6 +531,7 @@ bool builtins_setup(struct Interpreter *interp)
 	if (!interpreter_addbuiltin(interp, "Bool", interp->builtins.Bool)) goto error;
 	if (!interpreter_addbuiltin(interp, "ByteArray", interp->builtins.ByteArray)) goto error;
 	if (!interpreter_addbuiltin(interp, "Error", interp->builtins.Error)) goto error;
+	if (!interpreter_addbuiltin(interp, "File", interp->builtins.File)) goto error;
 	if (!interpreter_addbuiltin(interp, "Integer", interp->builtins.Integer)) goto error;
 	if (!interpreter_addbuiltin(interp, "Mapping", interp->builtins.Mapping)) goto error;
 	if (!interpreter_addbuiltin(interp, "MarkerError", interp->builtins.MarkerError)) goto error;
@@ -623,6 +626,7 @@ void builtins_teardown(struct Interpreter *interp)
 	TEARDOWN(builtins.ByteArray);
 	TEARDOWN(builtins.Class);
 	TEARDOWN(builtins.Error);
+	TEARDOWN(builtins.File);
 	TEARDOWN(builtins.Function);
 	TEARDOWN(builtins.Integer);
 	TEARDOWN(builtins.Library);
