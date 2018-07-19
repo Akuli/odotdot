@@ -136,3 +136,138 @@ test "StringWrapper" {
         throws AttribError { var _ = (wrapper.get_pos); };
     };
 };
+
+test "open errors" {
+    throws ArgError {
+        var _ = (io.open "asd");   # missing reading:true or writing:true
+    };
+
+    throws IoError {
+        var _ = (io.open "this-file-does-not-exist" reading:true);
+    };
+};
+
+# TODO: test CRLF on windows
+
+test "text file reading" {
+    (io.open "ötests/testfiles/hellö.txt" reading:true).as "f" {
+        assert (f `is_instance_of` io.StringWrapper);
+        assert (f.wrapped `is_instance_of` io.FileLikeBase);
+        assert ((f.read_all) == "hellö\n");
+        f.wrapped.set_pos 0;
+        assert ((f.wrapped.read_all) == ("hellö\n".to_byte_array "utf-8"));
+    };
+
+    assert ("hello\n".length == 6);   # run string tests if this fails
+    (io.open "ötests/testfiles/hellö1000.txt" reading:true).as "f" {
+        var all = (f.read_all);
+        assert (all.length == ("hello\n".length*1000));
+        for { var start=0; } { (start < all.length) } { start = end; } {
+            var end = (start + "hellö\n".length);
+            assert ((all.slice start end) == "hellö\n");
+        };
+    };
+
+    (io.open "ötests/testfiles/pîc.png" reading:true).as "f" {
+        throws ValueError {
+            var _ = (f.read_all);
+        };
+    };
+};
+
+# so far only the get_pos and set_pos of FakeFile has been tested
+test "file object pos" {
+    (io.open "ötests/testfiles/hellö.txt" reading:true binary:true).as "f" {
+        assert ((f.get_pos) == 0);
+        f.set_pos 2;
+        assert ((f.get_pos) == 2);
+        assert ((f.read_chunk 2) == (new ByteArray [108 108]));   # ll
+        assert ((f.get_pos) == 4);
+        var _ = (f.read_all);
+        assert ((f.get_pos) == 7);   # hell is 4 bytes, ö is 2 bytes, newline is 1 byte
+    };
+};
+
+# there isn't even a test for filenames with characters like ö
+# they are simply used all over the place :DDDD
+test "filenames with spaces" {
+    (io.open "ötests/testfiles/this filename contains spaces.txt" reading:true).as "f" {
+        assert ((f.read_all) == "hello\n");
+    };
+};
+
+
+# if you change pîc.png, remember to update
+# exercise for you: write an ö program that generates this
+var pic_data = (new ByteArray [
+    137 80 78 71 13 10 26 10 0 0 0 13 73 72 68 82 0 0 0 37 0 0 0 35 8 6 0 0 0 19 199 195 30 0 0 0 4
+    115 66 73 84 8 8 8 8 124 8 100 136 0 0 0 9 112 72 89 115 0 0 14 196 0 0 14 196 1 149 43 14 27 0
+    0 0 217 73 68 65 84 88 133 229 151 193 14 196 32 8 68 157 205 254 255 47 179 167 38 166 171 50
+    128 98 77 231 172 248 28 132 82 136 136 148 135 233 179 27 160 37 19 20 0 83 112 235 250 75 231
+    59 149 165 243 161 178 10 117 169 83 222 75 156 159 190 44 189 11 10 128 187 121 126 35 135 174
+    18 13 213 130 96 170 235 218 103 169 68 48 83 130 39 112 100 191 250 166 162 64 245 94 54 229 93
+    167 102 192 120 99 54 157 90 1 84 199 211 28 235 166 111 213 119 142 1 219 210 60 205 233 3 144
+    54 13 244 52 124 83 187 244 7 181 219 165 82 58 78 137 200 82 183 180 39 50 172 190 200 71 53
+    162 97 245 89 59 241 44 169 45 97 7 24 213 167 106 176 12 56 186 121 138 200 20 56 102 31 53 186
+    104 193 181 16 119 16 109 189 123 242 172 3 51 183 183 220 221 13 229 61 144 209 187 254 102 34
+    122 36 212 15 46 218 106 65 232 138 59 106 0 0 0 0 73 69 78 68 174 66 96 130
+]);
+
+test "binary file reading" {
+    (io.open "ötests/testfiles/pîc.png" reading:true binary:true).as "f" {
+        assert ((f.read_all) == pic_data);
+    };
+};
+
+# feel free to change this test if it breaks on a funny platform
+test "text writing" {
+    var writer = (io.open "tests-temp/asd.txt" writing:true);
+    # the file must be created now we get here
+    var reader = (io.open "tests-temp/asd.txt" reading:true);
+
+    assert ((reader.read_all) == "");
+
+    writer.write "asd\n";
+    # the reader isn't checked now because the file may or may not have been flushed implicitly
+    writer.flush;
+    assert ((reader.read_all) == "asd\n");
+    assert ((reader.read_all) == "");
+
+    writer.write "more asd\n";
+    writer.close;   # implicit flush
+    assert ((reader.read_all) == "more asd\n");
+    assert ((reader.read_all) == "");
+    reader.close;
+};
+
+test "writing:true truncating" {
+    (io.open "tests-temp/asd.txt" writing:true).as "f" { f.write "hello"; };
+    (io.open "tests-temp/asd.txt" writing:true).as "f" { };
+    (io.open "tests-temp/asd.txt" reading:true).as "f" { assert ((f.read_all) == ""); };
+};
+
+test "binary writing" {
+    (io.open "tests-temp/lol.dat" writing:true binary:true).as "f" {
+        f.write (new ByteArray [1 2 3 4 5 0 1 2 3 4 5]);   # 0 byte must work
+    };
+    (io.open "tests-temp/lol.dat" reading:true binary:true).as "f" {
+        assert ((f.read_all) == (new ByteArray [1 2 3 4 5 0 1 2 3 4 5]));
+    };
+};
+
+test "reading and writing with the same file object" {
+    (io.open "tests-temp/asd.txt" writing:true).as "f" { f.write "hello"; };
+    (io.open "tests-temp/asd.txt" reading:true writing:true).as "f" {
+        # it was truncated
+        var asd = f.wrapped.get_pos;
+        asd = (asd);
+        assert (asd == 0);
+        assert ((f.read_all) == "");
+        assert ((f.wrapped.get_pos) == 0);
+
+        f.write "test";
+        assert ((f.wrapped.get_pos) == 4);
+        f.wrapped.set_pos 0;
+        assert ((f.read_all) == "test");
+    };
+};

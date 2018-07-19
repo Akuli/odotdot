@@ -163,3 +163,4 @@ ctestsrunner
 src/builtinscode.h
 ldflags.txt
 config.h
+tests-temp/

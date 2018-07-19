@@ -256,7 +256,7 @@ static bool set_pos(struct Interpreter *interp, struct ObjectData thisdata, stru
 
 static struct Object *get_pos(struct Interpreter *interp, struct ObjectData thisdata, struct Object *args, struct Object *opts)
 {
-	if (!check_args(interp, args, interp->builtins.Integer, NULL)) return NULL;
+	if (!check_args(interp, args, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 
 	struct Object *fileobj = thisdata.data;

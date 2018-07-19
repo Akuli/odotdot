@@ -16,8 +16,12 @@ executables:
 ctests: executables
 	$(VALGRIND) $(VALGRINDOPTS) ./ctestsrunner
 
+.PHONY: tests-temp
+tests-temp:
+	rm -rvf tests-temp && mkdir tests-temp
+
 # http://clarkgrubb.com/makefile-style-guide#phony-target-arg
-ötests/test_%.ö: executables FORCE
+ötests/test_%.ö: tests-temp executables FORCE
 	$(VALGRIND) $(VALGRINDOPTS) ./ö $@
 
 examples/%.ö: executables FORCE
