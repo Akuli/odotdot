@@ -185,3 +185,22 @@ export {
     var File = (builtin_scope.local_vars.get_and_delete "File");
 };
 File.baseclass = (new Option FileLikeBase);
+
+
+export {
+    func "open path reading? writing? binary?" returning:true {
+        reading = (reading.get_with_fallback false);
+        writing = (writing.get_with_fallback false);
+        binary = (binary.get_with_fallback false);
+        if (not (reading `or` writing)) {
+            throw (new ArgError "can't open a file without reading:true or writing:true");
+        };
+        # but allow both reading and writing
+
+        var file = (new File path reading writing binary);
+        if (not binary) {
+            file = (new StringWrapper file);
+        };
+        return file;
+    };
+};

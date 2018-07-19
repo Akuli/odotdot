@@ -88,7 +88,6 @@ static struct Object *new_from_FILE(struct Interpreter *interp, struct Object *k
 }
 
 // this should be used only in io.ö
-// args: path, binary, reading, writing
 // TODO: allow writing so that the file is not overwritten, and the file may optionally be seeked to end [*]
 static struct Object *newinstance(struct Interpreter *interp, struct Object *args, struct Object *opts)
 {
@@ -96,10 +95,11 @@ static struct Object *newinstance(struct Interpreter *interp, struct Object *arg
 	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *klass = ARRAYOBJECT_GET(args, 0);
 	struct Object *pathobj = ARRAYOBJECT_GET(args, 1);
-	bool binary = (ARRAYOBJECT_GET(args, 2) == interp->builtins.yes);
-	bool reading = (ARRAYOBJECT_GET(args, 3) == interp->builtins.yes);
-	bool writing = (ARRAYOBJECT_GET(args, 4) == interp->builtins.yes);
-	assert(reading || writing);
+
+	bool reading = (ARRAYOBJECT_GET(args, 2) == interp->builtins.yes);
+	bool writing = (ARRAYOBJECT_GET(args, 3) == interp->builtins.yes);
+	bool binary = (ARRAYOBJECT_GET(args, 4) == interp->builtins.yes);
+	assert(reading || writing);   // checked in io.ö, and this shouldn't be called elsewhere
 
 	char *path;
 	size_t pathlen;
@@ -124,7 +124,7 @@ static struct Object *newinstance(struct Interpreter *interp, struct Object *arg
 	else if (reading)
 		mode = binary? "rb" : "r";
 	else
-		assert(0);    // like i commented... this is for io.ö only, and if this fails, io.ö screwed up
+		assert(0);    // was checked above
 
 	errno = 0;
 	FILE *f = fopen(path, mode);
