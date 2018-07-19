@@ -164,3 +164,6 @@ src/builtinscode.h
 ldflags.txt
 config.h
 tests-temp/
+
+# hellö.ö in the root of the repo, created by examples/open.ö
+/hellö.txt

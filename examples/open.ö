@@ -1,0 +1,9 @@
+var io = (import "<std>/io");
+
+(io.open "hellö.txt" writing:true).as "file" {
+    file.write "hellö wörld\n";
+};
+
+(io.open "hellö.txt" reading:true).as "file" {
+    print (file.read_all);
+};
