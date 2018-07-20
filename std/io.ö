@@ -66,10 +66,10 @@ export {
         # pos is not a magic attribute because it would "do too much" imo
         # set_pos: if pos is negative or bigger than length of file, use closest ok value instead
         method "set_pos pos" {
-            throw (new ValueError ("cannot seek " + (this.to_debug_string)));
+            throw (new ValueError ("cannot set the position of " + (this.to_debug_string)));
         };
         method "get_pos" returning:true {
-            throw (new ValueError ("cannot tell the current position of " + (this.to_debug_string)));
+            throw (new ValueError ("cannot get the current position of " + (this.to_debug_string)));
         };
 
         method "as varname block" {
@@ -140,13 +140,6 @@ export {
     };
 
 
-    # TODO: come up with a better name for this
-    # StringWrapper sounds like it wraps a string
-    # TextWrapper sounds like it wraps text
-    # TextFileWrapper is too long
-    # TextFile doesn't specify that it wraps
-    # TextFileLike is too long and makes it feel like it inherits FileLike, but it doesn't
-    # TextWrapperFileStringWrapperText is java
     class "StringWrapper" {
         attrib "_private_wrapped";
         attrib "_private_encoding";
@@ -186,18 +179,20 @@ File.baseclass = (new Option FileLikeBase);
 
 
 export {
-    func "open path reading? writing? binary?" returning:true {
+    func "open path reading? writing? binary? encoding?" returning:true {
         reading = (reading.get_with_fallback false);
         writing = (writing.get_with_fallback false);
         binary = (binary.get_with_fallback false);
-        if (not (reading `or` writing)) {
+        if (not (reading `or` writing)) {     # allow reading and writing with the same file object
             throw (new ArgError "can't open a file without reading:true or writing:true");
         };
-        # but allow both reading and writing
+        if (binary `and` (encoding != none)) {
+            throw (new ArgError "can't open a file with binary mode and an encoding");
+        };
 
         var file = (new File path reading writing binary);
         if (not binary) {
-            file = (new StringWrapper file);
+            file = (new StringWrapper file encoding:(encoding.get_with_fallback "utf-8"));
         };
         return file;
     };

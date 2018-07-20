@@ -79,6 +79,7 @@ test "as" {
     };
 };
 
+# TODO: should non-existing encodings throw an error in io.open?
 test "StringWrapper" {
     var f = (new io.FakeFile);
 
@@ -137,9 +138,14 @@ test "StringWrapper" {
     };
 };
 
+# TODO: test with different encodings
 test "open errors" {
     throws ArgError {
         var _ = (io.open "asd");   # missing reading:true or writing:true
+    };
+
+    throws ArgError {
+        var _ = (io.open "asd" binary:true encoding:"utf-8");   # nonsense!
     };
 
     throws IoError {
