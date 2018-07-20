@@ -61,7 +61,7 @@ static struct MappingObjectData *create_empty_data(void)
 
 	data->size = 0;
 	data->nbuckets = 10;     // i experimented with different values, this was good
-	data->buckets = calloc(data->nbuckets, sizeof(struct MappingObjectItem));
+	data->buckets = calloc(data->nbuckets, sizeof(struct MappingObjectItem*));
 	if (!(data->buckets)) {
 		free(data);
 		return NULL;
@@ -159,7 +159,7 @@ static bool make_bigger(struct Interpreter *interp, struct MappingObjectData *da
 
 	unsigned long newnbuckets = (data->nbuckets > ULONG_MAX/3) ? ULONG_MAX : data->nbuckets*3;
 
-	struct MappingObjectItem **newbuckets = calloc(newnbuckets, sizeof(struct MappingObjectItem));
+	struct MappingObjectItem **newbuckets = calloc(newnbuckets, sizeof(struct MappingObjectItem*));
 	if (!newbuckets) {
 		errorobject_thrownomem(interp);
 		return false;

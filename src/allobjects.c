@@ -15,7 +15,7 @@ struct AllObjectsItem {
 bool allobjects_init(struct AllObjects *ao)
 {
 	ao->nbuckets = 100;
-	ao->buckets = calloc(ao->nbuckets, sizeof(struct AllObjectsItem));
+	ao->buckets = calloc(ao->nbuckets, sizeof(struct AllObjectsItem*));
 	if (!ao->buckets)
 		return false;
 	ao->size = 0;
@@ -47,7 +47,7 @@ static bool make_bigger(struct AllObjects *ao)
 	assert(ao->nbuckets != ULONG_MAX);   // the caller should check this
 	unsigned long newnbuckets = (ao->nbuckets > ULONG_MAX/2) ? ULONG_MAX : ao->nbuckets*2;
 
-	struct AllObjectsItem **newbuckets = calloc(newnbuckets, sizeof(struct AllObjectsItem));
+	struct AllObjectsItem **newbuckets = calloc(newnbuckets, sizeof(struct AllObjectsItem*));
 	if (!newbuckets)
 		return false;
 
