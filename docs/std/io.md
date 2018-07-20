@@ -50,10 +50,10 @@ If the `as` method is used instead, the file is *always* closed.
 
 This is a base class for all objects that should behave like file objects that
 work with [ByteArray]s. File objects that work with strings are actually
-[StringWrapper] objects that wrap a `FileLikeBase`. For example, [open](#open)
-with `binary:true` returns an instance of a subclass of `FileLikeBase`.
-However, without `binary:true` or with `binary:false`, [open](#open) returns a
-[StringWrapper].
+[StringWrapper](#stringwrapper) objects that wrap a `FileLikeBase`. For
+example, [open](#open) with `binary:true` returns an instance of a subclass of
+`FileLikeBase`. However, without `binary:true` or with `binary:false`,
+[open](#open) returns a [StringWrapper](#stringwrapper).
 
 In the rest of this `FileLikeBase` documentation, "a file" means "a file-like
 object". I'm calling them files because I'm lazy, but these things work with
@@ -130,9 +130,9 @@ print_content fake_file;    # prints hello
 ```
 
 If you want to work with [ByteArray]s instead of [String]s, don't use a
-[StringWrapper]. Note that unlike with most other file-like objects, there's no
-need to close `FakeFile`s; however, `close` is supported for compatibility with
-functions that need to close the files.
+[StringWrapper](#stringwrapper). Note that unlike with most other file-like
+objects, there's no need to close `FakeFile`s; however, `close` is supported
+for compatibility with functions that need to close the files.
 
 `FakeFile` inherits [FileLikeBase](#filelikebase), overrides all
 [FileLikeBase](#filelikebase) methods that must be overrided and doesn't have
@@ -183,7 +183,7 @@ If `path` is not an absolute path, the file is opened in the directory that the
 - `binary` ([Bool], default is `false`): if this is `false`, everything is set
   up in a way that makes the returned object useful for working with strings.
   This means that:
-    - The resulting file is wrapped with a [StringWrapper].
+    - The resulting file is wrapped with a [StringWrapper](#stringwrapper).
     - On platforms that don't represent newlines with the `\n` character,
       newlines are converted automatically so that your Ö code will work
       correctly if it uses `"\n"`.
