@@ -164,7 +164,8 @@ Attributes:
   sets it to the `stringwrapper`.
 - `(stringwrapper.read_all)` calls `(stringwrapper.wrapped.read_all)` and
   converts the result to a [String].
-- `stringwrapper.write string;` writes the string
+- `stringwrapper.write string;` converts the string to a [ByteArray] and
+  calls `stringwrapper.wrapped.write`.
 
 Note that there's no `read_chunk` method.
 
