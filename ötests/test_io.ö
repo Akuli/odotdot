@@ -16,9 +16,14 @@ test "FakeFile" {
     assert ((f.get_pos) == 4);
     assert (f.bytearray == (new ByteArray [1 2 3 4]));
 
-    f.set_pos (0-1);
-    assert ((f.get_pos) == 0);
+    throws ValueError {
+        f.set_pos (0-1);
+    };
+    assert ((f.get_pos) == 4);
     assert (f.bytearray == (new ByteArray [1 2 3 4]));
+
+    f.set_pos 0;
+    assert ((f.get_pos) == 0);
 
     assert ((f.read_chunk 3) == (new ByteArray [1 2 3]));
     assert ((f.get_pos) == 3);
@@ -153,6 +158,7 @@ test "text file reading" {
     (io.open "ötests/testfiles/hellö.txt" reading:true).as "f" {
         assert (f `is_instance_of` io.StringWrapper);
         assert (f.wrapped `is_instance_of` io.FileLikeBase);
+        assert (f.encoding == "utf-8");
         assert ((f.read_all) == "hellö\n");
         f.wrapped.set_pos 0;
         assert ((f.wrapped.read_all) == ("hellö\n".to_byte_array "utf-8"));
@@ -183,8 +189,9 @@ test "file object pos" {
         assert ((f.get_pos) == 2);
         assert ((f.read_chunk 2) == (new ByteArray [108 108]));   # ll
         assert ((f.get_pos) == 4);
-        var _ = (f.read_all);
+        var önewline = (f.read_all);
         assert ((f.get_pos) == 7);   # hell is 4 bytes, ö is 2 bytes, newline is 1 byte
+        assert (önewline == ("ö\n".to_byte_array "utf-8"));
     };
 };
 

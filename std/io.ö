@@ -120,10 +120,10 @@ export {
         method "set_pos pos" {
             this.check_closed;
             if (pos < 0) {
-                pos = 0;
+                throw (new ValueError "negative position passed to set_pos");
             };
             if (pos > this._private_bytearray.length) {
-                pos = this._private_bytearray.length;
+                throw (new ValueError "cannot set the position after end of file");
             };
             this._private_pos = pos;
         };

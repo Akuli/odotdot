@@ -240,14 +240,18 @@ static bool set_pos(struct Interpreter *interp, struct ObjectData thisdata, stru
 	if (!check_closed(interp, *fdata))
 		return false;
 
-	long long offset = integerobject_tolonglong(ARRAYOBJECT_GET(args, 0));
-	if (offset < 0)
-		offset = 0;
-	if (offset > LONG_MAX)
-		offset = LONG_MAX;      // crazy! long is guaranteed to be at least 32 bits
+	long long pos = integerobject_tolonglong(ARRAYOBJECT_GET(args, 0));
+	if (pos < 0) {
+		errorobject_throwfmt(interp, "ValueError", "negative position passed to set_pos");
+		return false;
+	}
+	if (pos > LONG_MAX) {
+		errorobject_throwfmt(interp, "ValueError", "the file position %L seems to be very big, make sure it's correct", pos);
+		return false;
+	}
 
 	errno = 0;
-	if (fseek(fdata->file, (long) offset, SEEK_SET) != 0) {
+	if (fseek(fdata->file, (long) pos, SEEK_SET) != 0) {
 		THROW_FROM_ERRNO(interp, "IoError", "setting position of file failed");
 		return false;
 	}
