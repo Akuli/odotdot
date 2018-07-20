@@ -130,7 +130,8 @@ i'm not sure where this function should go
     - c's stdio doesn't have a mode for this :(((
 - source lines to stack traces! :D
 - stdin,stdout,stderr should be represented as file-like objects
-- `read_line` method
+- a pythony `read_line` iterator thingy when iterators will exist (maybe delete
+  the `read_line` method?)
 
 ## path utils
 

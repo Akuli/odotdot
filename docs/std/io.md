@@ -156,6 +156,8 @@ Attributes:
   where `encoding_name` is a [String] (see [encodings]). The default is
   `"utf-8"`.
 - `stringwrapper.closed` is equivalent to `stringwrapper.wrapped.closed`.
+
+Methods:
 - `stringwrapper.close;` calls `stringwrapper.wrapped.close;`.
 - `stringwrapper.flush;` calls `stringwrapper.wrapped.flush;`.
 - `stringwrapper.as varname block;` is like [FileLike] `as` method, but
@@ -166,6 +168,10 @@ Attributes:
   converts the result to a [String].
 - `stringwrapper.write string;` converts the string to a [ByteArray] and
   calls `stringwrapper.wrapped.write`.
+- `(stringwrapper.read_line)` reads the file until it finds a `\n` character
+  or the file ends, and returns an [Option] of the line without `\n`. If the
+  file is already at the end and nothing can be read, [none] is returned
+  instead.
 
 Note that there's no `read_chunk` method. If you want to read chunks of data,
 it probably makes sense to work with [ByteArray]s instead of [String]s and you
@@ -214,3 +220,4 @@ to be empty when reading because `writing:true` emptied it.
 [encodings]: encodings.md
 [ArgError]: ../errors.md
 [ValueError]: ../errors.md
+[Option]: ../builtins.md#option
