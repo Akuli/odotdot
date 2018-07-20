@@ -158,7 +158,7 @@ test "open errors" {
 test "text file reading" {
     (io.open "ötests/testfiles/hellö.txt" reading:true).as "f" {
         assert (f `is_instance_of` io.StringWrapper);
-        assert (f.wrapped `is_instance_of` io.FileLikeBase);
+        assert (f.wrapped `is_instance_of` io.FileLike);
         assert (f.encoding == "utf-8");
         assert ((f.read_all) == "hellö\n");
         f.wrapped.set_pos 0;

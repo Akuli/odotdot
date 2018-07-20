@@ -19,7 +19,7 @@ func "run_block_with_file_as_var block file varname" {
 };
 
 export {
-    class "FileLikeBase" {
+    class "FileLike" {
 
         # always override with a getter and no setter
         abstract "closed";
@@ -84,7 +84,7 @@ export {
     };
 
 
-    class "FakeFile" inherits:FileLikeBase {
+    class "FakeFile" inherits:FileLike {
 
         # TODO: need real privates :(
         attrib "_private_bytearray";
@@ -175,7 +175,7 @@ while { (builtin_scope.parent_scope != none) } {
 };
 
 var File = (builtin_scope.local_vars.get_and_delete "File");
-File.baseclass = (new Option FileLikeBase);
+File.baseclass = (new Option FileLike);
 
 
 export {

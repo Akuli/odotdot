@@ -46,16 +46,16 @@ If `(file.read_all)` [throws an error][errors], `file.close;` is never called.
 If the `as` method is used instead, the file is *always* closed.
 
 
-## FileLikeBase
+## FileLike
 
 This is a base class for all objects that should behave like file objects that
 work with [ByteArray]s. File objects that work with strings are actually
-[StringWrapper](#stringwrapper) objects that wrap a `FileLikeBase`. For
+[StringWrapper](#stringwrapper) objects that wrap a `FileLike`. For
 example, [open](#open) with `binary:true` returns an instance of a subclass of
-`FileLikeBase`. However, without `binary:true` or with `binary:false`,
+`FileLike`. However, without `binary:true` or with `binary:false`,
 [open](#open) returns a [StringWrapper](#stringwrapper).
 
-In the rest of this `FileLikeBase` documentation, "a file" means "a file-like
+In the rest of this `FileLike` documentation, "a file" means "a file-like
 object". I'm calling them files because I'm lazy, but these things work with
 any other file-like object as well.
 
@@ -134,21 +134,21 @@ If you want to work with [ByteArray]s instead of [String]s, don't use a
 objects, there's no need to close `FakeFile`s; however, `close` is supported
 for compatibility with functions that need to close the files.
 
-`FakeFile` inherits [FileLikeBase](#filelikebase), overrides all
-[FileLikeBase](#filelikebase) methods that must be overrided and doesn't have
-any methods that [FileLikeBase](#filelikebase) doesn't have.
+`FakeFile` inherits [FileLike](#filelike), overrides all
+[FileLike](#filelike) methods that must be overrided and doesn't have
+any methods that [FileLike](#filelike) doesn't have.
 
 
 ## StringWrapper
 
-This is *not* a subclass of [FileLikeBase](#filelikebase) because
-`FileLikeBase` objects are for working with bytes. A `StringWrapper` created
+This is *not* a subclass of [FileLike](#filelike) because
+`FileLike` objects are for working with bytes. A `StringWrapper` created
 like `(new StringWrapper filelike)` has similar attributes and methods as the
 file-like object. but it converts [String]s to [ByteArray]s and [ByteArray]s to
 [String]s for you.
 
 Attributes:
-- `stringwrapper.wrapped` is the [FileLikeBase](#filelikebase) object passed to
+- `stringwrapper.wrapped` is the [FileLike](#filelike) object passed to
   `new StringWrapper`.
 - `stringwrapper.encoding` is the [encoding][encodings] used when converting
   between [String] and [ByteArray]. This can be set when creating the
@@ -158,7 +158,7 @@ Attributes:
 - `stringwrapper.closed` is equivalent to `stringwrapper.wrapped.closed`.
 - `stringwrapper.close;` calls `stringwrapper.wrapped.close;`.
 - `stringwrapper.flush;` calls `stringwrapper.wrapped.flush;`.
-- `stringwrapper.as varname block;` is like [FileLikeBase] `as` method, but
+- `stringwrapper.as varname block;` is like [FileLike] `as` method, but
   this is *not* the same as `stringwrapper.wrapped.as varname block;` because
   that sets the variable to `stringwrapper.wrapped`, but `stringwrapper.as`
   sets it to the `stringwrapper`.
