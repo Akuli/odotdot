@@ -6,6 +6,8 @@
 - [Errros](errors.md)
 - [Syntax specification](syntax-spec.md)
 - Standard Libraries (see [std](../std) for source code):
-    - [imports](std/imports.md)
+    - [io](std/io.md)
+    - [encodings](std/encodings.md)
     - [operators](std/operators.md)
+    - [imports](std/imports.md)
     - [stacks](std/stacks.md)
