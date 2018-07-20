@@ -181,9 +181,7 @@ while { (builtin_scope.parent_scope != none) } {
     builtin_scope = (builtin_scope.parent_scope.get_value);
 };
 
-export {
-    var File = (builtin_scope.local_vars.get_and_delete "File");
-};
+var File = (builtin_scope.local_vars.get_and_delete "File");
 File.baseclass = (new Option FileLikeBase);
 
 
