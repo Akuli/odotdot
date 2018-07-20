@@ -144,7 +144,7 @@ any methods that [FileLike](#filelike) doesn't have.
 This is *not* a subclass of [FileLike](#filelike) because
 `FileLike` objects are for working with bytes. A `StringWrapper` created
 like `(new StringWrapper filelike)` has similar attributes and methods as the
-file-like object. but it converts [String]s to [ByteArray]s and [ByteArray]s to
+file-like object, but it converts [String]s to [ByteArray]s and [ByteArray]s to
 [String]s for you.
 
 Attributes:
