@@ -116,59 +116,28 @@ var message = (format (translate "cannot open ${filename}"));
 would only work for Blocks that have the same `definition_scope`, would
 concatenate `ast_statements`
 
-# Ö functions: utf8_encode, utf8_decode, chr
+# chr
+i'm not sure where this function should go
 
-not documented yet!
+## i/o todos
+- opening in read and write without truncating the whole file, maybe a
+  `truncate:false` option
+- seeking to end when reading the file like `a`, maybe a `seek_to_end`
+  method
+    - rn there's no way to do an end-relative seek OR get the file size :(
+- opening without a risk of overwriting an existing file
+    - c's stdio doesn't have a mode for this :(((
+- source lines to stack traces! :D
+- stdin,stdout,stderr should be represented as file-like objects
+- `read_line` method
 
-maybe should add a small `<std>/encodings` library with support for adding more
-encodings
+## path utils
 
-## i/o lib
-- can't be implemented in pure ö unless i get a magic cffi thing working
-- stack traces would include source lines etc... good stuffs
+like python's os.path
 
-plan so far:
-- `open` factory function (pure Ö)
-    - filepath would be the only positional argument, other arguments follow
-    - reading,writing (both default to false, exactly one of these must be true)
-    - binary (defaults to false): used for several things:
-        - windows CRLF to LF
-        - windows file kind thingy
-        - default encoding (see below)
-    - encoding
-        - the resulting file is wrapped with a `TextReader` or `TextWriter` unless `binary:true` is used and `encoding` is not given
-        - `binary:false` means that the default is `"utf-8"`
-        - if `binary:false` needs to be used without TextReader or TextWriter, must open with an encoding and access `.raw`
-    - more options could be added later:
-        - seek_to_end: like `a` in c
-        - overwrite_existing: see python's `x` mode
-- Reader and Writer (pure Ö)
-    - nice base classes for implementing custom file-likes, these work with ByteArrays
-    - Reader methods: read_chunk, read_all, seek
-    - Writer methods: write, flush
-    - both classes have these methods: close, close_after_running
-    - these methods must be overrided in subclasses: read_chunk, write, close
-- FileReader and FileWriter (implemented in C)
-    - inherit Reader and Writer respectively
-        - harder because Reader and Writer are pure ö
-        - just need to make .baseclass attribute settable so these things' baseclass can be set to Reader and Writer in the ö code
-    - these only come from open, no need to export
-    - these classes are not responsible for implicit encoding and decoding
-    - both take a positional `filepath` argument
-    - common options from open: binary, seek_to_end, overwrite_existing
-- TextReader and TextWriter (pure ö)
-    - public constructor takes Reader or Writer as only argument
-    - `.byte_stream` attribute is the Reader or
-    - TextReader methods: read_line, read_all
-        - no seek because it's broken in languages like python
-            - ö is 2 bytes, but seek wants bytes
-            - well-done seeking would require knowing how many bytes everything before the seek position is
-        - read_chunk will probably be hard to implement for similar reasons that i don't feel like explaining now
-    - TextWriter methods: write, flush
-    - both TextAsder classes have these methods: close, close_after_running
-- TODOs
-    - TextReader read_chunk
-    - read-and-write files could be implemented with multiple inheritance or something else bizarre
+first need something for "windows or something else" detection
+
+windows support is bad in general... :(
 
 ## recursive `to_debug_string`s?
 
@@ -230,4 +199,4 @@ maybe should use the `…` character instead?
 see [builtins documentation](docs/builtins.md) and ctrl+f for e.g. "annoyances"
 or "missing features"
 
-also `grep -r 'TODO\|FIXME' src` if you dare!
+also `grep -r 'TODO\|FIXME' src ötests ctests` if you dare!
