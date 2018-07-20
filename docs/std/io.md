@@ -167,7 +167,9 @@ Attributes:
 - `stringwrapper.write string;` converts the string to a [ByteArray] and
   calls `stringwrapper.wrapped.write`.
 
-Note that there's no `read_chunk` method.
+Note that there's no `read_chunk` method. If you want to read chunks of data,
+it probably makes sense to work with [ByteArray]s instead of [String]s and you
+shouldn't use [StringWrapper].
 
 
 ## open
