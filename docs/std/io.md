@@ -160,7 +160,7 @@ Attributes:
 Methods:
 - `stringwrapper.close;` calls `stringwrapper.wrapped.close;`.
 - `stringwrapper.flush;` calls `stringwrapper.wrapped.flush;`.
-- `stringwrapper.as varname block;` is like [FileLike] `as` method, but
+- `stringwrapper.as varname block;` is like [FileLike](#filelike) `as` method, but
   this is *not* the same as `stringwrapper.wrapped.as varname block;` because
   that sets the variable to `stringwrapper.wrapped`, but `stringwrapper.as`
   sets it to the `stringwrapper`.
