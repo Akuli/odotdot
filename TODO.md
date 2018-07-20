@@ -120,6 +120,7 @@ concatenate `ast_statements`
 i'm not sure where this function should go
 
 ## i/o todos
+- bad `[FileLike]` link in docs/std/io.md
 - opening in read and write without truncating the whole file, maybe a
   `truncate:false` option
 - seeking to end when reading the file like `a`, maybe a `seek_to_end`
