@@ -12,7 +12,7 @@ This code writes "Hellö Wörld!" followed by a newline character to `hello.txt`
 var io = (import "<std>/io");
 
 (io.open "hello.txt" writing:true).as "file" {
-    file.write "Hellö World!\n";
+    file.write "Hellö Wörld!\n";
 };
 ```
 
