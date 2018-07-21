@@ -650,7 +650,7 @@ not giving the border argument. We can still do that if we make the border
 
 ```python
 func "print_box string border?" {
-    var border_value = (border.get_with_fallback "*");
+    var border_value = border.(get_with_fallback "*");
     var prefix = (border_value + " ");
     var suffix = (" " + border_value);
 
@@ -683,7 +683,7 @@ func "fake_if condition block" {
         [false { }]
     ]);
 
-    (mapping.get condition).run {}.definition_scope;
+    mapping.(get condition).run {}.definition_scope;
 };
 
 func "better_fake_if condition block else?" {
@@ -691,7 +691,7 @@ func "better_fake_if condition block else?" {
         block.run (new Scope block.definition_scope);
     };
     fake_if ((not condition) `and` (else != none)) {
-        (else.get_value).run (new Scope (else.get_value).definition_scope);
+        else.(get_value).run (new Scope else.(get_value).definition_scope);
     };
 };
 
