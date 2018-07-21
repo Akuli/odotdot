@@ -103,6 +103,10 @@ so it would look like this:
 var message = (format (translate "cannot open ${filename}"));
 ```
 
+## scope docs bug in builtins.md
+scope.set_var docs should mention which error is thrown in scope.{s,g}et_var if
+the var is not found
+
 ## eval and compile_ast
 - would be useful for testing and the pure-ö string formatting alternative
 - for testing, we also need `compile_ast` or something that takes a string
