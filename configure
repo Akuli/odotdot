@@ -50,5 +50,5 @@ echo '#endif   // CONFIG_H' >> config.h
 cat <<EOF
 
 
-Ö is now ready to be compiled. Run 'make' to compile it.
+Ö is now ready to be compiled. Run 'make -j2' to compile it.
 EOF
