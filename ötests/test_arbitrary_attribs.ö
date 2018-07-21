@@ -28,7 +28,7 @@ test "basic stuff" {
     # TODO: what should this do?
     #weird.lol = "heh";
 
-	foreach "arbi_instance" [(new ArbitraryAttribs) (import "testfiles/hello") weird] {
+	[(new ArbitraryAttribs) (import "testfiles/hello") weird].foreach "arbi_instance" {
         var _ = arbi_instance.(to_debug_string);   # make sure it doesn't throw an exception
         throws AttribError {
             debug arbi_instance.wat;

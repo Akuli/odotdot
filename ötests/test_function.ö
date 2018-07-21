@@ -12,12 +12,12 @@ test "returning and non-returning funcs" {
     func "notreturning1" returning:false { asd.push "hi"; };
     func "notreturning2" { asd.push "hi"; };
 
-    foreach "f" [returning1 returning2 returning3] {
+    [returning1 returning2 returning3].foreach "f" {
         assert ((f) == "hi");
         throws TypeError { f; };
     };
 
-    foreach "f" [notreturning1 notreturning2] {
+    [notreturning1 notreturning2].foreach "f" {
         # clear the asd
         while { (asd.length > 0) } {
             [].push asd.(pop);
@@ -36,7 +36,7 @@ test "'returning' attribute" {
         [(lambda "" returning:false {}) false]
         [(lambda "" returning:true {}) true]
     ];
-    foreach "test" tests {
+    tests.foreach "test" {
         var function = test.(get 0);
         var value = test.(get 1);
 
@@ -47,7 +47,7 @@ test "'returning' attribute" {
         assert (function.returning `same_object` value);
     };
     assert (not (lambda "" {}).returning);
-    foreach "value" [true false] {
+    [true false].foreach "value" {
         assert ((lambda "" returning:value {}).returning `same_object` value);
     };
 };
@@ -122,7 +122,7 @@ test "partial" {
     var partial123 = f.(partial 1 2 c:3);
     var partial124 = f.(partial 1 2 c:4);
 
-    foreach "some_partial" [partial partial1 partial12 partial13 partial123 partial124] {
+    [partial partial1 partial12 partial13 partial123 partial124].foreach "some_partial" {
         assert (some_partial.name == "partial of f");
         assert (some_partial.(to_debug_string) == "<Function \"partial of f\">");
     };

@@ -76,7 +76,7 @@ test "get_with_fallback" {
 test "unhashable keys" {
     var unhashable = [ [] (new Mapping []) ];
 
-    foreach "bad" unhashable {
+    unhashable.foreach "bad" {
         throws TypeError { new Mapping [[ bad 123 ]]; };
         var m = (new Mapping [[ 123 bad ]]);    # it must be a valid value though
 

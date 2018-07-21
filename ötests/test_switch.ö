@@ -4,7 +4,7 @@ var throws = (import "utils").throws;
 
 test "simple stuff" {
     var result = [];
-    foreach "letter" ["x" "y" "z" "ö"] {
+    ["x" "y" "z" "ö"].foreach "letter" {
         var _ = (switch letter {
             case "x" { result.push 1; return "lol"; };
             case "y" { result.push 2; return "wat"; };
@@ -15,7 +15,7 @@ test "simple stuff" {
     assert (result == [1 2 3 4]);
 
     result = [];
-    foreach "letter" ["x" "y" "z" "ö"] {
+    ["x" "y" "z" "ö"].foreach "letter" {
         result.push (switch letter {
             case "x" { 1 };
             case "y" { 2 };
@@ -28,7 +28,7 @@ test "simple stuff" {
 
 test "fall through" {
     var result = [];
-    foreach "letter" ["x" "y" "z" "ö"] {
+    ["x" "y" "z" "ö"].foreach "letter" {
         var _ = (switch letter {
             case "x" { result.push 1; };
             case "y" { result.push 2; };

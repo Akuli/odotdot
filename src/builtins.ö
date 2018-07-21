@@ -319,20 +319,6 @@ func "is_instance_of instance klass" returning:true {
     };
 };
 
-# example:
-#
-#    foreach "x" [1 2 3] {
-#        print x.(to_string);
-#    };
-func "foreach varname array block" {
-    var scope = (new Scope block.definition_scope);
-    for { var i = 0; } { (i != array.length) } { i = (i + 1); }
-    {
-        scope.local_vars.set varname array.(get i);
-        block.run scope;
-    };
-};
-
 
 {
     # gets and deletes a variable from built-in scope
@@ -441,7 +427,10 @@ func "foreach varname array block" {
         # we want the one before that
         var frame = stack.(get (stack.length-3));
 
-        foreach "importer" importers {
+        # can't use foreach, it doesn't exist yet until collections is imported
+        for { var i=0; } { (i < importers.length) } { i = (i+1); } {
+            var importer = importers.(get i);
+
             var lib = (importer string frame);
             if (not (lib `is_instance_of` Option)) {
                 error importer lib;

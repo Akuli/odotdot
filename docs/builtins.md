@@ -247,7 +247,7 @@ debug i;    # prints 10
 ### for
 
 `for { init; } { condition } { increment; } { body };` is Ö's equivalent of the
-traditional for loop; that is, *not* [the foreach loop](#foreach) that some
+traditional for loop; that is, *not* the foreach loop that some
 languages call `for`. Here's an example:
 
 ```python
@@ -288,29 +288,6 @@ Here's a more detailed description of how `for` works:
    until `condition` returns [false].
 
 As with `while`, there's no `break` or `continue` yet.
-
-### foreach
-
-`foreach varname array block;` runs `block` once for each element of `array`.
-
-First a new subscope of `block`'s [definition scope] is created. Then, for each
-element of the array, a local variable named with the `varname` string is set
-to the element in the subscope, and `block` is ran in the subscope.
-
-Bugs:
-- This is implemented with [while](#while), so it has many of the same bugs: no
-  `break` or `continue`, segfaults the interpreter with long lists and is slow.
-- I think `foreach` should be a method of [Array](#array) objects, not a
-  function.
-
-Example:
-
-```python
-# print "a", "b" and "c"
-foreach "character" ["a" "b" "c"] {
-    print character;
-};
-```
 
 ### catch and throw
 
@@ -714,6 +691,11 @@ Attributes:
   [Integer](#integer).
 
 Methods:
+
+- `array.foreach varname { some code; };` creates a [subscope] of the
+  block's [definition scope] and runs the block once for each element of
+  the array, setting a variable named `varname` to the element. I'm
+  sorry, there's no `break` or `continue` yet :(
 - `array.push item;` adds `item` to the end of the array.
 - `array.(pop)` deletes and returns the last item from the end of the array.
 - `array.(get i)` returns the `i`'th element from the array. `array.(get 0)`
@@ -731,15 +713,13 @@ Methods:
   spaces. This overrides [Object](#object)'s `to_debug_string`.
 
 Annoyances:
-- There's no `array.foreach` method. Use [the foreach function](#foreach)
-  instead.
 - There's no `array.map` method or a built-in `map` function, but you can
   easily define a `map` function like this:
 
     ```python
     func "map function array" {
         var mapped = [];
-        foreach "item" array {
+        array.foreach "item" {
             mapped.push (function item);
         };
         return mapped;

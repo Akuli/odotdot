@@ -52,7 +52,7 @@ test "getter and setter" {
         };
     };
 
-    foreach "pair" [[Thingy "getter"] [SubThingy "subgetter"]] {
+    [[Thingy "getter"] [SubThingy "subgetter"]].foreach "pair" {
         var thingy = (new pair.(get 0));
         var get_message = pair.(get 1);
 

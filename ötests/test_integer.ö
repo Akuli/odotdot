@@ -28,7 +28,7 @@ test "new and to_string" {
         [(("-" + MANY_ZEROS) + "123") (0-123) false false]
     ];
 
-    foreach "array" tests {
+    tests.foreach "array" {
         var string = array.(get 0);
         var integer = array.(get 1);
         var to_string_must_match = array.(get 2);
@@ -58,7 +58,7 @@ test "limits" {
         [ "9223372036854775807"    9223372036854775807]
     ];
 
-    foreach "pair" should_work {
+    should_work.foreach "pair" {
         var string = pair.(get 0);
         var integer = pair.(get 1);
         assert ((new Integer string) == integer);
@@ -70,9 +70,8 @@ test "limits" {
 };
 
 test "bad integer strings" {
-    foreach "bad" [" 1" "1 " "\t1" "1\n"
-                   "1+2" "0000-123" "0-123" "--123" "+123" "++123" "+-123" "-+123" "asdasdasd"
-                   "123asd" "asd123" "-asd123" MANY_ASDS] {
+    [" 1" "1 " "\t1" "1\n" "1+2" "0000-123" "0-123" "--123" "+123" "++123" "+-123" "-+123"
+     "asdasdasd" "123asd" "asd123" "-asd123" MANY_ASDS].foreach "bad" {
         throws ValueError { var _ = (new Integer bad); };
     };
 };
@@ -81,12 +80,12 @@ test "bad integer strings" {
 test "operators" {
     # TODO: test limits with operators
     var numbers = [0 1 (0-1) 2 (0-2)];
-    foreach "a" numbers {
+    numbers.foreach "a" {
         assert (a == a);
         assert (a >= a);
         assert (a <= a);
 
-        foreach "b" numbers {
+        numbers.foreach "b" {
             if (a == b) {
                 assert (a >= b);
                 assert (a <= b);
@@ -118,7 +117,7 @@ test "operators" {
             assert (((a-b)*(a-b)) == (((a*a) - ((2*a)*b)) + (b*b)));
             assert (((a+b)*(a-b)) == ((a*a) - (b*b)));
             assert ((((a+b)*(a+b))*(a+b)) == (((((a*a)*a)+(((3*a)*a)*b))+(((3*a)*b)*b))+((b*b)*b)));
-            foreach "c" numbers {
+            numbers.foreach "c" {
                 assert (((a+b)+c) == (a+(b+c)));
                 assert (((a*b)*c) == (a*(b*c)));
                 assert (((a+b)*c) == ((a*c) + (b*c)));

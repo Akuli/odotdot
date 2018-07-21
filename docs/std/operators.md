@@ -20,7 +20,7 @@ defined as `func "do_plus x y" { return (x+y); };`:
 var operators = (import "<std>/operators");
 
 func "do_plus x y" {
-    foreach "function" operators.add_array {
+    operators.add_array.foreach "function" {
         var result = (function x y);
         if (result != none) {
             return result;

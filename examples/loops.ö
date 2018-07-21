@@ -1,5 +1,5 @@
 var array = ["one" "two" "three"];
-foreach "thing" array {
+array.foreach "thing" {
     print thing;
 };
 

@@ -14,14 +14,14 @@ test "nested arrays" {
 
 test "foreach" {
     var res = [];
-    foreach "number" [1 2 3] {
+    [1 2 3].foreach "number" {
         res.push number;
     };
     assert (res == [1 2 3]);
 
     res = [];
     throws KeyError {
-        foreach "number" [1 2 3] {
+        [1 2 3].foreach "number" {
             res.push number;
             throw (new KeyError "oh no");
         };
@@ -51,7 +51,7 @@ test "basic stuff" {
     assert (array == ["a" "b" "c"]);
     assert (["a" "b" "c"] == array);
 
-    foreach "nope" [["a" "b"] ["a" "b" "c" "d"] ["a" "b" "x"] ["x" "y" "z"]] {
+    [["a" "b"] ["a" "b" "c" "d"] ["a" "b" "x"] ["x" "y" "z"]].foreach "nope" {
         assert ((array != nope) `and` (nope != array));
     };
 
