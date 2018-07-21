@@ -42,7 +42,7 @@ test "escape sequences" {
     assert (string.length == 8);
     assert (array.length == 8);
     for { var i=0; } { (i != array.length) } { i = (i + 1); } {
-        assert ((string.get i) == (array.get i));
+        assert (string.(get i) == (array.get i));
     };
 };
 
@@ -50,28 +50,28 @@ test "to_string" {
     foreach "string" ["" "asd" "töötttö ö"] {
         # should use equals instead of same_object
         # but what implementation would really be so insane that these would be different objects...
-        assert ((string.to_string) `same_object` string);
+        assert (string.(to_string) `same_object` string);
     };
 };
 
 test "to_debug_string" {
-    assert (("lol lmao".to_debug_string) == "\"lol lmao\"");
+    assert ("lol lmao".(to_debug_string) == "\"lol lmao\"");
 
     # https://xkcd.com/1638/
-    assert (("ä\nö".to_debug_string) == "\"ä\\nö\"");
-    assert (("ä\tö".to_debug_string) == "\"ä\\tö\"");
-    assert (("ä\"ö".to_debug_string) == "\"ä\\\"ö\"");
-    assert (("ä\\ö".to_debug_string) == "\"ä\\\\ö\"");
+    assert ("ä\nö".(to_debug_string) == "\"ä\\nö\"");
+    assert ("ä\tö".(to_debug_string) == "\"ä\\tö\"");
+    assert ("ä\"ö".(to_debug_string) == "\"ä\\\"ö\"");
+    assert ("ä\\ö".(to_debug_string) == "\"ä\\\\ö\"");
 
     # https://explainxkcd.com/wiki/index.php/1638:_Backslashes
     # the number of backslashes should grow exponentially, so let's test that :D
     var string = "\\";
     foreach "length" [2 4 8 16 32 64 128 256 512] {
         # call to_debug_string and remove " from both ends
-        var debugged = (string.to_debug_string);
-        assert ((debugged.get 0) == "\"");
-        assert ((debugged.get (debugged.length - 1)) == "\"");
-        string = (debugged.slice 1 (debugged.length - 1));        # no stripping method yet :(
+        var debugged = string.(to_debug_string);
+        assert (debugged.(get 0) == "\"");
+        assert (debugged.(get (debugged.length - 1)) == "\"");
+        string = debugged.(slice 1 (debugged.length - 1));        # no stripping method yet :(
 
         assert (string.length == length);
     };
@@ -103,9 +103,9 @@ test "split_by_whitespace" {
     ];
 
     foreach "test" tests {
-        var input = (test.get 0);
-        var expected_output = (test.get 1);
-        assert ((input.split_by_whitespace) == expected_output);
+        var input = test.(get 0);
+        var expected_output = test.(get 1);
+        assert (input.(split_by_whitespace) == expected_output);
     };
 };
 
@@ -123,24 +123,24 @@ test "replace" {
     # characters that are results of a replace must not be replaced again
     # so this needs multiple replaces, not just one
     var string = "asdddddasddddda";
-    string = (string.replace "dasd" "as"); assert (string == "asddddasdddda");
-    string = (string.replace "dasd" "as"); assert (string == "asdddasddda");
-    string = (string.replace "dasd" "as"); assert (string == "asddasdda");
-    string = (string.replace "dasd" "as"); assert (string == "asdasda");
-    string = (string.replace "dasd" "as"); assert (string == "asasa");
-    string = (string.replace "dasd" "as"); assert (string == "asasa");
+    string = string.(replace "dasd" "as"); assert (string == "asddddasdddda");
+    string = string.(replace "dasd" "as"); assert (string == "asdddasddda");
+    string = string.(replace "dasd" "as"); assert (string == "asddasdda");
+    string = string.(replace "dasd" "as"); assert (string == "asdasda");
+    string = string.(replace "dasd" "as"); assert (string == "asasa");
+    string = string.(replace "dasd" "as"); assert (string == "asasa");
 
     string = "aaaab";
-    string = (string.replace "ab" "bb"); assert (string == "aaabb");
-    string = (string.replace "ab" "bb"); assert (string == "aabbb");
-    string = (string.replace "ab" "bb"); assert (string == "abbbb");
-    string = (string.replace "ab" "bb"); assert (string == "bbbbb");
-    string = (string.replace "ab" "bb"); assert (string == "bbbbb");
+    string = string.(replace "ab" "bb"); assert (string == "aaabb");
+    string = string.(replace "ab" "bb"); assert (string == "aabbb");
+    string = string.(replace "ab" "bb"); assert (string == "abbbb");
+    string = string.(replace "ab" "bb"); assert (string == "bbbbb");
+    string = string.(replace "ab" "bb"); assert (string == "bbbbb");
 
     string = "abbbb";
-    string = (string.replace "ab" "aa"); assert (string == "aabbb");
-    string = (string.replace "ab" "aa"); assert (string == "aaabb");
-    string = (string.replace "ab" "aa"); assert (string == "aaaab");
-    string = (string.replace "ab" "aa"); assert (string == "aaaaa");
-    string = (string.replace "ab" "aa"); assert (string == "aaaaa");
+    string = string.(replace "ab" "aa"); assert (string == "aabbb");
+    string = string.(replace "ab" "aa"); assert (string == "aaabb");
+    string = string.(replace "ab" "aa"); assert (string == "aaaab");
+    string = string.(replace "ab" "aa"); assert (string == "aaaaa");
+    string = string.(replace "ab" "aa"); assert (string == "aaaaa");
 };

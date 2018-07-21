@@ -34,7 +34,7 @@ eq_array.push (lambda "x y" returning:true {
         if ((x `same_object` none) `or` (y `same_object` none)) {
             return (new Option false);
         };
-        return (new Option ((x.get_value) == (y.get_value)));
+        return (new Option (x.(get_value) == y.(get_value)));
     };
     return none;
 });
@@ -54,7 +54,7 @@ eq_array.push (lambda "x y" returning:true {
         };
 
         for { var i=0; } { (i < x.length) } { i = (i+1); } {
-            if ((x.get i) != (y.get i)) {
+            if (x.(get i) != y.(get i)) {
                 return (new Option false);
             };
         };

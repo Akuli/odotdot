@@ -20,8 +20,8 @@ test "to_string" {
 };
 
 test "to_debug_string" {
-    assert ((true.to_debug_string) == "true");
-    assert ((false.to_debug_string) == "false");
+    assert (true.(to_debug_string) == "true");
+    assert (false.(to_debug_string) == "false");
 };
 
 test "creating more Bools" {

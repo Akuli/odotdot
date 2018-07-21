@@ -23,26 +23,26 @@ if Ö doesn't know it by default.
 
 `encode` and `decode` are attributes with functions as values, so they can be
 used just like methods:
-- `(encoding.encode string)` converts the [String] to a [ByteArray].
-- `(encoding.decode bytearray)` converts the [ByteArray] to a [String].
+- `encoding.(encode string)` converts the [String] to a [ByteArray].
+- `encoding.(decode bytearray)` converts the [ByteArray] to a [String].
 
 
 ## Functions for working with Encoding objects
 
 ### get
 
-`(encodings.get name)` returns an `Encoding` object. The name is a string, and
-it's treated case-insensitively, so `(encodings.get "UTF-8")` and
-`(encodings.get "utf-8")` return the same object. [ValueError] is thrown if the
+`encodings.(get name)` returns an `Encoding` object. The name is a string, and
+it's treated case-insensitively, so `encodings.(get "UTF-8")` and
+`encodings.(get "utf-8")` return the same object. [ValueError] is thrown if the
 encoding is not found.
 
 ### add
 
 After calling `encodings.add name encoding;` where `encoding` is an
-[Encoding](#encoding-class) object, `(encodings.get name)` returns the
+[Encoding](#encoding-class) object, `encodings.(get name)` returns the
 `encoding`. The `name` is treated case-insensitively. Added encodings can be
 used the same way that other encodings can, so after
-`encodings.add "lol" lol_encoding;` you can do `("hello".to_byte_array "lol")`.
+`encodings.add "lol" lol_encoding;` you can do `"hello".(to_byte_array "lol")`.
 
 
 ## List of encodings

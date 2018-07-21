@@ -14,7 +14,7 @@ func "run_block_with_file_as_var block file varname" {
 
     file.close;
     if (error != none) {
-        throw (error.get_value);
+        throw error.(get_value);
     };
 };
 
@@ -39,7 +39,7 @@ export {
         # override for readable file-likes
         # call check_closed, read at most maxsize bytes, move pos by number of bytes read and return the bytes
         method "read_chunk maxsize" returning:true {
-            throw (new ValueError ("cannot read from " + (this.to_debug_string)));
+            throw (new ValueError ("cannot read from " + this.(to_debug_string)));
         };
 
         method "read_all" returning:true {
@@ -47,7 +47,7 @@ export {
             var result = (new ByteArray []);
 
             while { true } {
-                var chunk = (this.read_chunk 4096);    # calls check_closed
+                var chunk = this.(read_chunk 4096);    # calls check_closed
                 if (chunk.length == 0) {
                     return result;
                 };
@@ -58,7 +58,7 @@ export {
         # override for writable file-likes
         # write the bytes, moving pos forward by bytearray.length
         method "write bytearray" {
-            throw (new ValueError ("cannot write to " + (this.to_debug_string)));
+            throw (new ValueError ("cannot write to " + this.(to_debug_string)));
         };
 
         # override set_pos and get_pos for seekable file-likes
@@ -66,10 +66,10 @@ export {
         # pos is not a magic attribute because it would "do too much" imo
         # set_pos: if pos is negative or bigger than length of file, use closest ok value instead
         method "set_pos pos" {
-            throw (new ValueError ("cannot set the position of " + (this.to_debug_string)));
+            throw (new ValueError ("cannot set the position of " + this.(to_debug_string)));
         };
         method "get_pos" returning:true {
-            throw (new ValueError ("cannot get the current position of " + (this.to_debug_string)));
+            throw (new ValueError ("cannot get the current position of " + this.(to_debug_string)));
         };
 
         method "as varname block" {
@@ -104,16 +104,16 @@ export {
 
         method "read_chunk maxsize" returning:true {
             this.check_closed;
-            var slice = (this._private_bytearray.slice this._private_pos (this._private_pos+maxsize));
+            var slice = this._private_bytearray.(slice this._private_pos (this._private_pos+maxsize));
             this._private_pos = (this._private_pos + slice.length);   # handles reading past end of file
             return slice;
         };
 
         method "write bytearray" {
             this.check_closed;
-            var before = (this._private_bytearray.slice 0 this._private_pos);
+            var before = this._private_bytearray.(slice 0 this._private_pos);
             this._private_pos = (this._private_pos + bytearray.length);
-            var after = (this._private_bytearray.slice this._private_pos this._private_bytearray.length);
+            var after = this._private_bytearray.(slice this._private_pos this._private_bytearray.length);
             this._private_bytearray = ((before + bytearray) + after);
         };
 
@@ -146,8 +146,8 @@ export {
 
         method "setup wrapped encoding?" {
             this._private_wrapped = wrapped;
-            this._private_encoding = (encoding.get_with_fallback "utf-8");
-            var _ = (encodings.get this._private_encoding);   # make sure the encoding exists
+            this._private_encoding = encoding.(get_with_fallback "utf-8");
+            var _ = encodings.(get this._private_encoding);   # make sure the encoding exists
         };
 
         getter "wrapped" { this._private_wrapped };
@@ -156,8 +156,8 @@ export {
         getter "closed" { this.wrapped.closed };
         getter "close" { this.wrapped.close };
         # TODO: read_chunk, but it requires decoding data that may be incomplete
-        method "read_all" returning:true { ((this.wrapped.read_all).to_string this.encoding) };
-        method "write string" { this.wrapped.write (string.to_byte_array this.encoding); };
+        method "read_all" returning:true { this.wrapped.(read_all).(to_string this.encoding) };
+        method "write string" { this.wrapped.write string.(to_byte_array this.encoding); };
         # set_pos and get_pos work with bytes, so they don't make sense for text
         getter "flush" { this.wrapped.flush };
 
@@ -170,7 +170,7 @@ export {
             var newline = (new ByteArray [10]);
 
             # TODO: do some magics to avoid reading 1 byte at a time?
-            var line = (this.wrapped.read_chunk 1);
+            var line = this.wrapped.(read_chunk 1);
             if (line.length == 0) {
                 # end of file, must distinguish the "nothing was read" case
                 return none;
@@ -181,10 +181,10 @@ export {
             };
 
             while { true } {
-                var byte = (this.wrapped.read_chunk 1);
-                if ((byte.length == 0) `or` (byte == ("\n".to_byte_array "utf-8"))) {
+                var byte = this.wrapped.(read_chunk 1);
+                if ((byte.length == 0) `or` (byte == "\n".(to_byte_array "utf-8"))) {
                     # end of file or line
-                    return (new Option (line.to_string this.encoding));
+                    return (new Option line.(to_string this.encoding));
                 };
                 line = (line + byte);
             };
@@ -195,18 +195,18 @@ export {
 
 var builtin_scope = {}.definition_scope;
 while { (builtin_scope.parent_scope != none) } {
-    builtin_scope = (builtin_scope.parent_scope.get_value);
+    builtin_scope = builtin_scope.parent_scope.(get_value);
 };
 
-var File = (builtin_scope.local_vars.get_and_delete "File");
+var File = builtin_scope.local_vars.(get_and_delete "File");
 File.baseclass = (new Option FileLike);
 
 
 export {
     func "open path reading? writing? binary? encoding?" returning:true {
-        reading = (reading.get_with_fallback false);
-        writing = (writing.get_with_fallback false);
-        binary = (binary.get_with_fallback false);
+        reading = reading.(get_with_fallback false);
+        writing = writing.(get_with_fallback false);
+        binary = binary.(get_with_fallback false);
         if (not (reading `or` writing)) {     # allow reading and writing with the same file object
             throw (new ArgError "can't open a file without reading:true or writing:true");
         };
@@ -216,7 +216,7 @@ export {
 
         var file = (new File path reading writing binary);
         if (not binary) {
-            file = (new StringWrapper file encoding:(encoding.get_with_fallback "utf-8"));
+            file = (new StringWrapper file encoding:encoding.(get_with_fallback "utf-8"));
         };
         return file;
     };

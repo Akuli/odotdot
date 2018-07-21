@@ -62,7 +62,7 @@ var cache = (new Mapping);
 
 func "cached_importer string stackframe" {
     catch {
-        return (cache.get string);
+        return cache.(get string);
     } KeyError { };
 
     if (string == "something") {

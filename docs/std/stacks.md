@@ -61,7 +61,7 @@ func "who_called_me" {
     # last frame on the stack represents this who_called_me function
     # so we want the one before that
     # the index of the last frame is stack.length - 1, that's why -2
-    var caller_frame = (stack.get (stack.length - 2));
+    var caller_frame = stack.(get (stack.length - 2));
     print caller_frame.filename;
 };
 ```

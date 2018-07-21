@@ -6,41 +6,41 @@ var io = (import "<std>/io");
 
 test "FakeFile" {
     var f = (new io.FakeFile);
-    assert ((f.get_pos) == 0);
-    assert ((f.read_all) == (new ByteArray []));
+    assert (f.(get_pos) == 0);
+    assert (f.(read_all) == (new ByteArray []));
     assert (f.bytearray == (new ByteArray []));
 
     f.write (new ByteArray [1 2 3 4]);
-    assert ((f.get_pos) == 4);
-    assert ((f.read_all) == (new ByteArray []));
-    assert ((f.get_pos) == 4);
+    assert (f.(get_pos) == 4);
+    assert (f.(read_all) == (new ByteArray []));
+    assert (f.(get_pos) == 4);
     assert (f.bytearray == (new ByteArray [1 2 3 4]));
 
     throws ValueError {
         f.set_pos (0-1);
     };
-    assert ((f.get_pos) == 4);
+    assert (f.(get_pos) == 4);
     assert (f.bytearray == (new ByteArray [1 2 3 4]));
 
     f.set_pos 0;
-    assert ((f.get_pos) == 0);
+    assert (f.(get_pos) == 0);
 
-    assert ((f.read_chunk 3) == (new ByteArray [1 2 3]));
-    assert ((f.get_pos) == 3);
-    assert ((f.read_all) == (new ByteArray [4]));
-    assert ((f.get_pos) == 4);
+    assert (f.(read_chunk 3) == (new ByteArray [1 2 3]));
+    assert (f.(get_pos) == 3);
+    assert (f.(read_all) == (new ByteArray [4]));
+    assert (f.(get_pos) == 4);
 
     f.flush;    # should do nothing, but must not throw an error
 
     assert (not f.closed);
     f.close;
     assert f.closed;
-    throws ValueError { var _ = (f.read_chunk 0); };
-    throws ValueError { var _ = (f.read_all); };
+    throws ValueError { var _ = f.(read_chunk 0); };
+    throws ValueError { var _ = f.(read_all); };
     throws ValueError { f.write (new ByteArray []); };
     throws ValueError { f.set_pos 123; };
     throws ValueError { f.flush; };
-    throws ValueError { var _ = (f.get_pos); };
+    throws ValueError { var _ = f.(get_pos); };
     throws ValueError { f.close; };
     throws ValueError { f.as "g" { }; };
 };
@@ -73,7 +73,7 @@ test "as" {
         scope = {}.definition_scope;
     };
     assert (not (scope `same_object` {}.definition_scope));
-    assert ((scope.parent_scope.get_value) `same_object` {}.definition_scope);
+    assert (scope.parent_scope.(get_value) `same_object` {}.definition_scope);
     throws VariableError {
         var _ = g;
     };
@@ -91,15 +91,15 @@ test "StringWrapper" {
         assert (not w.closed);
 
         w.write "hellö";
-        assert ((w.wrapped.get_pos) == 6);   # utf8: hell is 4 bytes, ö is 2 bytes
+        assert (w.wrapped.(get_pos) == 6);   # utf8: hell is 4 bytes, ö is 2 bytes
         w.wrapped.set_pos 0;
-        assert ((w.read_all) == "hellö");
+        assert (w.(read_all) == "hellö");
 
         w.wrapped.set_pos 5;    # to the middle of ö
         throws ValueError {
-            var _ = (w.read_all);
+            var _ = w.(read_all);
         };
-        assert ((w.wrapped.get_pos) == 6);   # it must have read it without implicit seeking on error
+        assert (w.wrapped.(get_pos) == 6);   # it must have read it without implicit seeking on error
     };
     assert f.closed;
 
@@ -123,7 +123,7 @@ test "StringWrapper" {
     assert wrapper.closed;
     assert wrapper.wrapped.closed;
 
-    throws ValueError { var _ = (wrapper.read_all); };
+    throws ValueError { var _ = wrapper.(read_all); };
     throws ValueError { wrapper.write "asd"; };
     throws ValueError { wrapper.flush; };
     throws ValueError { wrapper.close; };
@@ -134,7 +134,7 @@ test "StringWrapper" {
 
     (new io.StringWrapper (new io.FakeFile)).as "wrapper" {
         throws AttribError { wrapper.set_pos 123; };
-        throws AttribError { var _ = (wrapper.get_pos); };
+        throws AttribError { var _ = wrapper.(get_pos); };
     };
 };
 
@@ -142,97 +142,97 @@ test "read_line" {
     (new io.StringWrapper (new io.FakeFile)).as "file" {
         file.write "first line\nsecond line\n\nfourth line\nno newline at end of file";
         file.wrapped.set_pos 0;
-        assert ((file.read_line) == (new Option "first line"));
-        assert ((file.wrapped.read_chunk 3) == ("sec".to_byte_array "utf-8"));
-        assert ((file.read_line) == (new Option "ond line"));
-        assert ((file.read_line) == (new Option ""));
-        assert ((file.read_line) == (new Option "fourth line"));
-        assert ((file.read_line) == (new Option "no newline at end of file"));
-        assert ((file.read_line) == none);
-        assert ((file.read_line) == none);
+        assert (file.(read_line) == (new Option "first line"));
+        assert (file.wrapped.(read_chunk 3) == "sec".(to_byte_array "utf-8"));
+        assert (file.(read_line) == (new Option "ond line"));
+        assert (file.(read_line) == (new Option ""));
+        assert (file.(read_line) == (new Option "fourth line"));
+        assert (file.(read_line) == (new Option "no newline at end of file"));
+        assert (file.(read_line) == none);
+        assert (file.(read_line) == none);
     };
 
     (new io.StringWrapper (new io.FakeFile)).as "file" {
         file.write "one newline\n";
         file.wrapped.set_pos 0;
-        assert ((file.read_line) == (new Option "one newline"));
-        assert ((file.read_line) == none);
-        assert ((file.read_line) == none);
+        assert (file.(read_line) == (new Option "one newline"));
+        assert (file.(read_line) == none);
+        assert (file.(read_line) == none);
     };
 
     (new io.StringWrapper (new io.FakeFile)).as "file" {
         file.write "two newlines\n\n";
         file.wrapped.set_pos 0;
-        assert ((file.read_line) == (new Option "two newlines"));
-        assert ((file.read_line) == (new Option ""));
-        assert ((file.read_line) == none);
-        assert ((file.read_line) == none);
+        assert (file.(read_line) == (new Option "two newlines"));
+        assert (file.(read_line) == (new Option ""));
+        assert (file.(read_line) == none);
+        assert (file.(read_line) == none);
     };
 };
 
 # TODO: test with different encodings
 test "open errors" {
     throws ArgError {
-        var _ = (io.open "asd");   # missing reading:true or writing:true
+        var _ = io.(open "asd");   # missing reading:true or writing:true
     };
 
     throws ArgError {
-        var _ = (io.open "asd" binary:true encoding:"utf-8");   # nonsense!
+        var _ = io.(open "asd" binary:true encoding:"utf-8");   # nonsense!
     };
 
     throws IoError {
-        var _ = (io.open "this-file-does-not-exist" reading:true);
+        var _ = io.(open "this-file-does-not-exist" reading:true);
     };
 };
 
 # TODO: test CRLF on windows
 
 test "text file reading" {
-    (io.open "ötests/testfiles/hellö.txt" reading:true).as "f" {
+    io.(open "ötests/testfiles/hellö.txt" reading:true).as "f" {
         assert (f `is_instance_of` io.StringWrapper);
         assert (f.wrapped `is_instance_of` io.FileLike);
         assert (f.encoding == "utf-8");
-        assert ((f.read_all) == "hellö\n");
+        assert (f.(read_all) == "hellö\n");
         f.wrapped.set_pos 0;
-        assert ((f.wrapped.read_all) == ("hellö\n".to_byte_array "utf-8"));
+        assert (f.wrapped.(read_all) == "hellö\n".(to_byte_array "utf-8"));
     };
 
     assert ("hello\n".length == 6);   # run string tests if this fails
-    (io.open "ötests/testfiles/hellö1000.txt" reading:true).as "f" {
-        var all = (f.read_all);
+    io.(open "ötests/testfiles/hellö1000.txt" reading:true).as "f" {
+        var all = f.(read_all);
         assert (all.length == ("hello\n".length*1000));
         for { var start=0; } { (start < all.length) } { start = end; } {
             var end = (start + "hellö\n".length);
-            assert ((all.slice start end) == "hellö\n");
+            assert (all.(slice start end) == "hellö\n");
         };
     };
 
-    (io.open "ötests/testfiles/pîc.png" reading:true).as "f" {
+    io.(open "ötests/testfiles/pîc.png" reading:true).as "f" {
         throws ValueError {
-            var _ = (f.read_all);
+            var _ = f.(read_all);
         };
     };
 };
 
 # so far only the get_pos and set_pos of FakeFile has been tested
 test "file object pos" {
-    (io.open "ötests/testfiles/hellö.txt" reading:true binary:true).as "f" {
-        assert ((f.get_pos) == 0);
+    io.(open "ötests/testfiles/hellö.txt" reading:true binary:true).as "f" {
+        assert (f.(get_pos) == 0);
         f.set_pos 2;
-        assert ((f.get_pos) == 2);
-        assert ((f.read_chunk 2) == (new ByteArray [108 108]));   # ll
-        assert ((f.get_pos) == 4);
-        var önewline = (f.read_all);
-        assert ((f.get_pos) == 7);   # hell is 4 bytes, ö is 2 bytes, newline is 1 byte
-        assert (önewline == ("ö\n".to_byte_array "utf-8"));
+        assert (f.(get_pos) == 2);
+        assert (f.(read_chunk 2) == (new ByteArray [108 108]));   # ll
+        assert (f.(get_pos) == 4);
+        var önewline = f.(read_all);
+        assert (f.(get_pos) == 7);   # hell is 4 bytes, ö is 2 bytes, newline is 1 byte
+        assert (önewline == "ö\n".(to_byte_array "utf-8"));
     };
 };
 
 # there isn't even a test for filenames with characters like ö
 # they are simply used all over the place :DDDD
 test "filenames with spaces" {
-    (io.open "ötests/testfiles/this filename contains spaces.txt" reading:true).as "f" {
-        assert ((f.read_all) == "hello\n");
+    io.(open "ötests/testfiles/this filename contains spaces.txt" reading:true).as "f" {
+        assert (f.(read_all) == "hello\n");
     };
 };
 
@@ -254,60 +254,60 @@ var pic_data = (new ByteArray [
 ]);
 
 test "binary file reading" {
-    (io.open "ötests/testfiles/pîc.png" reading:true binary:true).as "f" {
-        assert ((f.read_all) == pic_data);
+    io.(open "ötests/testfiles/pîc.png" reading:true binary:true).as "f" {
+        assert (f.(read_all) == pic_data);
     };
 };
 
 # feel free to change this test if it breaks on a funny platform
 test "text writing" {
-    var writer = (io.open "tests-temp/asd.txt" writing:true);
+    var writer = io.(open "tests-temp/asd.txt" writing:true);
     # the file must be created now we get here
-    var reader = (io.open "tests-temp/asd.txt" reading:true);
+    var reader = io.(open "tests-temp/asd.txt" reading:true);
 
-    assert ((reader.read_all) == "");
+    assert (reader.(read_all) == "");
 
     writer.write "asd\n";
     # the reader isn't checked now because the file may or may not have been flushed implicitly
     writer.flush;
-    assert ((reader.read_all) == "asd\n");
-    assert ((reader.read_all) == "");
+    assert (reader.(read_all) == "asd\n");
+    assert (reader.(read_all) == "");
 
     writer.write "more asd\n";
     writer.close;   # implicit flush
-    assert ((reader.read_all) == "more asd\n");
-    assert ((reader.read_all) == "");
+    assert (reader.(read_all) == "more asd\n");
+    assert (reader.(read_all) == "");
     reader.close;
 };
 
 test "writing:true truncating" {
-    (io.open "tests-temp/asd.txt" writing:true).as "f" { f.write "hello"; };
-    (io.open "tests-temp/asd.txt" writing:true).as "f" { };
-    (io.open "tests-temp/asd.txt" reading:true).as "f" { assert ((f.read_all) == ""); };
+    io.(open "tests-temp/asd.txt" writing:true).as "f" { f.write "hello"; };
+    io.(open "tests-temp/asd.txt" writing:true).as "f" { };
+    io.(open "tests-temp/asd.txt" reading:true).as "f" { assert (f.(read_all) == ""); };
 };
 
 test "binary writing" {
-    (io.open "tests-temp/lol.dat" writing:true binary:true).as "f" {
+    io.(open "tests-temp/lol.dat" writing:true binary:true).as "f" {
         f.write (new ByteArray [1 2 3 4 5 0 1 2 3 4 5]);   # 0 byte must work
     };
-    (io.open "tests-temp/lol.dat" reading:true binary:true).as "f" {
-        assert ((f.read_all) == (new ByteArray [1 2 3 4 5 0 1 2 3 4 5]));
+    io.(open "tests-temp/lol.dat" reading:true binary:true).as "f" {
+        assert (f.(read_all) == (new ByteArray [1 2 3 4 5 0 1 2 3 4 5]));
     };
 };
 
 test "reading and writing with the same file object" {
-    (io.open "tests-temp/asd.txt" writing:true).as "f" { f.write "hello"; };
-    (io.open "tests-temp/asd.txt" reading:true writing:true).as "f" {
+    io.(open "tests-temp/asd.txt" writing:true).as "f" { f.write "hello"; };
+    io.(open "tests-temp/asd.txt" reading:true writing:true).as "f" {
         # it was truncated
         var asd = f.wrapped.get_pos;
         asd = (asd);
         assert (asd == 0);
-        assert ((f.read_all) == "");
-        assert ((f.wrapped.get_pos) == 0);
+        assert (f.(read_all) == "");
+        assert (f.wrapped.(get_pos) == 0);
 
         f.write "test";
-        assert ((f.wrapped.get_pos) == 4);
+        assert (f.wrapped.(get_pos) == 4);
         f.wrapped.set_pos 0;
-        assert ((f.read_all) == "test");
+        assert (f.(read_all) == "test");
     };
 };

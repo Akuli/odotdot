@@ -34,7 +34,7 @@ var non_hashables = [
 
 # options of hashables are hashable
 # (....slice 0) copies
-foreach "hashable" (hashables.slice 0) {
+foreach "hashable" hashables.(slice 0) {
     hashables.push (new Option hashable);
     hashables.push (new Option (new Option hashable));   # options of options... why not
 };
@@ -45,7 +45,7 @@ foreach "hashable" (hashables.slice 0) {
 test "hashables and not-hashables as mapping keys" {
     foreach "hashable" hashables {
         var m = (new Mapping [ [hashable 123] ]);
-        assert ((m.get hashable) == 123);
+        assert (m.(get hashable) == 123);
     };
 
     foreach "non_hashable" non_hashables {

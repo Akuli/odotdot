@@ -5,15 +5,15 @@ var throws = (import "utils").throws;
 
 test "basic stuff" {
     var option = (new Option "hi");
-    assert ((option.get_value) == "hi");
-    assert ((option.to_debug_string) == "<Option: \"hi\">");
+    assert (option.(get_value) == "hi");
+    assert (option.(to_debug_string) == "<Option: \"hi\">");
 };
 
 test "none" {
     assert (none `is_instance_of` Option);
-    assert ((none.to_debug_string) == "none");
+    assert (none.(to_debug_string) == "none");
     throws ValueError {
-        var _ = (none.get_value);
+        var _ = none.(get_value);
     };
 };
 
@@ -29,5 +29,5 @@ test "==" {
 
 test "get_with_fallback" {
     assert (((new Option "asd").get_with_fallback "toot") == "asd");
-    assert ((none.get_with_fallback "toot") == "toot");
+    assert (none.(get_with_fallback "toot") == "toot");
 };

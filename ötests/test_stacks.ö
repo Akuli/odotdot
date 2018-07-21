@@ -8,8 +8,8 @@ var stacks = (import "<std>/stacks");
 test "get_stack and StackFrame" {
     assert (stacks.StackFrame.name == "StackFrame");
 
-    var stack = (stacks.get_stack);
-    var last_frame = (stack.get (stack.length - 1));
+    var stack = stacks.(get_stack);
+    var last_frame = stack.(get (stack.length - 1));
     assert (last_frame `is_instance_of` stacks.StackFrame);
     assert (last_frame.filename `ends_with` "test_stacks.ö");
 
@@ -20,5 +20,5 @@ test "get_stack and StackFrame" {
 
     # make sure it doesn't throw an exception
     # TODO: test better
-    var _ = (last_frame.to_debug_string);
+    var _ = last_frame.(to_debug_string);
 };

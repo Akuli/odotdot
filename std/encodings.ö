@@ -34,8 +34,8 @@ var lowercase_mapping = (new Mapping [
 func "lowercase string" returning:true {
     var result = "";
     for { var i=0; } { (i < string.length) } { i = (i+1); } {
-        var letter = (string.get i);
-        result = (result + (lowercase_mapping.get_with_fallback letter letter));
+        var letter = string.(get i);
+        result = (result + lowercase_mapping.(get_with_fallback letter letter));
     };
     return result;
 };
@@ -55,9 +55,9 @@ export {
 
     func "get name" returning:true {
         catch {
-            return (encodings.get (lowercase name));
+            return encodings.(get (lowercase name));
         } KeyError {
-            throw (new ValueError ("cannot find encoding: " + (name.to_debug_string)));
+            throw (new ValueError ("cannot find encoding: " + name.(to_debug_string)));
         };
     };
 
@@ -75,7 +75,7 @@ add "utf8" utf8;
 
 var builtin_scope = {}.definition_scope;
 while { (builtin_scope.parent_scope != none) } {
-    builtin_scope = (builtin_scope.parent_scope.get_value);
+    builtin_scope = builtin_scope.parent_scope.(get_value);
 };
 builtin_scope.local_vars.delete "utf8_encode";
 builtin_scope.local_vars.delete "utf8_decode";
@@ -88,5 +88,5 @@ class "MoreMethods" {
     method "to_string encoding_name" returning:true { ((get encoding_name).decode this) };
 };
 
-String.getters.set "to_byte_array" (MoreMethods.getters.get "to_byte_array");
-ByteArray.getters.set "to_string" (MoreMethods.getters.get "to_string");
+String.getters.set "to_byte_array" MoreMethods.getters.(get "to_byte_array");
+ByteArray.getters.set "to_string" MoreMethods.getters.(get "to_string");

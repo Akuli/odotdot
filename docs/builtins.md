@@ -8,7 +8,7 @@ needed functions. They are listed here.
 
 ### debug
 
-`debug x;` does the same thing as `print (x.to_debug_string);`. See
+`debug x;` does the same thing as `print x.(to_debug_string);`. See
 [Object](#object) for more info about the `to_debug_string` method and
 [the debugging section of the tutorial].
 
@@ -236,7 +236,7 @@ Example:
 # print numbers from 0 to 9
 var i = 0;
 while { (i < 10) } {
-    print (i.to_string);
+    print i.(to_string);
     i = (i + 1);
 };
 
@@ -253,7 +253,7 @@ languages call `for`. Here's an example:
 ```python
 # print numbers 0 to 9
 for { var i = 0; } { (i < 10) } { i = (i+1); } {
-    print (i.to_string);
+    print i.(to_string);
 };
 
 debug i;   # an error!
@@ -423,7 +423,7 @@ This getter and setter stuff has a few important consequences:
   but a `KeyError` is raised when accessing `setters` or `getters` directly.
 
 Classes also have one method:
-- `(some_class.to_debug_string)` returns a string like `<Class "the name">`
+- `some_class.(to_debug_string)` returns a string like `<Class "the name">`
   where `the name` is `some_class.name`. See also [Object](#object)'s
   `to_debug_string` documentation.
 
@@ -444,7 +444,7 @@ regardless of the type of `x`, and that could be useful with e.g. something
 that checks types with [is_instance_of](#is_instance_of).
 
 Methods:
-- `(object.to_debug_string)` should return a programmer-friendly string that
+- `object.(to_debug_string)` should return a programmer-friendly string that
   describes the object. [The debug function](#debug) uses this. `Object`'s
   `to_debug_string` returns a string like `<ClassName at 0xblablabla>` where
   `ClassName` is the name of the object's class and the `0xblablabla` part is
@@ -482,7 +482,7 @@ options](tutorial.md#option-objects).
 
 Option objects should be used every time something may be `none`. This way you
 won't forget to check the `none` case because accessing the value requires an
-explicit `(thingy.get_value)`. `none` is a special `Option` object that represents
+explicit `thingy.(get_value)`. `none` is a special `Option` object that represents
 the no value case.
 
 New options can be created with `(new Option the_value)`. New options with no
@@ -498,13 +498,13 @@ option. This means that you can use `==` and `!=` to check if an option is
 `none`, no matter what the value of the option is when it's not `none`.
 
 Methods:
-- `(option.get_value)` returns the value of the option, or throws [ValueError]
+- `option.(get_value)` returns the value of the option, or throws [ValueError]
   if `option` is `none`.
-- `(option.get_with_fallback default)` returns `default` if `option` is `none`,
+- `option.(get_with_fallback default)` returns `default` if `option` is `none`,
   and the value of the option otherwise.
-- `(option.to_debug_string)` returns a string like `"<Option: valuestring>"`
-  where `valuestring` is `((option.get_value).to_debug_string)`.
-  `(none.to_debug_string)` returns `"none"`. See [Object](#object)'s
+- `option.(to_debug_string)` returns a string like `"<Option: valuestring>"`
+  where `valuestring` is `option.(get_value).(to_debug_string)`.
+  `none.(to_debug_string)` returns `"none"`. See [Object](#object)'s
   `to_debug_string`.
 
 ### Bool
@@ -515,7 +515,7 @@ make sense, so `(new Bool)` always throws an error. This means that
 ``((x `same_object` true) `or` (x `same_object` false))``
 
 Methods:
-- `(true.to_debug_string)` returns `"true"` and `(false.to_debug_string)`
+- `true.(to_debug_string)` returns `"true"` and `false.(to_debug_string)`
   returns `"false"`. This overrides [Object](#object)'s `to_debug_string`.
 
 **See also:** [and](#and), [or](#or), [not](#not), [if](#if)
@@ -545,23 +545,23 @@ Methods:
   instead of an array of characters.
 - `string.length` is like the array `.length` attribute; it is the number of
   characters in the string as an [Integer](#integer).
-- `(string.split_by_whitespace)` splits the string into an array of substrings
+- `string.(split_by_whitespace)` splits the string into an array of substrings
   separated by one or more Unicode whitespace characters (e.g. spaces, tabs or
-  newlines). For example, `(" hello world test ".split_by_whitespace)` returns
+  newlines). For example, `" hello world test ".(split_by_whitespace)` returns
   `["hello" "world" "test"]`.
-- `(string.replace old new)` returns a new String with all occurences of an
+- `string.(replace old new)` returns a new String with all occurences of an
   `old` string replaced by a `new` string. `ValueError` is thrown if `old` is
   `""`. The parts of the string that have already been replaced by `new` are
-  never replaced again, e.g. `("xxxy".replace "xy" "yy")` returns `"xxyy"` even
+  never replaced again, e.g. `"xxxy".(replace "xy" "yy")` returns `"xxyy"` even
   though it contains the `"xy"` string. Unfortunately there's no way to replace
   multiple things at once yet :(
-- `(string.to_string)` returns the `string` unchanged. This is for consistency
+- `string.(to_string)` returns the `string` unchanged. This is for consistency
   with the `to_string` methods of other classes; `to_string` is supposed to
   return a human-readable string representing the object, if any, and the
   human-readable string representing a string is the string itself.
-- `(string.to_debug_string)` returns the string with quotes around it. This
+- `string.(to_debug_string)` returns the string with quotes around it. This
   overrides [Object](#object)'s `to_debug_string`.
-- `(string.to_byte_array encoding_name)` [encodes] the string. The
+- `string.(to_byte_array encoding_name)` [encodes] the string. The
   `encoding_name` is interpreted as if passed to [encodings.get].
 
 Strings can be concatenated with the `+` operator: `("hello" + "world")`
@@ -626,7 +626,7 @@ Methods:
   `ByteArray`, so if you have a 2GB `ByteArray` and you take a 1GB slice of it,
   you use 3GB of RAM. If this is a problem for you, let me know and I'll
   optimize this.
-- `(bytearray.to_string encoding_name)` [decodes] the `ByteArray`. The
+- `bytearray.(to_string encoding_name)` [decodes] the `ByteArray`. The
   `encoding_name` is interpreted as if passed to [encodings.get].
 
 Attributes:
@@ -653,8 +653,8 @@ The smallest allowed value of an integer is
 `Integer` differently so that it won't have these restrictions.
 
 Methods (`x` and `y` are Integers):
-- `(x.to_string)` converts the integer to a string without leading zeros.
-- `(x.to_debug_string)` returns `(x.to_string)`. This overrides
+- `x.(to_string)` converts the integer to a string without leading zeros.
+- `x.(to_debug_string)` returns `x.(to_string)`. This overrides
   [Object](#object)'s `to_debug_string`.
 
 The following operators work with integers like you would expect them to work,
@@ -680,7 +680,7 @@ Missing features:
   special syntax (`0xff` is useful in low-level languages like C, but confuses
   people in high-level languages), but syntax like `(new Integer "ff" 16)`
   would be useful for e.g. dealing with hexadecimal colors. Similarly,
-  `(255.to_string 16)` could return `"ff"`.
+  `255.(to_string 16)` could return `"ff"`.
 
 ### Array
 
@@ -706,18 +706,18 @@ Attributes:
 
 Methods:
 - `array.push item;` adds `item` to the end of the array.
-- `(array.pop)` deletes and returns the last item from the end of the array.
-- `(array.get i)` returns the `i`'th element from the array. `(array.get 0)`
-  is the first element, `(array.get 1)` is the second and so on. An error is
-  thrown if `i` is negative or not less than `(array.get_length)`.
+- `array.(pop)` deletes and returns the last item from the end of the array.
+- `array.(get i)` returns the `i`'th element from the array. `array.(get 0)`
+  is the first element, `array.(get 1)` is the second and so on. An error is
+  thrown if `i` is negative or not less than `array.length`.
 - `array.set i value;` sets the `i`'th item of the array to `value`. See `get`
   for more information about the `i` index.
-- `(array.slice i j)` returns a new array that contains the elements between
+- `array.(slice i j)` returns a new array that contains the elements between
   `i` and `j`. Both `i` and `j` are interpreted so that `0` means the beginning
-  of the array and `(thing.get_length)` means the end of the array. Too big or
-  small indexes are "rounded" to the closest possible values.
-- `(array.slice i)` returns `(array.slice i (array.get_length))`.
-- `(array.to_debug_string)` calls `to_debug_string` methods of the array
+  of the array and `length` means the end of the array. Too big or small
+  indexes are "rounded" to the closest possible values.
+- `array.(slice i)` returns `array.(slice i array.length)`.
+- `array.(to_debug_string)` calls `to_debug_string` methods of the array
   elements and returns the debug strings in square brackets, joined with
   spaces. This overrides [Object](#object)'s `to_debug_string`.
 
@@ -776,11 +776,11 @@ Attributes:
 Methods:
 - `mapping.set key value;` adds a new key-value pair to the mapping or changes
   the value of a key that is already in the mapping.
-- `(mapping.get key)` returns the value of a key or throws an error if the key
+- `mapping.(get key)` returns the value of a key or throws an error if the key
   is not found.
 - `mapping.delete key;` deletes a key-value pair from the mapping. An error is
   thrown if the key is not found.
-- `(mapping.get_and_delete key)` is like `.delete`, but it returns the value
+- `mapping.(get_and_delete key)` is like `.delete`, but it returns the value
   of the deleted key.
 
 Missing features:
@@ -811,7 +811,7 @@ Attributes:
 Methods:
 - `block.run scope;` runs the AST statements in the scope passed to this
   function. This method does nothing with `definition_scope`.
-- `(block.run_with_return scope)` inserts a `return` function to the scope's
+- `block.(run_with_return scope)` inserts a `return` function to the scope's
   local variables and runs the scope as with `block.run scope;`. The `return`
   function takes 1 arguments and throws a [MarkerError] to stop the running.
   `run_with_return` then catches that `MarkerError` (but ignores all other
@@ -843,9 +843,9 @@ For example, you can access the built-in scope like this:
 ```python
 var builtin_scope = {}.definition_scope;
 while { (builtin_scope.parent_scope != none) } {
-    builtin_scope = (builtin_scope.parent_scope.get_value);
+    builtin_scope = builtin_scope.parent_scope.(get_value);
 };
-# now (builtin_scope.local_vars.get "while") works
+# now builtin_scope.local_vars.(get "while") works
 ```
 
 Methods:
@@ -853,9 +853,9 @@ Methods:
   scope, or if it's not found, in the parent scope or its parent scope and so
   on. `{ x = 123; }.run scope;` without `var` in front of `x` is equivalent to
   `scope.set_var "x" 123;`.
-- `(scope.get_var varname)` looks up a variable similarly to `set_var`, but
+- `scope.(get_var varname)` looks up a variable similarly to `set_var`, but
   returns it instead of changing its value. `{ print x; }.run scope;` is
-  equivalent to `print (scope.get_var "x");`
+  equivalent to `print scope.(get_var "x");`.
 
 ### Function
 
@@ -872,14 +872,14 @@ Attributes:
   any string; this is not considered a problem because `.name` is just for
   debugging anyway.
 - `function.returning` is [true] or [false]. The tutorial
-  [explains this nicely](tutorial.md#different-kinds-of-functions).s
+  [explains this nicely](tutorial.md#different-kinds-of-functions).
 
 Methods:
-- `(function.partial arg1 arg2 arg3)` returns a new function that calls the
+- `function.(partial arg1 arg2 arg3)` returns a new function that calls the
   original `function` with `arg1 arg2 arg3` and any arguments passed to the new
   function as arguments. So, `var g = (f.partial a b); g x y;` runs
   `f a b x y;`.
-- `(function.to_debug_string)` returns a string like
+- `function.(to_debug_string)` returns a string like
   `<Function "the name of the function is here">`. See also the `.name`
   attribute above. This overrides [Object](#object)'s `to_debug_string`.
 

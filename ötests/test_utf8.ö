@@ -7,13 +7,13 @@ test "names" {
     var lols = ["UTF-8" "utf-8" "UtF-8" "UtF8" "UTF8" "utf8"];
 
     # every lol should give the same Encoding object
-    var utf8 = (encodings.get (lols.get 0));
+    var utf8 = encodings.(get lols.(get 0));
     foreach "lol" lols {
-        assert ((encodings.get lol) `same_object` utf8);
+        assert (encodings.(get lol) `same_object` utf8);
     };
 
     throws ValueError {
-        var _ = (encodings.get "utf");   # python allows this for some reason
+        var _ = encodings.(get "utf");   # python allows this for some reason
     };
 };
 
@@ -78,20 +78,20 @@ var tests = [
 
 test "decode" {
     foreach "utf8test" tests {
-        var bytes = (new ByteArray (utf8test.get 0));
-        var unicode = (utf8test.get 1);
-        var error = (utf8test.get 2);
+        var bytes = (new ByteArray utf8test.(get 0));
+        var unicode = utf8test.(get 1);
+        var error = utf8test.(get 2);
 
         if (error == none) {
             # if there's no error, there must be unicode
             # otherwise the test makes no sense
-            assert ((bytes.to_string "utf-8") == (unicode.get_value));
+            assert (bytes.(to_string "utf-8") == unicode.(get_value));
         } else: {
             catch {
-                var _ = (bytes.to_string "utf-8");
+                var _ = bytes.(to_string "utf-8");
                 assert false;   # didn't throw
             } [ValueError "e"] {
-                assert (e.message == (error.get_value));
+                assert (e.message == error.(get_value));
             };
         };
     };
@@ -100,19 +100,19 @@ test "decode" {
 
 test "encode" {
     foreach "utf8test" tests {
-        var bytes = (new ByteArray (utf8test.get 0));
-        var unicode = (utf8test.get 1);
-        var error = (utf8test.get 2);
+        var bytes = (new ByteArray utf8test.(get 0));
+        var unicode = utf8test.(get 1);
+        var error = utf8test.(get 2);
 
         if (unicode != none) {
             if (error == none) {
-                assert (((unicode.get_value).to_byte_array "utf-8") == bytes);
+                assert (unicode.(get_value).(to_byte_array "utf-8") == bytes);
             } else: {
                 catch {
-                    var _ = ((unicode.get_value).to_byte_array "utf-8");
+                    var _ = unicode.(get_value).(to_byte_array "utf-8");
                     assert false;   # didn't throw
                 } [ValueError "e"] {
-                    assert (e.message == (error.get_value));
+                    assert (e.message == error.(get_value));
                 };
             };
         };

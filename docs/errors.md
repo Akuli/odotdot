@@ -62,13 +62,13 @@ Attributes of `Error`:
   but the objects in the `stack` may be modified.
 
 Methods of `Error`:
-- `(error.print_stack)` prints a stack trace. If `error.stack` is empty
+- `error.print_stack;` prints a stack trace. If `error.stack` is empty
   (usually it means that the error has never been thrown), this prints
   `SomeError: message` where `message` is `error.message` and `SomeError` is
   the name of the error's class. If the stack is non-empty, the
   `SomeError: message` part is followed by details about which lines of code
   caused the error.
-- `(error.to_debug_string)` returns a string like `<SomeError: "message">`
+- `error.(to_debug_string)` returns a string like `<SomeError: "message">`
   where `SomeError` and `message` mean the same things as above. See also
   [Object](builtins.md#object)'s `to_debug_string` documentation.
 

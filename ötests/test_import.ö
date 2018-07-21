@@ -31,13 +31,13 @@ test "including .ö extension in the import string" {
 };
 
 test "simple importer" {
-    var stack = (stacks.get_stack);
-    var this_file_name = (stack.get (stack.length - 1)).filename;
+    var stack = stacks.(get_stack);
+    var this_file_name = stack.(get (stack.length - 1)).filename;
     var lib = (new (get_class imports));
     var count = 0;
 
     func "importer string stackframe" returning:true {
-        assert (stackframe `is_instance_of` (get_class (stack.get 0)));
+        assert (stackframe `is_instance_of` (get_class stack.(get 0)));
 
         if (string == "testie") {
             assert (stackframe.filename == this_file_name);   # called from this file
@@ -63,7 +63,7 @@ test "simple importer" {
     };
     assert (count == 2);   # the importer was pushed to the end of the importers array
 
-    assert ((imports.importers.pop) `same_object` importer);
+    assert (imports.importers.(pop) `same_object` importer);
 };
 
 test "bad importer" {
@@ -91,8 +91,8 @@ test "bad importer" {
     throws TypeError {
         import "bad2";
     };
-    assert ((imports.importers.pop) `same_object` bad2);
-    assert ((imports.importers.pop) `same_object` bad1);
+    assert (imports.importers.(pop) `same_object` bad2);
+    assert (imports.importers.(pop) `same_object` bad1);
 };
 
 # TODO: implement and test this stuff with case-insensitive file systems

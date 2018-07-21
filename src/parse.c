@@ -591,6 +591,62 @@ static struct Object *parse_block(struct Interpreter *interp, char *filename, st
 }
 
 
+// parses the y of x.y, returning an AstNode that represents the whole x.y
+// attrofwhat is the x
+struct Object *parse_attribute(struct Interpreter *interp, char *filename, struct Token **curtok, struct Object *attrofwhat)
+{
+	assert((*curtok)->kind == TOKEN_ID);   // TODO: report error "invalid attribute name 'bla bla'"
+	size_t lineno = (*curtok)->lineno;  // lineno of an attribute is the lineno of the attribute name
+
+	struct AstGetAttrInfo *getattrinfo = malloc(sizeof(struct AstGetAttrInfo));
+	if(!getattrinfo)    // TODO: set no mem error
+		return NULL;
+
+	getattrinfo->objnode = attrofwhat;
+	OBJECT_INCREF(interp, attrofwhat);
+
+	if (!(getattrinfo->name = stringobject_newfromustr_copy(interp, (*curtok)->str))) {
+		OBJECT_DECREF(interp, attrofwhat);
+		free(getattrinfo);
+		return NULL;
+	}
+	*curtok = (*curtok)->next;
+
+	struct Object *getattr = astnodeobject_new(interp, AST_GETATTR, filename, lineno, getattrinfo);
+	if(!getattr) {
+		OBJECT_DECREF(interp, getattrinfo->name);
+		OBJECT_DECREF(interp, attrofwhat);
+		free(getattrinfo);
+		return NULL;
+	}
+	return getattr;
+}
+
+// parses the (a b c) of x.(a b c), returning an AstNode that represents x.(a b c)
+// x.(a b c) is equivalent to (x.a b c)
+// methodofwhat is the x
+struct Object *parse_dotparen_method_call(struct Interpreter *interp, char *filename, struct Token **curtok, struct Object *methodofwhat)
+{
+	// this should be checked by the caller
+	assert((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == '(');
+	*curtok = (*curtok)->next;
+
+	struct Object *getattr = parse_attribute(interp, filename, curtok, methodofwhat);
+	if (!getattr)
+		return NULL;
+
+	struct Object *call = parse_call(interp, filename, curtok, getattr);
+	OBJECT_DECREF(interp, getattr);
+	if (!call)
+		return NULL;
+
+	// TODO: report error "missing ')'"
+	assert((*curtok)->str.len == 1 && (*curtok)->str.val[0] == ')');
+	*curtok = (*curtok)->next;
+
+	return call;
+}
+
 struct Object *parse_expression(struct Interpreter *interp, char *filename, struct Token **curtok)
 {
 	struct Object *res;
@@ -626,38 +682,21 @@ struct Object *parse_expression(struct Interpreter *interp, char *filename, stru
 	if (!res)
 		return NULL;
 
-	// attributes
+	// attributes and .( method calls
 	while ((*curtok) && (*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == '.') {
-		size_t lineno = (*curtok)->lineno;
-		*curtok = (*curtok)->next;   // skip '.'
-		assert((*curtok));     // TODO: report error "expected an attribute name, but the file ended"
-		assert((*curtok)->kind == TOKEN_ID);   // TODO: report error "invalid attribute name 'bla bla'"
+		*curtok = (*curtok)->next;           // skip '.'
+		assert((*curtok));     // TODO: report error "expected an attribute name or (, but the file ended"
 
-		struct AstGetAttrInfo *getattrinfo = malloc(sizeof(struct AstGetAttrInfo));
-		if(!getattrinfo) {
-			// TODO: set no mem error
-			OBJECT_DECREF(interp, res);
+		struct Object *res2;
+		if ((*curtok)->kind == TOKEN_OP && (*curtok)->str.len == 1 && (*curtok)->str.val[0] == '(')
+			res2 = parse_dotparen_method_call(interp, filename, curtok, res);
+		else
+			res2 = parse_attribute(interp, filename, curtok, res);
+		OBJECT_DECREF(interp, res);
+
+		if (!res2)
 			return NULL;
-		}
-
-		// no need to incref, this function is already holding a reference to res
-		getattrinfo->objnode = res;
-
-		if (!(getattrinfo->name = stringobject_newfromustr_copy(interp, (*curtok)->str))) {
-			free(getattrinfo);
-			OBJECT_DECREF(interp, res);
-			return NULL;
-		}
-		*curtok = (*curtok)->next;
-
-		struct Object *getattr = astnodeobject_new(interp, AST_GETATTR, filename, lineno, getattrinfo);
-		if(!getattr) {
-			OBJECT_DECREF(interp, getattrinfo->name);
-			free(getattrinfo);
-			OBJECT_DECREF(interp, res);
-			return NULL;
-		}
-		res = getattr;
+		res = res2;
 	}
 
 	return res;

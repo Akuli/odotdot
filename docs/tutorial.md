@@ -162,7 +162,7 @@ Here is the correct code.
 
 ```python3
 var message = "hello world";
-var splitted = (message.split_by_whitespace);
+var splitted = message.(split_by_whitespace);
 debug splitted;    # prints ["hello" "world"]
 ```
 
@@ -170,7 +170,7 @@ Or without a temporary `splitted` variable:
 
 ```python3
 var message = "hello world";
-debug (message.split_by_whitespace);
+debug message.(split_by_whitespace);
 ```
 
 Here `message.split_by_whitespace` is a method; we'll talk more about methods
@@ -181,7 +181,7 @@ ignored. If you want to ignore a return value in Ö, you need to do it
 explicitly by creating a dummy variable:
 
 ```python3
-var _ = (message.split_by_whitespace);
+var _ = message.(split_by_whitespace);
 ```
 
 Here `_` is just an idiomatic variable name for throw-away variables.
@@ -278,6 +278,29 @@ debug thing;        # prints ["a" "b" "c" "d"]
 
 There are no fixed sizes; you can put as many elements as you want to an array.
 
+You can also get an element from an array with a `pop` method. It's just a
+function, but unlike `push`, it's a returning function.
+
+```python
+debug (array.pop);    # prints "d";
+debug array;          # prints ["a" "b" "c"]
+```
+
+Usually methods are called like this instead:
+
+```python
+debug array.(pop);    # prints "c";
+```
+
+In general, `thing.(stuff)` is the same thing as `(thing.stuff)`, and
+`thing.(stuff x y z)` is same as `(thing.stuff x y z)`. This `.(` syntax is
+especially useful for chained method calls:
+
+```python
+var lol = (((((a.b).c).x).y).z);     # i'm not sure if i have the same number of '(' and ')' here
+var lol = a.(b).(c).(x).(y).(z);     # this is much better
+```
+
 Arrays can be compared with `==` and `!=`:
 
 ```python
@@ -306,7 +329,7 @@ into an array, even other arrays.
 Now we can access the values of our keys with the `get` method:
 
 ```python
-print (thingy.get "key 2");   # prints "value 2"
+print thingy.(get "key 2");   # prints "value 2"
 ```
 
 [Click here](builtins.md#mapping) for a complete list of mapping methods and
@@ -353,7 +376,7 @@ catch {
 if (website == none) {
     print "No website was specified! Cannot print the URL.";
 } else: {
-    print (website.get_value).url;
+    print website.(get_value).url;
 };
 ```
 
@@ -364,7 +387,7 @@ value passed to `new Option`, and they can be conveniently compared with `==`.
 Here is the broken code:
 
 ```python3
-print (website.get_value).url;
+print website.(get_value).url;
 ```
 
 It's *very* easy to see that something's wrong here because the `.get_value`
@@ -427,9 +450,9 @@ access the scope that our code is running in.
 Scopes also have a `parent_scope` attribute, which is an
 [Option](#option-objects) of a `Scope`. When looking up a variable, like the `y`
 in `print y;`, Ö first checks if the variable is in `this_scope.local_vars`. If
-it's not, `(this_scope.parent_scope.get_value).local_vars` is checked, and if
+it's not, `this_scope.parent_scope.(get_value).local_vars` is checked, and if
 it's not there,
-`((this_scope.parent_scope.get_value).parent_scope.get_value).local_vars` is
+`this_scope.parent_scope.(get_value).parent_scope.(get_value).local_vars` is
 checked and so on. Eventually, Ö gets to the built-in scope; that is the scope
 that built-in functions and other things like `true`, `none`, `new` and
 `Option` are in. The `parent_scope` of the built-in scope is `none`, and that's
@@ -442,7 +465,7 @@ It's also possible to create new Scopes; just create a `Scope` object with
 var subscope = (new Scope {}.definition_scope);
 { var z = "boom boom"; }.run subscope;
 { print z; }.run subscope;             # prints "boom boom"
-print (subscope.local_vars.get "z");   # prints "boom boom"
+print subscope.local_vars.(get "z");   # prints "boom boom"
 print z;       # error because z is in the subscope
 ```
 
@@ -506,7 +529,7 @@ func "fake_if condition block" {
         }]
     ]);
 
-    (mapping.get condition).run {}.definition_scope;
+    mapping.(get condition).run {}.definition_scope;
 };
 
 fake_if (1 == 1) {
@@ -555,7 +578,7 @@ This is useful with functions like [while](builtins.md#while):
 # print numbers 0 to 9
 var i = 0;
 while { (i < 10) } {
-    print (i.to_string);
+    print i.(to_string);
     i = (i + 1);
 };
 ```

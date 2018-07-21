@@ -6,11 +6,11 @@ var ends_with = (import "utils").ends_with;
 test "message attribute" {
     var error = (new TypeError "asd asd");
     assert (error.message == "asd asd");
-    var asd_debug_string = (error.to_debug_string);
+    var asd_debug_string = error.(to_debug_string);
 
     error.message = "toot";
     assert (error.message == "toot");
-    assert ((error.to_debug_string) != asd_debug_string);
+    assert (error.(to_debug_string) != asd_debug_string);
 
     throws TypeError {
         error.message = 123;
@@ -124,7 +124,7 @@ test "how throw sets the stack attribute" {
     assert (e.stack.length > 0);
 
     # lineno isn't cheked exactly because changing the tests changes line numbers
-    var last_frame = (e.stack.get (e.stack.length - 1));
+    var last_frame = e.stack.(get (e.stack.length - 1));
     assert (last_frame.scope `same_object` throwscope);
     assert (last_frame.filename `ends_with` "/ötests/test_errors.ö");
     assert (last_frame.lineno `is_instance_of` Integer);
@@ -138,7 +138,7 @@ test "that the stack doesn't get set on rethrowing" {
 
     assert (e.stack.length > 0);
     var old_stack = e.stack;
-    var old_stack_copy = (e.stack.slice 0);   # because rethrowing must not change the content of the array
+    var old_stack_copy = e.stack.(slice 0);   # because rethrowing must not change the content of the array
     assert (not (old_stack `same_object` old_stack_copy));
     assert (old_stack == old_stack_copy);
 

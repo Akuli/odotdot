@@ -4,9 +4,9 @@ var encodings = (import "<std>/encodings");
 
 
 test "get" {
-    assert ((encodings.get "UTF-8") `same_object` (encodings.get "uTf-8"));
+    assert (encodings.(get "UTF-8") `same_object` encodings.(get "uTf-8"));
     throws ValueError {
-        var _ = (encodings.get "asdasdasd");
+        var _ = encodings.(get "asdasdasd");
     };
 };
 
@@ -22,7 +22,7 @@ test "add" {
 
     var lol = (new encodings.Encoding lol_encode lol_decode);
     encodings.add "lol" lol;
-    assert ((encodings.get "lol") `same_object` lol);
+    assert (encodings.(get "lol") `same_object` lol);
 
     assert (("asd".to_byte_array "lol") == (new ByteArray [1 2 3]));
     assert (((new ByteArray [1 2 3]).to_string "lol") == "asd");

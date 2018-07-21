@@ -6,20 +6,20 @@ test "basic stuff" {
     var m = (new Mapping);
     assert (m.length == 0);
 
-    throws KeyError { var _ = (m.get "a"); };
+    throws KeyError { var _ = m.(get "a"); };
     assert (m.length == 0);
 
     var value = [];
     m.set "a" value;
     assert (m.length == 1);
-    assert ((m.get "a") `same_object` value);
+    assert (m.(get "a") `same_object` value);
 
     m.delete "a";
     assert (m.length == 0);
 
     m.set "b" value;
     assert (m.length == 1);
-    assert ((m.get_and_delete "b") `same_object` value);
+    assert (m.(get_and_delete "b") `same_object` value);
     assert (m.length == 0);
 };
 
@@ -69,8 +69,8 @@ test "constructors" {
 
 test "get_with_fallback" {
     var m = (new Mapping a:"b");
-    assert ((m.get_with_fallback "a" "f") == "b");
-    assert ((m.get_with_fallback "b" "f") == "f");
+    assert (m.(get_with_fallback "a" "f") == "b");
+    assert (m.(get_with_fallback "b" "f") == "f");
 };
 
 test "unhashable keys" {
@@ -83,9 +83,9 @@ test "unhashable keys" {
         var m = (new Mapping []);
         throws TypeError { m.set bad 123; };
         assert (m.length == 0);
-        throws TypeError { var v = (m.get bad); };   # not a KeyError
+        throws TypeError { var v = m.(get bad); };   # not a KeyError
         throws TypeError { m.delete bad; };
-        throws TypeError { var v = (m.get_and_delete bad); };
+        throws TypeError { var v = m.(get_and_delete bad); };
         assert (m.length == 0);
     };
 };

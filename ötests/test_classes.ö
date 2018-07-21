@@ -17,18 +17,18 @@ class "A" inherits:AB { };
 class "B" inherits:AB { };
 
 test "to_debug_string" {
-    assert ((String.to_debug_string) == "<Class \"String\">");
-    assert ((A.to_debug_string) == "<Class \"A\">");
-    assert ((AB.to_debug_string) == "<Class \"AB\">");
+    assert (String.(to_debug_string) == "<Class \"String\">");
+    assert (A.(to_debug_string) == "<Class \"A\">");
+    assert (AB.(to_debug_string) == "<Class \"AB\">");
 };
 
 test "baseclass" {
-    assert ((String.baseclass.get_value) `same_object` Object);
-    assert ((Integer.baseclass.get_value) `same_object` Object);
+    assert (String.baseclass.(get_value) `same_object` Object);
+    assert (Integer.baseclass.(get_value) `same_object` Object);
     assert (Object.baseclass == none);
-    assert ((A.baseclass.get_value) `same_object` AB);
-    assert ((B.baseclass.get_value) `same_object` AB);
-    assert ((AB.baseclass.get_value) `same_object` Object);
+    assert (A.baseclass.(get_value) `same_object` AB);
+    assert (B.baseclass.(get_value) `same_object` AB);
+    assert (AB.baseclass.(get_value) `same_object` Object);
 };
 
 # TODO: document getter and setter!!
@@ -54,8 +54,8 @@ test "getter and setter" {
     };
 
     foreach "pair" [[Thingy "getter"] [SubThingy "subgetter"]] {
-        var thingy = (new (pair.get 0));
-        var get_message = (pair.get 1);
+        var thingy = (new pair.(get 0));
+        var get_message = pair.(get 1);
 
         log = [];
         assert (thingy.thing == "lol");

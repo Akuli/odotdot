@@ -158,6 +158,10 @@ Here's a list of all supported kinds of expressions:
   expression. Giving two or more optional arguments with same names is a syntax
   error. Unlike in e.g. C, all arguments are evaluated in the order they appear
   in the code, from left to right. (TODO: test this)
+- Dotparen call expressions: `expr.(method arg1 arg2 arg3)` is equivalent to
+  `(expr.method arg1 arg2 arg3)`. The arguments must be expressions, and there
+  can be any number of them. `expr` can be any expression, and `method` must be
+  an identifier.
 - Infixed function call expressions: ``(arg1 `function` arg2)`` is equivalent
   to `(function arg1 arg2)`. Here `func`, `arg1` and `arg2` can be any
   expressions. There must be exactly 2 arguments, and no optional arguments.
@@ -171,6 +175,10 @@ Here's a list of all supported kinds of expressions:
   block that does nothing, and `{ expression }` without a `;` is equivalent to
   `{ return expression; }`. However, `{ statement; expression }` is a syntax
   error.
+
+Dotparen call expressions and attribute lookups can be chained, so e.g.
+`x.(y a b c).z` calls `x.y` with the arguments `a b c`, and takes the `z`
+attribute of the result.
 
 Here's a list of statements:
 - Function calls: `function arg1 arg2 arg3;` is like the

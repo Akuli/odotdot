@@ -23,13 +23,13 @@ test "basic stuff" {
     var weird = (new WeirdThingy "lol");
     assert (weird.x == 1);
     assert (weird.y == 2);
-    assert ((weird.lol 3) == [1 2]);
+    assert (weird.(lol 3) == [1 2]);
 
     # TODO: what should this do?
     #weird.lol = "heh";
 
 	foreach "arbi_instance" [(new ArbitraryAttribs) (import "testfiles/hello") weird] {
-        var _ = (arbi_instance.to_debug_string);   # make sure it doesn't throw an exception
+        var _ = arbi_instance.(to_debug_string);   # make sure it doesn't throw an exception
         throws AttribError {
             debug arbi_instance.wat;
         };

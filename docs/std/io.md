@@ -11,7 +11,7 @@ This code writes "Hellö Wörld!" followed by a newline character to `hello.txt`
 ```python
 var io = (import "<std>/io");
 
-(io.open "hello.txt" writing:true).as "file" {
+io.(open "hello.txt" writing:true).as "file" {
     file.write "Hellö Wörld!\n";
 };
 ```
@@ -20,8 +20,8 @@ Now you can open `hello.txt` in your favorite editor, and you should see the
 hellö wörld. You can also read the file in Ö:
 
 ```python
-(io.open "hello.txt" reading:true).as "file" {
-    debug (file.read_all);     # prints "Hellö Wörld!\n"
+io.(open "hello.txt" reading:true).as "file" {
+    debug file.(read_all);     # prints "Hellö Wörld!\n"
 };
 ```
 
@@ -37,12 +37,12 @@ object there as a local variable and runs the block. However, it *always*
 closes the file. This code is **bad**:
 
 ```python
-var file = (io.open "hello.txt" reading:true);
-debug (file.read_all);
+var file = io.(open "hello.txt" reading:true);
+debug file.(read_all);
 file.close;
 ```
 
-If `(file.read_all)` [throws an error][errors], `file.close;` is never called.
+If `file.(read_all)` [throws an error][errors], `file.close;` is never called.
 If the `as` method is used instead, the file is *always* closed.
 
 
@@ -77,18 +77,18 @@ Methods:
   `file_like.flush; file_like.close;` behaves just like `file_like.close;`.
 - `file_like.check_closed;` throws [ValueError] if the file is closed. This is
   useful for implementing methods and attributes in subclasses.
-- `(file_like.read_chunk maxsize)` reads `maxsize` or less bytes, and returns
+- `file_like.(read_chunk maxsize)` reads `maxsize` or less bytes, and returns
   them as a [ByteArray]. If there are less than `maxsize` bytes left before the
   end of file, the file is read to the end and the bytes before the end are
   returned. This means that reading a file whose position is already at the end
   returns an empty [ByteArray].
-- `(file_like.read_all)` calls `read_chunk` repeatedly until the file is read
+- `file_like.(read_all)` calls `read_chunk` repeatedly until the file is read
   to the end, and returns the results as a [ByteArray].
 - `file_like.write bytearray;` saves the bytes from a [ByteArray] to the file
   or prepares them to be actually saved when `flush` is called.
 - `file_like.flush;` makes sure that the data is actually written to the file
   so that it's visible when e.g. reading the file with another file object.
-- `(file_like.get_pos)` returns the position of the file as an [Integer]. The
+- `file_like.(get_pos)` returns the position of the file as an [Integer]. The
   position is never negative.
 - `file_like.set_pos pos;` sets the position to `pos`. If `pos` is negative, a
   `ValueError` is raised, but setting the position to a value too big isn't
@@ -120,7 +120,7 @@ example:
 var io = (import "<std>/io");
 
 func "print_content file" {
-    print (file.read_all);
+    print file.(read_all);
 };
 
 var fake_file = (new io.StringWrapper (new io.FakeFile));
@@ -164,11 +164,11 @@ Methods:
   this is *not* the same as `stringwrapper.wrapped.as varname block;` because
   that sets the variable to `stringwrapper.wrapped`, but `stringwrapper.as`
   sets it to the `stringwrapper`.
-- `(stringwrapper.read_all)` calls `(stringwrapper.wrapped.read_all)` and
+- `stringwrapper.(read_all)` calls `stringwrapper.wrapped.(read_all)` and
   converts the result to a [String].
 - `stringwrapper.write string;` converts the string to a [ByteArray] and
   calls `stringwrapper.wrapped.write`.
-- `(stringwrapper.read_line)` reads the file until it finds a `\n` character
+- `stringwrapper.(read_line)` reads the file until it finds a `\n` character
   or the file ends, and returns an [Option] of the line without `\n`. If the
   file is already at the end and nothing can be read, [none] is returned
   instead.

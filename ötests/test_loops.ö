@@ -71,7 +71,7 @@ test "scopes" {
 
     # good luck with understanding this code
     var funny_body = ((lambda "" returning:true { {scopes.push {}.definition_scope;} }));
-    assert ((funny_body.definition_scope.parent_scope.get_value) `same_object` {}.definition_scope);
+    assert (funny_body.definition_scope.parent_scope.(get_value) `same_object` {}.definition_scope);
 
     for { scopes.push {}.definition_scope; var i = 0; }
         { scopes.push {}.definition_scope; return (i != 2); }
@@ -81,11 +81,11 @@ test "scopes" {
     # a scope should have gotten pushed exactly 8 times, and must be the same scope every time
     assert (scopes.length == 8);
     foreach "scope" scopes {
-        assert (scope `same_object` (scopes.get 0));
+        assert (scope `same_object` scopes.(get 0));
     };
 
     # that scope should be a subscope of the body's definition scope
-    assert (((scopes.get 0).parent_scope.get_value) `same_object` funny_body.definition_scope);
+    assert (scopes.(get 0).parent_scope.(get_value) `same_object` funny_body.definition_scope);
 };
 
 test "return in loop" {

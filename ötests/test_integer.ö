@@ -29,27 +29,27 @@ test "new and to_string" {
     ];
 
     foreach "array" tests {
-        var string = (array.get 0);
-        var integer = (array.get 1);
-        var to_string_must_match = (array.get 2);
-        var to_debug_string_must_match = (array.get 3);
+        var string = array.(get 0);
+        var integer = array.(get 1);
+        var to_string_must_match = array.(get 2);
+        var to_debug_string_must_match = array.(get 3);
 
         assert ((new Integer string) == integer);
         if to_string_must_match {
-            assert ((integer.to_string) == string);
+            assert (integer.(to_string) == string);
             if (integer >= 0) {
-                assert ((integer.to_debug_string) == string);
+                assert (integer.(to_debug_string) == string);
             };
         };
     };
 };
 
 test "to_debug_string" {
-    assert ((123.to_debug_string) == "123");
-    assert ((1.to_debug_string) == "1");
-    assert ((0.to_debug_string) == "0");
-    assert (((1-2).to_debug_string) == "(0-1)");
-    assert (((123-456).to_debug_string) == "(0-333)");
+    assert (123.(to_debug_string) == "123");
+    assert (1.(to_debug_string) == "1");
+    assert (0.(to_debug_string) == "0");
+    assert ((1-2).(to_debug_string) == "(0-1)");
+    assert ((123-456).(to_debug_string) == "(0-333)");
 };
 
 test "limits" {
@@ -59,10 +59,10 @@ test "limits" {
     ];
 
     foreach "pair" should_work {
-        var string = (pair.get 0);
-        var integer = (pair.get 1);
+        var string = pair.(get 0);
+        var integer = pair.(get 1);
         assert ((new Integer string) == integer);
-        assert ((integer.to_string) == string);
+        assert (integer.(to_string) == string);
     };
 
     throws ValueError { var _ = (new Integer "-9223372036854775808"); };

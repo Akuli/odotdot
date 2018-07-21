@@ -20,7 +20,7 @@ test "returning and non-returning funcs" {
     foreach "f" [notreturning1 notreturning2] {
         # clear the asd
         while { (asd.length > 0) } {
-            [].push (asd.pop);
+            [].push asd.(pop);
         };
 
         f;
@@ -37,8 +37,8 @@ test "'returning' attribute" {
         [(lambda "" returning:true {}) true]
     ];
     foreach "test" tests {
-        var function = (test.get 0);
-        var value = (test.get 1);
+        var function = test.(get 0);
+        var value = test.(get 1);
 
         assert (function.returning `same_object` value);
         throws AttribError { function.returning = value; };
@@ -76,11 +76,12 @@ test "things that used to make my interpreter segfault" {
     class "C" { };
     C.getters.set "to_debug_string" (lambda "this" returning:true { return "lol"; });
     var c = (new C);
-    assert (c.to_debug_string == "lol");
+    assert (c.to_debug_string == "lol");    # intentionally broken! should return the method, not "lol"
+    
+
     var mapping = (new Mapping);
-    throws TypeError {
-        mapping.get c;
-    };
+    throws TypeError { var _ = (c.to_debug_string); };
+    throws TypeError { mapping.get c; };
 };
 
 test "throwing MarkerError" {
@@ -100,7 +101,7 @@ test "partial" {
     var ran = 0;
     func "runs block" {
         assert (ran == 0);
-        var result = (block.run_with_return block.definition_scope);
+        var result = block.(run_with_return block.definition_scope);
         assert (result == "hello");
         assert (ran == 1);
         ran = 0;
@@ -109,21 +110,21 @@ test "partial" {
     func "f a b c?" returning:true {
         assert (a == 1);
         assert (b == 2);
-        assert ((c.get_value) == 3);
+        assert (c.(get_value) == 3);
         ran = (ran+1);
         return "hello";
     };
 
-    var partial = (f.partial);
-    var partial1 = (f.partial 1);
-    var partial12 = (f.partial 1 2);
-    var partial13 = (f.partial 1 c:3);
-    var partial123 = (f.partial 1 2 c:3);
-    var partial124 = (f.partial 1 2 c:4);
+    var partial = f.(partial);
+    var partial1 = f.(partial 1);
+    var partial12 = f.(partial 1 2);
+    var partial13 = f.(partial 1 c:3);
+    var partial123 = f.(partial 1 2 c:3);
+    var partial124 = f.(partial 1 2 c:4);
 
     foreach "some_partial" [partial partial1 partial12 partial13 partial123 partial124] {
         assert (some_partial.name == "partial of f");
-        assert ((some_partial.to_debug_string) == "<Function \"partial of f\">");
+        assert (some_partial.(to_debug_string) == "<Function \"partial of f\">");
     };
 
     runs { (partial 1 2 c:3) };

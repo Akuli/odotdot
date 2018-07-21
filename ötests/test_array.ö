@@ -6,10 +6,10 @@ test "nested arrays" {
     # just want to make sure that nested [ ] get parsed correctly
     var nested = ["a" ["b" "c" ] [["d" "e"]]];
     assert (nested.length == 3);
-    assert ((nested.get 0) == "a");
-    assert ((nested.get 1) == ["b" "c"]);
-    assert ((nested.get 2).length == 1);
-    assert (((nested.get 2).get 0) == ["d" "e"]);
+    assert (nested.(get 0) == "a");
+    assert (nested.(get 1) == ["b" "c"]);
+    assert (nested.(get 2).length == 1);
+    assert (nested.(get 2).(get 0) == ["d" "e"]);
 };
 
 test "foreach" {
@@ -41,10 +41,10 @@ test "basic stuff" {
     assert (array.length == 3);
     throws AttribError { array.length = 100; };
 
-    assert ((array.get 0) == "a");
-    assert ((array.get 2) == "c");
-    throws ValueError { var _ = (array.get (0-1)); };
-    throws ValueError { var _ = (array.get 3); };
+    assert (array.(get 0) == "a");
+    assert (array.(get 2) == "c");
+    throws ValueError { var _ = array.(get (0-1)); };
+    throws ValueError { var _ = array.(get 3); };
 
     assert (array == ["a" "b" "c"]);
     assert (["a" "b" "c"] == array);
@@ -56,7 +56,7 @@ test "basic stuff" {
     array.push "d";
     assert (array == ["a" "b" "c" "d"]);
 
-    assert ((array.pop) == "d");
+    assert (array.(pop) == "d");
     assert (array == ["a" "b" "c"]);
 
     array.set 0 "x";
@@ -67,8 +67,8 @@ test "basic stuff" {
     throws ValueError { array.set 3 "z"; };
     assert (array == ["x" "b" "y"]);
 
-    assert ((array.slice 1 2) == ["b"]);
-    assert ((array.slice (0-123) 123) == array);    # out-of-bounds indexes are ok
+    assert (array.(slice 1 2) == ["b"]);
+    assert (array.(slice (0-123) 123) == array);    # out-of-bounds indexes are ok
 };
 
 test "to_debug_string" {
@@ -78,12 +78,12 @@ test "to_debug_string" {
         };
     };
 
-    assert (([].to_debug_string) == "[]");
-    assert (([1].to_debug_string) == "[1]");
-    assert (([1 2 3].to_debug_string) == "[1 2 3]");
-    assert (([ 1 [2] [ [3] ] ].to_debug_string) == "[1 [2] [[3]]]");
-    assert (([ "asd" "lol" ].to_debug_string) == "[\"asd\" \"lol\"]");
+    assert ([].(to_debug_string) == "[]");
+    assert ([1].(to_debug_string) == "[1]");
+    assert ([1 2 3].(to_debug_string) == "[1 2 3]");
+    assert ([ 1 [2] [ [3] ] ].(to_debug_string) == "[1 [2] [[3]]]");
+    assert ([ "asd" "lol" ].(to_debug_string) == "[\"asd\" \"lol\"]");
     throws MathError {
-        var _ = ([(new Broken)].to_debug_string);
+        var _ = [(new Broken)].(to_debug_string);
     };
 };
