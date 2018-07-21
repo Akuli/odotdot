@@ -121,38 +121,79 @@ add_method Array "to_debug_string" (lambda "this" returning:true {
 }.run (new Scope {}.definition_scope);
 
 
-add_method Error "print_stack" (lambda "this" {
-    # TODO: use stderr instead of stdout
-    catch {
-        print (((get_class this).name + ": ") + this.message);
-
-        var prefix = "in";
-        for { var stack_copy = this.stack.(slice 0); } { (stack_copy.length != 0) } {} {
-            var frame = stack_copy.(pop);
-            print ((("  " + prefix) + " ") + frame.(to_string));
-            # TODO: print the source line
-
-            if (prefix == "in") {
-                prefix = "by";
+{
+    # this is dumb, need a nice string method for stripping
+    var remove_indent = (lambda "string" returning:true {
+        if (string.length != 0) {
+            if (string.(get 0) == " ") {
+                return (remove_indent string.(slice 1 string.length));
+            };
+            if (string.(get 0) == "\t") {
+                return (remove_indent string.(slice 1 string.length));
             };
         };
-    } [Error "e"] {    # avoid recursion!
+        return string;
+    });
+
+    var get_source_line = (lambda "filename lineno" returning:true {
+        # FIXME: catching Error catches returns, so can't use them here :((
+        var result = none;
+
         catch {
-            print "got another error while printing the stack trace of an error";
-            print (get_class e).name;
-            print e.message;
-            print "";
-            print "original error was:";
-            print (get_class this).name;
-            print this.message;
-        } Error {
-            # printing doesn't seem to work, which is not impossible
-            # stdout could be closed or whatever
-            # or everything's just so fucked up that the error doesn't have a name or whatever
-            # not much can be done here
+            (import "<std>/io").(open filename reading:true).as "file" {
+                # skip to the correct line, 1 because line numbers start at 1
+                for { var i=1; } { (i < lineno) } { i = (i+1); } {
+                    var _ = file.(read_line);
+                };
+                result = file.(read_line);   # an Option
+            };
+        } [Error "e"] { };
+
+        if (result `same_object` none) {
+            return result;
         };
-    };
-});
+        return (new Option (remove_indent result.(get_value)));
+    });
+
+    add_method Error "print_stack" (lambda "this" {
+        # TODO: use stderr instead of stdout
+        catch {
+            print (((get_class this).name + ": ") + this.message);
+
+            var prefix = "in";
+            for { var stack_copy = this.stack.(slice 0); } { (stack_copy.length != 0) } {} {
+                var frame = stack_copy.(pop);
+                print ((("  " + prefix) + " ") + frame.(to_string));
+
+                if (frame.filename != "<builtins>") {
+                    var line = (get_source_line frame.filename frame.lineno);
+                    if ((line `same_object` none) `same_object` false) {   # because nicer ways don't exist yet
+                        print ("    " + line.(get_value));
+                    };
+                };
+
+                if (prefix == "in") {
+                    prefix = "by";
+                };
+            };
+        } [Error "e"] {    # avoid recursion!
+            catch {
+                print "got another error while printing the stack trace of an error";
+                print (get_class e).name;
+                print e.message;
+                print "";
+                print "original error was:";
+                print (get_class this).name;
+                print this.message;
+            } Error {
+                # printing doesn't seem to work, which is not impossible
+                # stdout could be closed or whatever
+                # or everything's just so fucked up that the error doesn't have a name or whatever
+                # not much can be done here
+            };
+        };
+    });
+}.run (new Scope {}.definition_scope);
 
 
 var func = (lambda "funcname_and_argnames block returning?" {

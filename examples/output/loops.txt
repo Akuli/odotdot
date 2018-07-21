@@ -25,4 +25,5 @@ three
 8
 9
 VariableError: no variable named "j"
-  in file DIRECTORY/examples/loops.ö, line 27
+  in file /home/akuli/ö/examples/loops.ö, line 27
+    debug j;      # VariableError: no variable named "j"

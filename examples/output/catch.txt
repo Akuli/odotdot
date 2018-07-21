@@ -1,4 +1,6 @@
 oops
 VariableError: no variable named "this_function_does_not_exist"
   in file DIRECTORY/examples/catch.ö, line 2
+    this_function_does_not_exist;
   by file DIRECTORY/examples/catch.ö, line 1
+    catch {
