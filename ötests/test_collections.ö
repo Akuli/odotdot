@@ -1,0 +1,84 @@
+var test = (import "utils").test;
+var throws = (import "utils").throws;
+
+var Iterable = (import "<std>/collections").Iterable;
+var Iterator = (import "<std>/collections").Iterator;
+var FrozenArrayLike = (import "<std>/collections").FrozenArrayLike;
+var ArrayLike = (import "<std>/collections").ArrayLike;
+
+
+test "Iterator" {
+    var i = 0;
+    var iterator = (new Iterator (lambda "" returning:true {
+        i = (i+1);
+        assert (i <= 5);
+        if (i == 5) {
+            return none;
+        };
+        return (new Option i.(to_string));
+    }));
+    assert (iterator `is_instance_of` Iterable);
+    assert (iterator.(get_iterator) `same_object` iterator);
+
+    assert (not iterator.is_exhausted);
+    assert (iterator.(next) == (new Option "1"));
+    assert (not iterator.is_exhausted);
+
+    var result = [];
+    iterator.foreach "x" {
+        result.push x;
+    };
+    assert iterator.is_exhausted;
+    assert (result == ["2" "3" "4"]);
+
+    throws ValueError { var _ = iterator.(next); };
+    assert iterator.is_exhausted;
+};
+
+
+test "FrozenArrayLike" {
+    class "OneTwoThree" inherits:FrozenArrayLike {
+        method "get i" returning:true {
+            if ((i < 0) `or` (i >= this.length)) { throw (new ValueError "omg"); };
+            return (i+1);
+        };
+        getter "length" { 3 };
+        method "slice i j" { [1 2 3].(slice i j) };
+    };
+
+    var ott = (new OneTwoThree);
+
+    var lol = [];
+    ott.foreach "x" { lol.push x; };
+    assert (lol == [1 2 3]);
+
+    # must work again
+    lol = [];
+    ott.foreach "x" { lol.push x; };
+    assert (lol == [1 2 3]);
+};
+
+
+test "ArrayLike" {
+    # TODO: this test doesn't actually test much
+    class "OneTwoThreeAndSoOn" inherits:FrozenArrayLike {
+        attrib "values";
+        method "setup" { this.values = [1 2 3]; };
+        method "get i" returning:true { (this.values.get i) };
+        getter "length" { this.values.length };
+        method "slice i j" returning:true { (this.values.slice i j) };
+        method "push value" { this.values.push value; };
+        method "pop" returning:true { this.values.(pop) };
+    };
+
+    var ottaso = (new OneTwoThreeAndSoOn);
+
+    var lol = [];
+    ottaso.foreach "x" { lol.push x; };
+    assert (lol == [1 2 3]);
+
+    lol = [];
+    ottaso.push 4;
+    ottaso.foreach "x" { lol.push x; };
+    assert (lol == [1 2 3 4]);
+};

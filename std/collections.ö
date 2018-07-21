@@ -1,0 +1,69 @@
+export {
+    class "Iterable" {
+        abstract "get_iterator";
+
+        method "foreach varname block" {
+            this.(get_iterator).foreach varname block;
+        };
+    };
+
+    class "Iterator" inherits:Iterable {
+        attrib "_private_function";
+        attrib "_private_is_exhausted";
+
+        method "setup function" {
+            this._private_function = function;
+            this._private_is_exhausted = false;
+        };
+
+        method "get_iterator" returning:true { this };
+
+        getter "is_exhausted" { this._private_is_exhausted };
+        method "next" returning:true {
+            if this._private_is_exhausted {
+                throw (new ValueError "can't loop over an iterator twice");
+            };
+
+            var result = (this._private_function);
+            if (result == none) {
+                this._private_is_exhausted = true;
+            };
+            return result;
+        };
+
+        method "foreach varname block" {
+            var scope = (new Scope block.definition_scope);
+            for { var item = this.(next); } { (item != none) } { item = this.(next); } {
+                scope.local_vars.set varname item.(get_value);
+                block.run scope;
+            };
+        };
+    };
+
+    class "FrozenArrayLike" inherits:Iterable {
+        abstract "get";
+        abstract "length";
+        abstract "slice";
+
+        method "get_iterator" returning:true {
+            var i = 0;
+            return (new Iterator (lambda "" returning:true {
+                if (i >= this.length) {
+                    return none;
+                };
+                var result = this.(get i);
+                i = (i+1);
+                return (new Option result);
+            }));
+        };
+    };
+
+    class "ArrayLike" inherits:FrozenArrayLike {
+        abstract "push";
+        abstract "pop";
+    };
+};
+
+String.baseclass = (new Option FrozenArrayLike);
+ByteArray.baseclass = (new Option FrozenArrayLike);
+Array.baseclass = (new Option ArrayLike);

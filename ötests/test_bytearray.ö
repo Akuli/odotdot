@@ -29,6 +29,8 @@ test "==" {
 };
 
 test "array-like behaviour" {
+    assert (ByteArray.baseclass.(get_value) `same_object` (import "<std>/collections").FrozenArrayLike);
+
     var b = (new ByteArray [12 34 56]);
     assert (b.(get 0) == 12);
     assert (b.(get 1) == 34);

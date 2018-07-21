@@ -78,6 +78,8 @@ test "to_debug_string" {
 };
 
 test "array-like methods" {
+    assert (String.baseclass.(get_value) `same_object` (import "<std>/collections").FrozenArrayLike);
+
     assert ("aåä".length == 3);
     throws AttribError { "aåä".length = 100; };
 

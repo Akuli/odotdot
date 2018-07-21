@@ -471,6 +471,7 @@ func "foreach varname array block" {
 var _ = (import "<std>/operators");
 var _ = (import "<std>/imports");
 var _ = (import "<std>/encodings");
+var _ = (import "<std>/collections");
 var _ = (import "<std>/io");
 {}.definition_scope.local_vars.delete "_";
 

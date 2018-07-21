@@ -537,7 +537,11 @@ special cases, but ``(string1 `same_object` string2)`` is not *guaranteed* to
 have any meaningful value. tl;dr: don't do it.
 
 Strings behave a lot like [arrays](#array) of strings of length 1. For example,
-`(["h" "e" "l" "l" "o"].get 3)` and `("hello".get 3)` both return `"l"`.
+`(["h" "e" "l" "l" "o"].get 3)` and `("hello".get 3)` both return `"l"`. To be
+more precise, `String` is a subclass of [FrozenArrayLike].
+
+Strings can be concatenated with the `+` operator: `("hello" + "world")`
+returns `"helloworld"`.
 
 Methods:
 - `string.get` is like the array `.get` method.
@@ -564,9 +568,6 @@ Methods:
 - `string.(to_byte_array encoding_name)` [encodes] the string. The
   `encoding_name` is interpreted as if passed to [encodings.get].
 
-Strings can be concatenated with the `+` operator: `("hello" + "world")`
-returns `"helloworld"`.
-
 Missing features:
 - There are very little methods; there's no way to e.g. make the string
   uppercase or join by a separator efficiently.
@@ -580,6 +581,16 @@ A byte is an [Integer](#integer) between 0 and 255, and a `ByteArray` object
 represents a sequence of bytes. Many things, like files and network I/O, store
 everything as sequences of bytes, and these bytes are represented with
 `ByteArray` objects in Ö.
+
+`ByteArray` objects take up much less memory than [Array](#array)s of
+[Integer](#integer)s, and that's why there is a separate class for sequences of
+bytes in the first place. For example, if you have 1GB of data and 2GB of RAM,
+the 1GB should fit just fine in a `ByteArray`, but you'll run out of RAM if you
+try to convert the `ByteArray` to an [Array](#array) of [Integer](#integer)s.
+
+However, even though `ByteArray`s aren't [Array]s, you can pass `ByteArray`s to
+most functions that work with [Array]s because `ByteArray` inherits from
+[FrozenArrayLike].
 
 It's possible to represent string as bytes, and that's how text can be saved to
 files. See [String](#string)'s `to_byte_array` method and `ByteArray`'s
@@ -598,12 +609,6 @@ if any of the [Integer](#integer)s are smaller than 0 or greater than 255.
 `ByteArray` objects behave a lot like the integer arrays that they can be
 created from, but they don't have methods like `push` or `set`; you cannot
 change the content of a `ByteArray` after creating a `ByteArray`.
-
-`ByteArray` objects take up much less memory than [Array](#array)s of
-[Integer](#integer)s, and that's why there is a separate class for sequences of
-bytes in the first place. For example, if you have 1GB of data and 2GB of RAM,
-the 1GB should fit just fine in a `ByteArray`, but you'll run out of RAM if you
-try to convert the `ByteArray` to an [Array](#array) of [Integer](#integer)s.
 
 `ByteArray` objects can be compared with `==`, but it can be very slow if *all*
 of the following are true:
@@ -624,8 +629,8 @@ Methods:
 - `bytearray.slice` is like the array `.slice` method, but it returns another
   `ByteArray` instead of an [Array](#array). The bytes are copied to a news
   `ByteArray`, so if you have a 2GB `ByteArray` and you take a 1GB slice of it,
-  you use 3GB of RAM. If this is a problem for you, let me know and I'll
-  optimize this.
+  you use 3GB of RAM. If this is a problem for you,
+  [let me know](https://github.com/Akuli/odotdot/issues/new) and I'll fix this.
 - `bytearray.(to_string encoding_name)` [decodes] the `ByteArray`. The
   `encoding_name` is interpreted as if passed to [encodings.get].
 
@@ -684,7 +689,8 @@ Missing features:
 
 ### Array
 
-Arrays represent ordered lists of elements.
+Arrays represent ordered lists of elements that can be changed; it is possible
+to add or remove items without creating a new array.
 
 New arrays cannot be created with `(new Array)`. Use `[` and `]` instead:
 
@@ -699,6 +705,9 @@ There are no size limits; you can add as many elements to an array as you want
 
 Arrays can be compared with `==`, and two arrays compare equal if and only if
 they are of the same length, and they have equal elements in the same order.
+
+If you want to create your own object that behaves just like an array, create a
+class that inherits from [ArrayLike]. `Array` inherits it too.
 
 Attributes:
 - `array.length` is the number of elements in the array as an
@@ -914,3 +923,6 @@ This is a special `Option` object. See [the Option documentation](#option).
 [TypeError]: errors.md
 [ValueError]: errors.md
 [MarkerError]: errors.md
+
+[FrozenArrayLike]: std/collections.md#frozenarraylike
+[ArrayLike]: std/collections.md#arraylike

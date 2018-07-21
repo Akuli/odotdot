@@ -31,6 +31,8 @@ test "foreach" {
 };
 
 test "basic stuff" {
+    assert (Array.baseclass.(get_value) `same_object` (import "<std>/collections").ArrayLike);
+
     # [] must create a new array every time
     func "lol" returning:true { return []; };
     assert (not ((lol) `same_object` (lol)));

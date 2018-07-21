@@ -23,7 +23,6 @@ test "to_debug_string" {
 };
 
 test "baseclass" {
-    assert (String.baseclass.(get_value) `same_object` Object);
     assert (Integer.baseclass.(get_value) `same_object` Object);
     assert (Object.baseclass == none);
     assert (A.baseclass.(get_value) `same_object` AB);
