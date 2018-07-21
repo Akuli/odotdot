@@ -161,37 +161,48 @@ static bool export_cfunc(struct Interpreter *interp, struct ObjectData libdata, 
 	if (!check_args(interp, args, interp->builtins.Block, NULL)) return NULL;
 	if (!check_no_opts(interp, opts)) return NULL;
 	struct Object *block = ARRAYOBJECT_GET(args, 0);
+	struct Object *scope = BLOCKOBJECT_DEFSCOPE(block);
 	struct Object *lib = libdata.data;
 
-	struct Object *filescope = attribute_get(interp, block, "definition_scope");
-	if (!filescope)
+	// keys are variable names that existed when this ran, values are none
+	// this is used for checking which variables were added during the export
+	struct Object *oldvars = mappingobject_newempty(interp);
+	if (!oldvars)
 		return false;
-
-	struct Object *subscope = scopeobject_newsub(interp, filescope);
-	if (!subscope) {
-		OBJECT_DECREF(interp, filescope);
-		return false;
-	}
-
-	if (!blockobject_run(interp, block, subscope))
-		goto error;
 
 	struct MappingObjectIter iter;
-	mappingobject_iterbegin(&iter, SCOPEOBJECT_LOCALVARS(subscope));
+	mappingobject_iterbegin(&iter, SCOPEOBJECT_LOCALVARS(scope));
 	while (mappingobject_iternext(&iter)) {
-		if (!attribute_setwithstringobj(interp, lib, iter.key, iter.value))
-			goto error;
-		if (!mappingobject_set(interp, SCOPEOBJECT_LOCALVARS(filescope), iter.key, iter.value))
+		if (!mappingobject_set(interp, oldvars, iter.key, interp->builtins.none))
 			goto error;
 	}
 
-	OBJECT_DECREF(interp, subscope);
-	OBJECT_DECREF(interp, filescope);
+	if (!blockobject_run(interp, block, scope))
+		goto error;
+
+	mappingobject_iterbegin(&iter, SCOPEOBJECT_LOCALVARS(scope));
+	while (mappingobject_iternext(&iter)) {
+		// check if the var is is in oldvars
+		struct Object *tmp;
+		int res = mappingobject_get(interp, oldvars, iter.key, &tmp);
+		if (res == -1)
+			goto error;
+		if (res == 1) {
+			// it is an old var, not defined in export and not meant to be exported
+			OBJECT_DECREF(interp, tmp);
+			continue;
+		}
+		assert(res == 0);
+
+		if (!attribute_setwithstringobj(interp, lib, iter.key, iter.value))
+			goto error;
+	}
+
+	OBJECT_DECREF(interp, oldvars);
 	return true;
 
 error:
-	OBJECT_DECREF(interp, subscope);
-	OBJECT_DECREF(interp, filescope);
+	OBJECT_DECREF(interp, oldvars);
 	return false;
 }
 

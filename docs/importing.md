@@ -26,10 +26,10 @@ hello.say_hello;   # prints "Hellö Wörld!"
 `Library` class is not in the [built-in scope], but you can access it easily
 with `(get_class (import "something"))` if you need it.
 
-`export` takes one argument, a block, and it runs that block in a new subscope
-of its definition scope. Then it puts all local variables from the block to
-both the definition scope and the attributes of the `Library` object that
-`import` returns. Variables defined outside `export` are not added to the
+`export` takes one argument, a block, and it runs that block in its
+[definition scope]. It checks which variables were created while running the
+block, and adds those variables as attributes to the `Library` object that
+`import` returns. This means that variables defined outside `export` are not added to the
 `Library` object. `export` is not in the built-in scope; it's just added to the
 scope that the library's code runs in.
 
@@ -77,3 +77,4 @@ library file.
 
 
 [built-in scope]: tutorial.md#scopes
+[definition scope]: tutorial.md#scopes
