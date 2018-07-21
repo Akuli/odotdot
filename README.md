@@ -23,7 +23,7 @@ Next you can download and compile the interpreter.
     $ git clone https://github.com/akuli/odotdot
     $ cd odotdot
     $ ./configure
-    $ make
+    $ make -j2
 
 You should get lots of output, but no errors.
 
