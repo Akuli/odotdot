@@ -89,6 +89,12 @@ this could be implemented in pure ö if an `eval` function is added:
 var lol = (format "${a}, ${b} and ${c}");
 ```
 
+a string method might be prettier
+
+```
+var lol = "${a}, ${b} and ${c}".(format);
+```
+
 `format` is too long though, should be `fmt` or something
 
 if the non-function-call alternative is chosen, a function is needed anyway
