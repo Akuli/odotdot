@@ -126,7 +126,7 @@ the var is not found
 would only work for Blocks that have the same `definition_scope`, would
 concatenate `ast_statements`
 
-# chr
+## chr
 i'm not sure where this function should go
 
 ## i/o todos
