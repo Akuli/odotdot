@@ -737,7 +737,7 @@ New Mappings can be created in a few different ways:
 1. `(new Mapping)` creates an empty mapping.
 2. `(new Mapping pair_array)` takes an array of `[key value]` pair arrays and
    adds the keys and values to the mapping.
-3. [Optional arguments][options] can be used together with 1. or 2. to add values with
+3. [Optional arguments][optional arguments] can be used together with 1. or 2. to add values with
    string keys to the mapping.
 
 For example, the following two lines are equivalent:
@@ -774,6 +774,10 @@ Methods:
 
 Missing features:
 - There's no way to loop over all the items in the mapping.
+
+See [MappingLike] and [FrozenMappingLike] if you want to implement your
+own object that behaves like `Mapping`. The `Mapping` class inherits
+from [MappingLike].
 
 ### Block
 
@@ -906,3 +910,5 @@ This is a special `Option` object. See [the Option documentation](#option).
 
 [FrozenArrayLike]: std/collections.md#frozenarraylike
 [ArrayLike]: std/collections.md#arraylike
+[FrozenMappingLike]: std/collections.md#frozenmappinglike
+[MappingLike]: std/collections.md#mappinglike

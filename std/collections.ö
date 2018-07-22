@@ -40,6 +40,7 @@ export {
         };
     };
 
+
     class "FrozenArrayLike" inherits:Iterable {
         abstract "get";
         abstract "length";
@@ -62,8 +63,34 @@ export {
         abstract "push";
         abstract "pop";
     };
+
+
+    # no inherits:, Mapping-like objects are not iterable in ö
+    class "FrozenMappingLike" {
+        abstract "length";
+        abstract "get";
+
+        # TODO: use a "fallback?" in get instead?
+        method "get_with_fallback key fallback" returning:true {
+            catch {
+                return this.(get key);
+            } KeyError {
+                return fallback;
+            };
+        };
+    };
+
+    class "MappingLike" inherits:FrozenMappingLike {
+        abstract "set";
+        abstract "get_and_delete";
+
+        method "delete key" {
+            var _ = this.(get_and_delete key);
+        };
+    };
 };
 
 String.baseclass = (new Option FrozenArrayLike);
 ByteArray.baseclass = (new Option FrozenArrayLike);
 Array.baseclass = (new Option ArrayLike);
+Mapping.baseclass = (new Option MappingLike);

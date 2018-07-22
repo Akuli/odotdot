@@ -65,19 +65,6 @@ add_method Option "get_with_fallback" (lambda "this default" returning:true {
     return this.(get_value);
 });
 
-add_method Mapping "delete" (lambda "this key" {
-    var _ = this.(get_and_delete key);
-});
-
-# TODO: use an optional argument instead
-add_method Mapping "get_with_fallback" (lambda "this key fallback" returning:true {
-    catch {
-        return this.(get key);
-    } KeyError {
-        return fallback;
-    };
-});
-
 add_method Integer "to_debug_string" (lambda "this" returning:true {
     if (this >= 0) {
         # "123"
@@ -459,8 +446,8 @@ func "is_instance_of instance klass" returning:true {
 # see comments in these files for details
 var _ = (import "<std>/operators");
 var _ = (import "<std>/imports");
-var _ = (import "<std>/encodings");
 var _ = (import "<std>/collections");
+var _ = (import "<std>/encodings");
 var _ = (import "<std>/io");
 {}.definition_scope.local_vars.delete "_";
 

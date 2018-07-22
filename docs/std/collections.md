@@ -89,12 +89,59 @@ need overriding *and* these methods:
 - `arraylike.(pop)` should delete the last item from the array and return it.
 
 
+## FrozenMappingLike
+
+This class represents objects that behave like [Mapping], but whose
+content can't be changed. This is *not* a subclass of
+[Iterable](#iterable); mapping-like objects don't have a `foreach`
+method in Ö; instead, this class inherits directly from [Object].
+
+Attributes that need to be overrided:
+- `frozenmappinglike.length` should be the number of key,value pairs in
+  the mapping-like object.
+
+Methods that need to be overrided:
+- `frozenmappinglike.(get key)` should return the value that corresponds
+  to `key`, or throw [KeyError] if the value is not found.
+
+Methods that don't need to be overrided:
+- `frozenmappinglike.(get_with_fallback key fallback)` returns
+  `frozenmappinglike.(get key)`, but if the key is not found, it returns
+  `fallback` instead of throwing [KeyError]. This is implemented by
+  calling `frozenmappinglike.(get key)` and [catching] [KeyError].
+
+
+## MappingLike
+
+This is the baseclass of [Mapping] and a subclass of
+[FrozenMappingLike](#frozenmappinglike). Inherit from this if you want
+to create a mapping-like object that has methods for changing the
+content, like `set` and `delete`.
+
+Subclasses must override all attributes and methods of
+[FrozenMappingLike](#frozenmappinglike) that need overriding *and* these
+methods:
+- `mappinglike.set key value;` should set the value of a key that is
+  already in the mapping, or add a new key,value pair if the key is not
+  found.
+- `mappinglike.(get_and_delete key)` should delete a `key,value` pair
+  from the mapping, looked up by the key.
+
+Methods that don't need to be overrided:
+- `mappinglike.delete key;` calls `mappinglike.(get_and_delete key)` and
+  does nothing with the result.
+
+
 [Array]: ../builtins.md#array
 [Block]: ../builtins.md#block
 [Integer]: ../builtins.md#integer
+[Mapping]: ../builtins.md#mapping
+[Object]: ../builtins.md#object
 [Option]: ../builtins.md#option
 [String]: ../builtins.md#string
 [none]: ../builtins.md#none
 [subscope]: ../tutorial.md#scopes
 [definition scope]: ../tutorial.md#scopes
+[catching]: ../errors.md#catching
 [ValueError]: ../errors.md
+[KeyError]: ../errors.md

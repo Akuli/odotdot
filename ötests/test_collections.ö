@@ -5,6 +5,8 @@ var Iterable = (import "<std>/collections").Iterable;
 var Iterator = (import "<std>/collections").Iterator;
 var FrozenArrayLike = (import "<std>/collections").FrozenArrayLike;
 var ArrayLike = (import "<std>/collections").ArrayLike;
+var FrozenMappingLike = (import "<std>/collections").FrozenMappingLike;
+var MappingLike = (import "<std>/collections").MappingLike;
 
 
 test "Iterator" {
@@ -81,4 +83,109 @@ test "ArrayLike" {
     ottaso.push 4;
     ottaso.foreach "x" { lol.push x; };
     assert (lol == [1 2 3 4]);
+};
+
+
+test "FrozenMappingLike" {
+    class "A1B2C3" inherits:FrozenMappingLike {
+        getter "length" { 3 };
+
+        method "get key" returning:true {
+            return (switch key {
+                case "A" {1};
+                case "B" {2};
+                case "C" {3};
+                default {
+                    throw (new KeyError "lol");
+                };
+            });
+        };
+    };
+
+    var a1b2c3 = (new A1B2C3);
+    assert (a1b2c3.(get_with_fallback "A" 10) == 1);
+    assert (a1b2c3.(get_with_fallback "D" 10) == 10);
+};
+
+test "MappingLike" {
+    class "AB" inherits:MappingLike {
+        attrib "A";
+        attrib "B";
+
+        method "setup" {
+            this.A = none;
+            this.B = none;
+        };
+
+        getter "length" {
+            if ((this.A == none) `and` (this.B == none)) { return 0; };
+            if ((this.A == none) `or` (this.B == none)) { return 1; };
+            return 2;
+        };
+
+        method "set key value" {
+            var _ = (switch key {
+                case "A" {
+                    this.A = (new Option value);
+                    return none;
+                };
+                case "B" {
+                    this.B = (new Option value);
+                    return none;
+                };
+                default {
+                    throw (new ValueError "can't add that key :(");
+                };
+            });
+        };
+
+        method "get key" returning:true {
+            return (switch key {
+                catch {
+                    # none.(get_value) throws ValueError
+                    case "A" { this.A.(get_value) };
+                    case "B" { this.B.(get_value) };
+                    default { throw (new ValueError "oh no"); };
+                } ValueError {
+                    throw (new KeyError "key not found");
+                };
+            });
+        };
+
+        method "get_and_delete key" returning:true {
+            var result = (switch key {
+                case "A" {
+                    var temp = this.A;
+                    this.A = none;
+                    return temp;
+                };
+                case "B" {
+                    var temp = this.B;
+                    this.B = none;
+                    return temp;
+                };
+                default { none };
+            });
+            return result.(get_value);   # throws if the key is not "A" or "B"
+        };
+    };
+
+    var ab = (new AB);
+    assert (ab.length == 0);
+    assert (ab.(get_with_fallback "A" 123) == 123);
+    assert (ab.(get_with_fallback "B" 123) == 123);
+
+    ab.set "A" 5;
+    assert (ab.length == 1);
+    ab.set "B" 6;
+    assert (ab.length == 2);
+    assert (ab.(get_with_fallback "A" 123) == 5);
+    assert (ab.(get_with_fallback "B" 123) == 6);
+
+    assert (ab.(get_and_delete "A") == 5);
+    assert (ab.length == 1);
+    ab.delete "B";
+    assert (ab.length == 0);
+    assert (ab.(get_with_fallback "A" 123) == 123);
+    assert (ab.(get_with_fallback "B" 123) == 123);
 };
