@@ -111,6 +111,39 @@ test "split_by_whitespace" {
     };
 };
 
+# TODO: where should this be? test_things_that_are_common_to_bytearray_and_string.ö?
+test "split" {
+    var bytes = (new Mapping a:1 s:2 d:3 k:4);
+
+    func "get_byte_array string" returning:true {
+        var result = [];
+        string.foreach "character" {
+            result.push bytes.(get character);
+        };
+        return (new ByteArray result);
+    };
+    func "id x" returning:true { x };
+
+    [get_byte_array id].foreach "f" {
+        var empty = (f "");
+        var a = (f "a");
+        var as = (f "as");
+        var assd = (f "assd");
+        var d = (f "d");
+        var k = (f "k");
+        var s = (f "s");
+        var sd = (f "sd");
+        var ss = (f "ss");
+
+        throws ValueError { var _ = assd.(split empty); };
+        assert (assd.(split ss) == [a d]);
+        assert (assd.(split k) == [assd]);
+        assert (assd.(split sd) == [as empty]);
+        assert (assd.(split s) == [a empty d]);
+        assert (assd.(split as) == [empty sd]);
+    };
+};
+
 test "replace" {
     assert (("hello world".replace "worl" "asdd") == "hello asddd");
     assert (("lol xyzz".replace "xy" "ab") == "lol abzz");

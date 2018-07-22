@@ -530,6 +530,10 @@ Methods:
   separated by one or more Unicode whitespace characters (e.g. spaces, tabs or
   newlines). For example, `" hello world test ".(split_by_whitespace)` returns
   `["hello" "world" "test"]`.
+- `string.(split separator)` returns an [Array](#array) of parts of
+  `string` that have `separator` between them. For example,
+  `"asda".(split "sd")` returns `["a" "a"]`, and `"asda".(split "kk")`
+  returns `["asda"]`. [ValueError] is thrown if the `separator` is `""`.
 - `string.(replace old new)` returns a new String with all occurences of an
   `old` string replaced by a `new` string. `ValueError` is thrown if `old` is
   `""`. The parts of the string that have already been replaced by `new` are
@@ -608,6 +612,8 @@ Methods:
   `ByteArray`, so if you have a 2GB `ByteArray` and you take a 1GB slice of it,
   you use 3GB of RAM. If this is a problem for you,
   [let me know](https://github.com/Akuli/odotdot/issues/new) and I'll fix this.
+- `bytearray.(split separator)` is like [String](#string)'s `split`, but
+  it works with `ByteArray` objects instead of strings.
 - `bytearray.(to_string encoding_name)` [decodes] the `ByteArray`. The
   `encoding_name` is interpreted as if passed to [encodings.get].
 

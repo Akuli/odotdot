@@ -65,6 +65,41 @@ add_method Option "get_with_fallback" (lambda "this default" returning:true {
     return this.(get_value);
 });
 
+
+{
+    var split = (lambda "this separator" returning:true {
+        # the algorithm below gets into an infinite loop with an empty separator
+        # python throws an error for this as well :D
+        if (separator.length == 0) {
+            throw (new ValueError "cannot split by \"\"");
+        };
+
+        var separator_starts = [];
+        for { var i = 0; } { ((i + separator.length) <= this.length) } { } {
+            if (this.(slice i (i+separator.length)) == separator) {
+                separator_starts.push i;
+                i = (i + separator.length);     # avoid overlapping matches
+            } else: {
+                i = (i+1);
+            };
+        };
+
+        var result = [];
+        var previous_separator_end = 0;
+        separator_starts.foreach "separator_start" {
+            result.push this.(slice previous_separator_end separator_start);
+            previous_separator_end = (separator_start + separator.length);
+        };
+        result.push this.(slice previous_separator_end this.length);
+        return result;
+    });
+
+    # dynamic typing ftw
+    add_method String "split" split;
+    add_method ByteArray "split" split;
+}.run (new Scope {}.definition_scope);
+
+
 add_method Integer "to_debug_string" (lambda "this" returning:true {
     if (this >= 0) {
         # "123"
