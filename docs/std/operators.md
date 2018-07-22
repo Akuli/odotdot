@@ -101,6 +101,7 @@ that may or may not change what `(a != b)` does.
 [TypeError]: ../errors.md
 [lambda]: ../builtins.md#lambda
 [is_instance_of]: ../builtins.md#is_instance_of
+[and]: ../builtins.md#and
 [or]: ../builtins.md#or
 [not]: ../builtins.md#not
 [Bool]: ../builtins.md#Bool
