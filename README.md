@@ -47,6 +47,9 @@ See [the tutorial](docs/tutorial.md) for more. There's also
 ### How do I type ö?
 With the ö key. It's right next to the ä key.
 
+### How do I spell ö?
+https://www.youtube.com/watch?v=HiUDj6jTgTY
+
 ### Why did you name the programming language Ö?
 Ö is used quite often in Finnish, and people who aren't used to it think that
 it looks like a face with mouth fully opened.
