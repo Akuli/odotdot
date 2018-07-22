@@ -1,4 +1,5 @@
-var encodings = (import "encodings");
+var collections = (import "<std>/collections");
+var encodings = (import "<std>/encodings");
 
 
 func "run_block_with_file_as_var block file varname" {
@@ -166,28 +167,41 @@ export {
             run_block_with_file_as_var block this varname;
         };
 
-        method "read_line" returning:true {
+        method "read_lines" returning:true {
             var newline = (new ByteArray [10]);
+            var buffer = (new ByteArray []);
 
-            # TODO: do some magics to avoid reading 1 byte at a time?
-            var line = this.wrapped.(read_chunk 1);
-            if (line.length == 0) {
-                # end of file, must distinguish the "nothing was read" case
-                return none;
-            };
-            if (line == newline) {
-                # \n byte, we have an empty line
-                return (new Option "");
-            };
+            return (new collections.Iterator (lambda "" returning:true {
+                while {true} {
+                    # try to find a newline character
+                    for { var i = 0; } { (i < buffer.length) } { i = (i+1); } {
+                        if (buffer.(get i) == 10) {    # ((chr 10) == "\n")
+                            var line = buffer.(slice 0 i);
+                            buffer = buffer.(slice (i+1) buffer.length);
+                            return (new Option line.(to_string this.encoding));
+                        };
+                    };
 
-            while { true } {
-                var byte = this.wrapped.(read_chunk 1);
-                if ((byte.length == 0) `or` (byte == "\n".(to_byte_array "utf-8"))) {
-                    # end of file or line
-                    return (new Option line.(to_string this.encoding));
+                    # the buffer doesn't contain a newline, so we need to read more
+                    var chunk = this.wrapped.(read_chunk 4096);
+                    if (chunk.length == 0) {
+                        # end of file
+                        if (buffer.length == 0) {
+                            # the file ended with a newline character, ignore the empty "line" after that
+                            # we also get here after running the else: below
+                            return none;
+                        } else: {
+                            # no trailing newline, so the last line is still in the buffer
+                            var result = buffer;
+                            buffer = (new ByteArray []);
+                            return (new Option result.(to_string this.encoding));
+                        };
+                    };
+
+                    buffer = (buffer + chunk);
+                    # jump back to trying to find a newline character again
                 };
-                line = (line + byte);
-            };
+            }));
         };
     };
 };

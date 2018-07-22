@@ -163,11 +163,13 @@ add_method Array "to_debug_string" (lambda "this" returning:true {
 
         catch {
             (import "<std>/io").(open filename reading:true).as "file" {
+                var iterator = file.(read_lines);
+
                 # skip to the correct line, 1 because line numbers start at 1
                 for { var i=1; } { (i < lineno) } { i = (i+1); } {
-                    var _ = file.(read_line);
+                    var _ = iterator.(next).(get_value);
                 };
-                result = file.(read_line);   # an Option
+                result = iterator.(next);   # an Option
             };
         } [Error "e"] { };
 

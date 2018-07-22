@@ -164,14 +164,34 @@ Methods:
   this is *not* the same as `stringwrapper.wrapped.as varname block;` because
   that sets the variable to `stringwrapper.wrapped`, but `stringwrapper.as`
   sets it to the `stringwrapper`.
-- `stringwrapper.(read_all)` calls `stringwrapper.wrapped.(read_all)` and
-  converts the result to a [String].
 - `stringwrapper.write string;` converts the string to a [ByteArray] and
   calls `stringwrapper.wrapped.write`.
-- `stringwrapper.(read_line)` reads the file until it finds a `\n` character
-  or the file ends, and returns an [Option] of the line without `\n`. If the
-  file is already at the end and nothing can be read, [none] is returned
-  instead.
+- `stringwrapper.(read_all)` calls `stringwrapper.wrapped.(read_all)` and
+  converts the result to a [String].
+- `stringwrapper.(read_lines)` returns an [Iterator] for reading one line at a
+  time. The lines don't contain trailing `\n` characters. If the file ends with
+  a `\n` character, the last `\n` is ignored; this is done because it is
+  considered good practice to end text files with a `\n`. However, if the file
+  ends with multiple `\n` characters or it has repeated `\n` characters
+  elsewhere, only the last `\n` at the end of file is ignored; `a\n\nb` is read
+  like `"a" "" "b"`, and `c\n\n` is read as `"c" ""`. `read_lines` reads the
+  file in chunks so that other reading methods must not be used after calling
+  `read_lines`.
+
+Here is an example of printing the file with `read_lines`. Note that `print`
+adds a `\n` at the end of each line, so the file is copied to the terminal as
+is, except that a `\n` is added to the end if the file doesn't end with a
+newline:
+
+```python
+var io = (import "<std>/io");
+
+io.(open "cool file.txt" reading:true).as "file" {
+    file.(read_lines).foreach "line" {
+        print line;
+    };
+};
+```
 
 Note that there's no `read_chunk` method. If you want to read chunks of data,
 it probably makes sense to work with [ByteArray]s instead of [String]s and you
@@ -219,5 +239,6 @@ to be empty when reading because `writing:true` emptied it.
 [rethrowing]: ../errors.md#rethrowing
 [encodings]: encodings.md
 [ArgError]: ../errors.md
+[Iterator]: collections.md#iterator
 [ValueError]: ../errors.md
 [Option]: ../builtins.md#option

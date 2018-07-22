@@ -142,31 +142,34 @@ test "read_line" {
     (new io.StringWrapper (new io.FakeFile)).as "file" {
         file.write "first line\nsecond line\n\nfourth line\nno newline at end of file";
         file.wrapped.set_pos 0;
-        assert (file.(read_line) == (new Option "first line"));
-        assert (file.wrapped.(read_chunk 3) == "sec".(to_byte_array "utf-8"));
-        assert (file.(read_line) == (new Option "ond line"));
-        assert (file.(read_line) == (new Option ""));
-        assert (file.(read_line) == (new Option "fourth line"));
-        assert (file.(read_line) == (new Option "no newline at end of file"));
-        assert (file.(read_line) == none);
-        assert (file.(read_line) == none);
+
+        var lines = [];
+        file.(read_lines).foreach "line" { lines.push line; };
+        assert (lines == [
+            "first line"
+            "second line"
+            ""
+            "fourth line"
+            "no newline at end of file"
+        ]);
     };
 
     (new io.StringWrapper (new io.FakeFile)).as "file" {
         file.write "one newline\n";
         file.wrapped.set_pos 0;
-        assert (file.(read_line) == (new Option "one newline"));
-        assert (file.(read_line) == none);
-        assert (file.(read_line) == none);
+
+        var lines = [];
+        file.(read_lines).foreach "line" { lines.push line; };
+        assert (lines == ["one newline"]);
     };
 
     (new io.StringWrapper (new io.FakeFile)).as "file" {
         file.write "two newlines\n\n";
         file.wrapped.set_pos 0;
-        assert (file.(read_line) == (new Option "two newlines"));
-        assert (file.(read_line) == (new Option ""));
-        assert (file.(read_line) == none);
-        assert (file.(read_line) == none);
+
+        var lines = [];
+        file.(read_lines).foreach "line" { lines.push line; };
+        assert (lines == ["two newlines" ""]);
     };
 };
 
