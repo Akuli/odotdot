@@ -85,6 +85,10 @@ hopefully fix some day.
 
 You can press Ctrl+C or Ctrl+D to get out of the REPL.
 
+### I have a nice idea for Ö. Can you implement it?
+Maybe. [Create a GitHub issue.](https://github.com/Akuli/odotdot/issues/new)
+
+
 ## Tests
 
 This stuff is for people who want to develop my Ö interpreter (it's awesome if
