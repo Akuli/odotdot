@@ -49,13 +49,6 @@ var x = (option.get);                 # throws an error if option is null
 var y = (option.get fallback:"asd");  # doesn't throw errors
 ```
 
-## oopy List baseclass and stuff
-
-- maybe this should go to e.g. `std/datastructures.ö` or `std/lists.ö`
-- similar stuff for Mapping
-- maybe it'd be best to rename Mapping to HashTable, and have
-  Mapping be an abstract class
-
 ## repl: handle multiline input
 - the parser should return a different value for unexpected end-of-file
   than other errors
