@@ -23,7 +23,7 @@ func "do_plus x y" {
     operators.add_array.foreach "function" {
         var result = (function x y);
         if (result != none) {
-            return result;
+            return result.(get_value);
         };
     };
 
