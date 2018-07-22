@@ -131,7 +131,7 @@ possible to access the `AstNode` class like this:
 
 ```python
 var print_statement = ({ print "hello"; }.ast_statements.get 0);
-var AstNode = (magic_function_that_gets_the_class print_statement);
+var AstNode = (get_class print_statement);
 ```
 
 Ast nodes can represent two things:
